@@ -51,7 +51,8 @@ class Shader;
 
 enum {
 	GFX_LINEAR = 0,
-	GFX_NEAREST = 1
+	GFX_NEAREST = 1,
+	GFX_CRT = 2
 };
 
 class OpenGLGraphicsManager : virtual public GraphicsManager {
@@ -317,6 +318,11 @@ private:
 	 * OpenGL pipeline used for rendering.
 	 */
 	Pipeline *_pipeline;
+
+	/**
+	* OpenGL pipeline used for rendering.
+	*/
+	Pipeline *_crtEmulationPipeline;
 
 protected:
 	/**

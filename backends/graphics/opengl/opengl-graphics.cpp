@@ -47,7 +47,7 @@ namespace OpenGL {
 
 OpenGLGraphicsManager::OpenGLGraphicsManager()
     : _currentState(), _oldState(), _transactionMode(kTransactionNone), _screenChangeID(1 << (sizeof(int) * 8 - 2)),
-      _pipeline(nullptr),
+      _pipeline(nullptr), _crtEmulationPipeline(nullptr),
       _outputScreenWidth(0), _outputScreenHeight(0), _displayX(0), _displayY(0),
       _displayWidth(0), _displayHeight(0), _defaultFormat(), _defaultFormatAlpha(),
       _gameScreen(nullptr), _gameScreenShakeOffset(0), _overlay(nullptr),
@@ -127,6 +127,7 @@ namespace {
 const OSystem::GraphicsMode glGraphicsModes[] = {
 	{ "opengl_linear",  _s("OpenGL"),                GFX_LINEAR  },
 	{ "opengl_nearest", _s("OpenGL (No filtering)"), GFX_NEAREST },
+	{ "opengl_crt", _s( "OpenGL (CRT Emulation)" ), GFX_CRT },
 	{ nullptr, nullptr, 0 }
 };
 
@@ -146,10 +147,11 @@ bool OpenGLGraphicsManager::setGraphicsMode(int mode) {
 	switch (mode) {
 	case GFX_LINEAR:
 	case GFX_NEAREST:
+	case GFX_CRT:
 		_currentState.graphicsMode = mode;
 
 		if (_gameScreen) {
-			_gameScreen->enableLinearFiltering(mode == GFX_LINEAR);
+			_gameScreen->enableLinearFiltering(mode != GFX_NEAREST);
 		}
 
 		if (_cursor) {
@@ -286,7 +288,7 @@ OSystem::TransactionError OpenGLGraphicsManager::endGFXTransaction() {
 		}
 
 		_gameScreen->allocate(_currentState.gameWidth, _currentState.gameHeight);
-		_gameScreen->enableLinearFiltering(_currentState.graphicsMode == GFX_LINEAR);
+		_gameScreen->enableLinearFiltering(_currentState.graphicsMode != GFX_NEAREST);
 		// We fill the screen to all black or index 0 for CLUT8.
 #ifdef USE_RGB_COLOR
 		if (_currentState.gameFormat.bytesPerPixel == 1) {
@@ -414,8 +416,17 @@ void OpenGLGraphicsManager::updateScreen() {
 
 	const GLfloat shakeOffset = _gameScreenShakeOffset * (GLfloat)_displayHeight / _gameScreen->getHeight();
 
+	// Before drawing the game screen: setup CRT emulation
+	if (_crtEmulationPipeline != nullptr && _currentState.graphicsMode == GFX_CRT) {
+		g_context.setPipeline(_crtEmulationPipeline);
+		g_context.getActivePipeline()->setColor( _gameScreen->getWidth(), _gameScreen->getHeight(), _displayWidth, _displayHeight );
+	}
 	// First step: Draw the (virtual) game screen.
 	g_context.getActivePipeline()->drawTexture(_gameScreen->getGLTexture(), _displayX, _displayY + shakeOffset, _displayWidth, _displayHeight);
+	// After drawing the game screen: tear down CRT emulation
+	if (_crtEmulationPipeline != nullptr && _currentState.graphicsMode == GFX_CRT) {
+		g_context.setPipeline(_pipeline);
+	}
 
 	// Second step: Draw the overlay if visible.
 	if (_overlayVisible) {
@@ -925,6 +936,7 @@ void OpenGLGraphicsManager::notifyContextCreate(const Graphics::PixelFormat &def
 	if (g_context.shadersSupported) {
 		ShaderMan.notifyCreate();
 		_pipeline = new ShaderPipeline(ShaderMan.query(ShaderManager::kDefault));
+		_crtEmulationPipeline = new ShaderPipeline(ShaderMan.query(ShaderManager::kCRTEmulationFilter));
 	}
 #endif
 
@@ -955,6 +967,12 @@ void OpenGLGraphicsManager::notifyContextCreate(const Graphics::PixelFormat &def
 	_backBuffer.enableScissorTest(!_overlayVisible);
 
 	g_context.getActivePipeline()->setFramebuffer(&_backBuffer);
+
+	if (_crtEmulationPipeline != nullptr) {
+		g_context.setPipeline(_crtEmulationPipeline);
+		g_context.getActivePipeline()->setFramebuffer(&_backBuffer);
+		g_context.setPipeline(_pipeline);
+	}
 
 	// Clear the whole screen for the first three frames to assure any
 	// leftovers are cleared.
@@ -1032,6 +1050,11 @@ void OpenGLGraphicsManager::notifyContextDestroy() {
 	g_context.setPipeline(nullptr);
 	delete _pipeline;
 	_pipeline = nullptr;
+	
+	if (_crtEmulationPipeline != nullptr) {
+		delete _crtEmulationPipeline;
+		_crtEmulationPipeline = nullptr;
+	}
 
 	// Rest our context description since the context is gone soon.
 	g_context.reset();

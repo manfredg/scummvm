@@ -249,6 +249,9 @@ public:
 		/** CLUT8 look up shader. */
 		kCLUT8LookUp,
 
+		/** CRT emulation shader. */
+		kCRTEmulationFilter,
+
 		/** Number of built-in shaders. Should not be used for query. */
 		kMaxUsages
 	};
