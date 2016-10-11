@@ -414,6 +414,10 @@ private:
 	 */
 	byte _gamePalette[3 * 256];
 
+	Pipeline *_gameScreenPipeline;
+
+	TextureTarget *_gameScreenTarget;
+
 	/**
 	 * The offset by which the screen is moved vertically.
 	 */

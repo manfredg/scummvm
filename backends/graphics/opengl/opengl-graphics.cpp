@@ -50,7 +50,7 @@ OpenGLGraphicsManager::OpenGLGraphicsManager()
       _pipeline(nullptr), _crtEmulationPipeline(nullptr),
       _outputScreenWidth(0), _outputScreenHeight(0), _displayX(0), _displayY(0),
       _displayWidth(0), _displayHeight(0), _defaultFormat(), _defaultFormatAlpha(),
-      _gameScreen(nullptr), _gameScreenShakeOffset(0), _overlay(nullptr),
+      _gameScreen(nullptr), _gameScreenTarget(nullptr), _gameScreenShakeOffset(0), _overlay(nullptr),
       _overlayVisible(false), _cursor(nullptr),
       _cursorX(0), _cursorY(0), _cursorDisplayX(0),_cursorDisplayY(0), _cursorHotspotX(0), _cursorHotspotY(0),
       _cursorHotspotXScaled(0), _cursorHotspotYScaled(0), _cursorWidthScaled(0), _cursorHeightScaled(0),
@@ -277,6 +277,12 @@ OSystem::TransactionError OpenGLGraphicsManager::endGFXTransaction() {
 		delete _gameScreen;
 		_gameScreen = nullptr;
 
+		if (_gameScreenTarget != nullptr) {
+			_gameScreenTarget->destroy();
+			delete _gameScreenTarget;
+			_gameScreenTarget = nullptr;
+		}
+
 #ifdef USE_RGB_COLOR
 		_gameScreen = createSurface(_currentState.gameFormat);
 #else
@@ -299,6 +305,12 @@ OSystem::TransactionError OpenGLGraphicsManager::endGFXTransaction() {
 #else
 		_gameScreen->fill(0);
 #endif
+
+		_gameScreenTarget = new TextureTarget();
+		_gameScreenTarget->create();
+		_gameScreenTarget->setSize(_currentState.gameWidth, _currentState.gameHeight);
+		_gameScreenTarget->enableBlend(true);
+		_gameScreenPipeline->setFramebuffer(_gameScreenTarget);
 	}
 
 	// Update our display area and cursor scaling. This makes sure we pick up
@@ -416,14 +428,23 @@ void OpenGLGraphicsManager::updateScreen() {
 
 	const GLfloat shakeOffset = _gameScreenShakeOffset * (GLfloat)_displayHeight / _gameScreen->getHeight();
 
-	// Before drawing the game screen: setup CRT emulation
+	// First step: Draw the (virtual) game screen.
+	g_context.setPipeline(_gameScreenPipeline);
+	g_context.getActivePipeline()->drawTexture(_gameScreen->getGLTexture(), 0, _gameScreenShakeOffset, _gameScreen->getWidth(), _gameScreen->getHeight());
+	if (_cursorVisible && _cursor && !_overlayVisible) {
+		int gameScreenCursorX = _cursorX * _gameScreen->getWidth() / _outputScreenWidth - _cursorHotspotX;
+		int gameScreenCursorY = _cursorY * _gameScreen->getHeight() / _outputScreenHeight - _cursorHotspotY + _gameScreenShakeOffset;
+		g_context.getActivePipeline()->drawTexture(_cursor->getGLTexture(), gameScreenCursorX, gameScreenCursorY, _cursor->getWidth(), _cursor->getHeight());
+	}
+
 	if (_crtEmulationPipeline != nullptr && _currentState.graphicsMode == GFX_CRT) {
 		g_context.setPipeline(_crtEmulationPipeline);
-		g_context.getActivePipeline()->setColor( _gameScreen->getWidth(), _gameScreen->getHeight(), _displayWidth, _displayHeight );
+		g_context.getActivePipeline()->setColor(_gameScreen->getWidth(), _gameScreen->getHeight(), _displayWidth, _displayHeight);
 	}
-	// First step: Draw the (virtual) game screen.
-	g_context.getActivePipeline()->drawTexture(_gameScreen->getGLTexture(), _displayX, _displayY + shakeOffset, _displayWidth, _displayHeight);
-	// After drawing the game screen: tear down CRT emulation
+	else {
+		g_context.setPipeline(_pipeline);
+	}
+	g_context.getActivePipeline()->drawTexture(*_gameScreenTarget->getTexture(), _displayX, _displayY, _displayWidth, _displayHeight);
 	if (_crtEmulationPipeline != nullptr && _currentState.graphicsMode == GFX_CRT) {
 		g_context.setPipeline(_pipeline);
 	}
@@ -434,14 +455,10 @@ void OpenGLGraphicsManager::updateScreen() {
 	}
 
 	// Third step: Draw the cursor if visible.
-	if (_cursorVisible && _cursor) {
-		// Adjust game screen shake position, but only when the overlay is not
-		// visible.
-		const GLfloat cursorOffset = _overlayVisible ? 0 : shakeOffset;
-
+	if (_cursorVisible && _cursor && _overlayVisible) {
 		g_context.getActivePipeline()->drawTexture(_cursor->getGLTexture(),
 		                         _cursorDisplayX - _cursorHotspotXScaled,
-		                         _cursorDisplayY - _cursorHotspotYScaled + cursorOffset,
+		                         _cursorDisplayY - _cursorHotspotYScaled,
 		                         _cursorWidthScaled, _cursorHeightScaled);
 	}
 
@@ -937,6 +954,7 @@ void OpenGLGraphicsManager::notifyContextCreate(const Graphics::PixelFormat &def
 		ShaderMan.notifyCreate();
 		_pipeline = new ShaderPipeline(ShaderMan.query(ShaderManager::kDefault));
 		_crtEmulationPipeline = new ShaderPipeline(ShaderMan.query(ShaderManager::kCRTEmulationFilter));
+		_gameScreenPipeline = new ShaderPipeline(ShaderMan.query(ShaderManager::kDefault));
 	}
 #endif
 
@@ -974,6 +992,16 @@ void OpenGLGraphicsManager::notifyContextCreate(const Graphics::PixelFormat &def
 		g_context.setPipeline(_pipeline);
 	}
 
+	if (_gameScreenPipeline != nullptr) {
+		g_context.setPipeline(_gameScreenPipeline);
+		GL_CALL(glDisable(GL_CULL_FACE));
+		GL_CALL(glDisable(GL_DEPTH_TEST));
+		GL_CALL(glDisable(GL_DITHER));
+		g_context.getActivePipeline()->setColor(1.0f, 1.0f, 1.0f, 1.0f);
+		GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+		g_context.setPipeline(_pipeline);
+	}
+
 	// Clear the whole screen for the first three frames to assure any
 	// leftovers are cleared.
 	_scissorOverride = 3;
@@ -998,6 +1026,11 @@ void OpenGLGraphicsManager::notifyContextCreate(const Graphics::PixelFormat &def
 		_gameScreen->recreate();
 	}
 
+	if (_gameScreenTarget) {
+		_gameScreenTarget->create();
+		_gameScreenPipeline->setFramebuffer(_gameScreenTarget);
+	}
+
 	if (_overlay) {
 		_overlay->recreate();
 	}
@@ -1020,6 +1053,10 @@ void OpenGLGraphicsManager::notifyContextCreate(const Graphics::PixelFormat &def
 void OpenGLGraphicsManager::notifyContextDestroy() {
 	if (_gameScreen) {
 		_gameScreen->destroy();
+	}
+
+	if (_gameScreenTarget) {
+		_gameScreenTarget->destroy();
 	}
 
 	if (_overlay) {

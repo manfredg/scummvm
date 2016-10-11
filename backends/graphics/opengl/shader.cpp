@@ -137,7 +137,7 @@ const char *const g_crtEmulationFragmentShader =
 	"vec2 warp=vec2(1.0/64.0,1.0/24.0); \n"
 	"\n"
 	"// Amount of shadow mask.\n"
-	"float maskDark=0.5;\n"
+	"float maskDark=1.0;\n"
 	"float maskLight=1.5;\n"
 	"\n"
 	"//------------------------------------------------------------------------\n"
