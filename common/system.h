@@ -366,8 +366,12 @@ public:
 		/**
 		* shaders
 		*/
-		kFeatureShader
+		kFeatureShader,
 
+		/**
+		* CRT emulation
+		*/
+		kFeatureCRTEmulation,
 	};
 
 	/**
@@ -682,7 +686,8 @@ public:
 		kTransactionModeSwitchFailed = (1 << 2),	/**< Failed switching the GFX graphics mode (setGraphicsMode) */
 		kTransactionSizeChangeFailed = (1 << 3),	/**< Failed switching the screen dimensions (initSize) */
 		kTransactionFormatNotSupported = (1 << 4),	/**< Failed setting the color format */
-		kTransactionFilteringFailed = (1 << 5)		/**< Failed setting the filtering mode */
+		kTransactionFilteringFailed = (1 << 5),		/**< Failed setting the filtering mode */
+		kTransactionCRTEmulationFailed = (1 << 6)	/**< Failed setting the CRT emulation */
 	};
 
 	/**

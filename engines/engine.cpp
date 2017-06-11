@@ -246,6 +246,10 @@ void initCommonGFX(bool defaultTo1XScaler) {
 	// (De)activate filtering mode as determined by the config settings
 	if (gameDomain && gameDomain->contains("filtering"))
 		g_system->setFeatureState(OSystem::kFeatureFilteringMode, ConfMan.getBool("filtering"));
+
+	// (De)activate CRT emulation as determined by the config settings
+	if (gameDomain && gameDomain->contains("crt_emulation"))
+		g_system->setFeatureState(OSystem::kFeatureCRTEmulation, ConfMan.getBool("crt_emulation"));
 }
 
 // Please leave the splash screen in working order for your releases, even if they're commercial.

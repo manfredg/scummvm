@@ -204,6 +204,8 @@ private:
 	 */
 	Surface *createSurface(const Graphics::PixelFormat &format, bool wantAlpha = false);
 
+	void updateLinearFiltering();
+
 	//
 	// Transaction support
 	//
@@ -212,7 +214,7 @@ private:
 #ifdef USE_RGB_COLOR
 		    gameFormat(),
 #endif
-		    aspectRatioCorrection(false), graphicsMode(GFX_OPENGL), filtering(true) {
+		    aspectRatioCorrection(false), graphicsMode(GFX_OPENGL), filtering(true), crtEmulation(false) {
 		}
 
 		bool valid;
@@ -224,6 +226,7 @@ private:
 		bool aspectRatioCorrection;
 		int graphicsMode;
 		bool filtering;
+		bool crtEmulation;
 
 		bool operator==(const VideoState &right) {
 			return gameWidth == right.gameWidth && gameHeight == right.gameHeight
@@ -232,7 +235,8 @@ private:
 #endif
 			    && aspectRatioCorrection == right.aspectRatioCorrection
 			    && graphicsMode == right.graphicsMode
-				&& filtering == right.filtering;
+				&& filtering == right.filtering
+				&& crtEmulation == right.crtEmulation;
 		}
 
 		bool operator!=(const VideoState &right) {

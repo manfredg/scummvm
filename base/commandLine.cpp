@@ -196,6 +196,7 @@ void registerDefaults() {
 	ConfMan.registerDefault("fullscreen", false);
 	ConfMan.registerDefault("filtering", false);
 	ConfMan.registerDefault("aspect_ratio", false);
+	ConfMan.registerDefault("crt_emulation", false);
 	ConfMan.registerDefault("gfx_mode", "normal");
 	ConfMan.registerDefault("render_mode", "default");
 	ConfMan.registerDefault("desired_screen_aspect_ratio", "auto");
@@ -478,6 +479,9 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 			END_OPTION
 
 			DO_LONG_OPTION_BOOL("filtering")
+			END_OPTION
+
+			DO_LONG_OPTION_BOOL("crt_emulation")
 			END_OPTION
 
 #ifdef ENABLE_EVENTRECORDER

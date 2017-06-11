@@ -141,6 +141,7 @@ private:
 	CheckboxWidget *_fullscreenCheckbox;
 	CheckboxWidget *_filteringCheckbox;
 	CheckboxWidget *_aspectCheckbox;
+	CheckboxWidget *_crtEmulationCheckbox;
 	StaticTextWidget *_renderModePopUpDesc;
 	PopUpWidget *_renderModePopUp;
 	

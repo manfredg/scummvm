@@ -159,6 +159,7 @@ void OptionsDialog::init() {
 	_fullscreenCheckbox = 0;
 	_filteringCheckbox = 0;
 	_aspectCheckbox = 0;
+	_crtEmulationCheckbox = 0;
 	_enableShaderSettings = false;
 	_shaderPopUpDesc = 0;
 	_shaderPopUp = 0;
@@ -316,6 +317,11 @@ void OptionsDialog::build() {
 			_aspectCheckbox->setState(ConfMan.getBool("aspect_ratio", _domain));
 		}
 
+		// CRT emulation setting
+		if (g_system->hasFeature(OSystem::kFeatureCRTEmulation))
+			_filteringCheckbox->setState(ConfMan.getBool("crt_emulation", _domain));
+		else
+			_filteringCheckbox->setVisible(false);
 	}
 
 	// Shader options
@@ -461,10 +467,13 @@ void OptionsDialog::apply() {
 				graphicsModeChanged = true;
 			if (ConfMan.getBool("aspect_ratio", _domain) != _aspectCheckbox->getState())
 				graphicsModeChanged = true;
+			if (ConfMan.getBool("crt_emulation", _domain) != _crtEmulationCheckbox->getState())
+				graphicsModeChanged = true;
 
 			ConfMan.setBool("filtering", _filteringCheckbox->getState(), _domain);
 			ConfMan.setBool("fullscreen", _fullscreenCheckbox->getState(), _domain);
 			ConfMan.setBool("aspect_ratio", _aspectCheckbox->getState(), _domain);
+			ConfMan.setBool("crt_emulation", _crtEmulationCheckbox->getState(), _domain);
 
 			bool isSet = false;
 
@@ -491,6 +500,7 @@ void OptionsDialog::apply() {
 			ConfMan.removeKey("fullscreen", _domain);
 			ConfMan.removeKey("filtering", _domain);
 			ConfMan.removeKey("aspect_ratio", _domain);
+			ConfMan.removeKey("crt_emulation", _domain);
 			ConfMan.removeKey("gfx_mode", _domain);
 			ConfMan.removeKey("render_mode", _domain);
 		}
@@ -507,6 +517,8 @@ void OptionsDialog::apply() {
 			g_system->setFeatureState(OSystem::kFeatureFullscreenMode, ConfMan.getBool("fullscreen", _domain));
 		if (ConfMan.hasKey("filtering"))
 			g_system->setFeatureState(OSystem::kFeatureFilteringMode, ConfMan.getBool("filtering", _domain));
+		if (ConfMan.hasKey("crt_emulation"))
+			g_system->setFeatureState(OSystem::kFeatureCRTEmulation, ConfMan.getBool("crt_emulation", _domain));
 
 		OSystem::TransactionError gfxError = g_system->endGFXTransaction();
 
@@ -555,6 +567,12 @@ void OptionsDialog::apply() {
 				ConfMan.setBool("filtering", g_system->getFeatureState(OSystem::kFeatureFilteringMode), _domain);
 				message += "\n";
 				message += _("the filtering setting could not be changed");
+			}
+
+			if (gfxError & OSystem::kTransactionCRTEmulationFailed) {
+				ConfMan.setBool("crt_emulation", g_system->getFeatureState(OSystem::kFeatureCRTEmulation), _domain);
+				message += "\n";
+				message += _("the CRT emulation setting could not be changed");
 			}
 
 			// And display the error
@@ -834,6 +852,7 @@ void OptionsDialog::setGraphicSettingsState(bool enabled) {
 	_renderModePopUpDesc->setEnabled(enabled);
 	_renderModePopUp->setEnabled(enabled);
 	_filteringCheckbox->setEnabled(enabled);
+	_crtEmulationCheckbox->setEnabled(enabled);
 #ifndef GUI_ENABLE_KEYSDIALOG
 	_fullscreenCheckbox->setEnabled(enabled);
 	if (_guioptions.contains(GUIO_NOASPECT))
@@ -1050,6 +1069,9 @@ void OptionsDialog::addGraphicControls(GuiObject *boss, const Common::String &pr
 
 	// Aspect ratio checkbox
 	_aspectCheckbox = new CheckboxWidget(boss, prefix + "grAspectCheckbox", _("Aspect ratio correction"), _("Correct aspect ratio for 320x200 games"));
+
+	// CRT emulation checkbox
+	_crtEmulationCheckbox = new CheckboxWidget(boss, prefix + "grCRTEmulationCheckbox", _("CRT emulation"), _("Emulate a traditional CRT display"));
 
 	_enableGraphicSettings = true;
 }

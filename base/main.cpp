@@ -295,6 +295,8 @@ static void setupGraphics(OSystem &system) {
 			system.setFeatureState(OSystem::kFeatureFullscreenMode, ConfMan.getBool("fullscreen"));
 		if (ConfMan.hasKey("filtering"))
 			system.setFeatureState(OSystem::kFeatureFilteringMode, ConfMan.getBool("filtering"));
+		if (ConfMan.hasKey("crt_emulation"))
+			system.setFeatureState(OSystem::kFeatureCRTEmulation, ConfMan.getBool("crt_emulation"));
 	system.endGFXTransaction();
 
 	// When starting up launcher for the first time, the user might have specified

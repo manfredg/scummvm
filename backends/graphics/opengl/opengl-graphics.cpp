@@ -88,6 +88,7 @@ bool OpenGLGraphicsManager::hasFeature(OSystem::Feature f) {
 	case OSystem::kFeatureAspectRatioCorrection:
 	case OSystem::kFeatureCursorPalette:
 	case OSystem::kFeatureFilteringMode:
+	case OSystem::kFeatureCRTEmulation:
 		return true;
 
 	case OSystem::kFeatureOverlaySupportsAlpha:
@@ -108,15 +109,7 @@ void OpenGLGraphicsManager::setFeatureState(OSystem::Feature f, bool enable) {
 	case OSystem::kFeatureFilteringMode:
 		assert(_transactionMode != kTransactionNone);
 		_currentState.filtering = enable;
-
-		if (_gameScreen) {
-			_gameScreen->enableLinearFiltering(enable);
-		}
-
-		if (_cursor) {
-			_cursor->enableLinearFiltering(enable);
-		}
-
+		updateLinearFiltering();
 		break;
 
 	case OSystem::kFeatureCursorPalette:
@@ -124,8 +117,25 @@ void OpenGLGraphicsManager::setFeatureState(OSystem::Feature f, bool enable) {
 		updateCursorPalette();
 		break;
 
+	case OSystem::kFeatureCRTEmulation:
+		assert(_transactionMode != kTransactionNone);
+		_currentState.crtEmulation = enable;
+		updateLinearFiltering();
+		break;
+
 	default:
 		break;
+	}
+}
+
+void OpenGLGraphicsManager::updateLinearFiltering()
+{
+	if (_gameScreen) {
+		_gameScreen->enableLinearFiltering(_currentState.filtering || _currentState.crtEmulation);
+	}
+
+	if (_cursor) {
+		_cursor->enableLinearFiltering(_currentState.filtering && !_currentState.crtEmulation);
 	}
 }
 
@@ -266,6 +276,10 @@ OSystem::TransactionError OpenGLGraphicsManager::endGFXTransaction() {
 						transactionError |= OSystem::kTransactionFilteringFailed;
 					}
 
+					if (_oldState.crtEmulation != _currentState.crtEmulation) {
+						transactionError |= OSystem::kTransactionCRTEmulationFailed;
+					}
+
 					// Roll back to the old state.
 					_currentState = _oldState;
 					_transactionMode = kTransactionRollback;
@@ -308,7 +322,7 @@ OSystem::TransactionError OpenGLGraphicsManager::endGFXTransaction() {
 		}
 
 		_gameScreen->allocate(_currentState.gameWidth, _currentState.gameHeight);
-		_gameScreen->enableLinearFiltering(_currentState.filtering);
+		_gameScreen->enableLinearFiltering(_currentState.filtering || _currentState.crtEmulation);
 		// We fill the screen to all black or index 0 for CLUT8.
 #ifdef USE_RGB_COLOR
 		if (_currentState.gameFormat.bytesPerPixel == 1) {
@@ -450,7 +464,7 @@ void OpenGLGraphicsManager::updateScreen() {
 		g_context.getActivePipeline()->drawTexture(_cursor->getGLTexture(), gameScreenCursorX, gameScreenCursorY, _cursor->getWidth(), _cursor->getHeight());
 	}
 
-	if (_crtEmulationPipeline != nullptr && _currentState.graphicsMode == GFX_CRT) {
+	if (_crtEmulationPipeline != nullptr && _currentState.crtEmulation) {
 		g_context.setPipeline(_crtEmulationPipeline);
 		g_context.getActivePipeline()->setColor(_gameScreen->getWidth(), _gameScreen->getHeight(), _displayWidth, _displayHeight);
 	}
@@ -458,7 +472,7 @@ void OpenGLGraphicsManager::updateScreen() {
 		g_context.setPipeline(_pipeline);
 	}
 	g_context.getActivePipeline()->drawTexture(*_gameScreenTarget->getTexture(), _displayX, _displayY, _displayWidth, _displayHeight);
-	if (_crtEmulationPipeline != nullptr && _currentState.graphicsMode == GFX_CRT) {
+	if (_crtEmulationPipeline != nullptr && _currentState.crtEmulation) {
 		g_context.setPipeline(_pipeline);
 	}
 
@@ -701,7 +715,7 @@ void OpenGLGraphicsManager::setMouseCursor(const void *buf, uint w, uint h, int 
 		}
 		_cursor = createSurface(textureFormat, true);
 		assert(_cursor);
-		_cursor->enableLinearFiltering(_currentState.filtering);
+		_cursor->enableLinearFiltering(_currentState.filtering && !_currentState.crtEmulation);
 	}
 
 	_cursorKeyColor = keycolor;
