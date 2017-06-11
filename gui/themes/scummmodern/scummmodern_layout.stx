@@ -315,6 +315,9 @@
 			<widget name = 'grFilteringCheckbox'
 					type = 'Checkbox'
 			/>
+			<widget name = 'grCRTEmulationCheckbox'
+					type = 'Checkbox'
+			/>
 		</layout>
 	</dialog>
 

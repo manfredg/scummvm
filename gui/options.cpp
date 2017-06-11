@@ -319,9 +319,9 @@ void OptionsDialog::build() {
 
 		// CRT emulation setting
 		if (g_system->hasFeature(OSystem::kFeatureCRTEmulation))
-			_filteringCheckbox->setState(ConfMan.getBool("crt_emulation", _domain));
+			_crtEmulationCheckbox->setState(ConfMan.getBool("crt_emulation", _domain));
 		else
-			_filteringCheckbox->setVisible(false);
+			_crtEmulationCheckbox->setVisible(false);
 	}
 
 	// Shader options
