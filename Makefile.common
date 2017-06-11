@@ -24,8 +24,8 @@ MODULES += \
 	backends \
 	engines \
 	video \
-	graphics \
 	image \
+	graphics \
 	audio \
 	common \
 	po
@@ -259,6 +259,9 @@ endif
 DIST_FILES_ENGINEDATA=
 ifdef ENABLE_ACCESS
 DIST_FILES_ENGINEDATA+=access.dat
+endif
+ifdef ENABLE_CRYO
+DIST_FILES_ENGINEDATA+=cryo.dat
 endif
 ifdef ENABLE_DRASCULA
 DIST_FILES_ENGINEDATA+=drascula.dat

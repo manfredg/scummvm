@@ -39,11 +39,16 @@ class CMainGameWindow : public CEventTarget {
 private:
 	TitanicEngine *_vm;
 	int _pendingLoadSlot;
-	uint _specialButtons;
 	uint32 _priorLeftDownTime;
 	uint32 _priorMiddleDownTime;
 	uint32 _priorRightDownTime;
 private:
+	/**
+	 * Returns true if a savegame was selected to be loaded
+	 * from the ScummVM launcher
+	 */
+	bool isLoadingFromLauncher() const;
+
 	/**
 	 * Checks for the presence of any savegames and, if present,
 	 * lets the user pick one to resume
@@ -74,8 +79,11 @@ private:
 	void leftButtonDoubleClick(const Point &mousePos);
 	void middleButtonDoubleClick(const Point &mousePos);
 	void rightButtonDoubleClick(const Point &mousePos);
-	void charPress(char c);
-	void handleKbdSpecial(Common::KeyState keyState);
+
+	/**
+	 * Returns true if the player can control the mouse
+	 */
+	bool isMouseControlEnabled() const;
 public:
 	CGameView *_gameView;
 	CGameManager *_gameManager;
@@ -99,8 +107,8 @@ public:
 	virtual void middleButtonUp(const Point &mousePos);
 	virtual void rightButtonDown(const Point &mousePos);
 	virtual void rightButtonUp(const Point &mousePos);
+	virtual void mouseWheel(const Point &mousePos, bool wheelUp);
 	virtual void keyDown(Common::KeyState keyState);
-	virtual void keyUp(Common::KeyState keyState);
 
 	/**
 	 * Called when the application starts
@@ -126,18 +134,6 @@ public:
 	 * Schedules a savegame to be loaded
 	 */
 	void loadGame(int slotId);
-
-	/*
-	 * Return whether a given special key is currently pressed
-	 */
-	bool isSpecialPressed(SpecialButtons btn) const {
-		return (_specialButtons & btn) != 0;
-	}
-
-	/**
-	 * Returns the bitset of the currently pressed special buttons
-	 */
-	uint getSpecialButtons() const { return _specialButtons; }
 };
 
 } // End of namespace Titanic

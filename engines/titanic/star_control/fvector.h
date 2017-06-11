@@ -23,9 +23,14 @@
 #ifndef TITANIC_FVECTOR_H
 #define TITANIC_FVECTOR_H
 
+#include "titanic/star_control/fpoint.h"
+
 namespace Titanic {
 
-class CStarControlSub6;
+enum Axis { X_AXIS, Y_AXIS, Z_AXIS };
+
+class FPose;
+class DVector;
 
 /**
  * Floating point vector class.
@@ -33,36 +38,96 @@ class CStarControlSub6;
  */
 class FVector {
 public:
-	double _x, _y, _z;
+	float _x, _y, _z;
 public:
 	FVector() : _x(0), _y(0), _z(0) {}
-	FVector(double x, double y, double z) : _x(x), _y(y), _z(z) {}
+	FVector(float x, float y, float z) : _x(x), _y(y), _z(z) {}
+	FVector(const DVector &src);
 
-	void fn1(FVector *v);
-	void multiply(FVector *dest, const FVector *src);
-	void fn3();
+	/**
+	 * Clears the vector
+	 */
+	void clear() {
+		_x = _y = _z = 0.0;
+	}
+
+	FVector fn1() const;
+
+	/**
+	 * Calculates the cross-product between this matrix and a passed one
+	 */
+	FVector crossProduct(const FVector &src) const;
+
+	/**
+	 * Normalizes the vector so the length from origin equals 1.0
+	 */
+	float normalize();
+
+	/**
+	 * Adds the current vector and a passed one together, normalizes them,
+	 * and then returns the resulting vector
+	 */
+	FVector addAndNormalize(const FVector &v) const;
 
 	/**
 	 * Returns the distance between a specified point and this one
 	 */
-	double getDistance(const FVector *src) const;
+	float getDistance(const FVector &src) const;
 
-	static void fn4(FVector *dest, const FVector *v1, const FVector *v2);
-	void fn5(FVector *dest, const CStarControlSub6 *sub6) const;
+	FVector fn5(const FPose &pose) const;
 
 	/**
 	 * Returns true if the passed vector equals this one
 	 */
 	bool operator==(const FVector &src) const {
-		return _x != src._x || _y != src._y || _z != src._z;
+		return _x == src._x && _y == src._y && _z == src._z;
 	}
 
 	/**
 	 * Returns true if the passed vector does not equal this one
 	 */
 	bool operator!=(const FVector &src) const {
-		return !operator==(src);
+		return _x != src._x || _y != src._y || _z != src._z;
 	}
+
+	FVector operator+(const FVector &delta) const {
+		return FVector(_x + delta._x, _y + delta._y, _z + delta._z);
+	}
+
+	FVector operator-(const FVector &delta) const {
+		return FVector(_x - delta._x, _y - delta._y, _z - delta._z);
+	}
+
+	const FVector operator*(float right) const {
+		return FVector(_x * right, _y * right, _z * right);
+	}
+
+	void operator+=(const FVector &delta) {
+		_x += delta._x;
+		_y += delta._y;
+		_z += delta._z;
+	}
+
+	void operator-=(const FVector &delta) {
+		_x -= delta._x;
+		_y -= delta._y;
+		_z -= delta._z;
+	}
+
+	void operator+=(const FPoint &delta) {
+		_x += delta._x;
+		_y += delta._y;
+	}
+
+	void operator-=(const FPoint &delta) {
+		_x -= delta._x;
+		_y -= delta._y;
+	}
+
+	/**
+	 * Converts the vector to a string
+	 */
+	Common::String toString() const;
 };
 
 } // End of namespace Titanic

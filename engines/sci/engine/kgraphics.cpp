@@ -21,6 +21,7 @@
  */
 
 #include "common/system.h"
+#include "common/translation.h"
 
 #include "engines/util.h"
 #include "graphics/cursorman.h"
@@ -32,6 +33,7 @@
 #include "sci/event.h"
 #include "sci/resource.h"
 #include "sci/engine/features.h"
+#include "sci/engine/guest_additions.h"
 #include "sci/engine/savegame.h"
 #include "sci/engine/state.h"
 #include "sci/engine/selector.h"
@@ -69,7 +71,7 @@ static int16 adjustGraphColor(int16 color) {
 }
 
 void showScummVMDialog(const Common::String &message) {
-	GUI::MessageDialog dialog(message, "OK");
+	GUI::MessageDialog dialog(message, _("OK"));
 	dialog.runModal();
 }
 
@@ -397,9 +399,7 @@ reg_t kWait(EngineState *s, int argc, reg_t *argv) {
 
 	s->wait(sleep_time);
 
-	if (s->_delayedRestoreGame) {
-		// delayed restore game from ScummVM menu got triggered
-		gamestate_delayedrestore(s);
+	if (g_sci->_guestAdditions->kWaitHook()) {
 		return NULL_REG;
 	}
 
@@ -671,7 +671,12 @@ reg_t kPaletteAnimate(EngineState *s, int argc, reg_t *argv) {
 	// palette animation effect slower and visible, and not have the logo screen
 	// get skipped because the scripts don't wait between animation steps. Fixes
 	// bug #3537232.
-	if (g_sci->getGameId() == GID_SQ4 && !g_sci->isCD() && s->currentRoomNumber() == 1)
+	// The original workaround was for the intro SQ4 logo (room#1).
+	// This problem also happens in the time pod (room#531).
+	// This problem also happens in the ending cutscene time rip (room#21).
+	// This workaround affects astro chicken's (room#290) and is also called once
+	// right after a gameover (room#376)
+	if (g_sci->getGameId() == GID_SQ4 && !g_sci->isCD())
 		g_sci->sleep(10);
 
 	return s->r_acc;
@@ -819,8 +824,7 @@ void _k_GenericDrawControl(EngineState *s, reg_t controlObject, bool hilite) {
 	int16 celNo;
 	int16 priority;
 	reg_t listSeeker;
-	Common::String *listStrings = NULL;
-	const char **listEntries = NULL;
+	Common::String *listStrings = nullptr;
 	bool isAlias = false;
 
 	rect = kControlCreateRect(x, y,
@@ -917,11 +921,9 @@ void _k_GenericDrawControl(EngineState *s, reg_t controlObject, bool hilite) {
 		if (listCount) {
 			// We create a pointer-list to the different strings, we also find out whats upper and cursor position
 			listSeeker = textReference;
-			listEntries = (const char**)malloc(sizeof(char *) * listCount);
 			listStrings = new Common::String[listCount];
 			for (i = 0; i < listCount; i++) {
 				listStrings[i] = s->_segMan->getString(listSeeker);
-				listEntries[i] = listStrings[i].c_str();
 				if (listSeeker.getOffset() == upperOffset)
 					upperPos = i;
 				if (listSeeker.getOffset() == cursorOffset)
@@ -931,8 +933,7 @@ void _k_GenericDrawControl(EngineState *s, reg_t controlObject, bool hilite) {
 		}
 
 		debugC(kDebugLevelGraphics, "drawing list control %04x:%04x to %d,%d, diff %d", PRINT_REG(controlObject), x, y, SCI_MAX_SAVENAME_LENGTH);
-		g_sci->_gfxControls16->kernelDrawList(rect, controlObject, maxChars, listCount, listEntries, fontId, style, upperPos, cursorPos, isAlias, hilite);
-		free(listEntries);
+		g_sci->_gfxControls16->kernelDrawList(rect, controlObject, maxChars, listCount, listStrings, fontId, style, upperPos, cursorPos, isAlias, hilite);
 		delete[] listStrings;
 		return;
 
@@ -981,12 +982,12 @@ reg_t kDrawControl(EngineState *s, int argc, reg_t *argv) {
 		if (!changeDirButton.isNull()) {
 			// check if checkDirButton is still enabled, in that case we are called the first time during that room
 			if (!(readSelectorValue(s->_segMan, changeDirButton, SELECTOR(state)) & SCI_CONTROLS_STYLE_DISABLED)) {
-				showScummVMDialog("Characters saved inside ScummVM are shown "
+				showScummVMDialog(_("Characters saved inside ScummVM are shown "
 						"automatically. Character files saved in the original "
 						"interpreter need to be put inside ScummVM's saved games "
 						"directory and a prefix needs to be added depending on which "
 						"game it was saved in: 'qfg1-' for Quest for Glory 1, 'qfg2-' "
-						"for Quest for Glory 2. Example: 'qfg2-thief.sav'.");
+						"for Quest for Glory 2. Example: 'qfg2-thief.sav'."));
 			}
 		}
 

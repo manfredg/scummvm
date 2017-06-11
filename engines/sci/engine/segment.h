@@ -93,7 +93,7 @@ public:
 	 * Check whether the given offset into this memory object is valid,
 	 * i.e., suitable for passing to dereference.
 	 */
-	virtual bool isValidOffset(uint16 offset) const = 0;
+	virtual bool isValidOffset(uint32 offset) const = 0;
 
 	/**
 	 * Dereferences a raw memory pointer.
@@ -149,7 +149,7 @@ struct LocalVariables : public SegmentObj {
 public:
 	LocalVariables(): SegmentObj(SEG_TYPE_LOCALS), script_id(0) { }
 
-	virtual bool isValidOffset(uint16 offset) const {
+	virtual bool isValidOffset(uint32 offset) const {
 		return offset < _locals.size() * 2;
 	}
 	virtual SegmentRef dereference(reg_t pointer);
@@ -161,7 +161,7 @@ public:
 
 /** Data stack */
 struct DataStack : SegmentObj {
-	int _capacity; /**< Number of stack entries */
+	uint _capacity; /**< Number of stack entries */
 	reg_t *_entries;
 
 public:
@@ -171,7 +171,7 @@ public:
 		_entries = NULL;
 	}
 
-	virtual bool isValidOffset(uint16 offset) const {
+	virtual bool isValidOffset(uint32 offset) const {
 		return offset < _capacity * 2;
 	}
 	virtual SegmentRef dereference(reg_t pointer);
@@ -276,7 +276,7 @@ public:
 		}
 	}
 
-	virtual bool isValidOffset(uint16 offset) const {
+	virtual bool isValidOffset(uint32 offset) const {
 		return isValidEntry(offset);
 	}
 
@@ -380,7 +380,7 @@ struct HunkTable : public SegmentObjTable<Hunk> {
 
 // Free-style memory
 struct DynMem : public SegmentObj {
-	int _size;
+	uint _size;
 	Common::String _description;
 	byte *_buf;
 
@@ -391,7 +391,7 @@ public:
 		_buf = NULL;
 	}
 
-	virtual bool isValidOffset(uint16 offset) const {
+	virtual bool isValidOffset(uint32 offset) const {
 		return offset < _size;
 	}
 	virtual SegmentRef dereference(reg_t pointer);
@@ -433,7 +433,7 @@ public:
 		_size(0),
 		_data(nullptr) {}
 
-	SciArray(const SciArray &array) {
+	SciArray(const SciArray &array) : Common::Serializable() {
 		_type = array._type;
 		_size = array._size;
 		_elementSize = array._elementSize;
@@ -528,7 +528,7 @@ public:
 	 */
 	void snug() {
 		assert(_type == kArrayTypeString || _type == kArrayTypeByte);
-		resize(strlen((char *)_data) + 1, true);
+		resize(Common::strnlen((char *)_data, _size) + 1, true);
 	}
 
 	/**
@@ -542,7 +542,14 @@ public:
 	 */
 	reg_t getAsID(const uint16 index) {
 		if (getSciVersion() >= SCI_VERSION_3) {
-			resize(index);
+			// SCI3 resizes arrays automatically when out-of-bounds indices are
+			// passed, but it has an off-by-one error, always passing the index
+			// instead of `index + 1` on a read. This happens to work in SSCI
+			// only because the resize method there actually allocates memory
+			// for `index + 25` elements when growing the array, and it always
+			// grows the array on its first resize because it decides whether to
+			// grow based on byte size including an extra array header.
+			resize(index + 1);
 		} else {
 			assert(index < _size);
 		}
@@ -552,8 +559,17 @@ public:
 		case kArrayTypeID:
 			return ((reg_t *)_data)[index];
 		case kArrayTypeByte:
-		case kArrayTypeString:
-			return make_reg(0, ((byte *)_data)[index]);
+		case kArrayTypeString: {
+			int16 value;
+
+			if (getSciVersion() < SCI_VERSION_2_1_MIDDLE) {
+				value = ((int8 *)_data)[index];
+			} else {
+				value = ((uint8 *)_data)[index];
+			}
+
+			return make_reg(0, value);
+		}
 		default:
 			error("Invalid array type %d", _type);
 		}
@@ -564,7 +580,8 @@ public:
 	 */
 	void setFromID(const uint16 index, const reg_t value) {
 		if (getSciVersion() >= SCI_VERSION_3) {
-			resize(index);
+			// This code is different from SSCI; see getAsID for an explanation
+			resize(index + 1);
 		} else {
 			assert(index < _size);
 		}
@@ -590,7 +607,8 @@ public:
 		assert(_type == kArrayTypeInt16);
 
 		if (getSciVersion() >= SCI_VERSION_3) {
-			resize(index);
+			// This code is different from SSCI; see getAsID for an explanation
+			resize(index + 1);
 		} else {
 			assert(index < _size);
 		}
@@ -607,6 +625,7 @@ public:
 		assert(_type == kArrayTypeInt16);
 
 		if (getSciVersion() >= SCI_VERSION_3) {
+			// This code is different from SSCI; see getAsID for an explanation
 			resize(index + 1);
 		} else {
 			assert(index < _size);
@@ -623,7 +642,8 @@ public:
 		assert(_type == kArrayTypeString || _type == kArrayTypeByte);
 
 		if (getSciVersion() >= SCI_VERSION_3) {
-			resize(index);
+			// This code is different from SSCI; see getAsID for an explanation
+			resize(index + 1);
 		} else {
 			assert(index < _size);
 		}
@@ -639,7 +659,8 @@ public:
 		assert(_type == kArrayTypeString || _type == kArrayTypeByte);
 
 		if (getSciVersion() >= SCI_VERSION_3) {
-			resize(index);
+			// This code is different from SSCI; see getAsID for an explanation
+			resize(index + 1);
 		} else {
 			assert(index < _size);
 		}
@@ -655,7 +676,8 @@ public:
 		assert(_type == kArrayTypeID || _type == kArrayTypeInt16);
 
 		if (getSciVersion() >= SCI_VERSION_3) {
-			resize(index);
+			// This code is different from SSCI; see getAsID for an explanation
+			resize(index + 1);
 		} else {
 			assert(index < _size);
 		}
@@ -718,7 +740,7 @@ public:
 		case kArrayTypeID: {
 			reg_t *target = (reg_t *)_data + index;
 			while (count--) {
-				*target = value;
+				*target++ = value;
 			}
 			break;
 		}
@@ -727,7 +749,7 @@ public:
 			byte *target = (byte *)_data + index;
 			const byte fillValue = value.getOffset();
 			while (count--) {
-				*target = fillValue;
+				*target++ = fillValue;
 			}
 			break;
 		}
@@ -773,56 +795,57 @@ public:
 		};
 
 		byte *data = (byte *)_data;
+		byte *end = data + _size;
 		byte *source;
 		byte *target;
 
 		if (flags & kArrayTrimLeft) {
 			target = data;
 			source = data;
-			while (*source != '\0' && *source != showChar && *source <= kWhitespaceBoundary) {
+			while (source < end && *source != '\0' && *source != showChar && *source <= kWhitespaceBoundary) {
 				++source;
 			}
-			strcpy((char *)target, (char *)source);
+			memmove(target, source, Common::strnlen((char *)source, _size - 1) + 1);
 		}
 
 		if (flags & kArrayTrimRight) {
-			source = data + strlen((char *)data) - 1;
+			source = data + Common::strnlen((char *)data, _size) - 1;
 			while (source > data && *source != showChar && *source <= kWhitespaceBoundary) {
+				*source = '\0';
 				--source;
 			}
-			*source = '\0';
 		}
 
 		if (flags & kArrayTrimCenter) {
 			target = data;
-			while (*target && *target <= kWhitespaceBoundary && *target != showChar) {
+			while (target < end && *target != '\0' && *target <= kWhitespaceBoundary && *target != showChar) {
 				++target;
 			}
 
-			if (*target) {
-				while (*target && (*target > kWhitespaceBoundary || *target == showChar)) {
+			if (*target != '\0') {
+				while (target < end && *target != '\0' && (*target > kWhitespaceBoundary || *target == showChar)) {
 					++target;
 				}
 
-				if (*target) {
+				if (*target != '\0') {
 					source = target;
-					while (*source) {
-						while (*source && *source <= kWhitespaceBoundary && *source != showChar) {
+					while (*source != '\0') {
+						while (source < end && *source != '\0' && *source <= kWhitespaceBoundary && *source != showChar) {
 							++source;
 						}
 
-						while (*source && (*source > kWhitespaceBoundary || *source == showChar)) {
+						while (source < end && *source != '\0' && (*source > kWhitespaceBoundary || *source == showChar)) {
 							*target++ = *source++;
 						}
 					}
 
 					--source;
-					while (source > target && (*source <= kWhitespaceBoundary || *source >= kAsciiBoundary) && *source != showChar) {
+					while (source >= data && source > target && (*source <= kWhitespaceBoundary || *source >= kAsciiBoundary) && *source != showChar) {
 						--source;
 					}
 					++source;
 
-					memmove(target, source, strlen((char *)source) + 1);
+					memmove(target, source, Common::strnlen((char *)source, _size - 1) + 1);
 				}
 			}
 		}
@@ -844,6 +867,29 @@ public:
 		assert(_type == kArrayTypeString || _type == kArrayTypeByte);
 		resize(string.size() + 1, true);
 		Common::strlcpy((char *)_data, string.c_str(), string.size() + 1);
+	}
+
+	Common::String toDebugString() const {
+		const char *type;
+		switch(_type) {
+		case kArrayTypeID:
+			type = "reg_t";
+			break;
+		case kArrayTypeByte:
+			type = "byte";
+			break;
+		case kArrayTypeInt16:
+			type = "int16";
+			break;
+		case kArrayTypeString:
+			type = "string";
+			break;
+		case kArrayTypeInvalid:
+			type = "invalid";
+			break;
+		}
+
+		return Common::String::format("type %s; %u entries; %u bytes", type, size(), byteSize());
 	}
 
 protected:
@@ -927,7 +973,7 @@ public:
 
 	inline SciBitmap() : _data(nullptr), _dataSize(0), _gc(true) {}
 
-	inline SciBitmap(const SciBitmap &other) {
+	inline SciBitmap(const SciBitmap &other) : Common::Serializable() {
 		_dataSize = other._dataSize;
 		_data = (byte *)malloc(other._dataSize);
 		memcpy(_data, other._data, other._dataSize);
@@ -1127,7 +1173,19 @@ public:
 			*pixel++ = (uint8)color;
 		}
 	}
+
+	Common::String toString() const {
+		return Common::String::format("%dx%d; res %dx%d; origin %dx%d; skip color %u; %s; %s)",
+			getWidth(), getHeight(),
+			getXResolution(), getYResolution(),
+			getOrigin().x, getOrigin().y,
+			getSkipColor(),
+			getRemap() ? "remap" : "no remap",
+			getShouldGC() ? "GC" : "no GC");
+	}
 };
+
+#undef BITMAP_PROPERTY
 
 struct BitmapTable : public SegmentObjTable<SciBitmap> {
 	BitmapTable() : SegmentObjTable<SciBitmap>(SEG_TYPE_BITMAP) {}

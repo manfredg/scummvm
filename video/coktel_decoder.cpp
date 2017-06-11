@@ -1691,7 +1691,7 @@ bool VMDDecoder::openExternalCodec() {
 		if (_videoCodec == kVideoCodecIndeo3) {
 			_isPaletted = false;
 
-			_codec = new Image::Indeo3Decoder(_width, _height);
+			_codec = new Image::Indeo3Decoder(_width, _height, g_system->getScreenFormat().bpp());
 
 		} else {
 			warning("VMDDecoder::openExternalCodec(): Unknown video codec FourCC \"%s\"",
@@ -2779,7 +2779,6 @@ void VMDDecoder::setAutoStartSound(bool autoStartSound) {
 AdvancedVMDDecoder::AdvancedVMDDecoder(Audio::Mixer::SoundType soundType) {
 	_decoder = new VMDDecoder(g_system->getMixer(), soundType);
 	_decoder->setAutoStartSound(false);
-	_useAudioSync = true;
 }
 
 AdvancedVMDDecoder::~AdvancedVMDDecoder() {

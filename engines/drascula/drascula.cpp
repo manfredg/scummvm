@@ -25,6 +25,7 @@
 #include "common/file.h"
 #include "common/config-manager.h"
 #include "common/textconsole.h"
+#include "common/translation.h"
 
 #include "backends/audiocd/audiocd.h"
 
@@ -75,7 +76,8 @@ DrasculaEngine::DrasculaEngine(OSystem *syst, const DrasculaGameDescription *gam
     framesWithoutAction = 0;
 	term_int = 0;
 	currentChapter = 0;
-	_loadedDifferentChapter = 0;
+	_loadedDifferentChapter = false;
+	_canSaveLoad  = false;
 	musicStopped = 0;
 	FrameSSN = 0;
 	globalSpeed = 0;
@@ -229,7 +231,7 @@ DrasculaEngine::~DrasculaEngine() {
 
 bool DrasculaEngine::hasFeature(EngineFeature f) const {
 	return
-		(f == kSupportsRTL);
+		(f == kSupportsRTL || f == kSupportsLoadingDuringRuntime || f == kSupportsSavingDuringRuntime);
 }
 
 Common::Error DrasculaEngine::run() {
@@ -574,6 +576,7 @@ bool DrasculaEngine::runCurrentChapter() {
 				playMusic(roomMusic);
 		}
 
+		_canSaveLoad = true;
 		delay(25);
 #ifndef _WIN32_WCE
 		// FIXME
@@ -584,6 +587,9 @@ bool DrasculaEngine::runCurrentChapter() {
 		// events in the wince port.
 		updateEvents();
 #endif
+		_canSaveLoad = false;
+		if (_loadedDifferentChapter)
+			return true;
 
 		if (!_menuScreen && takeObject == 1)
 			checkObjects();
@@ -662,7 +668,11 @@ bool DrasculaEngine::runCurrentChapter() {
 
 		_menuBar = (_mouseY < 24 && !_menuScreen) ? true : false;
 
+		_canSaveLoad = true;
 		Common::KeyCode key = getScan();
+		_canSaveLoad = false;
+		if (_loadedDifferentChapter)
+			return true;
 		if (key == Common::KEYCODE_F1 && !_menuScreen) {
 			selectVerb(kVerbLook);
 		} else if (key == Common::KEYCODE_F2 && !_menuScreen) {
@@ -880,7 +890,7 @@ void DrasculaEngine::delay(int ms) {
 		_system->delayMillis(10);
 		updateEvents();
 		_system->updateScreen();
-	} while (_system->getMillis() < end && !shouldQuit());
+	} while (_system->getMillis() < end && !shouldQuit() && !_loadedDifferentChapter);
 }
 
 void DrasculaEngine::pause(int duration) {
@@ -955,12 +965,13 @@ void DrasculaEngine::hipo_sin_nadie(int counter){
 
 bool DrasculaEngine::loadDrasculaDat() {
 	Common::File in;
+	Common::String filename = "drascula.dat";
 	int i;
 
-	in.open("drascula.dat");
+	in.open(filename.c_str());
 
 	if (!in.isOpen()) {
-		Common::String errorMessage = "You're missing the 'drascula.dat' file. Get it from the ScummVM website";
+		Common::String errorMessage = Common::String::format(_("Unable to locate the '%s' engine data file."), filename.c_str());
 		GUIErrorMessage(errorMessage);
 		warning("%s", errorMessage.c_str());
 
@@ -974,7 +985,7 @@ bool DrasculaEngine::loadDrasculaDat() {
 	buf[8] = '\0';
 
 	if (strcmp(buf, "DRASCULA") != 0) {
-		Common::String errorMessage = "File 'drascula.dat' is corrupt. Get it from the ScummVM website";
+		Common::String errorMessage = Common::String::format(_("The '%s' engine data file is corrupt."), filename.c_str());
 		GUIErrorMessage(errorMessage);
 		warning("%s", errorMessage.c_str());
 
@@ -984,7 +995,9 @@ bool DrasculaEngine::loadDrasculaDat() {
 	ver = in.readByte();
 
 	if (ver != DRASCULA_DAT_VER) {
-		Common::String errorMessage = Common::String::format("File 'drascula.dat' is wrong version. Expected %d but got %d. Get it from the ScummVM website", DRASCULA_DAT_VER, ver);
+		Common::String errorMessage = Common::String::format(
+			_("Incorrect version of the '%s' engine data file found. Expected %d.%d but got %d.%d."),
+			filename.c_str(), DRASCULA_DAT_VER, 0, ver, 0);
 		GUIErrorMessage(errorMessage);
 		warning("%s", errorMessage.c_str());
 

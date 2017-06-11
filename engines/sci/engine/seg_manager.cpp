@@ -24,6 +24,9 @@
 #include "sci/engine/seg_manager.h"
 #include "sci/engine/state.h"
 #include "sci/engine/script.h"
+#ifdef ENABLE_SCI32
+#include "sci/engine/guest_additions.h"
+#endif
 
 namespace Sci {
 
@@ -272,16 +275,10 @@ const char *SegManager::getObjectName(reg_t pos) {
 	if (nameReg.isNull())
 		return "<no name>";
 
-	const char *name = 0;
-	if (nameReg.getSegment())
-		name  = derefString(nameReg);
+	const char *name = derefString(nameReg);
+
 	if (!name) {
-		// Crazy Nick Laura Bow is missing some object names needed for the static
-		// selector vocabulary
-		if (g_sci->getGameId() == GID_CNICK_LAURABOW && pos == make_reg(1, 0x2267))
-			return "Character";
-		else
-			return "<invalid name>";
+		return "<invalid name>";
 	}
 
 	return name;
@@ -786,7 +783,10 @@ size_t SegManager::strlen(reg_t str) {
 	}
 
 	if (str_r.isRaw) {
-		return ::strlen((const char *)str_r.raw);
+		// There is no guarantee that raw strings are zero-terminated; for
+		// example, Phant1 reads "\r\n" from a pointer of size 2 during the
+		// chase
+		return Common::strnlen((const char *)str_r.raw, str_r.maxSize);
 	} else {
 		int i = 0;
 		while (getChar(str_r, i))
@@ -796,7 +796,7 @@ size_t SegManager::strlen(reg_t str) {
 }
 
 
-Common::String SegManager::getString(reg_t pointer, int entries) {
+Common::String SegManager::getString(reg_t pointer) {
 	Common::String ret;
 	if (pointer.isNull())
 		return ret;	// empty text
@@ -806,23 +806,24 @@ Common::String SegManager::getString(reg_t pointer, int entries) {
 		warning("SegManager::getString(): Attempt to dereference invalid pointer %04x:%04x", PRINT_REG(pointer));
 		return ret;
 	}
-	if (entries > src_r.maxSize) {
-		warning("Trying to dereference pointer %04x:%04x beyond end of segment", PRINT_REG(pointer));
-		return ret;
-	}
-	if (src_r.isRaw)
-		ret = (char *)src_r.raw;
-	else {
+
+	if (src_r.isRaw) {
+		// There is no guarantee that raw strings are zero-terminated; for
+		// example, Phant1 reads "\r\n" from a pointer of size 2 during the
+		// chase
+		const uint size = Common::strnlen((const char *)src_r.raw, src_r.maxSize);
+		ret = Common::String((const char *)src_r.raw, size);
+	} else {
 		uint i = 0;
-		for (;;) {
-			char c = getChar(src_r, i);
+		while (i < (uint)src_r.maxSize) {
+			const char c = getChar(src_r, i);
 
 			if (!c)
 				break;
 
 			i++;
 			ret += c;
-		};
+		}
 	}
 	return ret;
 }
@@ -895,6 +896,11 @@ SciArray *SegManager::lookupArray(reg_t addr) {
 }
 
 void SegManager::freeArray(reg_t addr) {
+	// SSCI memory manager ignores attempts to free null handles
+	if (addr.isNull()) {
+		return;
+	}
+
 	if (_heap[addr.getSegment()]->getType() != SEG_TYPE_ARRAY)
 		error("Attempt to use non-array %04x:%04x as array", PRINT_REG(addr));
 
@@ -962,22 +968,20 @@ void SegManager::freeBitmap(const reg_t addr) {
 #endif
 
 void SegManager::createClassTable() {
-	Resource *vocab996 = _resMan->findResource(ResourceId(kResourceTypeVocab, 996), 1);
+	Resource *vocab996 = _resMan->findResource(ResourceId(kResourceTypeVocab, 996), false);
 
 	if (!vocab996)
 		error("SegManager: failed to open vocab 996");
 
-	int totalClasses = vocab996->size >> 2;
+	int totalClasses = vocab996->size() >> 2;
 	_classTable.resize(totalClasses);
 
 	for (uint16 classNr = 0; classNr < totalClasses; classNr++) {
-		uint16 scriptNr = READ_SCI11ENDIAN_UINT16(vocab996->data + classNr * 4 + 2);
+		uint16 scriptNr = vocab996->getUint16SEAt(classNr * 4 + 2);
 
 		_classTable[classNr].reg = NULL_REG;
 		_classTable[classNr].script = scriptNr;
 	}
-
-	_resMan->unlockResource(vocab996);
 }
 
 reg_t SegManager::getClassAddress(int classnr, ScriptLoadType lock, uint16 callerSegment) {
@@ -986,15 +990,16 @@ reg_t SegManager::getClassAddress(int classnr, ScriptLoadType lock, uint16 calle
 
 	if (classnr < 0 || (int)_classTable.size() <= classnr || _classTable[classnr].script < 0) {
 		error("[VM] Attempt to dereference class %x, which doesn't exist (max %x)", classnr, _classTable.size());
-		return NULL_REG;
 	} else {
 		Class *the_class = &_classTable[classnr];
 		if (!the_class->reg.getSegment()) {
 			getScriptSegment(the_class->script, lock);
 
 			if (!the_class->reg.getSegment()) {
-				error("[VM] Trying to instantiate class %x by instantiating script 0x%x (%03d) failed;", classnr, the_class->script, the_class->script);
-				return NULL_REG;
+				if (lock == SCRIPT_GET_DONT_LOAD)
+					return NULL_REG;
+
+				error("[VM] Trying to instantiate class %x by instantiating script 0x%x (%03d) failed", classnr, the_class->script, the_class->script);
 			}
 		} else
 			if (callerSegment != the_class->reg.getSegment())
@@ -1012,7 +1017,7 @@ int SegManager::instantiateScript(int scriptNum) {
 			scr->incrementLockers();
 			return segmentId;
 		} else {
-			scr->freeScript();
+			scr->freeScript(true);
 		}
 	} else {
 		scr = allocateScript(scriptNum, &segmentId);
@@ -1022,6 +1027,9 @@ int SegManager::instantiateScript(int scriptNum) {
 	scr->initializeLocals(this);
 	scr->initializeClasses(this);
 	scr->initializeObjects(this, segmentId);
+#ifdef ENABLE_SCI32
+	g_sci->_guestAdditions->instantiateScriptHook(*scr);
+#endif
 
 	return segmentId;
 }

@@ -122,7 +122,6 @@ void GfxCursor32::drawToHardware(const DrawRegion &source) {
 	byte *sourcePixel = source.data + (sourceYOffset * source.rect.width()) + sourceXOffset;
 
 	g_system->copyRectToScreen(sourcePixel, source.rect.width(), drawRect.left, drawRect.top, drawRect.width(), drawRect.height());
-	g_system->updateScreen();
 }
 
 void GfxCursor32::unhide() {
@@ -244,7 +243,7 @@ void GfxCursor32::setView(const GuiResourceId viewId, const int16 loopNo, const 
 			debug(0, "Mac cursor %d not found", viewNum);
 			return;
 		}
-		Common::MemoryReadStream resStream(resource->data, resource->size);
+		Common::MemoryReadStream resStream(resource->toStream());
 		Graphics::MacCursor *macCursor = new Graphics::MacCursor();
 
 		if (!macCursor->readFromStream(resStream)) {
@@ -278,6 +277,7 @@ void GfxCursor32::setView(const GuiResourceId viewId, const int16 loopNo, const 
 	}
 
 	_cursorBack.data = (byte *)realloc(_cursorBack.data, _width * _height);
+	memset(_cursorBack.data, 0, _width * _height);
 	_drawBuff1.data = (byte *)realloc(_drawBuff1.data, _width * _height);
 	_drawBuff2.data = (byte *)realloc(_drawBuff2.data, _width * _height * 4);
 	_savedVmapRegion.data = (byte *)realloc(_savedVmapRegion.data, _width * _height);
@@ -286,13 +286,13 @@ void GfxCursor32::setView(const GuiResourceId viewId, const int16 loopNo, const 
 }
 
 void GfxCursor32::readVideo(DrawRegion &target) {
-	if (g_sci->_gfxFrameout->_frameNowVisible) {
-		copy(target, _vmapRegion);
-	} else {
-		// NOTE: SSCI would read the background for the cursor directly out of
-		// video memory here, but as far as can be determined, this does not
-		// seem to actually be necessary for proper cursor rendering
-	}
+	// NOTE: In SSCI, mouse events were received via hardware interrupt, so
+	// there was a separate branch here that would read from VRAM instead of
+	// from the game's back buffer when a mouse event was received while the
+	// back buffer was being updated. In ScummVM, mouse events are polled, which
+	// means it is not possible to receive a mouse event during a back buffer
+	// update, so the code responsible for handling that is removed.
+	copy(target, _vmapRegion);
 }
 
 void GfxCursor32::copy(DrawRegion &target, const DrawRegion &source) {

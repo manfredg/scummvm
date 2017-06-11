@@ -194,7 +194,7 @@ SegmentRef DataStack::dereference(reg_t pointer) {
 
 Common::Array<reg_t> DataStack::listAllOutgoingReferences(reg_t object) const {
 	Common::Array<reg_t> tmp;
-	for (int i = 0; i < _capacity; i++)
+	for (uint i = 0; i < _capacity; i++)
 		tmp.push_back(_entries[i]);
 
 	return tmp;
@@ -274,7 +274,7 @@ Common::Array<reg_t> ArrayTable::listAllOutgoingReferences(reg_t addr) const {
 	}
 
 	SciArray &array = const_cast<SciArray &>(at(addr.getOffset()));
-	if (array.getType() == kArrayTypeID) {
+	if (array.getType() == kArrayTypeID || array.getType() == kArrayTypeInt16) {
 		for (uint16 i = 0; i < array.size(); ++i) {
 			const reg_t value = array.getAsID(i);
 			if (value.isPointer()) {

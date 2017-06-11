@@ -28,6 +28,7 @@
 #include "audio/mixer.h"
 
 #include "engines/util.h"
+#include "graphics/surface.h"
 
 #include "fullpipe/fullpipe.h"
 #include "fullpipe/gameloader.h"
@@ -123,11 +124,12 @@ FullpipeEngine::FullpipeEngine(OSystem *syst, const ADGameDescription *gameDesc)
 	_musicLocal = 0;
 	_trackStartDelay = 0;
 
-	_sceneTrackHandle = new Audio::SoundHandle();
+	_soundStream1 = new Audio::SoundHandle();
+	_soundStream2 = new Audio::SoundHandle();
+	_soundStream3 = new Audio::SoundHandle();
+	_soundStream4 = new Audio::SoundHandle();
 
-	memset(_sceneTracks, 0, sizeof(_sceneTracks));
-	memset(_trackName, 0, sizeof(_trackName));
-	memset(_sceneTracksCurrentTrack, 0, sizeof(_sceneTracksCurrentTrack));
+	_stream2playing = false;
 
 	_numSceneTracks = 0;
 	_sceneTrackHasSequence = false;
@@ -205,7 +207,10 @@ FullpipeEngine::~FullpipeEngine() {
 	delete _rnd;
 	delete _console;
 	delete _globalMessageQueueList;
-	delete _sceneTrackHandle;
+	delete _soundStream1;
+	delete _soundStream2;
+	delete _soundStream3;
+	delete _soundStream4;
 }
 
 void FullpipeEngine::initialize() {
@@ -263,6 +268,7 @@ Common::Error FullpipeEngine::loadGameState(int slot) {
 	else
 		return Common::kUnknownError;
 }
+
 Common::Error FullpipeEngine::saveGameState(int slot, const Common::String &description) {
 	if (_gameLoader->writeSavegame(_currentScene, getSavegameFile(slot)))
 		return Common::kNoError;
@@ -276,7 +282,8 @@ Common::Error FullpipeEngine::run() {
 	// Initialize backend
 	initGraphics(800, 600, true, &format);
 
-	_backgroundSurface.create(800, 600, format);
+	_backgroundSurface = new Graphics::Surface;
+	_backgroundSurface->create(800, 600, format);
 
 	_origFormat = new Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
 
@@ -493,7 +500,9 @@ void FullpipeEngine::cleanup() {
 	stopAllSoundStreams();
 
 	delete _origFormat;
-	_backgroundSurface.free();
+	_backgroundSurface->free();
+
+	delete _backgroundSurface;
 }
 
 void FullpipeEngine::updateScreen() {
@@ -539,7 +548,7 @@ void FullpipeEngine::updateScreen() {
 	++_updateTicks;
 }
 
-int FullpipeEngine::getObjectEnumState(const char *name, const char *state) {
+int FullpipeEngine::getObjectEnumState(const Common::String &name, const char *state) {
 	GameVar *var = _gameLoader->_gameVar->getSubVarByName("OBJSTATES");
 
 	if (!var) {
@@ -556,7 +565,7 @@ int FullpipeEngine::getObjectEnumState(const char *name, const char *state) {
 	return 0;
 }
 
-int FullpipeEngine::getObjectState(const char *objname) {
+int FullpipeEngine::getObjectState(const Common::String &objname) {
 	GameVar *var = _gameLoader->_gameVar->getSubVarByName("OBJSTATES");
 
 	if (var)
@@ -565,7 +574,7 @@ int FullpipeEngine::getObjectState(const char *objname) {
   return 0;
 }
 
-void FullpipeEngine::setObjectState(const char *name, int state) {
+void FullpipeEngine::setObjectState(const Common::String &name, int state) {
 	GameVar *var = _gameLoader->_gameVar->getSubVarByName("OBJSTATES");
 
 	if (!var) {
@@ -593,6 +602,20 @@ void FullpipeEngine::disableSaves(ExCommand *ex) {
 			//	_gameLoader->writeSavegame(_currentScene, "savetmp.sav");
 		}
 	}
+}
+
+bool FullpipeEngine::isSaveAllowed() {
+	if (!g_fp->_isSaveAllowed)
+		return false;
+
+	bool allowed = true;
+
+	for (Common::Array<MessageQueue *>::iterator s = g_fp->_globalMessageQueueList->begin(); s != g_fp->_globalMessageQueueList->end(); ++s) {
+		if (!(*s)->_isFinished && ((*s)->getFlags() & 1))
+			allowed = false;
+	}
+
+	return allowed;
 }
 
 

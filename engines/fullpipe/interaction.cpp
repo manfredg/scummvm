@@ -128,7 +128,7 @@ bool InteractionController::handleInteraction(StaticANIObject *subj, GameObject 
 			if (cinter->_messageQueue)
 				cinter->_messageQueue->calcDuration(subj);
 
-			debugC(5, kDebugInteractions, "Interaction: %s", transCyrillic((byte *)cinter->_actionName));
+			debugC(5, kDebugInteractions, "Interaction: %s", transCyrillic(cinter->_actionName));
 
 			PicAniInfo aniInfo;
 
@@ -261,7 +261,7 @@ LABEL_38:
 		if (!(inter->_flags & 0x10000)) {
 			ex = new ExCommand(obj->_id, 34, 0x80, 0, 0, 0, 1, 0, 0, 0);
 			ex->_param = obj->_odelay;
-			ex->_field_14 = 0x100;
+			ex->_field_14 = 0x80;
 			ex->_messageNum = 0;
 			ex->_excFlags = 3;
 			mq->addExCommandToEnd(ex);
@@ -428,7 +428,6 @@ Interaction::Interaction() {
 	_staticsId2 = 0;
 	_field_28 = 0;
 	_sceneId = -1;
-	_actionName = 0;
 }
 
 Interaction::~Interaction() {
@@ -438,8 +437,6 @@ Interaction::~Interaction() {
 	}
 
 	delete _messageQueue;
-
-	free(_actionName);
 }
 
 bool Interaction::load(MfcArchive &file) {

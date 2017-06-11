@@ -256,6 +256,12 @@ public:
 		kFeatureAspectRatioCorrection,
 
 		/**
+		 * If supported this flag can be used to switch between unfiltered and
+		 * filtered graphics modes.
+		 */
+		kFeatureFilteringMode,
+
+		/**
 		 * Determine whether a virtual keyboard is too be shown or not.
 		 * This would mostly be implemented by backends for hand held devices,
 		 * like PocketPC, Palms, Symbian phones like the P800, Zaurus, etc.
@@ -330,7 +336,38 @@ public:
 		 *
 		 * This feature has no associated state.
 		 */
-		kFeatureOpenUrl
+		kFeatureOpenUrl	,
+
+		/**
+		* show on-screen control
+		*/
+		kFeatureOnScreenControl,
+
+		/**
+		* mouse emulation mode
+		*/
+		kFeatureTouchpadMode,
+
+		/**
+		* swap menu and back buttons
+		*/
+		kFeatureSwapMenuAndBackButtons,
+
+		/**
+		* keyboard mouse and joystick mouse speed
+		*/
+		kFeatureKbdMouseSpeed,
+
+		/**
+		* change analog joystick deadzone
+		*/
+		kFeatureJoystickDeadzone,
+
+		/**
+		* shaders
+		*/
+		kFeatureShader
+
 	};
 
 	/**
@@ -541,6 +578,34 @@ public:
 #endif
 
 	/**
+	 * Retrieve a list of all hardware shaders supported by this backend.
+	 * This can be only hardware shaders.
+	 * it is completely up to the backend maintainer to decide what is
+	 * appropriate here and what not.
+	 * The list is terminated by an all-zero entry.
+	 * @return a list of supported shaders
+	 */
+	virtual const GraphicsMode *getSupportedShaders() const {
+		static const OSystem::GraphicsMode no_shader[2] = {{"NONE", "Normal (no shader)", 0}, {0, 0, 0}};
+		return no_shader;
+	}
+
+	/**
+	 * Switch to the specified shader mode. If switching to the new mode
+	 * failed, this method returns false.
+	 *
+	 * @param mode	the ID of the new shader mode
+	 * @return true if the switch was successful, false otherwise
+	 */
+	virtual bool setShader(int id) { return false; }
+
+	/**
+	 * Determine which shader is currently active.
+	 * @return the ID of the active shader
+	 */
+	virtual int getShader() const { return 0; }
+
+	/**
 	 * Set the size and color format of the virtual screen. Typical sizes include:
 	 *  - 320x200 (e.g. for most SCUMM games, and Simon)
 	 *  - 320x240 (e.g. for FM-TOWN SCUMM games)
@@ -616,7 +681,8 @@ public:
 		kTransactionFullscreenFailed = (1 << 1),	/**< Failed switching fullscreen mode */
 		kTransactionModeSwitchFailed = (1 << 2),	/**< Failed switching the GFX graphics mode (setGraphicsMode) */
 		kTransactionSizeChangeFailed = (1 << 3),	/**< Failed switching the screen dimensions (initSize) */
-		kTransactionFormatNotSupported = (1 << 4)	/**< Failed setting the color format */
+		kTransactionFormatNotSupported = (1 << 4),	/**< Failed setting the color format */
+		kTransactionFilteringFailed = (1 << 5)		/**< Failed setting the filtering mode */
 	};
 
 	/**

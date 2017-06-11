@@ -35,7 +35,7 @@ struct ADGameDescription;
 /**
  * This is the namespace of the SCI engine.
  *
- * Status of this engine: ???
+ * Status of this engine: Awesome
  *
  * Games using this engine:
  * - Newer Sierra adventure games (based on FreeSCI)
@@ -62,6 +62,7 @@ class Vocabulary;
 class ResourceManager;
 class Kernel;
 class GameFeatures;
+class GuestAdditions;
 class Console;
 class AudioPlayer;
 class SoundCommandParser;
@@ -225,8 +226,8 @@ enum SciVersion {
 	SCI_VERSION_1_LATE, // Dr. Brain 1, EcoQuest 1, Longbow, PQ3, SQ1, LSL5, KQ5 CD
 	SCI_VERSION_1_1, // Dr. Brain 2, EcoQuest 1 CD, EcoQuest 2, KQ6, QFG3, SQ4CD, XMAS 1992 and many more
 	SCI_VERSION_2, // GK1, PQ4 floppy, QFG4 floppy
-	SCI_VERSION_2_1_EARLY, // GK2 demo, KQ7 1.4/1.51, LSL6 hires, PQ4CD, QFG4 floppy
-	SCI_VERSION_2_1_MIDDLE, // GK2, KQ7 2.00b, MUMG Deluxe, Phantasmagoria 1, PQ:SWAT, QFG4CD, Shivers 1, SQ6, Torin
+	SCI_VERSION_2_1_EARLY, // GK2 demo, KQ7 1.4/1.51, LSL6 hires, PQ4CD, QFG4CD
+	SCI_VERSION_2_1_MIDDLE, // GK2, Hoyle 5, KQ7 2.00b, MUMG Deluxe, Phantasmagoria 1, PQ:SWAT, Shivers 1, SQ6, Torin
 	SCI_VERSION_2_1_LATE, // demos of LSL7, Lighthouse, RAMA
 	SCI_VERSION_3 // LSL7, Lighthouse, RAMA, Phantasmagoria 2
 };
@@ -259,32 +260,10 @@ public:
 	Common::Error saveGameState(int slot, const Common::String &desc);
 	bool canLoadGameStateCurrently();
 	bool canSaveGameStateCurrently();
-	void syncSoundSettings();
+	void syncSoundSettings(); ///< from ScummVM to the game
+	void updateSoundMixerVolumes();
 	uint32 getTickCount();
 	void setTickCount(const uint32 ticks);
-
-	/**
-	 * Syncs the audio options of the ScummVM launcher (speech, subtitles or
-	 * both) with the in-game audio options of certain CD game versions. For
-	 * some games, this allows simultaneous playing of speech and subtitles,
-	 * even if the original games didn't support this feature.
-	 *
-	 * SCI1.1 games which support simultaneous speech and subtitles:
-	 * - EcoQuest 1 CD
-	 * - Leisure Suit Larry 6 CD
-	 * SCI1.1 games which don't support simultaneous speech and subtitles,
-	 * and we add this functionality in ScummVM:
-	 * - Space Quest 4 CD
-	 * - Freddy Pharkas CD
-	 * - Laura Bow 2 CD
-	 * SCI1.1 games which don't support simultaneous speech and subtitles,
-	 * and we haven't added any extra functionality in ScummVM because extra
-	 * script patches are needed:
-	 * - King's Quest 6 CD
-	 */
-	bool speechAndSubtitlesEnabled();
-	void syncIngameAudioOptions();
-	void updateScummVMAudioOptions();
 
 	const SciGameId &getGameId() const { return _gameId; }
 	const char *getGameIdStr() const;
@@ -334,10 +313,10 @@ public:
 	void scriptDebug();
 	bool checkExportBreakpoint(uint16 script, uint16 pubfunct);
 	bool checkSelectorBreakpoint(BreakpointType breakpointType, reg_t send_obj, int selector);
-
-	void patchGameSaveRestore();
+	bool checkAddressBreakpoint(const reg32_t &address);
 
 public:
+	bool checkKernelBreakpoint(const Common::String &name);
 
 	/**
 	 * Processes a multilanguage string based on the current language settings and
@@ -398,6 +377,7 @@ public:
 	Sync *_sync;
 	SoundCommandParser *_soundCmd;
 	GameFeatures *_features;
+	GuestAdditions *_guestAdditions;
 
 	opcode_format (*_opcode_formats)[4];
 

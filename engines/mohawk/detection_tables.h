@@ -48,6 +48,24 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
+	// Myst
+	// English Windows 3.11, v1.0
+	// From vonLeheCreative, #9645
+	{
+			{
+					"myst",
+					"",
+					AD_ENTRY1("MYST.DAT", "0e4b6fcbd2419d4371365314fb7443f8"),
+					Common::EN_ANY,
+					Common::kPlatformWindows,
+					ADGF_NO_FLAGS,
+					GUI_OPTIONS_MYST
+			},
+			GType_MYST,
+			0,
+			0,
+	},
+
 	// Myst Demo
 	// English Windows 3.11
 	// From CD-ROM Today July, 1994
@@ -397,6 +415,25 @@ static const MohawkGameDescription gameDescriptions[] = {
 			"",
 			AD_ENTRY1("a_Data.MHK", "59bd2e3ccbae2f1faa1b23a18dc316eb"),
 			Common::RU_RUS,
+			Common::kPlatformWindows,
+			ADGF_UNSTABLE,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_RIVEN,
+		0,
+		0,
+	},
+
+
+	// Riven: The Sequel to Myst
+	// Version 1.0J (5CD) - Japanese
+	// From sev
+	{
+		{
+			"riven",
+			"",
+			AD_ENTRY1s("a_Data.MHK", "3a2b4764979dc007a0e6ded64e4b7889", 10014314),
+			Common::JA_JPN,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
 			GUIO1(GUIO_NOASPECT)

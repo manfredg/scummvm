@@ -25,8 +25,9 @@
 #include "audio/decoders/raw.h"
 #include "common/substream.h"
 #include "common/util.h"
-#include "engines/sci/sci.h"
-#include "engines/sci/sound/decoders/sol.h"
+#include "sci/sci.h"
+#include "sci/sound/decoders/sol.h"
+#include "sci/resource.h"
 
 namespace Sci {
 
@@ -50,32 +51,42 @@ static const uint16 tableDPCM16[128] = {
 static const byte tableDPCM8[8] = { 0, 1, 2, 3, 6, 10, 15, 21 };
 
 /**
+ * Decompresses one channel of 16-bit DPCM compressed audio.
+ */
+static void deDPCM16Channel(int16 *out, int16 &sample, uint8 delta) {
+	if (delta & 0x80) {
+		sample -= tableDPCM16[delta & 0x7f];
+	} else {
+		sample += tableDPCM16[delta];
+	}
+	sample = CLIP<int16>(sample, -32768, 32767);
+	*out = sample;
+}
+
+/**
  * Decompresses 16-bit DPCM compressed audio. Each byte read
  * outputs one sample into the decompression buffer.
  */
-static void deDPCM16(int16 *out, Common::ReadStream &audioStream, const uint32 numBytes, int16 &sample) {
+static void deDPCM16Mono(int16 *out, Common::ReadStream &audioStream, const uint32 numBytes, int16 &sample) {
 	for (uint32 i = 0; i < numBytes; ++i) {
 		const uint8 delta = audioStream.readByte();
-		if (delta & 0x80) {
-			sample -= tableDPCM16[delta & 0x7f];
-		} else {
-			sample += tableDPCM16[delta];
-		}
-		sample = CLIP<int16>(sample, -32768, 32767);
-		*out++ = TO_LE_16(sample);
+		deDPCM16Channel(out++, sample, delta);
 	}
 }
 
-void deDPCM16(int16 *out, const byte *in, const uint32 numBytes, int16 &sample) {
+// Used by Robot
+void deDPCM16Mono(int16 *out, const byte *in, const uint32 numBytes, int16 &sample) {
 	for (uint32 i = 0; i < numBytes; ++i) {
 		const uint8 delta = *in++;
-		if (delta & 0x80) {
-			sample -= tableDPCM16[delta & 0x7f];
-		} else {
-			sample += tableDPCM16[delta];
-		}
-		sample = CLIP<int16>(sample, -32768, 32767);
-		*out++ = TO_LE_16(sample);
+		deDPCM16Channel(out++, sample, delta);
+	}
+}
+
+static void deDPCM16Stereo(int16 *out, Common::ReadStream &audioStream, const uint32 numBytes, int16 &sampleL, int16 &sampleR) {
+	assert((numBytes % 2) == 0);
+	for (uint32 i = 0; i < numBytes / 2; ++i) {
+		deDPCM16Channel(out++, sampleL, audioStream.readByte());
+		deDPCM16Channel(out++, sampleR, audioStream.readByte());
 	}
 }
 
@@ -98,7 +109,7 @@ static void deDPCM8Nibble(int16 *out, uint8 &sample, uint8 delta) {
  * Decompresses 8-bit DPCM compressed audio. Each byte read
  * outputs two samples into the decompression buffer.
  */
-static void deDPCM8(int16 *out, Common::ReadStream &audioStream, uint32 numBytes, uint8 &sample) {
+static void deDPCM8Mono(int16 *out, Common::ReadStream &audioStream, uint32 numBytes, uint8 &sample) {
 	for (uint32 i = 0; i < numBytes; ++i) {
 		const uint8 delta = audioStream.readByte();
 		deDPCM8Nibble(out++, sample, delta >> 4);
@@ -106,23 +117,26 @@ static void deDPCM8(int16 *out, Common::ReadStream &audioStream, uint32 numBytes
 	}
 }
 
+static void deDPCM8Stereo(int16 *out, Common::ReadStream &audioStream, uint32 numBytes, uint8 &sampleL, uint8 &sampleR) {
+	for (uint32 i = 0; i < numBytes; ++i) {
+		const uint8 delta = audioStream.readByte();
+		deDPCM8Nibble(out++, sampleL, delta >> 4);
+		deDPCM8Nibble(out++, sampleR, delta & 0xf);
+	}
+}
+
 # pragma mark -
 
 template<bool STEREO, bool S16BIT>
-SOLStream<STEREO, S16BIT>::SOLStream(Common::SeekableReadStream *stream, const DisposeAfterUse::Flag disposeAfterUse, const int32 dataOffset, const uint16 sampleRate, const int32 rawDataSize) :
+SOLStream<STEREO, S16BIT>::SOLStream(Common::SeekableReadStream *stream, const DisposeAfterUse::Flag disposeAfterUse, const uint16 sampleRate, const int32 rawDataSize) :
 	_stream(stream, disposeAfterUse),
-	_dataOffset(dataOffset),
 	_sampleRate(sampleRate),
 	// SSCI aligns the size of SOL data to 32 bits
 	_rawDataSize(rawDataSize & ~3) {
-		// TODO: This is not valid for stereo SOL files, which
-		// have interleaved L/R compression so need to store the
-		// carried values for each channel separately. See
-		// 60900.aud from Lighthouse for an example stereo file
 		if (S16BIT) {
-			_dpcmCarry16 = 0;
+			_dpcmCarry16.l = _dpcmCarry16.r = 0;
 		} else {
-			_dpcmCarry8 = 0x80;
+			_dpcmCarry8.l = _dpcmCarry8.r = 0x80;
 		}
 
 		const uint8 compressionRatio = 2;
@@ -143,12 +157,12 @@ bool SOLStream<STEREO, S16BIT>::seek(const Audio::Timestamp &where) {
 	}
 
 	if (S16BIT) {
-		_dpcmCarry16 = 0;
+		_dpcmCarry16.l = _dpcmCarry16.r = 0;
 	} else {
-		_dpcmCarry8 = 0x80;
+		_dpcmCarry8.l = _dpcmCarry8.r = 0x80;
 	}
 
-	return _stream->seek(_dataOffset, SEEK_SET);
+	return _stream->seek(0, SEEK_SET);
 }
 
 template <bool STEREO, bool S16BIT>
@@ -171,9 +185,17 @@ int SOLStream<STEREO, S16BIT>::readBuffer(int16 *buffer, const int numSamples) {
 	}
 
 	if (S16BIT) {
-		deDPCM16(buffer, *_stream, bytesToRead, _dpcmCarry16);
+		if (STEREO) {
+			deDPCM16Stereo(buffer, *_stream, bytesToRead, _dpcmCarry16.l, _dpcmCarry16.r);
+		} else {
+			deDPCM16Mono(buffer, *_stream, bytesToRead, _dpcmCarry16.l);
+		}
 	} else {
-		deDPCM8(buffer, *_stream, bytesToRead, _dpcmCarry8);
+		if (STEREO) {
+			deDPCM8Stereo(buffer, *_stream, bytesToRead, _dpcmCarry8.l, _dpcmCarry8.r);
+		} else {
+			deDPCM8Mono(buffer, *_stream, bytesToRead, _dpcmCarry8.l);
+		}
 	}
 
 	const int samplesRead = bytesToRead * samplesPerByte;
@@ -201,34 +223,35 @@ bool SOLStream<STEREO, S16BIT>::rewind() {
 }
 
 Audio::SeekableAudioStream *makeSOLStream(Common::SeekableReadStream *stream, DisposeAfterUse::Flag disposeAfterUse) {
-
-	// TODO: Might not be necessary? Makes seeking work, but
-	// not sure if audio is ever actually seeked in SSCI.
-	const int32 initialPosition = stream->pos();
+	int32 initialPosition = stream->pos();
 
 	byte header[6];
 	if (stream->read(header, sizeof(header)) != sizeof(header)) {
+		stream->seek(initialPosition, SEEK_SET);
 		return nullptr;
 	}
 
-	if (header[0] != 0x8d || READ_BE_UINT32(header + 2) != MKTAG('S', 'O', 'L', 0)) {
+	if ((header[0] & 0x7f) != kResourceTypeAudio || READ_BE_UINT32(header + 2) != MKTAG('S', 'O', 'L', 0)) {
+		stream->seek(initialPosition, SEEK_SET);
 		return nullptr;
 	}
 
-	const uint8 headerSize = header[1];
+	const uint8 headerSize = header[1] + /* resource header */ 2;
 	const uint16 sampleRate = stream->readUint16LE();
 	const byte flags = stream->readByte();
 	const uint32 dataSize = stream->readUint32LE();
 
+	initialPosition += headerSize;
+
 	if (flags & kCompressed) {
 		if (flags & kStereo && flags & k16Bit) {
-			return new SOLStream<true, true>(new Common::SeekableSubReadStream(stream, initialPosition, initialPosition + dataSize, disposeAfterUse), disposeAfterUse, headerSize, sampleRate, dataSize);
+			return new SOLStream<true, true>(new Common::SeekableSubReadStream(stream, initialPosition, initialPosition + dataSize, disposeAfterUse), disposeAfterUse, sampleRate, dataSize);
 		} else if (flags & kStereo) {
-			return new SOLStream<true, false>(new Common::SeekableSubReadStream(stream, initialPosition, initialPosition + dataSize, disposeAfterUse), disposeAfterUse, headerSize, sampleRate, dataSize);
+			return new SOLStream<true, false>(new Common::SeekableSubReadStream(stream, initialPosition, initialPosition + dataSize, disposeAfterUse), disposeAfterUse, sampleRate, dataSize);
 		} else if (flags & k16Bit) {
-			return new SOLStream<false, true>(new Common::SeekableSubReadStream(stream, initialPosition, initialPosition + dataSize, disposeAfterUse), disposeAfterUse, headerSize, sampleRate, dataSize);
+			return new SOLStream<false, true>(new Common::SeekableSubReadStream(stream, initialPosition, initialPosition + dataSize, disposeAfterUse), disposeAfterUse, sampleRate, dataSize);
 		} else {
-			return new SOLStream<false, false>(new Common::SeekableSubReadStream(stream, initialPosition, initialPosition + dataSize, disposeAfterUse), disposeAfterUse, headerSize, sampleRate, dataSize);
+			return new SOLStream<false, false>(new Common::SeekableSubReadStream(stream, initialPosition, initialPosition + dataSize, disposeAfterUse), disposeAfterUse, sampleRate, dataSize);
 		}
 	}
 
@@ -243,44 +266,6 @@ Audio::SeekableAudioStream *makeSOLStream(Common::SeekableReadStream *stream, Di
 		rawFlags |= Audio::FLAG_STEREO;
 	}
 
-	return Audio::makeRawStream(new Common::SeekableSubReadStream(stream, initialPosition + headerSize, initialPosition + headerSize + dataSize, disposeAfterUse), sampleRate, rawFlags, disposeAfterUse);
-}
-
-// TODO: This needs to be removed when resource manager is fixed
-// to not split audio into two parts
-Audio::SeekableAudioStream *makeSOLStream(Common::SeekableReadStream *headerStream, Common::SeekableReadStream *dataStream, DisposeAfterUse::Flag disposeAfterUse) {
-
-	if (headerStream->readUint32BE() != MKTAG('S', 'O', 'L', 0)) {
-		return nullptr;
-	}
-
-	const uint16 sampleRate = headerStream->readUint16LE();
-	const byte flags = headerStream->readByte();
-	const int32 dataSize = headerStream->readSint32LE();
-
-	if (flags & kCompressed) {
-		if (flags & kStereo && flags & k16Bit) {
-			return new SOLStream<true, true>(dataStream, disposeAfterUse, 0, sampleRate, dataSize);
-		} else if (flags & kStereo) {
-			return new SOLStream<true, false>(dataStream, disposeAfterUse, 0, sampleRate, dataSize);
-		} else if (flags & k16Bit) {
-			return new SOLStream<false, true>(dataStream, disposeAfterUse, 0, sampleRate, dataSize);
-		} else {
-			return new SOLStream<false, false>(dataStream, disposeAfterUse, 0, sampleRate, dataSize);
-		}
-	}
-
-	byte rawFlags = Audio::FLAG_LITTLE_ENDIAN;
-	if (flags & k16Bit) {
-		rawFlags |= Audio::FLAG_16BITS;
-	} else {
-		rawFlags |= Audio::FLAG_UNSIGNED;
-	}
-
-	if (flags & kStereo) {
-		rawFlags |= Audio::FLAG_STEREO;
-	}
-
-	return Audio::makeRawStream(dataStream, sampleRate, rawFlags, disposeAfterUse);
+	return Audio::makeRawStream(new Common::SeekableSubReadStream(stream, initialPosition, initialPosition + dataSize, disposeAfterUse), sampleRate, rawFlags, disposeAfterUse);
 }
 }
