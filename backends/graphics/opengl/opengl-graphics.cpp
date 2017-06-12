@@ -150,6 +150,9 @@ bool OpenGLGraphicsManager::getFeatureState(OSystem::Feature f) {
 	case OSystem::kFeatureCursorPalette:
 		return _cursorPaletteEnabled;
 
+	case OSystem::kFeatureCRTEmulation:
+		return _currentState.crtEmulation;
+
 	default:
 		return false;
 	}
@@ -339,6 +342,10 @@ OSystem::TransactionError OpenGLGraphicsManager::endGFXTransaction() {
 		_gameScreenTarget->setSize(_currentState.gameWidth, _currentState.gameHeight);
 		_gameScreenTarget->enableBlend(true);
 		_gameScreenPipeline->setFramebuffer(_gameScreenTarget);
+	}
+
+	if (_gameScreenTarget != nullptr && _gameScreenTarget->getTexture() != nullptr)	{
+		_gameScreenTarget->getTexture()->enableLinearFiltering(_currentState.filtering);
 	}
 
 	// Update our display area and cursor scaling. This makes sure we pick up

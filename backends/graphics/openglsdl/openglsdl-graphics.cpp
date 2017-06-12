@@ -779,6 +779,29 @@ bool OpenGLSdlGraphicsManager::notifyEvent(const Common::Event &event) {
 #endif
 
 				return true;
+			} else if (event.kbd.keycode == Common::KEYCODE_c) {
+				// Never ever try to resize the window when we simply want to enable or disable CRT emulation.
+				// This assures that the window size does not change.
+				_ignoreLoadVideoMode = true;
+
+				// Ctrl+Alt+c toggles CRT emulation on/off
+				beginGFXTransaction();
+				setFeatureState(OSystem::kFeatureCRTEmulation, !getFeatureState(OSystem::kFeatureCRTEmulation));
+				endGFXTransaction();
+
+				// Make sure we do not ignore the next resize. This
+				// effectively checks whether loadVideoMode has been called.
+				assert(!_ignoreLoadVideoMode);
+
+#ifdef USE_OSD
+				if (getFeatureState(OSystem::kFeatureCRTEmulation)) {
+					displayMessageOnOSD(_("CRT emulation enabled"));
+				} else {
+					displayMessageOnOSD(_("CRT emulation disabled"));
+				}
+#endif
+
+				return true;
 			}
 		}
 		// Fall through
