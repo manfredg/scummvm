@@ -293,12 +293,15 @@ bool Bitmap::solidAt(int16 x, int16 y) {
 		switch (t) {
 		case kBmpEOI:
 			r--;
-			// No break on purpose
+			// fall through
 		case kBmpSKP:
 			w = 0;
 			break;
 		case kBmpREP:
 			w = 1;
+			break;
+		case kBmpCPY:
+		default:
 			break;
 		}
 		m += w;
@@ -317,6 +320,7 @@ bool Bitmap::solidAt(int16 x, int16 y) {
 
 		n += w;
 		switch (t) {
+		default:
 		case kBmpEOI:
 			return false;
 		case kBmpSKP:

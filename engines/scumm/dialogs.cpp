@@ -205,9 +205,9 @@ static const ResString string_map_table_v345[] = {
 class HelpDialog : public ScummDialog {
 public:
 	HelpDialog(const GameSettings &game);
-	virtual void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
+	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
 
-	virtual void reflowLayout();
+	void reflowLayout() override;
 
 protected:
 	typedef Common::String String;
@@ -287,6 +287,9 @@ HelpDialog::HelpDialog(const GameSettings &game)
 	new GUI::ButtonWidget(this, "ScummHelp.Close", _("~C~lose"), 0, GUI::kCloseCmd);
 	_prevButton->clearFlags(WIDGET_ENABLED);
 
+	GUI::ContainerWidget *placeHolder = new GUI::ContainerWidget(this, "ScummHelp.HelpText");
+	placeHolder->setBackgroundType(GUI::ThemeEngine::kWidgetBackgroundNo);
+
 	_numLines = HELP_NUM_LINES;
 
 	// Dummy entries
@@ -358,7 +361,7 @@ void HelpDialog::handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 da
 			_prevButton->setFlags(WIDGET_ENABLED);
 		}
 		displayKeyBindings();
-		draw();
+		g_gui.scheduleTopDialogRedraw();
 		break;
 	case kPrevCmd:
 		_page--;
@@ -369,7 +372,7 @@ void HelpDialog::handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 da
 			_prevButton->clearFlags(WIDGET_ENABLED);
 		}
 		displayKeyBindings();
-		draw();
+		g_gui.scheduleTopDialogRedraw();
 		break;
 	default:
 		ScummDialog::handleCommand(sender, cmd, data);
@@ -514,9 +517,10 @@ ValueDisplayDialog::ValueDisplayDialog(const Common::String& label, int minVal, 
 	assert(_min <= _value && _value <= _max);
 }
 
-void ValueDisplayDialog::drawDialog() {
+void ValueDisplayDialog::drawDialog(GUI::DrawLayer layerToDraw) {
+	Dialog::drawDialog(layerToDraw);
+
 	const int labelWidth = _w - 8 - _percentBarWidth;
-	g_gui.theme()->drawDialogBackground(Common::Rect(_x, _y, _x+_w, _y+_h), GUI::ThemeEngine::kDialogBackgroundDefault);
 	g_gui.theme()->drawText(Common::Rect(_x+4, _y+4, _x+labelWidth+4,
 				_y+g_gui.theme()->getFontHeight()+4), _label);
 	g_gui.theme()->drawSlider(Common::Rect(_x+4+labelWidth, _y+4, _x+_w-4, _y+_h-4),
@@ -553,7 +557,7 @@ void ValueDisplayDialog::handleKeyDown(Common::KeyState state) {
 
 		setResult(_value);
 		_timer = g_system->getMillis() + kDisplayDelay;
-		draw();
+		g_gui.scheduleTopDialogRedraw();
 	} else {
 		close();
 	}
@@ -581,7 +585,7 @@ void SubtitleSettingsDialog::handleKeyDown(Common::KeyState state) {
 		cycleValue();
 
 		reflowLayout();
-		draw();
+		g_gui.scheduleTopDialogRedraw();
 	} else {
 		close();
 	}
@@ -634,7 +638,7 @@ void DebugInputDialog::handleKeyDown(Common::KeyState state) {
 		buffer.deleteLastChar();
 		Common::String total = mainText + ' ' + buffer;
 		setInfoText(total);
-		draw();
+		g_gui.scheduleTopDialogRedraw();
 		reflowLayout();
 	} else if (state.keycode == Common::KEYCODE_RETURN) {
 		done = 1;
@@ -643,7 +647,7 @@ void DebugInputDialog::handleKeyDown(Common::KeyState state) {
 	} else if ((state.ascii >= '0' && state.ascii <= '9') || (state.ascii >= 'A' && state.ascii <= 'Z') || (state.ascii >= 'a' && state.ascii <= 'z') || state.ascii == '.' || state.ascii == ' ') {
 		buffer += state.ascii;
 		Common::String total = mainText + ' ' + buffer;
-		draw();
+		g_gui.scheduleTopDialogRedraw();
 		reflowLayout();
 		setInfoText(total);
 	}

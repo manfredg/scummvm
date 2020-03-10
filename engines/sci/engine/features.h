@@ -102,12 +102,20 @@ public:
 		case GID_SQ6:
 			return true;
 		case GID_KQ7:
-		case GID_QFG4:
-			// (1) KQ7 1.51 (SCI2.1early) uses the non-standard attenuation, but
+			// KQ7 1.51 (SCI2.1early) uses the non-standard attenuation, but
 			// 2.00b (SCI2.1mid) does not
-			// (2) QFG4 CD is SCI2.1early; QFG4 floppy is SCI2 and does not use
-			// the SCI2.1 audio system
 			return getSciVersion() == SCI_VERSION_2_1_EARLY;
+		default:
+			return false;
+		}
+	}
+
+	inline bool gameScriptsControlMasterVolume() const {
+		switch (g_sci->getGameId()) {
+		case GID_LSL7:
+		case GID_PHANTASMAGORIA2:
+		case GID_TORIN:
+			return true;
 		default:
 			return false;
 		}
@@ -120,7 +128,7 @@ public:
 	inline bool hasTransparentPicturePlanes() const {
 		const SciGameId &gid = g_sci->getGameId();
 
-		// NOTE: MGDX is assumed to not have transparent picture planes since it
+		// MGDX is assumed to not have transparent picture planes since it
 		// was released before SQ6, but this has not been verified since it
 		// cannot be disassembled at the moment (Phar Lap Windows-only release)
 		return getSciVersion() >= SCI_VERSION_2_1_MIDDLE &&
@@ -153,21 +161,19 @@ public:
 			g_sci->getGameId() != GID_GK2;
 	}
 
-	inline bool usesAlternateSelectors() const {
-		return g_sci->getGameId() == GID_PHANTASMAGORIA2;
+	inline bool useDoSoundMac32() const {
+		// Several SCI 2.1 Middle Mac games use a modified kDoSound with
+		//  different subop numbers.
+		return g_sci->getPlatform() == Common::kPlatformMacintosh &&
+			(g_sci->getGameId() == GID_HOYLE5 ||
+			 g_sci->getGameId() == GID_PHANTASMAGORIA ||
+			 g_sci->getGameId() == GID_PQSWAT ||
+			 g_sci->getGameId() == GID_SHIVERS ||
+			 g_sci->getGameId() == GID_SQ6);
 	}
 
-	inline bool hasEmptyScaleDrawHack() const {
-		// Yes: KQ7 (all), PQ4CD, QFG4CD, SQ6, Phant1
-		// No: All SCI2, all SCI3, GK2, LSL6hires, PQ:SWAT, Torin
-		// Unknown: Hoyle5, MGDX, Shivers
-		const SciGameId &gid = g_sci->getGameId();
-		return getSciVersion() > SCI_VERSION_2 &&
-			getSciVersion() < SCI_VERSION_2_1_LATE &&
-			gid != GID_LSL6HIRES &&
-			gid != GID_GK2 &&
-			gid != GID_PQSWAT &&
-			gid != GID_TORIN;
+	inline bool usesAlternateSelectors() const {
+		return g_sci->getGameId() == GID_PHANTASMAGORIA2;
 	}
 #endif
 
@@ -220,6 +226,8 @@ public:
 	 */
 	MoveCountType detectMoveCountType();
 
+	int detectPlaneIdBase();
+	
 	bool handleMoveCount() { return detectMoveCountType() == kIncrementMoveCount; }
 
 	bool usesCdTrack() { return _usesCdTrack; }
@@ -232,6 +240,11 @@ public:
 	bool useAltWinGMSound();
 
 	/**
+	 * Checks if the game only supports General MIDI for music playback.
+	 */
+	bool generalMidiOnly();
+
+	/**
 	 * Forces DOS soundtracks in Windows CD versions when the user hasn't
 	 * selected a MIDI output device
 	 */
@@ -242,6 +255,8 @@ public:
 	 * @return kPseudoMouseAbilityTrue or kPseudoMouseAbilityFalse
 	 */
 	PseudoMouseAbilityType detectPseudoMouseAbility();
+
+	bool useEarlyGetLongestTextCalculations() const;
 
 private:
 	reg_t getDetectionAddr(const Common::String &objName, Selector slc, int methodNum = -1);

@@ -20,8 +20,6 @@
  *
  */
 
-#define FORBIDDEN_SYMBOL_EXCEPTION_exit
-
 #include "backends/modular-backend.h"
 
 #include "backends/graphics/graphics.h"
@@ -85,12 +83,32 @@ const OSystem::GraphicsMode *ModularBackend::getSupportedShaders() const {
 	return _graphicsManager->getSupportedShaders();
 }
 
+int ModularBackend::getDefaultShader() const {
+	return _graphicsManager->getDefaultShader();
+}
+
 bool ModularBackend::setShader(int id) {
 	return _graphicsManager->setShader(id);
 }
 
 int ModularBackend::getShader() const {
 	return _graphicsManager->getShader();
+}
+
+const OSystem::GraphicsMode *ModularBackend::getSupportedStretchModes() const {
+	return _graphicsManager->getSupportedStretchModes();
+}
+
+int ModularBackend::getDefaultStretchMode() const {
+	return _graphicsManager->getDefaultStretchMode();
+}
+
+bool ModularBackend::setStretchMode(int mode) {
+	return _graphicsManager->setStretchMode(mode);
+}
+
+int ModularBackend::getStretchMode() const {
+	return _graphicsManager->getStretchMode();
 }
 
 void ModularBackend::resetGraphicsScale() {
@@ -111,6 +129,10 @@ Common::List<Graphics::PixelFormat> ModularBackend::getSupportedFormats() const 
 
 void ModularBackend::initSize(uint w, uint h, const Graphics::PixelFormat *format ) {
 	_graphicsManager->initSize(w, h, format);
+}
+
+void ModularBackend::initSizeHint(const Graphics::ModeList &modes) {
+	_graphicsManager->initSizeHint(modes);
 }
 
 int ModularBackend::getScreenChangeID() const {
@@ -165,8 +187,8 @@ void ModularBackend::updateScreen() {
 #endif
 }
 
-void ModularBackend::setShakePos(int shakeOffset) {
-	_graphicsManager->setShakePos(shakeOffset);
+void ModularBackend::setShakePos(int shakeXOffset, int shakeYOffset) {
+	_graphicsManager->setShakePos(shakeXOffset, shakeYOffset);
 }
 void ModularBackend::setFocusRectangle(const Common::Rect& rect) {
 	_graphicsManager->setFocusRectangle(rect);
@@ -213,6 +235,7 @@ bool ModularBackend::showMouse(bool visible) {
 }
 
 void ModularBackend::warpMouse(int x, int y) {
+	_eventManager->purgeMouseEvents();
 	_graphicsManager->warpMouse(x, y);
 }
 
@@ -255,8 +278,4 @@ void ModularBackend::displayMessageOnOSD(const char *msg) {
 
 void ModularBackend::displayActivityIconOnOSD(const Graphics::Surface *icon) {
 	_graphicsManager->displayActivityIconOnOSD(icon);
-}
-
-void ModularBackend::quit() {
-	exit(0);
 }

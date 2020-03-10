@@ -406,6 +406,8 @@ Sprite *Sprite::expand() {
 					case 0xFE:
 						s->_next = seqcnt - 1;
 						break;
+					default:
+						break;
 					}
 					if (s->_next > maxnxt)
 						maxnxt = s->_next;
@@ -938,13 +940,13 @@ uint8 Vga::closest(Dac *pal, const uint8 colR, const uint8 colG, const uint8 col
 		uint16 D = ((r > R) ? (r - R) : (R - r)) +
 		           ((g > G) ? (g - G) : (G - g)) +
 		           ((b > B) ? (b - B) : (B - b)) +
-		           ((l > L) ? (l - L) : (L - l)) * 10 ;
+		           ((l > L) ? (l - L) : (L - l)) * 10;
 
 		if (D < dif) {
 			found = i;
 			dif = D;
 			if (D == 0)
-				break;    // exact!
+				break; // exact!
 		}
 	}
 	return found;
@@ -1149,6 +1151,7 @@ void Bitmap::show(V2D pos) {
 			while (count-- > 0) {
 				// Transfer operation
 				switch (cmd) {
+				default:
 				case 1:
 					// SKIP
 					break;

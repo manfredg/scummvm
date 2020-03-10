@@ -24,7 +24,6 @@
 #define TITANIC_TITLE_ENGINE_H
 
 #include "common/stream.h"
-#include "common/winexe_pe.h"
 #include "titanic/support/string.h"
 #include "titanic/true_talk/script_handler.h"
 #include "titanic/true_talk/tt_response.h"
@@ -51,7 +50,7 @@ public:
 	/**
 	 * Setup the engine
 	 */
-	virtual void setup(int val1, int val2 = 0);
+	virtual void setup(int val1, VocabMode vocabMode = VOCAB_MODE_NONE);
 
 	/**
 	 * Sets a conversation reponse
@@ -73,24 +72,24 @@ public:
 	Common::Array<byte> _data;
 public:
 	STtitleEngine();
-	virtual ~STtitleEngine();
+	~STtitleEngine() override;
 
 	void reset();
 
 	/**
 	 * Setup the engine
 	 */
-	virtual void setup(int val1, int val2 = 0);
+	void setup(int val1, VocabMode vocabMode = VOCAB_MODE_NONE) override;
 
 	/**
 	 * Sets a conversation reponse
 	 */
-	virtual int setResponse(TTscriptBase *script, TTresponse *response);
+	int setResponse(TTscriptBase *script, TTresponse *response) override;
 
 	/**
 	 * Open a designated file
 	 */
-	virtual SimpleFile *open(const CString &name);
+	SimpleFile *open(const CString &name) override;
 };
 
 } // End of namespace Titanic

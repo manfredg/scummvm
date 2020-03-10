@@ -23,16 +23,21 @@
 #ifndef TITANIC_MAIN_GAME_WINDOW_H
 #define TITANIC_MAIN_GAME_WINDOW_H
 
-#include "common/scummsys.h"
-#include "common/array.h"
-#include "titanic/game_manager.h"
-#include "titanic/game_view.h"
-#include "titanic/support/image.h"
 #include "titanic/core/project_item.h"
 #include "titanic/events.h"
+#include "common/array.h"
+#include "common/scummsys.h"
+
+namespace Common {
+struct Point;
+}
 
 namespace Titanic {
 
+class CGameManager;
+class CGameView;
+class CScreenManager;
+class Image;
 class TitanicEngine;
 
 class CMainGameWindow : public CEventTarget {
@@ -41,7 +46,6 @@ private:
 	int _pendingLoadSlot;
 	uint32 _priorLeftDownTime;
 	uint32 _priorMiddleDownTime;
-	uint32 _priorRightDownTime;
 private:
 	/**
 	 * Returns true if a savegame was selected to be loaded
@@ -76,9 +80,8 @@ private:
 	 */
 	void drawViewContents(CScreenManager *screenManager);
 
-	void leftButtonDoubleClick(const Point &mousePos);
-	void middleButtonDoubleClick(const Point &mousePos);
-	void rightButtonDoubleClick(const Point &mousePos);
+	void leftButtonDoubleClick(const Point &mousePos) override;
+	void middleButtonDoubleClick(const Point &mousePos) override;
 
 	/**
 	 * Returns true if the player can control the mouse
@@ -93,22 +96,20 @@ public:
 	void *_cursor;
 public:
 	CMainGameWindow(TitanicEngine *vm);
-	virtual ~CMainGameWindow();
+	~CMainGameWindow() override;
 
 	/**
 	* Called to handle any regular updates the game requires
 	*/
-	void onIdle();
+	void onIdle() override;
 
-	virtual void mouseMove(const Point &mousePos);
-	virtual void leftButtonDown(const Point &mousePos);
-	virtual void leftButtonUp(const Point &mousePos);
-	virtual void middleButtonDown(const Point &mousePos);
-	virtual void middleButtonUp(const Point &mousePos);
-	virtual void rightButtonDown(const Point &mousePos);
-	virtual void rightButtonUp(const Point &mousePos);
-	virtual void mouseWheel(const Point &mousePos, bool wheelUp);
-	virtual void keyDown(Common::KeyState keyState);
+	void mouseMove(const Point &mousePos) override;
+	void leftButtonDown(const Point &mousePos) override;
+	void leftButtonUp(const Point &mousePos) override;
+	void middleButtonDown(const Point &mousePos) override;
+	void middleButtonUp(const Point &mousePos) override;
+	void mouseWheel(const Point &mousePos, bool wheelUp) override;
+	void keyDown(Common::KeyState keyState) override;
 
 	/**
 	 * Called when the application starts

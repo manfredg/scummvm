@@ -31,21 +31,21 @@ class CMultiDropTarget : public CDropTarget {
 	DECLARE_MESSAGE_MAP;
 	bool DropObjectMsg(CDropObjectMsg *msg);
 public:
-	CString _string5;
-	CString _string6;
+	CString _dropFrames;
+	CString _dropNames;
 public:
 	CLASSDEF;
-	CMultiDropTarget() : CDropTarget(), _string5("1,2") {}
+	CMultiDropTarget() : CDropTarget(), _dropFrames("1,2") {}
 
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 };
 
 } // End of namespace Titanic

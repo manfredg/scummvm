@@ -34,9 +34,11 @@ namespace Pegasus {
 class PegasusChip : public BiochipItem {
 public:
 	PegasusChip(const ItemID, const NeighborhoodID, const RoomID, const DirectionConstant);
-	virtual ~PegasusChip();
+	~PegasusChip() override;
 
-	void select();
+	void select() override;
+
+	void takeSharedArea() override;
 
 	void setUpPegasusChip();
 

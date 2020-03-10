@@ -20,8 +20,8 @@
  *
  */
 
-#ifndef GLOBAL_DIALOGS_H
-#define GLOBAL_DIALOGS_H
+#ifndef GUI_PREDICTIVEDIALOG_H
+#define GUI_PREDICTIVEDIALOG_H
 
 #include "gui/dialog.h"
 #include "common/str.h"
@@ -36,13 +36,13 @@ class PicButtonWidget;
 class PredictiveDialog : public GUI::Dialog {
 public:
 	PredictiveDialog();
-	~PredictiveDialog();
+	~PredictiveDialog() override;
 
-	virtual void reflowLayout();
+	void reflowLayout() override;
 
-	virtual void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data);
-	virtual void handleKeyUp(Common::KeyState state);
-	virtual void handleKeyDown(Common::KeyState state);
+	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
+	void handleKeyUp(Common::KeyState state) override;
+	void handleKeyDown(Common::KeyState state) override;
 
 	const char *getResult() const { return _predictiveResult; }
 

@@ -139,8 +139,8 @@ void InventoryHandler::constructInventory(const int16 imageTotNumb, int displayN
  * Process required action for inventory
  * Returns objId under cursor (or -1) for INV_GET
  */
-int16 InventoryHandler::processInventory(const InvAct action, ...) {
-	debugC(1, kDebugInventory, "processInventory(InvAct action, ...)");
+int16 InventoryHandler::processInventory(const int action, ...) {
+	debugC(1, kDebugInventory, "processInventory(int action, ...)");
 
 	int16 imageNumb;                                // Total number of inventory items
 	int displayNumb;                                // Total number displayed/carried
@@ -202,6 +202,8 @@ int16 InventoryHandler::processInventory(const InvAct action, ...) {
 			}
 		}
 		break;
+	default:
+		break;
 	}
 	return objId;                                   // For the INV_GET action
 }
@@ -215,6 +217,7 @@ void InventoryHandler::runInventory() {
 	debugC(1, kDebugInventory, "runInventory");
 
 	switch (_inventoryState) {
+	default:
 	case kInventoryOff:                             // Icon bar off screen
 		break;
 	case kInventoryUp:                              // Icon bar moving up

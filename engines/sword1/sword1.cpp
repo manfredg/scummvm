@@ -65,7 +65,7 @@ SwordEngine::SwordEngine(OSystem *syst)
 	SearchMan.addSubDirectoryMatching(gameDataDir, "english"); // PSX Demo
 	SearchMan.addSubDirectoryMatching(gameDataDir, "italian"); // PSX Demo
 
-	_console = new SwordConsole(this);
+	setDebugger(new SwordConsole(this));
 
 	_mouseState = 0;
 	_resMan = 0;
@@ -89,12 +89,11 @@ SwordEngine::~SwordEngine() {
 	delete _mouse;
 	delete _objectMan;
 	delete _resMan;
-	delete _console;
 }
 
 Common::Error SwordEngine::init() {
 
-	initGraphics(640, 480, true);
+	initGraphics(640, 480);
 
 	if (0 == scumm_stricmp(ConfMan.get("gameid").c_str(), "sword1mac") ||
 	        0 == scumm_stricmp(ConfMan.get("gameid").c_str(), "sword1macdemo"))
@@ -154,7 +153,7 @@ Common::Error SwordEngine::init() {
 
 	_systemVars.showText = ConfMan.getBool("subtitles");
 
-	_systemVars.playSpeech = 1;
+	_systemVars.playSpeech = true;
 	_mouseState = 0;
 
 	// Some Mac versions use big endian for the speech files but not all of them.
@@ -690,12 +689,6 @@ uint8 SwordEngine::mainLoop() {
 				retCode = _control->runPanel();
 				if (retCode == CONTROL_NOTHING_DONE)
 					_screen->fullRefresh();
-			}
-
-			// Check for Debugger Activation
-			if (_keyPressed.hasFlags(Common::KBD_CTRL) && _keyPressed.keycode == Common::KEYCODE_d) {
-				this->getDebugger()->attach();
-				this->getDebugger()->onFrame();
 			}
 
 			_mouseState = 0;

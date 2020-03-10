@@ -31,8 +31,8 @@ class CAutoSoundEvent : public CGameObject {
 	DECLARE_MESSAGE_MAP;
 	bool FrameMsg(CFrameMsg *msg);
 public:
-	int _value1;
-	int _value2;
+	int _counter;
+	int _mask;
 public:
 	CLASSDEF;
 	CAutoSoundEvent();
@@ -40,12 +40,12 @@ public:
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 };
 
 } // End of namespace Titanic

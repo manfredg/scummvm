@@ -434,6 +434,15 @@ static Common::Language detectLanguage(const Common::FSList &fslist, byte id) {
 			&& searchFSNode(tmpList, filename, langFile)) {
 			tmp.open(langFile);
 		}
+		// The Steam version of Dig has the LANGUAGE.BND in the DIG sub dir...
+		if (!tmp.isOpen()
+			&& id == GID_DIG
+			&& searchFSNode(fslist, "DIG", resDir)
+			&& resDir.isDirectory()
+			&& resDir.getChildren(tmpList, Common::FSNode::kListFilesOnly)
+			&& searchFSNode(tmpList, filename, langFile)) {
+			tmp.open(langFile);
+		}
 	}
 	if (tmp.isOpen()) {
 		uint size = tmp.size();
@@ -458,6 +467,8 @@ static Common::Language detectLanguage(const Common::FSList &fslist, byte id) {
 				return Common::RU_RUS;
 			case 449787:	// 64f3fe479d45b52902cf88145c41d172
 				return Common::ES_ESP;
+			default:
+				break;
 			}
 		} else { // The DIG
 			switch (size) {
@@ -475,6 +486,8 @@ static Common::Language detectLanguage(const Common::FSList &fslist, byte id) {
 				return Common::JA_JPN;
 			case 180730:	// 424fdd60822722cdc75356d921dad9bf
 				return Common::ZH_TWN;
+			default:
+				break;
 			}
 		}
 	}
@@ -660,6 +673,12 @@ static void detectGames(const Common::FSList &fslist, Common::List<DetectorResul
 		if (d.md5Entry)
 			continue;
 
+		// Prevent executables being detected as Steam variant. If we don't
+		// know the md5, then it's just the regular executable. Otherwise we
+		// will most likely fail on trying read the index from the executable.
+		// Fixes bug #10290
+		if (gfp->genMethod == kGenRoomNumSteam || gfp->genMethod == kGenDiskNumSteam)
+			continue;
 
 		//  ____            _     ____
 		// |  _ \ __ _ _ __| |_  |___ \ *
@@ -949,21 +968,25 @@ using namespace Scumm;
 
 class ScummMetaEngine : public MetaEngine {
 public:
-	virtual const char *getName() const;
-	virtual const char *getOriginalCopyright() const;
+	const char *getEngineId() const override {
+		return "scumm";
+	}
 
-	virtual bool hasFeature(MetaEngineFeature f) const;
-	virtual GameList getSupportedGames() const;
-	virtual GameDescriptor findGame(const char *gameid) const;
-	virtual GameList detectGames(const Common::FSList &fslist) const;
+	const char *getName() const override;
+	const char *getOriginalCopyright() const override;
 
-	virtual Common::Error createInstance(OSystem *syst, Engine **engine) const;
+	bool hasFeature(MetaEngineFeature f) const override;
+	PlainGameList getSupportedGames() const override;
+	PlainGameDescriptor findGame(const char *gameid) const override;
+	DetectedGames detectGames(const Common::FSList &fslist) const override;
 
-	virtual SaveStateList listSaves(const char *target) const;
-	virtual int getMaximumSaveSlot() const;
-	virtual void removeSaveState(const char *target, int slot) const;
-	virtual SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
-	virtual const ExtraGuiOptions getExtraGuiOptions(const Common::String &target) const;
+	Common::Error createInstance(OSystem *syst, Engine **engine) const override;
+
+	SaveStateList listSaves(const char *target) const override;
+	int getMaximumSaveSlot() const override;
+	void removeSaveState(const char *target, int slot) const override;
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
+	const ExtraGuiOptions getExtraGuiOptions(const Common::String &target) const override;
 };
 
 bool ScummMetaEngine::hasFeature(MetaEngineFeature f) const {
@@ -986,11 +1009,11 @@ bool ScummEngine::hasFeature(EngineFeature f) const {
 		(f == kSupportsSubtitleOptions);
 }
 
-GameList ScummMetaEngine::getSupportedGames() const {
-	return GameList(gameDescriptions);
+PlainGameList ScummMetaEngine::getSupportedGames() const {
+	return PlainGameList(gameDescriptions);
 }
 
-GameDescriptor ScummMetaEngine::findGame(const char *gameid) const {
+PlainGameDescriptor ScummMetaEngine::findGame(const char *gameid) const {
 	return Engines::findGameID(gameid, gameDescriptions, obsoleteGameIDsTable);
 }
 
@@ -1020,29 +1043,26 @@ static Common::String generatePreferredTarget(const DetectorResult &x) {
 	return res;
 }
 
-GameList ScummMetaEngine::detectGames(const Common::FSList &fslist) const {
-	GameList detectedGames;
+DetectedGames ScummMetaEngine::detectGames(const Common::FSList &fslist) const {
+	DetectedGames detectedGames;
 	Common::List<DetectorResult> results;
-
 	::detectGames(fslist, results, 0);
 
 	for (Common::List<DetectorResult>::iterator
 	          x = results.begin(); x != results.end(); ++x) {
 		const PlainGameDescriptor *g = findPlainGameDescriptor(x->game.gameid, gameDescriptions);
 		assert(g);
-		GameDescriptor dg(x->game.gameid, g->description, x->language, x->game.platform);
 
-		// Append additional information, if set, to the description.
-		dg.updateDesc(x->extra);
+		DetectedGame game = DetectedGame(getEngineId(), x->game.gameid, g->description, x->language, x->game.platform, x->extra);
 
 		// Compute and set the preferred target name for this game.
 		// Based on generateComplexID() in advancedDetector.cpp.
-		dg["preferredtarget"] = generatePreferredTarget(*x);
+		game.preferredTarget = generatePreferredTarget(*x);
 
-		dg.setGUIOptions(x->game.guioptions + MidiDriver::musicType2GUIO(x->game.midi));
-		dg.appendGUIOptions(getGameGUIOptionsDescriptionLanguage(x->language));
+		game.setGUIOptions(x->game.guioptions + MidiDriver::musicType2GUIO(x->game.midi));
+		game.appendGUIOptions(getGameGUIOptionsDescriptionLanguage(x->language));
 
-		detectedGames.push_back(dg);
+		detectedGames.push_back(game);
 	}
 
 	return detectedGames;
@@ -1318,6 +1338,14 @@ SaveStateDescriptor ScummMetaEngine::querySaveMetaInfos(const char *target, int 
 	}
 
 	SaveStateDescriptor desc(slot, saveDesc);
+
+	// Do not allow save slot 0 (used for auto-saving) to be deleted or
+	// overwritten.
+	if (slot == 0) {
+		desc.setWriteProtectedFlag(true);
+		desc.setDeletableFlag(false);
+	}
+
 	desc.setThumbnail(thumbnail);
 
 	if (infoPtr) {

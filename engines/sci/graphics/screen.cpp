@@ -179,13 +179,13 @@ GfxScreen::GfxScreen(ResourceManager *resMan) : _resMan(resMan) {
 		// We add 2 to the height of the icon bar to add a buffer between the screen and the
 		// icon bar (as did the original interpreter).
 		if (g_sci->getGameId() == GID_KQ6)
-			initGraphics(_displayWidth, _displayHeight + 26 + 2, _displayWidth > 320);
+			initGraphics(_displayWidth, _displayHeight + 26 + 2);
 		else if (g_sci->getGameId() == GID_FREDDYPHARKAS)
-			initGraphics(_displayWidth, _displayHeight + 28 + 2, _displayWidth > 320);
+			initGraphics(_displayWidth, _displayHeight + 28 + 2);
 		else
 			error("Unknown SCI1.1 Mac game");
 	} else
-		initGraphics(_displayWidth, _displayHeight, _displayWidth > 320);
+		initGraphics(_displayWidth, _displayHeight);
 }
 
 GfxScreen::~GfxScreen() {
@@ -595,26 +595,35 @@ void GfxScreen::bitsRestoreDisplayScreen(Common::Rect rect, byte *&memoryPtr) {
 	}
 }
 
-void GfxScreen::setVerticalShakePos(uint16 shakePos) {
+void GfxScreen::setShakePos(uint16 shakeXOffset, uint16 shakeYOffset) {
 	if (!_upscaledHires)
-		g_system->setShakePos(shakePos);
+		g_system->setShakePos(shakeXOffset, shakeYOffset);
 	else
-		g_system->setShakePos(_upscaledHeightMapping[shakePos]);
+		g_system->setShakePos(_upscaledWidthMapping[shakeXOffset], _upscaledHeightMapping[shakeYOffset]);
 }
 
 void GfxScreen::kernelShakeScreen(uint16 shakeCount, uint16 directions) {
 	while (shakeCount--) {
-		if (directions & kShakeVertical)
-			setVerticalShakePos(10);
-		// TODO: horizontal shakes
-		g_system->updateScreen();
-		g_sci->getEngineState()->wait(3);
 
-		if (directions & kShakeVertical)
-			setVerticalShakePos(0);
+		uint16 shakeXOffset = 0;
+		if (directions & kShakeHorizontal) {
+			shakeXOffset = 10;
+		}
+
+		uint16 shakeYOffset = 0;
+		if (directions & kShakeVertical) {
+			shakeYOffset = 10;
+		}
+
+		setShakePos(shakeXOffset, shakeYOffset);
 
 		g_system->updateScreen();
-		g_sci->getEngineState()->wait(3);
+		g_sci->getEngineState()->sleep(3);
+
+		setShakePos(0, 0);
+
+		g_system->updateScreen();
+		g_sci->getEngineState()->sleep(3);
 	}
 }
 
@@ -715,6 +724,8 @@ void GfxScreen::debugShowMap(int mapNo) {
 	case 3:
 		_activeScreen = _displayScreen;
 		break;
+	default:
+		break;
 	}
 	copyToScreen();
 }
@@ -760,37 +771,16 @@ void GfxScreen::scale2x(const SciSpan<const byte> &src, SciSpan<byte> &dst, int1
 
 struct UpScaledAdjust {
 	GfxScreenUpscaledMode gameHiresMode;
-	Sci32ViewNativeResolution viewNativeRes;
 	int numerator;
 	int denominator;
 };
 
-static const UpScaledAdjust s_upscaledAdjustTable[] = {
-	{ GFX_SCREEN_UPSCALED_640x480, SCI_VIEW_NATIVERES_640x400, 5, 6 }
-};
-
-void GfxScreen::adjustToUpscaledCoordinates(int16 &y, int16 &x, Sci32ViewNativeResolution viewNativeRes) {
+void GfxScreen::adjustToUpscaledCoordinates(int16 &y, int16 &x) {
 	x = _upscaledWidthMapping[x];
 	y = _upscaledHeightMapping[y];
-
-	for (int i = 0; i < ARRAYSIZE(s_upscaledAdjustTable); i++) {
-		if (s_upscaledAdjustTable[i].gameHiresMode == _upscaledHires &&
-				s_upscaledAdjustTable[i].viewNativeRes == viewNativeRes) {
-			y = (y * s_upscaledAdjustTable[i].numerator) / s_upscaledAdjustTable[i].denominator;
-			break;
-		}
-	}
 }
 
-void GfxScreen::adjustBackUpscaledCoordinates(int16 &y, int16 &x, Sci32ViewNativeResolution viewNativeRes) {
-	for (int i = 0; i < ARRAYSIZE(s_upscaledAdjustTable); i++) {
-		if (s_upscaledAdjustTable[i].gameHiresMode == _upscaledHires &&
-				s_upscaledAdjustTable[i].viewNativeRes == viewNativeRes) {
-			y = (y * s_upscaledAdjustTable[i].denominator) / s_upscaledAdjustTable[i].numerator;
-			break;
-		}
-	}
-
+void GfxScreen::adjustBackUpscaledCoordinates(int16 &y, int16 &x) {
 	switch (_upscaledHires) {
 	case GFX_SCREEN_UPSCALED_480x300:
 		x = (x * 4) / 6;

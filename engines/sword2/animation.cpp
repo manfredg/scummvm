@@ -99,16 +99,18 @@ bool MoviePlayer::load(const char *name) {
 	case kVideoDecoderMP2:
 		filename = Common::String::format("%s.mp2", name);
 		break;
+	default:
+		break;
 	}
 
 	// Need to switch to true color for PSX/MP2 videos
 	if (_decoderType == kVideoDecoderPSX || _decoderType == kVideoDecoderMP2)
-		initGraphics(g_system->getWidth(), g_system->getHeight(), true, 0);
+		initGraphics(g_system->getWidth(), g_system->getHeight(), nullptr);
 
 	if (!_decoder->loadFile(filename)) {
 		// Go back to 8bpp color
 		if (_decoderType == kVideoDecoderPSX || _decoderType == kVideoDecoderMP2)
-			initGraphics(g_system->getWidth(), g_system->getHeight(), true);
+			initGraphics(g_system->getWidth(), g_system->getHeight());
 
 		return false;
 	}
@@ -145,7 +147,7 @@ void MoviePlayer::play(MovieText *movieTexts, uint32 numMovieTexts, uint32 leadI
 
 	// Need to jump back to paletted color
 	if (_decoderType == kVideoDecoderPSX || _decoderType == kVideoDecoderMP2)
-		initGraphics(640, 480, true);
+		initGraphics(640, 480);
 }
 
 void MoviePlayer::openTextObject(uint32 index) {
@@ -242,6 +244,8 @@ void MoviePlayer::closeTextObject(uint32 index, Graphics::Surface *screen, uint1
 		break; \
 	case 4: \
 		WRITE_UINT32(dst, (c)); \
+		break; \
+	default: \
 		break; \
 	}
 

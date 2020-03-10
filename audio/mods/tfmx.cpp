@@ -230,7 +230,7 @@ void Tfmx::macroRun(ChannelContext &channel) {
 		switch (macroPtr[0]) {
 		case 0x00:	// Reset + DMA Off. Parameters: deferWait, addset, vol
 			clearEffects(channel);
-			// FT
+			// fall through
 		case 0x13:	// DMA Off. Parameters:  deferWait, addset, vol
 			// TODO: implement PArameters
 			Paula::disableChannel(channel.paulaChannel);
@@ -285,7 +285,7 @@ void Tfmx::macroRun(ChannelContext &channel) {
 		case 0x10:	// Loop Key Up. Parameters: Loopcount, MacroStep(W)
 			if (channel.keyUp)
 				continue;
-			// FT
+			// fall through
 		case 0x05:	// Loop. Parameters: Loopcount, MacroStep(W)
 			if (channel.macroLoopCount != 0) {
 				if (channel.macroLoopCount == 0xFF)
@@ -554,7 +554,7 @@ bool Tfmx::patternRun(PatternContext &pattern) {
 			case 14: 	// Stop custompattern
 				// TODO apparently toggles on/off pattern channel 7
 				debug(3, "Tfmx: Encountered 'Stop custompattern' command");
-				// FT
+				// fall through
 			case 4: 	// Stop this pattern
 				pattern.command = 0xFF;
 				--pattern.step;
@@ -604,6 +604,9 @@ bool Tfmx::patternRun(PatternContext &pattern) {
 
 			case 15: 	// NOP
 				continue;
+
+			default:
+				break;
 			}
 		}
 	}
@@ -731,6 +734,9 @@ void Tfmx::noteCommand(const uint8 note, const uint8 param1, const uint8 param2,
 			channel.envDelta = param1;
 			channel.envCount = channel.envSkip = (param2 >> 4) + 1;
 			channel.envEndVolume = param3;
+			break;
+
+		default:
 			break;
 	}
 }

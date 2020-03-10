@@ -86,7 +86,7 @@ void sceneHandler28_makeFaces(ExCommand *cmd) {
 		for (int i = 0; i < 5; i++) {
 			int pos;
 
-			while (frames[pos = g_fp->_rnd->getRandomNumber(4)] == 0)
+			while (frames[pos = g_fp->_rnd.getRandomNumber(4)] == 0)
 				;
 
 			mq->getExCommandByIndex(i)->_messageNum = frames[pos];
@@ -172,13 +172,13 @@ void sceneHandler28_turnOn2() {
 	if (g_vars->scene28_fliesArePresent) {
 		g_fp->_floaters->genFlies(g_fp->_currentScene, 1013, 329, 60, 4);
 
-		g_fp->_floaters->_array2[g_fp->_floaters->_array2.size() - 1]->val13 = 30;
-		g_fp->_floaters->_array2[g_fp->_floaters->_array2.size() - 1]->countdown = g_fp->_rnd->getRandomNumber(12) + 12;
+		g_fp->_floaters->_array2[g_fp->_floaters->_array2.size() - 1].val13 = 30;
+		g_fp->_floaters->_array2[g_fp->_floaters->_array2.size() - 1].countdown = g_fp->_rnd.getRandomNumber(12) + 12;
 
 		g_fp->_floaters->genFlies(g_fp->_currentScene, 1074, 311, 60, 4);
 
-		g_fp->_floaters->_array2[g_fp->_floaters->_array2.size() - 1]->val13 = 30;
-		g_fp->_floaters->_array2[g_fp->_floaters->_array2.size() - 1]->countdown = g_fp->_rnd->getRandomNumber(12) + 12;
+		g_fp->_floaters->_array2[g_fp->_floaters->_array2.size() - 1].val13 = 30;
+		g_fp->_floaters->_array2[g_fp->_floaters->_array2.size() - 1].countdown = g_fp->_rnd.getRandomNumber(12) + 12;
 	}
 
 	g_vars->scene28_fliesArePresent = false;
@@ -257,6 +257,7 @@ void sceneHandler28_clickLift(int numLift) {
 	case 4: x = 1517; break;
 	case 5: x = 1748; break;
 	case 6: x = 1979; break;
+	default: break;
 	}
 
 	if (abs(x - g_fp->_aniMan->_ox) > 1 || abs(472 - g_fp->_aniMan->_oy) > 1
@@ -298,7 +299,7 @@ void sceneHandler28_clickLift(int numLift) {
 			sceneHandler28_lift6Start();
 			break;
 		default:
-			return;
+			break;
 		}
 	}
 }
@@ -428,8 +429,8 @@ int sceneHandler28(ExCommand *cmd) {
 						g_fp->processArcade(cmd);
 				}
 			}
-			break;
 		}
+		break;
 
 	case 33:
 		if (g_fp->_aniMan2) {
@@ -467,13 +468,16 @@ int sceneHandler28(ExCommand *cmd) {
 		g_fp->_floaters->update();
 
 		for (uint i = 0; i < g_fp->_floaters->_array2.size(); i++)
-			if (g_fp->_floaters->_array2[i]->val13 == 1)
-				g_fp->_floaters->_array2[i]->ani->_priority = 15;
+			if (g_fp->_floaters->_array2[i].val13 == 1)
+				g_fp->_floaters->_array2[i].ani->_priority = 15;
 
 		g_fp->_behaviorManager->updateBehaviors();
 
 		g_fp->startSceneTrack();
 
+		break;
+
+	default:
 		break;
 	}
 

@@ -44,14 +44,15 @@ private:
 	int getItemIndex(CGameObject *item, bool isLoading);
 
 	/**
-	 * Start any movie for the background
+	 * Start a repeated animation for the item
 	 */
-	void startBackgroundMovie();
+	void startRepeatedMovie();
 
 	/**
-	 * Start any movie for the foreground item
+	 * Start a singular (non-repeating) animation for the item,
+	 * such as an item's transformation into a piece of Titania 
 	 */
-	void startForegroundMovie();
+	void startSingularMovie();
 
 	/**
 	 * Stop any previously started foreground or background movie
@@ -64,69 +65,69 @@ private:
 	void reposition(const Point &pt);
 public:
 	CGameObject *_item;
-	int _field34;
-	CGameObject *_background;
-	CGameObject *_image;
+	bool _active;
+	CGameObject *_repeated;
+	CGameObject *_singular;
 public:
-	CPetInventoryGlyph() : _item(nullptr), _field34(1),
-		_background(nullptr), _image(nullptr) {}
-	CPetInventoryGlyph(CCarry *item, int val) : _item(item),
-		_field34(val), _background(nullptr), _image(nullptr) {}
+	CPetInventoryGlyph() : _item(nullptr), _active(true),
+		_repeated(nullptr), _singular(nullptr) {}
+	CPetInventoryGlyph(CCarry *item, bool active) : _item(item),
+		_active(active), _repeated(nullptr), _singular(nullptr) {}
 
 	/**
 	 * Called when the PET area is entered
 	 */
-	virtual void enter();
+	void enter() override;
 
 	/**
 	 * Called when the PET area is left
 	 */
-	virtual void leave();
+	void leave() override;
 
 	/**
 	 * Draw the glyph at a specified position
 	 */
-	virtual void drawAt(CScreenManager *screenManager, const Point &pt, bool isHighlighted);
+	void drawAt(CScreenManager *screenManager, const Point &pt, bool isHighlighted) override;
 
 	/**
 	 * Unhighlight any currently highlighted element
 	 */
-	virtual void unhighlightCurrent();
+	void unhighlightCurrent() override;
 
 	/**
 	 * Highlight any currently highlighted element
 	 */
-	virtual void highlightCurrent(const Point &pt);
+	void highlightCurrent(const Point &pt) override;
 
 	/**
 	 * Glyph has been shifted to be first visible one
 	 */
-	virtual void glyphFocused(const Point &topLeft, bool flag);
+	void glyphFocused(const Point &topLeft, bool flag) override;
 
 	/**
 	 * Called when a glyph drag starts
 	 */
-	virtual bool dragGlyph(const Point &topLeft, CMouseDragStartMsg *msg);
+	bool dragGlyph(const Point &topLeft, CMouseDragStartMsg *msg) override;
 
 	/**
 	 * Returns the tooltip text for when the glyph is selected
 	 */
-	virtual void getTooltip(CTextControl *text);
+	void getTooltip(CTextControl *text) override;
 
 	/**
 	 * Return whether the glyph is currently valid
 	 */
-	virtual bool isValid() const { return _item && _background; }
+	bool isValid() const override { return _item && _repeated; }
 
 	/**
 	 * Returns the object associated with the glyph
 	 */
-	virtual CGameObject *getObjectAt() { return _item; }
+	CGameObject *getObjectAt() override { return _item; }
 
 	/**
 	 * Does a processing action on the glyph
 	 */
-	virtual bool doAction(CGlyphAction *action);
+	bool doAction(CGlyphAction *action) override;
 
 	/**
 	 * Set the inventory item

@@ -22,7 +22,9 @@
 
 #include "mohawk/resource.h"
 #include "mohawk/riven.h"
+#include "mohawk/riven_card.h"
 #include "mohawk/riven_saveload.h"
+#include "mohawk/riven_stack.h"
 
 #include "common/system.h"
 #include "graphics/thumbnail.h"
@@ -36,10 +38,11 @@ RivenSaveMetadata::RivenSaveMetadata() {
 	saveHour = 0;
 	saveMinute = 0;
 	totalPlayTime = 0;
+	autoSave = false;
 }
 
 bool RivenSaveMetadata::sync(Common::Serializer &s) {
-	static const Common::Serializer::Version kCurrentVersion = 1;
+	static const Common::Serializer::Version kCurrentVersion = 2;
 
 	if (!s.syncVersion(kCurrentVersion)) {
 		return false;
@@ -52,6 +55,7 @@ bool RivenSaveMetadata::sync(Common::Serializer &s) {
 	s.syncAsByte(saveMinute);
 	s.syncString(saveDescription);
 	s.syncAsUint32BE(totalPlayTime);
+	s.syncAsByte(autoSave, 2);
 
 	return true;
 }
@@ -103,22 +107,24 @@ Common::String RivenSaveLoad::querySaveDescription(const int slot) {
 SaveStateDescriptor RivenSaveLoad::querySaveMetaInfos(const int slot) {
 	Common::String filename = buildSaveFilename(slot);
 	Common::InSaveFile *loadFile = g_system->getSavefileManager()->openForLoading(filename);
+	SaveStateDescriptor descriptor;
+
 	if (!loadFile) {
-		return SaveStateDescriptor();
+		return descriptor;
 	}
 
 	MohawkArchive mhk;
 	if (!mhk.openStream(loadFile)) {
-		return SaveStateDescriptor();
+		return descriptor;
 	}
 
 	if (!mhk.hasResource(ID_META, 1)) {
-		return SaveStateDescriptor();
+		return descriptor;
 	}
 
 	Common::SeekableReadStream *metaStream = mhk.getResource(ID_META, 1);
 	if (!metaStream) {
-		return SaveStateDescriptor();
+		return descriptor;
 	}
 
 	Common::Serializer serializer = Common::Serializer(metaStream, nullptr);
@@ -126,14 +132,15 @@ SaveStateDescriptor RivenSaveLoad::querySaveMetaInfos(const int slot) {
 	RivenSaveMetadata metadata;
 	if (!metadata.sync(serializer)) {
 		delete metaStream;
-		return SaveStateDescriptor();
+		return descriptor;
 	}
 
-	SaveStateDescriptor descriptor;
+	descriptor.setSaveSlot(slot);
 	descriptor.setDescription(metadata.saveDescription);
 	descriptor.setPlayTime(metadata.totalPlayTime);
 	descriptor.setSaveDate(metadata.saveYear, metadata.saveMonth, metadata.saveDay);
 	descriptor.setSaveTime(metadata.saveHour, metadata.saveMinute);
+	descriptor.setAutosave(metadata.autoSave);
 
 	delete metaStream;
 
@@ -146,7 +153,11 @@ SaveStateDescriptor RivenSaveLoad::querySaveMetaInfos(const int slot) {
 		return descriptor;
 	}
 
-	descriptor.setThumbnail(Graphics::loadThumbnail(*thmbStream));
+	Graphics::Surface *thumbnail;
+	if (!Graphics::loadThumbnail(*thmbStream, thumbnail)) {
+		return descriptor;
+	}
+	descriptor.setThumbnail(thumbnail);
 
 	delete thmbStream;
 
@@ -178,9 +189,9 @@ Common::Error RivenSaveLoad::loadGame(const int slot) {
 	delete vers;
 	if ((saveGameVersion == kCDSaveGameVersion && (_vm->getFeatures() & GF_DVD))
 		|| (saveGameVersion == kDVDSaveGameVersion && !(_vm->getFeatures() & GF_DVD))) {
-		warning("Incompatible saved game versions. No support for this yet");
+		warning("Unable to load: Saved game created using an incompatible game version - CD vs DVD");
 		delete mhk;
-		return Common::Error(Common::kUnknownError, "Incompatible save version");
+		return Common::Error(Common::kUnknownError, "Saved game created using an incompatible game version - CD vs DVD");
 	}
 
 	// Now, we'll read in the variable values.
@@ -241,6 +252,8 @@ Common::Error RivenSaveLoad::loadGame(const int slot) {
 			var = rawVariables[i];
 	}
 
+	_vm->_gfx->setTransitionMode((RivenTransitionMode) _vm->_vars["transitionmode"]);
+
 	_vm->changeToStack(_vm->_vars["CurrentStackID"]);
 	_vm->changeToCard(_vm->_vars["CurrentCardID"]);
 
@@ -283,7 +296,7 @@ Common::Error RivenSaveLoad::loadGame(const int slot) {
 }
 
 Common::MemoryWriteStreamDynamic *RivenSaveLoad::genVERSSection() {
-	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic();
+	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic(DisposeAfterUse::YES);
 	if (_vm->getFeatures() & GF_DVD)
 		stream->writeUint32BE(kDVDSaveGameVersion);
 	else
@@ -292,7 +305,7 @@ Common::MemoryWriteStreamDynamic *RivenSaveLoad::genVERSSection() {
 }
 
 Common::MemoryWriteStreamDynamic *RivenSaveLoad::genVARSSection() {
-	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic();
+	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic(DisposeAfterUse::YES);
 
 	for (RivenVariableMap::const_iterator it = _vm->_vars.begin(); it != _vm->_vars.end(); it++) {
 		stream->writeUint32BE(1); // Reference counter
@@ -308,7 +321,7 @@ static int stringCompareToIgnoreCase(const Common::String &s1, const Common::Str
 }
 
 Common::MemoryWriteStreamDynamic *RivenSaveLoad::genNAMESection() {
-	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic();
+	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic(DisposeAfterUse::YES);
 
 	stream->writeUint16BE(_vm->_vars.size());
 
@@ -350,7 +363,7 @@ Common::MemoryWriteStreamDynamic *RivenSaveLoad::genNAMESection() {
 }
 
 Common::MemoryWriteStreamDynamic *RivenSaveLoad::genZIPSSection() {
-	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic();
+	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic(DisposeAfterUse::YES);
 
 	stream->writeUint16BE(_vm->_zipModeData.size());
 
@@ -363,16 +376,20 @@ Common::MemoryWriteStreamDynamic *RivenSaveLoad::genZIPSSection() {
 	return stream;
 }
 
-Common::MemoryWriteStreamDynamic *RivenSaveLoad::genTHMBSection() const {
-	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic();
+Common::MemoryWriteStreamDynamic *RivenSaveLoad::genTHMBSection(const Graphics::Surface *thumbnail) const {
+	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic(DisposeAfterUse::YES);
 
-	Graphics::saveThumbnail(*stream);
+	if (thumbnail) {
+		Graphics::saveThumbnail(*stream, *thumbnail);
+	} else {
+		Graphics::saveThumbnail(*stream);
+	}
 
 	return stream;
 }
 
-Common::MemoryWriteStreamDynamic *RivenSaveLoad::genMETASection(const Common::String &desc) const {
-	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic();
+Common::MemoryWriteStreamDynamic *RivenSaveLoad::genMETASection(const Common::String &desc, bool autoSave) const {
+	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic(DisposeAfterUse::YES);
 	Common::Serializer serializer = Common::Serializer(nullptr, stream);
 
 	TimeDate t;
@@ -386,12 +403,14 @@ Common::MemoryWriteStreamDynamic *RivenSaveLoad::genMETASection(const Common::St
 	metadata.saveMinute = t.tm_min;
 	metadata.saveDescription = desc;
 	metadata.totalPlayTime = _vm->getTotalPlayTime();
+	metadata.autoSave = autoSave;
 	metadata.sync(serializer);
 
 	return stream;
 }
 
-Common::Error RivenSaveLoad::saveGame(const int slot, const Common::String &description) {
+Common::Error RivenSaveLoad::saveGame(const int slot, const Common::String &description,
+                                      const Graphics::Surface *thumbnail, bool autoSave) {
 	// NOTE: This code is designed to only output a Mohawk archive
 	// for a Riven saved game. It's hardcoded to do this because
 	// (as of right now) this is the only place in the engine
@@ -401,19 +420,15 @@ Common::Error RivenSaveLoad::saveGame(const int slot, const Common::String &desc
 
 	Common::String filename = buildSaveFilename(slot);
 
-	// Convert class variables to variable numbers
-	_vm->_vars["currentstackid"] = _vm->getCurStack();
-	_vm->_vars["currentcardid"] = _vm->getCurCard();
-
 	Common::OutSaveFile *saveFile = _saveFileMan->openForSaving(filename);
 	if (!saveFile)
 		return Common::kWritingFailed;
 
 	debug (0, "Saving game to \'%s\'", filename.c_str());
 
-	Common::MemoryWriteStreamDynamic *metaSection = genMETASection(description);
+	Common::MemoryWriteStreamDynamic *metaSection = genMETASection(description, autoSave);
 	Common::MemoryWriteStreamDynamic *nameSection = genNAMESection();
-	Common::MemoryWriteStreamDynamic *thmbSection = genTHMBSection();
+	Common::MemoryWriteStreamDynamic *thmbSection = genTHMBSection(thumbnail);
 	Common::MemoryWriteStreamDynamic *varsSection = genVARSSection();
 	Common::MemoryWriteStreamDynamic *versSection = genVERSSection();
 	Common::MemoryWriteStreamDynamic *zipsSection = genZIPSSection();

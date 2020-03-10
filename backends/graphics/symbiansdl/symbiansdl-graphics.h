@@ -30,12 +30,7 @@ public:
 	SymbianSdlGraphicsManager(SdlEventSource *sdlEventSource, SdlWindow *window);
 
 public:
-	virtual bool hasFeature(OSystem::Feature f);
-	virtual void setFeatureState(OSystem::Feature f, bool enable);
-
-	virtual const OSystem::GraphicsMode *getSupportedGraphicsModes() const;
-	virtual int getDefaultGraphicsMode() const;
-	virtual bool setGraphicsMode(int mode);
+	virtual bool hasFeature(OSystem::Feature f) const override;
 };
 
 #endif

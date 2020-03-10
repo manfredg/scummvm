@@ -44,7 +44,7 @@ private:
 	int _fieldC8;
 	CString _soundName1;
 	CString _soundName2;
-	bool _fieldE4;
+	bool _soundActive;
 public:
 	CLASSDEF;
 	CGondolierMixer();
@@ -52,12 +52,12 @@ public:
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 };
 
 } // End of namespace Titanic

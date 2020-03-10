@@ -51,9 +51,7 @@ void CursorManager::hideCursor() {
 void CursorManager::setDefaultCursor() {
 	Graphics::Cursor *cursor = Graphics::makeDefaultWinCursor();
 
-	CursorMan.replaceCursor(cursor->getSurface(), cursor->getWidth(), cursor->getHeight(), cursor->getHotspotX(),
-			cursor->getHotspotY(), cursor->getKeyColor());
-	CursorMan.replaceCursorPalette(cursor->getPalette(), cursor->getPaletteStartIndex(), cursor->getPaletteCount());
+	CursorMan.replaceCursor(cursor);
 
 	delete cursor;
 }
@@ -71,9 +69,7 @@ void CursorManager::setMacCursor(Common::SeekableReadStream *stream) {
 	if (!macCursor->readFromStream(*stream))
 		error("Could not parse Mac cursor");
 
-	CursorMan.replaceCursor(macCursor->getSurface(), macCursor->getWidth(), macCursor->getHeight(),
-			macCursor->getHotspotX(), macCursor->getHotspotY(), macCursor->getKeyColor());
-	CursorMan.replaceCursorPalette(macCursor->getPalette(), 0, 256);
+	CursorMan.replaceCursor(macCursor);
 
 	delete macCursor;
 	delete stream;
@@ -93,12 +89,10 @@ MystCursorManager::~MystCursorManager() {
 
 void MystCursorManager::showCursor() {
 	CursorMan.showMouse(true);
-	_vm->_needsUpdate = true;
 }
 
 void MystCursorManager::hideCursor() {
 	CursorMan.showMouse(false);
-	_vm->_needsUpdate = true;
 }
 
 void MystCursorManager::setCursor(uint16 id) {
@@ -139,8 +133,6 @@ void MystCursorManager::setCursor(uint16 id) {
 		Graphics::PixelFormat pixelFormat = g_system->getScreenFormat();
 		CursorMan.replaceCursor(surface->getPixels(), surface->w, surface->h, hotspotX, hotspotY, pixelFormat.RGBToColor(255, 255, 255), false, &pixelFormat);
 	}
-
-	_vm->_needsUpdate = true;
 }
 
 void MystCursorManager::setDefaultCursor() {
@@ -149,37 +141,6 @@ void MystCursorManager::setDefaultCursor() {
 
 #endif
 
-NECursorManager::NECursorManager(const Common::String &appName) {
-	_exe = new Common::NEResources();
-
-	if (!_exe->loadFromEXE(appName)) {
-		// Not all have cursors anyway, so this is not a problem
-		delete _exe;
-		_exe = 0;
-	}
-}
-
-NECursorManager::~NECursorManager() {
-	delete _exe;
-}
-
-void NECursorManager::setCursor(uint16 id) {
-	if (_exe) {
-		Graphics::WinCursorGroup *cursorGroup = Graphics::WinCursorGroup::createCursorGroup(*_exe, id);
-
-		if (cursorGroup) {
-			Graphics::Cursor *cursor = cursorGroup->cursors[0].cursor;
-			CursorMan.replaceCursor(cursor->getSurface(), cursor->getWidth(), cursor->getHeight(), cursor->getHotspotX(), cursor->getHotspotY(), cursor->getKeyColor());
-			CursorMan.replaceCursorPalette(cursor->getPalette(), 0, 256);
-			delete cursorGroup;
-			return;
-		}
-	}
-
-	// Last resort (not all have cursors)
-	setDefaultCursor();
-}
-
 MacCursorManager::MacCursorManager(const Common::String &appName) {
 	if (!appName.empty()) {
 		_resFork = new Common::MacResManager();
@@ -187,10 +148,10 @@ MacCursorManager::MacCursorManager(const Common::String &appName) {
 		if (!_resFork->open(appName)) {
 			// Not all have cursors anyway, so this is not a problem
 			delete _resFork;
-			_resFork = 0;
+			_resFork = nullptr;
 		}
 	} else {
-		_resFork = 0;
+		_resFork = nullptr;
 	}
 }
 
@@ -223,7 +184,7 @@ LivingBooksCursorManager_v2::LivingBooksCursorManager_v2() {
 
 	if (!_sysArchive->openFile("system.mhk")) {
 		delete _sysArchive;
-		_sysArchive = 0;
+		_sysArchive = nullptr;
 	}
 }
 
@@ -250,29 +211,45 @@ void LivingBooksCursorManager_v2::setCursor(const Common::String &name) {
 		setCursor(id);
 }
 
-PECursorManager::PECursorManager(const Common::String &appName) {
-	_exe = new Common::PEResources();
+NECursorManager::NECursorManager(const Common::String &appName) {
+	Common::NEResources *exe = new Common::NEResources();
+	if (exe->loadFromEXE(appName)) {
+		// Not all have cursors anyway, so it's not a problem if this fails
+		loadCursors(exe);
+	}
+	delete exe;
+}
 
-	if (!_exe->loadFromEXE(appName)) {
-		// Not all have cursors anyway, so this is not a problem
-		delete _exe;
-		_exe = 0;
+PECursorManager::PECursorManager(const Common::String &appName) {
+	Common::PEResources *exe = new Common::PEResources();
+	if (exe->loadFromEXE(appName)) {
+		// Not all have cursors anyway, so it's not a problem if this fails
+		loadCursors(exe);
+	}
+	delete exe;
+}
+
+WinCursorManager::~WinCursorManager() {
+	for (uint i = 0; i < _cursors.size(); i++) {
+		delete _cursors[i].cursorGroup;
 	}
 }
 
-PECursorManager::~PECursorManager() {
-	delete _exe;
+void WinCursorManager::loadCursors(Common::WinResources *exe) {
+	const Common::Array<Common::WinResourceID> cursorGroups = exe->getIDList(Common::kWinGroupCursor);
+
+	_cursors.resize(cursorGroups.size());
+	for (uint i = 0; i < cursorGroups.size(); i++) {
+		_cursors[i].id = cursorGroups[i].getID();
+		_cursors[i].cursorGroup = Graphics::WinCursorGroup::createCursorGroup(exe, cursorGroups[i]);
+	}
 }
 
-void PECursorManager::setCursor(uint16 id) {
-	if (_exe) {
-		Graphics::WinCursorGroup *cursorGroup = Graphics::WinCursorGroup::createCursorGroup(*_exe, id);
-
-		if (cursorGroup) {
-			Graphics::Cursor *cursor = cursorGroup->cursors[0].cursor;
-			CursorMan.replaceCursor(cursor->getSurface(), cursor->getWidth(), cursor->getHeight(), cursor->getHotspotX(), cursor->getHotspotY(), cursor->getKeyColor());
-			CursorMan.replaceCursorPalette(cursor->getPalette(), 0, 256);
-			delete cursorGroup;
+void WinCursorManager::setCursor(uint16 id) {
+	for (uint i = 0; i < _cursors.size(); i++) {
+		if (_cursors[i].id == id) {
+			Graphics::Cursor *cursor = _cursors[i].cursorGroup->cursors[0].cursor;
+			CursorMan.replaceCursor(cursor);
 			return;
 		}
 	}

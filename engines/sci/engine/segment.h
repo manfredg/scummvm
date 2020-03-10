@@ -29,6 +29,9 @@
 #include "sci/engine/vm.h"
 #include "sci/engine/vm_types.h"	// for reg_t
 #include "sci/util.h"
+#ifdef ENABLE_SCI32
+#include "sci/graphics/palette32.h"
+#endif
 
 namespace Sci {
 
@@ -85,7 +88,7 @@ public:
 
 public:
 	SegmentObj(SegmentType type) : _type(type) {}
-	virtual ~SegmentObj() {}
+	~SegmentObj() override {}
 
 	inline SegmentType getType() const { return _type; }
 
@@ -149,14 +152,14 @@ struct LocalVariables : public SegmentObj {
 public:
 	LocalVariables(): SegmentObj(SEG_TYPE_LOCALS), script_id(0) { }
 
-	virtual bool isValidOffset(uint32 offset) const {
+	bool isValidOffset(uint32 offset) const override {
 		return offset < _locals.size() * 2;
 	}
-	virtual SegmentRef dereference(reg_t pointer);
-	virtual reg_t findCanonicAddress(SegManager *segMan, reg_t sub_addr) const;
-	virtual Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const;
+	SegmentRef dereference(reg_t pointer) override;
+	reg_t findCanonicAddress(SegManager *segMan, reg_t sub_addr) const override;
+	Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const override;
 
-	virtual void saveLoadWithSerializer(Common::Serializer &ser);
+	void saveLoadWithSerializer(Common::Serializer &ser) override;
 };
 
 /** Data stack */
@@ -166,21 +169,21 @@ struct DataStack : SegmentObj {
 
 public:
 	DataStack() : SegmentObj(SEG_TYPE_STACK), _capacity(0), _entries(NULL) { }
-	~DataStack() {
+	~DataStack() override {
 		free(_entries);
 		_entries = NULL;
 	}
 
-	virtual bool isValidOffset(uint32 offset) const {
+	bool isValidOffset(uint32 offset) const override {
 		return offset < _capacity * 2;
 	}
-	virtual SegmentRef dereference(reg_t pointer);
-	virtual reg_t findCanonicAddress(SegManager *segMan, reg_t addr) const {
+	SegmentRef dereference(reg_t pointer) override;
+	reg_t findCanonicAddress(SegManager *segMan, reg_t addr) const override {
 		return make_reg(addr.getSegment(), 0);
 	}
-	virtual Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const;
+	Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const override;
 
-	virtual void saveLoadWithSerializer(Common::Serializer &ser);
+	void saveLoadWithSerializer(Common::Serializer &ser) override;
 };
 
 enum {
@@ -243,7 +246,7 @@ public:
 		initTable();
 	}
 
-	~SegmentObjTable() {
+	~SegmentObjTable() override {
 		for (uint i = 0; i < _table.size(); i++) {
 			if (isValidEntry(i)) {
 				freeEntry(i);
@@ -276,7 +279,7 @@ public:
 		}
 	}
 
-	virtual bool isValidOffset(uint32 offset) const {
+	bool isValidOffset(uint32 offset) const override {
 		return isValidEntry(offset);
 	}
 
@@ -295,7 +298,7 @@ public:
 		entries_used--;
 	}
 
-	virtual Common::Array<reg_t> listAllDeallocatable(SegmentId segId) const {
+	Common::Array<reg_t> listAllDeallocatable(SegmentId segId) const override {
 		Common::Array<reg_t> tmp;
 		for (uint i = 0; i < _table.size(); i++)
 			if (isValidEntry(i))
@@ -317,10 +320,10 @@ public:
 struct CloneTable : public SegmentObjTable<Clone> {
 	CloneTable() : SegmentObjTable<Clone>(SEG_TYPE_CLONES) {}
 
-	virtual void freeAtAddress(SegManager *segMan, reg_t sub_addr);
-	virtual Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const;
+	void freeAtAddress(SegManager *segMan, reg_t sub_addr) override;
+	Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const override;
 
-	virtual void saveLoadWithSerializer(Common::Serializer &ser);
+	void saveLoadWithSerializer(Common::Serializer &ser) override;
 };
 
 
@@ -328,12 +331,12 @@ struct CloneTable : public SegmentObjTable<Clone> {
 struct NodeTable : public SegmentObjTable<Node> {
 	NodeTable() : SegmentObjTable<Node>(SEG_TYPE_NODES) {}
 
-	virtual void freeAtAddress(SegManager *segMan, reg_t sub_addr) {
+	void freeAtAddress(SegManager *segMan, reg_t sub_addr) override {
 		freeEntry(sub_addr.getOffset());
 	}
-	virtual Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const;
+	Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const override;
 
-	virtual void saveLoadWithSerializer(Common::Serializer &ser);
+	void saveLoadWithSerializer(Common::Serializer &ser) override;
 };
 
 
@@ -341,19 +344,19 @@ struct NodeTable : public SegmentObjTable<Node> {
 struct ListTable : public SegmentObjTable<List> {
 	ListTable() : SegmentObjTable<List>(SEG_TYPE_LISTS) {}
 
-	virtual void freeAtAddress(SegManager *segMan, reg_t sub_addr) {
+	void freeAtAddress(SegManager *segMan, reg_t sub_addr) override {
 		freeEntry(sub_addr.getOffset());
 	}
-	virtual Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const;
+	Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const override;
 
-	virtual void saveLoadWithSerializer(Common::Serializer &ser);
+	void saveLoadWithSerializer(Common::Serializer &ser) override;
 };
 
 
 /* HunkTable */
 struct HunkTable : public SegmentObjTable<Hunk> {
 	HunkTable() : SegmentObjTable<Hunk>(SEG_TYPE_HUNK) {}
-	virtual ~HunkTable() {
+	~HunkTable() override {
 		for (uint i = 0; i < _table.size(); i++) {
 			if (isValidEntry(i))
 				freeEntryContents(i);
@@ -365,16 +368,16 @@ struct HunkTable : public SegmentObjTable<Hunk> {
 		at(idx).mem = 0;
 	}
 
-	virtual void freeEntry(int idx) {
+	void freeEntry(int idx) override {
 		freeEntryContents(idx);
 		SegmentObjTable<Hunk>::freeEntry(idx);
 	}
 
-	virtual void freeAtAddress(SegManager *segMan, reg_t sub_addr) {
+	void freeAtAddress(SegManager *segMan, reg_t sub_addr) override {
 		freeEntry(sub_addr.getOffset());
 	}
 
-	virtual void saveLoadWithSerializer(Common::Serializer &ser);
+	void saveLoadWithSerializer(Common::Serializer &ser) override;
 };
 
 
@@ -386,24 +389,24 @@ struct DynMem : public SegmentObj {
 
 public:
 	DynMem() : SegmentObj(SEG_TYPE_DYNMEM), _size(0), _buf(0) {}
-	~DynMem() {
+	~DynMem() override {
 		free(_buf);
 		_buf = NULL;
 	}
 
-	virtual bool isValidOffset(uint32 offset) const {
+	bool isValidOffset(uint32 offset) const override {
 		return offset < _size;
 	}
-	virtual SegmentRef dereference(reg_t pointer);
-	virtual reg_t findCanonicAddress(SegManager *segMan, reg_t addr) const {
+	SegmentRef dereference(reg_t pointer) override;
+	reg_t findCanonicAddress(SegManager *segMan, reg_t addr) const override {
 		return make_reg(addr.getSegment(), 0);
 	}
-	virtual Common::Array<reg_t> listAllDeallocatable(SegmentId segId) const {
+	Common::Array<reg_t> listAllDeallocatable(SegmentId segId) const override {
 		const reg_t r = make_reg(segId, 0);
 		return Common::Array<reg_t>(&r, 1);
 	}
 
-	virtual void saveLoadWithSerializer(Common::Serializer &ser);
+	void saveLoadWithSerializer(Common::Serializer &ser) override;
 };
 
 #ifdef ENABLE_SCI32
@@ -433,7 +436,7 @@ public:
 		_size(0),
 		_data(nullptr) {}
 
-	SciArray(const SciArray &array) : Common::Serializable() {
+	SciArray(const SciArray &array) {
 		_type = array._type;
 		_size = array._size;
 		_elementSize = array._elementSize;
@@ -457,13 +460,13 @@ public:
 		return *this;
 	}
 
-	virtual ~SciArray() {
+	~SciArray() override {
 		free(_data);
 		_size = 0;
 		_type = kArrayTypeInvalid;
 	}
 
-	void saveLoadWithSerializer(Common::Serializer &s);
+	void saveLoadWithSerializer(Common::Serializer &s) override;
 
 	/**
 	 * Returns the type of this array.
@@ -502,10 +505,14 @@ public:
 	}
 
 	/**
-	 * Returns the size of the array, in bytes.
+	 * Returns the maximum number of bytes that can be stored in the array.
 	 */
 	uint16 byteSize() const {
-		return _size * _elementSize;
+		uint16 size1 = _size;
+		if (_type == kArrayTypeID || _type == kArrayTypeInt16) {
+			size1 *= sizeof(uint16);
+		}
+		return size1;
 	}
 
 	/**
@@ -521,14 +528,6 @@ public:
 			}
 			_size = newSize;
 		}
-	}
-
-	/**
-	 * Shrinks a string array to its optimal size.
-	 */
-	void snug() {
-		assert(_type == kArrayTypeString || _type == kArrayTypeByte);
-		resize(Common::strnlen((char *)_data, _size) + 1, true);
 	}
 
 	/**
@@ -753,8 +752,11 @@ public:
 			}
 			break;
 		}
+
 		case kArrayTypeInvalid:
+		default:
 			error("Attempted write to uninitialized SciArray");
+			break;
 		}
 	}
 
@@ -762,12 +764,12 @@ public:
 	 * Copies values from the source array. Both arrays will be grown if needed
 	 * to prevent out-of-bounds reads/writes.
 	 */
-	void copy(SciArray &source, const uint16 sourceIndex, const uint16 targetIndex, uint16 count) {
-		if (count == 65535 /* -1 */) {
+	void copy(SciArray &source, const uint16 sourceIndex, const uint16 targetIndex, int16 count) {
+		if (count == -1) {
 			count = source.size() - sourceIndex;
 		}
 
-		if (!count) {
+		if (count < 1) {
 			return;
 		}
 
@@ -885,11 +887,12 @@ public:
 			type = "string";
 			break;
 		case kArrayTypeInvalid:
+		default:
 			type = "invalid";
 			break;
 		}
 
-		return Common::String::format("type %s; %u entries; %u bytes", type, size(), byteSize());
+		return Common::String::format("type %s; %u entries", type, size());
 	}
 
 protected:
@@ -902,10 +905,10 @@ protected:
 struct ArrayTable : public SegmentObjTable<SciArray> {
 	ArrayTable() : SegmentObjTable<SciArray>(SEG_TYPE_ARRAY) {}
 
-	virtual Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const;
+	Common::Array<reg_t> listAllOutgoingReferences(reg_t object) const override;
 
-	void saveLoadWithSerializer(Common::Serializer &ser);
-	SegmentRef dereference(reg_t pointer);
+	void saveLoadWithSerializer(Common::Serializer &ser) override;
+	SegmentRef dereference(reg_t pointer) override;
 };
 
 #pragma mark -
@@ -973,17 +976,17 @@ public:
 
 	inline SciBitmap() : _data(nullptr), _dataSize(0), _gc(true) {}
 
-	inline SciBitmap(const SciBitmap &other) : Common::Serializable() {
+	inline SciBitmap(const SciBitmap &other) {
 		_dataSize = other._dataSize;
 		_data = (byte *)malloc(other._dataSize);
 		memcpy(_data, other._data, other._dataSize);
 		if (_dataSize) {
-			_buffer = Buffer(getWidth(), getHeight(), getPixels());
+			_buffer.init(getWidth(), getHeight(), getWidth(), getPixels(), Graphics::PixelFormat::createFormatCLUT8());
 		}
 		_gc = other._gc;
 	}
 
-	inline ~SciBitmap() {
+	inline ~SciBitmap() override {
 		free(_data);
 		_data = nullptr;
 		_dataSize = 0;
@@ -999,7 +1002,7 @@ public:
 		_data = (byte *)malloc(other._dataSize);
 		memcpy(_data, other._data, _dataSize);
 		if (_dataSize) {
-			_buffer = Buffer(getWidth(), getHeight(), getPixels());
+			_buffer.init(getWidth(), getHeight(), getWidth(), getPixels(), Graphics::PixelFormat::createFormatCLUT8());
 		}
 		_gc = other._gc;
 
@@ -1026,14 +1029,14 @@ public:
 		setRemap(remap);
 		setDataSize(width * height);
 		WRITE_SCI11ENDIAN_UINT32(_data + 16, 0);
-		setHunkPaletteOffset(paletteSize > 0 ? (width * height) : 0);
+		setHunkPaletteOffset(paletteSize > 0 ? (bitmapHeaderSize + width * height) : 0);
 		setDataOffset(bitmapHeaderSize);
 		setUncompressedDataOffset(bitmapHeaderSize);
 		setControlOffset(0);
 		setXResolution(xResolution);
 		setYResolution(yResolution);
 
-		_buffer = Buffer(getWidth(), getHeight(), getPixels());
+		_buffer.init(getWidth(), getHeight(), getWidth(), getPixels(), Graphics::PixelFormat::createFormatCLUT8());
 	}
 
 	inline int getRawSize() const {
@@ -1099,26 +1102,15 @@ public:
 
 	BITMAP_PROPERTY(32, DataSize, 12);
 
-	inline uint32 getHunkPaletteOffset() const {
-		return READ_SCI11ENDIAN_UINT32(_data + 20);
-	}
-
-	inline void setHunkPaletteOffset(uint32 hunkPaletteOffset) {
-		if (hunkPaletteOffset) {
-			hunkPaletteOffset += getBitmapHeaderSize();
-		}
-
-		WRITE_SCI11ENDIAN_UINT32(_data + 20, hunkPaletteOffset);
-	}
+	BITMAP_PROPERTY(32, HunkPaletteOffset, 20);
 
 	BITMAP_PROPERTY(32, DataOffset, 24);
 
-	// NOTE: This property is used as a "magic number" for
-	// validating that a block of memory is a valid bitmap,
-	// and so is always set to the size of the header.
+	// This property is used as a "magic number" for validating that a block of
+	// memory is a valid bitmap, and so is always set to the size of the header.
 	BITMAP_PROPERTY(32, UncompressedDataOffset, 28);
 
-	// NOTE: This property always seems to be zero
+	// This property always seems to be zero in SSCI
 	BITMAP_PROPERTY(32, ControlOffset, 32);
 
 	inline uint16 getXResolution() const {
@@ -1162,7 +1154,15 @@ public:
 		return _data + getHunkPaletteOffset();
 	}
 
-	virtual void saveLoadWithSerializer(Common::Serializer &ser);
+	inline void setPalette(const Palette &palette) {
+		byte *paletteData = getHunkPalette();
+		if (paletteData != nullptr) {
+			SciSpan<byte> paletteSpan(paletteData, getRawSize() - getHunkPaletteOffset());
+			HunkPalette::write(paletteSpan, palette);
+		}
+	}
+
+	void saveLoadWithSerializer(Common::Serializer &ser) override;
 
 	void applyRemap(SciArray &clut) {
 		const int length = getWidth() * getHeight();
@@ -1190,7 +1190,7 @@ public:
 struct BitmapTable : public SegmentObjTable<SciBitmap> {
 	BitmapTable() : SegmentObjTable<SciBitmap>(SEG_TYPE_BITMAP) {}
 
-	SegmentRef dereference(reg_t pointer) {
+	SegmentRef dereference(reg_t pointer) override {
 		SegmentRef ret;
 		ret.isRaw = true;
 		ret.maxSize = at(pointer.getOffset()).getRawSize();
@@ -1198,7 +1198,7 @@ struct BitmapTable : public SegmentObjTable<SciBitmap> {
 		return ret;
 	}
 
-	void saveLoadWithSerializer(Common::Serializer &ser);
+	void saveLoadWithSerializer(Common::Serializer &ser) override;
 };
 
 #endif

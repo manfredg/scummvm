@@ -23,6 +23,7 @@
 #ifndef FULLPIPE_UTILS_H
 #define FULLPIPE_UTILS_H
 
+#include "common/hash-ptr.h"
 #include "common/hash-str.h"
 #include "common/array.h"
 #include "common/file.h"
@@ -32,22 +33,7 @@ namespace Fullpipe {
 class CObject;
 class NGIArchive;
 
-struct Pointer_EqualTo {
-	bool operator()(const void *x, const void *y) const { return x == y; }
-};
-
-struct Pointer_Hash {
-	uint operator()(const void *x) const {
-#ifdef SCUMM_64BITS
-		uint64 v = (uint64)x;
-		return (v >> 32) ^ (v & 0xffffffff);
-#else
-		return (uint)x;
-#endif
-	}
-};
-
-typedef Common::HashMap<void *, int, Pointer_Hash, Pointer_EqualTo> ObjHash;
+typedef Common::HashMap<void *, int> ObjHash;
 
 typedef Common::HashMap<Common::String, int, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> ClassMap;
 
@@ -70,9 +56,19 @@ public:
 	Common::String readPascalString(bool twoByte = false);
 	void writePascalString(const Common::String &str, bool twoByte = false);
 	int readCount();
-	double readDouble();
 	CObject *parseClass(bool *isCopyReturned);
-	CObject *readClass();
+
+	/** ownership of returned object is passed to caller */
+	template <typename T>
+	T *readClass() {
+		CObject *obj = readBaseClass();
+		if (!obj)
+			return nullptr;
+
+		T *res = dynamic_cast<T *>(obj);
+		assert(res);
+		return res;
+	}
 
 	void writeObject(CObject *obj);
 
@@ -80,16 +76,17 @@ public:
 	void decLevel() { _level--; }
 	int getLevel() { return _level; }
 
-	virtual bool eos() const { return _stream->eos(); }
-	virtual uint32 read(void *dataPtr, uint32 dataSize) { return _stream->read(dataPtr, dataSize); }
-	virtual int32 pos() const { return _stream ? _stream->pos() : _wstream->pos(); }
-	virtual int32 size() const { return _stream->size(); }
-	virtual bool seek(int32 offset, int whence = SEEK_SET) { return _stream->seek(offset, whence); }
+	bool eos() const override { return _stream->eos(); }
+	uint32 read(void *dataPtr, uint32 dataSize) override { return _stream->read(dataPtr, dataSize); }
+	int32 pos() const override { return _stream ? _stream->pos() : _wstream->pos(); }
+	int32 size() const override { return _stream->size(); }
+	bool seek(int32 offset, int whence = SEEK_SET) override { return _stream->seek(offset, whence); }
 
-	virtual uint32 write(const void *dataPtr, uint32 dataSize) { return _wstream->write(dataPtr, dataSize); }
+	uint32 write(const void *dataPtr, uint32 dataSize) override { return _wstream->write(dataPtr, dataSize); }
 
 private:
 	void init();
+	CObject *readBaseClass();
 };
 
 enum ObjType {
@@ -120,9 +117,24 @@ public:
 	bool loadFile(const Common::String &fname);
 };
 
-class ObList : public Common::List<CObject *>, public CObject {
- public:
-	virtual bool load(MfcArchive &file);
+template <class T>
+class ObList : public Common::List<T *>, public CObject {
+public:
+	bool load(MfcArchive &file) override {
+		debugC(5, kDebugLoading, "ObList::load()");
+		int count = file.readCount();
+
+		debugC(9, kDebugLoading, "ObList::count: %d:", count);
+
+		for (int i = 0; i < count; i++) {
+			debugC(9, kDebugLoading, "ObList::[%d]", i);
+			T *t = file.readClass<T>();
+
+			this->push_back(t);
+		}
+
+		return true;
+	}
 };
 
 class MemoryObject : CObject {
@@ -142,9 +154,9 @@ class MemoryObject : CObject {
 
  public:
 	MemoryObject();
-	virtual ~MemoryObject();
+	~MemoryObject() override;
 
-	virtual bool load(MfcArchive &file);
+	bool load(MfcArchive &file) override;
 	void loadFile(const Common::String &filename);
 	void load() { loadFile(_memfilename); }
 	byte *getData();
@@ -164,20 +176,20 @@ class MemoryObject2 : public MemoryObject {
 
  public:
 	MemoryObject2();
-	virtual ~MemoryObject2();
-	virtual bool load(MfcArchive &file);
+	~MemoryObject2() override;
+	bool load(MfcArchive &file) override;
 
 	void copyData(byte *src, int dataSize);
 };
 
 class ObArray : public Common::Array<CObject>, public CObject {
  public:
-	virtual bool load(MfcArchive &file);
+	bool load(MfcArchive &file) override;
 };
 
 class DWordArray : public Common::Array<int32>, public CObject {
  public:
-	virtual bool load(MfcArchive &file);
+	bool load(MfcArchive &file) override;
 };
 
 Common::String genFileName(int superId, int sceneId, const char *ext);

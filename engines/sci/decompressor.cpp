@@ -89,7 +89,7 @@ uint32 Decompressor::getBitsLSB(int n) {
 	// fetching more data to buffer if needed
 	if (_nBits < n)
 		fetchBitsLSB();
-	uint32 ret = (_dwBits & ~((~0) << n));
+	uint32 ret = (_dwBits & ~(0xFFFFFFFFU << n));
 	_dwBits >>= n;
 	_nBits -= n;
 	return ret;
@@ -170,6 +170,8 @@ int DecompressorLZW::unpack(Common::ReadStream *src, byte *dest, uint32 nPacked,
 		buffer = new byte[nUnpacked];
 		unpackLZW1(src, buffer, nPacked, nUnpacked);
 		reorderPic(buffer, dest, nUnpacked);
+		break;
+	default:
 		break;
 	}
 	delete[] buffer;
@@ -334,6 +336,9 @@ int DecompressorLZW::unpackLZW1(Common::ReadStream *src, byte *dest, uint32 nPac
 			}
 			lastbits = bitstring;
 			break;
+
+		default:
+			break;
 		}
 	}
 
@@ -367,6 +372,7 @@ void DecompressorLZW::decodeRLE(byte **rledata, byte **pixeldata, byte *outbuffe
 			pos += nextbyte;
 			break;
 		case 0xC0:
+		default:
 			break;
 		case 0x80:
 			nextbyte = *pd++;
@@ -400,6 +406,7 @@ int DecompressorLZW::getRLEsize(byte *rledata, int dsize) {
 			pos += nextbyte;
 			break;
 		case 0xC0:
+		default:
 			break;
 		case 0x80:
 			pos++;

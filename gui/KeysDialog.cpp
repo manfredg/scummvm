@@ -25,10 +25,6 @@
 #include "common/translation.h"
 #include <SDL_keyboard.h>
 
-#ifdef _WIN32_WCE
-#include "CEDevice.h"
-#endif
-
 namespace GUI {
 
 enum {
@@ -82,7 +78,7 @@ void KeysDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
 				selection = Common::String::format(_("Associated key : none"));
 
 			_keyMapping->setLabel(selection);
-			_keyMapping->draw();
+			_keyMapping->markAsDirty();
 		}
 		break;
 	case kMapCmd:
@@ -105,11 +101,11 @@ void KeysDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
 
 			_actionTitle->setLabel(_("Press the key to associate"));
 			_keyMapping->setLabel(selection);
-			_keyMapping->draw();
+			_keyMapping->markAsDirty();
 			Actions::Instance()->beginMapping(true);
 			_actionsList->setEnabled(false);
 		}
-		_actionTitle->draw();
+		_actionTitle->markAsDirty();
 		break;
 	case kOKCmd:
 		Actions::Instance()->saveMapping();
@@ -128,11 +124,7 @@ void KeysDialog::handleKeyDown(Common::KeyState state){
 }
 
 void KeysDialog::handleKeyUp(Common::KeyState state) {
-#ifdef __SYMBIAN32__
 	if (Actions::Instance()->mappingActive()) {
-#else
-	if (state.flags == 0xff  && Actions::Instance()->mappingActive()) {	// GAPI key was selected
-#endif
 		Common::String selection;
 
 		Actions::Instance()->setMapping((ActionType)_actionSelected, state.ascii);
@@ -144,8 +136,8 @@ void KeysDialog::handleKeyUp(Common::KeyState state) {
 
 		_actionTitle->setLabel(_("Choose an action to map"));
 		_keyMapping->setLabel(selection);
-		_keyMapping->draw();
-		_actionTitle->draw();
+		_keyMapping->markAsDirty();
+		_actionTitle->markAsDirty();
 		_actionSelected = -1;
 		_actionsList->setEnabled(true);
 		Actions::Instance()->beginMapping(false);

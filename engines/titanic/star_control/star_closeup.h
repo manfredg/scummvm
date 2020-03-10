@@ -23,15 +23,16 @@
 #ifndef TITANIC_STAR_CLOSEUP_H
 #define TITANIC_STAR_CLOSEUP_H
 
-#include "common/array.h"
 #include "titanic/star_control/fvector.h"
 #include "titanic/star_control/fpose.h"
-#include "titanic/star_control/error_code.h"
 #include "titanic/star_control/surface_area.h"
+#include "common/array.h"
 
 namespace Titanic {
 
-class CStarCamera;
+class CErrorCode;
+class CCamera;
+class CSurfaceArea;
 
 /**
  * Handles drawing a 3D rendered closeup of a star
@@ -76,6 +77,7 @@ class CStarCloseup {
 
 	/**
 	 * Maintains a pre-calculated table of sine values
+	 * TODO: May be able to reuse common/sinetables.h
 	 */
 	struct SineTable {
 	private:
@@ -123,7 +125,7 @@ public:
 	 * Draws the star globe
 	 */
 	virtual void draw(const FPose &pose, const FVector &vector, const FVector &vector2,
-		CSurfaceArea *surfaceArea, CStarCamera *camera);
+		CSurfaceArea *surfaceArea, CCamera *camera);
 
 	virtual void proc3(CErrorCode *errorCode);
 

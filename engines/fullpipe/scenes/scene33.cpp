@@ -211,7 +211,7 @@ void sceneHandler33_clickZones(ExCommand *cmd) {
 	double mindist = 1e10;
 
 	for (uint i = 0; i < g_fp->_currentScene->_staticANIObjectList1.size(); i++) {
-		StaticANIObject *ani = (StaticANIObject *)g_fp->_currentScene->_staticANIObjectList1[i];
+		StaticANIObject *ani = g_fp->_currentScene->_staticANIObjectList1[i];
 
 		if (ani->_id == ANI_VENT_33) {
 			int dx = ani->_ox - cmd->_sceneClickX;
@@ -284,8 +284,8 @@ int sceneHandler33(ExCommand *cmd) {
 						g_fp->processArcade(cmd);
 				}
 			}
-			break;
 		}
+		break;
 
 	case 33:
 		if (g_fp->_aniMan2) {
@@ -307,6 +307,9 @@ int sceneHandler33(ExCommand *cmd) {
 
 		g_fp->startSceneTrack();
 
+		break;
+
+	default:
 		break;
 	}
 

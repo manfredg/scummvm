@@ -107,6 +107,9 @@ byte ClassicCostumeRenderer::mainRoutine(int xmoveCur, int ymoveCur) {
 			ex1 = READ_LE_UINT16(_loaded._frameOffsets + ex1 * 2);
 			_srcptr = _loaded._baseptr + READ_LE_UINT16(_loaded._baseptr + ex1 + ex2 * 2) + 14;
 		}
+		break;
+	default:
+		break;
 	}
 
 	use_scaling = (_scaleX != 0xFF) || (_scaleY != 0xFF);
@@ -1213,7 +1216,7 @@ byte V0CostumeRenderer::drawLimb(const Actor *a, int limb) {
 		palette[1] = 10;
 		palette[2] = actorV0Colors[_actorID];
 	} else {
-		palette[2] = 11;
+		palette[2] = (_vm->getCurrentLights() & LIGHTMODE_flashlight_on) ?  actorV0Colors[_actorID] : 11;
 		palette[3] = 11;
 	}
 
@@ -1378,7 +1381,7 @@ byte V0CostumeLoader::increaseAnim(Actor *a, int limb) {
 			// Use the previous frame
 			--a0->_cost.curpos[limb];
 
-			// Reset the comstume command
+			// Reset the costume command
 			a0->_costCommandNew = 0xFF;
 			a0->_costCommand = 0xFF;
 

@@ -36,8 +36,8 @@ class CAutoMusicPlayerBase : public CGameObject {
 protected:
 	CString _filename;
 	bool _initialMute;
-	bool _isRepeated;
-	int _volumeMode;
+	bool _isEnabled;
+	VolumeMode _volumeMode;
 	int _transition;
 public:
 	CLASSDEF;
@@ -46,12 +46,12 @@ public:
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 };
 
 } // End of namespace Titanic

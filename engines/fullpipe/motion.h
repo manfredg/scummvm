@@ -44,8 +44,8 @@ public:
 
 public:
 	MotionController() : _isEnabled(true), _field_4(0) {}
-	virtual ~MotionController() {}
-	virtual bool load(MfcArchive &file);
+	~MotionController() override {}
+	bool load(MfcArchive &file) override;
 	virtual void methodC() {}
 	virtual void method10() {}
 	virtual void deactivate() { _isEnabled = false; }
@@ -70,13 +70,9 @@ public:
 
 class MovGraphReact : public CObject {
 public:
-	int _pointCount;
-	Common::Point **_points;
+	PointList _points;
 
 public:
-	MovGraphReact() : _pointCount(0), _points(0) {}
-	~MovGraphReact() { free(_points); }
-
 	virtual void setCenter(int x1, int y1, int x2, int y2) {}
 	virtual void createRegion() {}
 	virtual bool pointInRegion(int x, int y);
@@ -84,43 +80,40 @@ public:
 
 class MctlItem : public CObject {
 public:
-	MotionController *_motionControllerObj;
-	MovGraphReact *_movGraphReactObj;
+	Common::ScopedPtr<MotionController> _motionControllerObj;
+	Common::ScopedPtr<MovGraphReact> _movGraphReactObj;
 	Common::Array<MctlConnectionPoint *> _connectionPoints;
 	int _field_20;
 	int _field_24;
 	int _field_28;
 
 public:
-	MctlItem() : _movGraphReactObj(0), _motionControllerObj(0), _field_20(0), _field_24(0), _field_28(0) {}
-	~MctlItem();
-};
-
-class MctlCompoundArray : public Common::Array<MctlItem *>, public CObject {
- public:
-	virtual bool load(MfcArchive &file);
+	MctlItem() : _field_20(0), _field_24(0), _field_28(0) {}
+	~MctlItem() override;
 };
 
 class MctlCompound : public MotionController {
 public:
-	MctlCompoundArray _motionControllers;
+	/** list items are owned */
+	Common::Array<MctlItem *> _motionControllers;
 
 	MctlCompound() { _objtype = kObjTypeMctlCompound; }
+	~MctlCompound() override;
 
-	virtual bool load(MfcArchive &file);
+	bool load(MfcArchive &file) override;
 
-	virtual void attachObject(StaticANIObject *obj);
-	virtual int detachObject(StaticANIObject *obj);
-	virtual void detachAllObjects();
-	virtual MessageQueue *startMove(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId);
-	virtual MessageQueue *makeQueue(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId);
+	void attachObject(StaticANIObject *obj) override;
+	int detachObject(StaticANIObject *obj) override;
+	void detachAllObjects() override;
+	MessageQueue *startMove(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId) override;
+	MessageQueue *makeQueue(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId) override;
 
 	void initMctlGraph();
 	MctlConnectionPoint *findClosestConnectionPoint(int ox, int oy, int destIndex, int connectionX, int connectionY, int sourceIndex, double *minDistancePtr);
 	void replaceNodeX(int from, int to);
 
 	uint getMotionControllerCount() { return _motionControllers.size(); }
-	MotionController *getMotionController(int num) { return _motionControllers[num]->_motionControllerObj; }
+	MotionController *getMotionController(int num) { return _motionControllers[num]->_motionControllerObj.get(); }
 };
 
 struct MctlLadderMovementVars {
@@ -153,14 +146,14 @@ public:
 
 public:
 	MctlLadder();
-	virtual ~MctlLadder();
+	~MctlLadder() override;
 	int collisionDetection(StaticANIObject *man);
 
-	virtual void attachObject(StaticANIObject *obj);
-	virtual int detachObject(StaticANIObject *obj) { return 1; }
-	virtual void detachAllObjects();
-	virtual MessageQueue *startMove(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId);
-	virtual MessageQueue *makeQueue(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId);
+	void attachObject(StaticANIObject *obj) override;
+	int detachObject(StaticANIObject *obj) override { return 1; }
+	void detachAllObjects() override;
+	MessageQueue *startMove(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId) override;
+	MessageQueue *makeQueue(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId) override;
 
 	MessageQueue *controllerWalkTo(StaticANIObject *ani, int off);
 
@@ -179,7 +172,7 @@ public:
 
 public:
 	MovGraphNode() : _x(0), _y(0), _z(0), _field_10(0), _field_14(0) { _objtype = kObjTypeMovGraphNode; }
-	virtual bool load(MfcArchive &file);
+	bool load(MfcArchive &file) override;
 };
 
 class ReactParallel : public MovGraphReact {
@@ -193,27 +186,26 @@ class ReactParallel : public MovGraphReact {
 
 public:
 	ReactParallel();
-	virtual bool load(MfcArchive &file);
+	bool load(MfcArchive &file) override;
 
-	virtual void setCenter(int x1, int y1, int x2, int y2);
-	virtual void createRegion();
+	void setCenter(int x1, int y1, int x2, int y2) override;
+	void createRegion() override;
 };
 
 class ReactPolygonal : public MovGraphReact {
-	Common::Rect *_bbox;
+	Common::Rect _bbox;
 	int _centerX;
 	int _centerY;
 
 public:
 	ReactPolygonal();
-	~ReactPolygonal();
 
-	virtual bool load(MfcArchive &file);
+	bool load(MfcArchive &file) override;
 
-	virtual void setCenter(int x1, int y1, int x2, int y2);
-	virtual void createRegion();
+	void setCenter(int x1, int y1, int x2, int y2) override;
+	void createRegion() override;
 
-	void getBBox(Common::Rect *rect);
+	Common::Rect getBBox();
 };
 
 class MovGraphLink : public CObject {
@@ -232,12 +224,13 @@ class MovGraphLink : public CObject {
 
   public:
 	MovGraphLink();
-	virtual ~MovGraphLink();
+	~MovGraphLink() override;
 
-	virtual bool load(MfcArchive &file);
+	bool load(MfcArchive &file) override;
 
 	void recalcLength();
 };
+typedef Common::Array<MovGraphLink *> MovGraphLinkList;
 
 struct MovStep {
 	int sfield_0;
@@ -276,30 +269,37 @@ struct MovGraphItem {
 };
 
 class MovGraph : public MotionController {
-public:
-	ObList _nodes;
-	ObList _links;
+friend class MctlCompound;
+friend class MctlGraph;
+friend class MotionController;
+private:
+	typedef ObList<MovGraphNode> NodeList;
+	typedef ObList<MovGraphLink> LinkList;
+	NodeList _nodes;
+	LinkList _links;
 	int _field_44;
-	Common::Array<MovGraphItem *> _items;
+	Common::Array<MovGraphItem> _items;
 	MovArr *(*_callback1)(StaticANIObject *ani, Common::Array<MovItem *> *items, signed int counter);
 	AniHandler _aniHandler;
 
 public:
 	MovGraph();
-	virtual ~MovGraph();
+	~MovGraph() override;
 
-	virtual bool load(MfcArchive &file);
+	static int messageHandler(ExCommand *cmd);
 
-	virtual void attachObject(StaticANIObject *obj);
-	virtual int detachObject(StaticANIObject *obj);
-	virtual void detachAllObjects();
-	virtual Common::Array<MovItem *> *getPaths(StaticANIObject *ani, int x, int y, int flag1, int *rescount);
-	virtual bool setPosImmediate(StaticANIObject *obj, int x, int y);
-	virtual MessageQueue *startMove(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId);
-	virtual void setSelFunc(MovArr *(*_callback1)(StaticANIObject *ani, Common::Array<MovItem *> *items, signed int counter));
-	virtual bool resetPosition(StaticANIObject *ani, int flag);
-	virtual bool canDropInventory(StaticANIObject *ani, int x, int y);
-	virtual MessageQueue *makeQueue(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId);
+	bool load(MfcArchive &file) override;
+
+	void attachObject(StaticANIObject *obj) override;
+	int detachObject(StaticANIObject *obj) override;
+	void detachAllObjects() override;
+	Common::Array<MovItem *> *getPaths(StaticANIObject *ani, int x, int y, int flag1, int *rescount) override;
+	bool setPosImmediate(StaticANIObject *obj, int x, int y) override;
+	MessageQueue *startMove(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId) override;
+	void setSelFunc(MovArr *(*_callback1)(StaticANIObject *ani, Common::Array<MovItem *> *items, signed int counter)) override;
+	bool resetPosition(StaticANIObject *ani, int flag) override;
+	bool canDropInventory(StaticANIObject *ani, int x, int y) override;
+	MessageQueue *makeQueue(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId) override;
 	virtual MessageQueue *method50(StaticANIObject *ani, MovArr *movarr, int staticsId);
 
 	double putToLink(Common::Point *point, MovGraphLink *link, int fuzzyMatch);
@@ -308,7 +308,7 @@ public:
 	MovGraphNode *calcOffset(int ox, int oy);
 	int getObjectIndex(StaticANIObject *ani);
 	Common::Array<MovArr *> *getHitPoints(int x, int y, int *arrSize, int flag1, int flag2);
-	void findAllPaths(MovGraphLink *lnk, MovGraphLink *lnk2, Common::Array<MovGraphLink *> &tempObList1, Common::Array<MovGraphLink *> &tempObList2);
+	void findAllPaths(MovGraphLink *lnk, MovGraphLink *lnk2, MovGraphLinkList &tempObList1, MovGraphLinkList &tempObList2);
 	Common::Array<MovItem *> *getPaths(MovArr *movarr1, MovArr *movarr2, int *listCount);
 	void genMovItem(MovItem *movitem, MovGraphLink *grlink, MovArr *movarr1, MovArr *movarr2);
 	bool getHitPoint(int idx, int x, int y, MovArr *arr, int a6);
@@ -354,12 +354,10 @@ struct MctlMQ {
 	int distance2;
 	int subIndex;
 	int item1Index;
-	Common::Array<MctlMQSub *> items;
-	int itemsCount;
+	Common::Array<MctlMQSub> items;
 	int flags;
 
 	MctlMQ() { clear(); }
-	MctlMQ(MctlMQ *src);
 	void clear();
 };
 
@@ -371,14 +369,14 @@ struct MctlAni { // 744
 
 class MctlGraph : public MovGraph {
 public:
-	Common::Array<MctlAni *> _items2;
+	Common::Array<MctlAni> _items2;
 
 public:
-	virtual void attachObject(StaticANIObject *obj);
-	virtual int detachObject(StaticANIObject *obj);
-	virtual void detachAllObjects();
-	virtual MessageQueue *startMove(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId);
-	virtual MessageQueue *makeQueue(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId);
+	void attachObject(StaticANIObject *obj) override;
+	int detachObject(StaticANIObject *obj) override;
+	void detachAllObjects() override;
+	MessageQueue *startMove(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId) override;
+	MessageQueue *makeQueue(StaticANIObject *subj, int xpos, int ypos, int fuzzyMatch, int staticsId) override;
 
 	int getObjIndex(int objectId);
 	int getDirByStatics(int index, int staticsId);
@@ -386,16 +384,16 @@ public:
 	int getDirByPoint(int idx, StaticANIObject *ani);
 
 	int getDirBySize(MovGraphLink *lnk, int x, int y);
-	int getLinkDir(Common::Array<MovGraphLink *> *linkList, int idx, Common::Rect *a3, Common::Point *a4);
+	int getLinkDir(MovGraphLinkList *linkList, int idx, Common::Rect *a3, Common::Point *a4);
 
-	bool fillData(StaticANIObject *obj, MctlAni *item);
-	void generateList(MctlMQ *movinfo, Common::Array<MovGraphLink *> *linkList, LinkInfo *lnkSrc, LinkInfo *lnkDst);
-	MessageQueue *makeWholeQueue(MctlMQ *mctlMQ);
+	bool fillData(StaticANIObject *obj, MctlAni &item);
+	void generateList(MctlMQ &movinfo, MovGraphLinkList *linkList, LinkInfo *lnkSrc, LinkInfo *lnkDst);
+	MessageQueue *makeWholeQueue(MctlMQ &mctlMQ);
 
 	MovGraphNode *getHitNode(int x, int y, int strictMatch);
 	MovGraphLink *getHitLink(int x, int y, int idx, int fuzzyMatch);
 	MovGraphLink *getNearestLink(int x, int y);
-	double iterate(LinkInfo *linkInfoSource, LinkInfo *linkInfoDest, Common::Array<MovGraphLink *> *listObj);
+	double iterate(LinkInfo *linkInfoSource, LinkInfo *linkInfoDest, MovGraphLinkList *listObj);
 
 	MessageQueue *makeLineQueue(MctlMQ *movinfo);
 };
@@ -407,11 +405,10 @@ public:
 	int _mctlflags;
 	int _mctlstatic;
 	int16 _mctlmirror;
-	MessageQueue *_messageQueueObj;
+	Common::ScopedPtr<MessageQueue> _messageQueueObj;
 	int _motionControllerObj;
 
 	MctlConnectionPoint();
-	~MctlConnectionPoint();
 };
 
 } // End of namespace Fullpipe

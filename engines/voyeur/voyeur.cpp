@@ -84,7 +84,7 @@ VoyeurEngine::~VoyeurEngine() {
 	delete _screen;
 	delete _filesManager;
 	delete _eventsManager;
-	delete _debugger;
+	//_debugger is deleted by Engine
 }
 
 Common::Error VoyeurEngine::run() {
@@ -120,6 +120,7 @@ void VoyeurEngine::ESP_Init() {
 
 void VoyeurEngine::globalInitBolt() {
 	_debugger = new Debugger(this);
+	setDebugger(_debugger);
 	_eventsManager = new EventsManager(this);
 	_filesManager = new FilesManager(this);
 	_screen = new Screen(this);
@@ -745,10 +746,6 @@ void VoyeurEngine::showEndingNews() {
 
 /*------------------------------------------------------------------------*/
 
-Common::String VoyeurEngine::generateSaveName(int slot) {
-	return Common::String::format("%s.%03d", _targetName.c_str(), slot);
-}
-
 /**
  * Returns true if it is currently okay to restore a game
  */
@@ -773,7 +770,7 @@ Common::Error VoyeurEngine::loadGameState(int slot) {
 
 void VoyeurEngine::loadGame(int slot) {
 	// Open up the save file
-	Common::InSaveFile *saveFile = g_system->getSavefileManager()->openForLoading(generateSaveName(slot));
+	Common::InSaveFile *saveFile = g_system->getSavefileManager()->openForLoading(getSaveStateName(slot));
 	if (!saveFile)
 		return;
 
@@ -789,10 +786,8 @@ void VoyeurEngine::loadGame(int slot) {
 	VoyeurSavegameHeader header;
 	if (!header.read(saveFile))
 		return;
-	if (header._thumbnail)
-		header._thumbnail->free();
-	delete header._thumbnail;
 
+	serializer.setVersion(header._version);
 	synchronize(serializer);
 
 	delete saveFile;
@@ -807,9 +802,9 @@ void VoyeurEngine::loadGame(int slot) {
 /**
  * Save the game to the given slot index, and with the given name
  */
-Common::Error VoyeurEngine::saveGameState(int slot, const Common::String &desc) {
+Common::Error VoyeurEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
 	// Open the save file for writing
-	Common::OutSaveFile *saveFile = g_system->getSavefileManager()->openForSaving(generateSaveName(slot));
+	Common::OutSaveFile *saveFile = g_system->getSavefileManager()->openForSaving(getSaveStateName(slot));
 	if (!saveFile)
 		return Common::kCreatingFileFailed;
 
@@ -821,6 +816,7 @@ Common::Error VoyeurEngine::saveGameState(int slot, const Common::String &desc) 
 	Common::Serializer serializer(NULL, saveFile);
 
 	// Synchronise the data
+	serializer.setVersion(VOYEUR_SAVEGAME_VERSION);
 	synchronize(serializer);
 
 	saveFile->finalize();
@@ -854,9 +850,7 @@ void VoyeurEngine::synchronize(Common::Serializer &s) {
 
 /*------------------------------------------------------------------------*/
 
-bool VoyeurSavegameHeader::read(Common::InSaveFile *f) {
-	_thumbnail = NULL;
-
+bool VoyeurSavegameHeader::read(Common::InSaveFile *f, bool skipThumbnail) {
 	uint32 signature = f->readUint32BE();
 	if (signature != MKTAG('V', 'O', 'Y', 'R')) {
 		warning("Invalid savegame");
@@ -873,9 +867,9 @@ bool VoyeurSavegameHeader::read(Common::InSaveFile *f) {
 		_saveName += c;
 
 	// Get the thumbnail
-	_thumbnail = Graphics::loadThumbnail(*f);
-	if (!_thumbnail)
+	if (!Graphics::loadThumbnail(*f, _thumbnail, skipThumbnail)) {
 		return false;
+	}
 
 	// Read in the save datet/ime
 	_saveYear = f->readSint16LE();

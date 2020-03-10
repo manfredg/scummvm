@@ -232,6 +232,9 @@
 			<widget name = 'grDisableDitheringCheckbox'
 					type = 'Checkbox'
 			/>
+			<widget name = 'grCRTEmulationCheckbox'
+					type = 'Checkbox'
+			/>
 		</layout>
 	</dialog>
 

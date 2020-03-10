@@ -140,6 +140,8 @@ SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 			setupIHNMScriptFuncList();
 			break;
 #endif
+		default:
+			break;
 	}
 }
 
@@ -1238,6 +1240,8 @@ int Script::getVerbType(VerbTypes verbType) {
 			return kVerbITELookOnly;
 		case kVerbOptions:
 			return kVerbITEOptions;
+		default:
+			break;
 		}
 #ifdef ENABLE_IHNM
 	} else if (_vm->getGameId() == GID_IHNM) {
@@ -1268,6 +1272,8 @@ int Script::getVerbType(VerbTypes verbType) {
 			return kVerbIHNMLookOnly;
 		case kVerbOptions:
 			return kVerbIHNMOptions;
+		default:
+			break;
 		}
 #endif
 	}
@@ -1709,15 +1715,16 @@ void Script::whichObject(const Point& mousePoint) {
 					if (_vm->getGameId() == GID_IHNM && objectId == 8199)
 						newRightButtonVerb = getVerbType(kVerbLookAt);
 
-					if ((_currentVerb == getVerbType(kVerbPickUp)) ||
-						(_currentVerb == getVerbType(kVerbOpen)) ||
-						(_currentVerb == getVerbType(kVerbClose)) ||
-						((_currentVerb == getVerbType(kVerbGive)) && !_firstObjectSet) ||
-						((_currentVerb == getVerbType(kVerbUse)) && !(actor->_flags & kFollower))) {
-							if (_vm->getGameId() == GID_ITE) {
-								objectId = ID_NOTHING;
-								newObjectId = ID_NOTHING;
-							}
+					bool actorIsFollower = (actor->_flags & kFollower);
+					bool actorCanBeUsed = (actor->_flags & kUsable);
+
+					if ( _currentVerb == getVerbType(kVerbPickUp) ||
+						 _currentVerb == getVerbType(kVerbOpen) ||
+						 _currentVerb == getVerbType(kVerbClose) ||
+						(_currentVerb == getVerbType(kVerbGive) && !_firstObjectSet) ||
+						(_currentVerb == getVerbType(kVerbUse) && !_firstObjectSet && !(actorIsFollower || actorCanBeUsed))) {
+							objectId = ID_NOTHING;
+							newObjectId = ID_NOTHING;
 						}
 				}
 			}

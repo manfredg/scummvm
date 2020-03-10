@@ -32,6 +32,7 @@
 #include "gui/ThemeEval.h"
 
 #include "gui/dialog.h"
+#include "gui/widgets/popup.h"
 
 namespace GUI {
 
@@ -44,6 +45,7 @@ Widget::Widget(GuiObject *boss, int x, int y, int w, int h, const char *tooltip)
 Widget::Widget(GuiObject *boss, const Common::String &name, const char *tooltip)
 	: GuiObject(name), _type(0), _boss(boss), _tooltip(tooltip),
 	  _id(0), _flags(0), _hasFocus(false), _state(ThemeEngine::kStateDisabled) {
+	reflowLayout();
 	init();
 }
 
@@ -51,36 +53,12 @@ void Widget::init() {
 	// Insert into the widget list of the boss
 	_next = _boss->_firstWidget;
 	_boss->_firstWidget = this;
-}
-
-Common::Rect Widget::getBossClipRect() const {
-	int bx = _boss->getAbsX();
-	int by = _boss->getAbsY();
-	Common::Rect result = Common::Rect(bx, by, bx + _boss->getWidth(), by + _boss->getHeight());
-	bool needsClipping = false;
-
-	//check whether clipping area is inside the screen
-	if (result.left < 0 && (needsClipping = true))
-		warning("Widget <%s> has clipping area x < 0 (%d)", _name.c_str(), result.left);
-	if (result.left >= g_gui.getWidth() && (needsClipping = true))
-		warning("Widget <%s> has clipping area x > %d (%d)", _name.c_str(), g_gui.getWidth(), result.left);
-	if (result.right > g_gui.getWidth() && (needsClipping = true))
-		warning("Widget <%s> has clipping area x + w > %d (%d)", _name.c_str(), g_gui.getWidth(), result.right);
-	if (result.top < 0 && (needsClipping = true))
-		warning("Widget <%s> has clipping area y < 0 (%d)", _name.c_str(), result.top);
-	if (result.top >= g_gui.getHeight() && (needsClipping = true))
-		warning("Widget <%s> has clipping area y > %d (%d)", _name.c_str(), g_gui.getHeight(), result.top);
-	if (result.bottom > g_gui.getHeight() && (needsClipping = true))
-		warning("Widget <%s> has clipping area y + h > %d (%d)", _name.c_str(), g_gui.getHeight(), result.bottom);
-
-	if (needsClipping)
-		result.clip(g_gui.getWidth(), g_gui.getHeight());
-	return result;
+	_needsRedraw = true;
 }
 
 Widget::~Widget() {
 	delete _next;
-	_next = 0;
+	_next = nullptr;
 }
 
 void Widget::resize(int x, int y, int w, int h) {
@@ -112,38 +90,57 @@ void Widget::updateState(int oldFlags, int newFlags) {
 	}
 }
 
+void Widget::markAsDirty() {
+	_needsRedraw = true;
+
+	Widget *w = _firstWidget;
+	while (w) {
+		w->markAsDirty();
+		w = w->next();
+	}
+}
+
 void Widget::draw() {
 	if (!isVisible() || !_boss->isVisible())
 		return;
 
-	int oldX = _x, oldY = _y;
+	if (_needsRedraw) {
+		int oldX = _x, oldY = _y;
 
-	// Account for our relative position in the dialog
-	_x = getAbsX();
-	_y = getAbsY();
+		// Account for our relative position in the dialog
+		_x = getAbsX();
+		_y = getAbsY();
 
-	// Draw border
-	if (_flags & WIDGET_BORDER) {
-		g_gui.theme()->drawWidgetBackgroundClip(Common::Rect(_x, _y, _x+_w, _y+_h), getBossClipRect(), 0, ThemeEngine::kWidgetBackgroundBorder);
-		_x += 4;
-		_y += 4;
-		_w -= 8;
-		_h -= 8;
+		Common::Rect oldClip = g_gui.theme()->swapClipRect(_boss->getClipRect());
+
+		// Draw border
+		if (_flags & WIDGET_BORDER) {
+			g_gui.theme()->drawWidgetBackground(Common::Rect(_x, _y, _x + _w, _y + _h),
+			                                    ThemeEngine::kWidgetBackgroundBorder);
+			_x += 4;
+			_y += 4;
+			_w -= 8;
+			_h -= 8;
+		}
+
+		// Now perform the actual widget draw
+		drawWidget();
+
+		g_gui.theme()->swapClipRect(oldClip);
+
+		// Restore x/y
+		if (_flags & WIDGET_BORDER) {
+			_x -= 4;
+			_y -= 4;
+			_w += 8;
+			_h += 8;
+		}
+
+		_x = oldX;
+		_y = oldY;
+
+		_needsRedraw = false;
 	}
-
-	// Now perform the actual widget draw
-	drawWidget();
-
-	// Restore x/y
-	if (_flags & WIDGET_BORDER) {
-		_x -= 4;
-		_y -= 4;
-		_w += 8;
-		_h += 8;
-	}
-
-	_x = oldX;
-	_y = oldY;
 
 	// Draw all children
 	Widget *w = _firstWidget;
@@ -172,7 +169,7 @@ Widget *Widget::findWidgetInChain(Widget *w, const char *name) {
 		}
 		w = w->_next;
 	}
-	return 0;
+	return nullptr;
 }
 
 bool Widget::containsWidgetInChain(Widget *w, Widget *search) {
@@ -191,7 +188,7 @@ void Widget::setEnabled(bool e) {
 		else
 			clearFlags(WIDGET_ENABLED);
 
-		_boss->draw();
+		g_gui.scheduleTopDialogRedraw();
 	}
 }
 
@@ -242,6 +239,8 @@ uint8 Widget::parseHotkey(const Common::String &label) {
 			else
 				state = 0;
 			break;
+		default:
+			break;
 		}
 	}
 
@@ -261,6 +260,18 @@ Common::String Widget::cleanupHotkey(const Common::String &label) {
 	return res;
 }
 
+void Widget::read(Common::String str) {
+#ifdef USE_TTS
+	if (ConfMan.hasKey("tts_enabled", "scummvm") &&
+			ConfMan.getBool("tts_enabled", "scummvm")) {
+		Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+		if (ttsMan == nullptr)
+			return;
+		ttsMan->say(str);
+	}
+#endif
+}
+
 #pragma mark -
 
 StaticTextWidget::StaticTextWidget(GuiObject *boss, int x, int y, int w, int h, const Common::String &text, Graphics::TextAlign align, const char *tooltip, ThemeEngine::FontStyle font)
@@ -273,7 +284,7 @@ StaticTextWidget::StaticTextWidget(GuiObject *boss, int x, int y, int w, int h, 
 
 StaticTextWidget::StaticTextWidget(GuiObject *boss, const Common::String &name, const Common::String &text, const char *tooltip, ThemeEngine::FontStyle font)
 	: Widget(boss, name, tooltip) {
-	setFlags(WIDGET_ENABLED);
+	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG);
 	_type = kStaticTextWidget;
 	_label = text;
 
@@ -289,12 +300,7 @@ void StaticTextWidget::setLabel(const Common::String &label) {
 	if (_label != label) {
 		_label = label;
 
-		// when changing the label, add the CLEARBG flag
-		// so the widget is completely redrawn, otherwise
-		// the new text is drawn on top of the old one.
-		setFlags(WIDGET_CLEARBG);
-		draw();
-		clearFlags(WIDGET_CLEARBG);
+		markAsDirty();
 	}
 }
 
@@ -302,21 +308,15 @@ void StaticTextWidget::setAlign(Graphics::TextAlign align) {
 	if (_align != align){
 		_align = align;
 
-		// same as setLabel() actually, the text
-		// would be redrawn on top of the old one so
-		// we add the CLEARBG flag
-		setFlags(WIDGET_CLEARBG);
-		draw();
-		clearFlags(WIDGET_CLEARBG);
+		markAsDirty();
 	}
-
 }
 
 
 void StaticTextWidget::drawWidget() {
-	g_gui.theme()->drawTextClip(
-		Common::Rect(_x, _y, _x+_w, _y+_h),	getBossClipRect(),
-		_label, _state, _align, ThemeEngine::kTextInversionNone, 0, true, _font
+	g_gui.theme()->drawText(
+			Common::Rect(_x, _y, _x + _w, _y + _h),
+			_label, _state, _align, ThemeEngine::kTextInversionNone, 0, true, _font
 	);
 }
 
@@ -324,7 +324,7 @@ void StaticTextWidget::drawWidget() {
 
 ButtonWidget::ButtonWidget(GuiObject *boss, int x, int y, int w, int h, const Common::String &label, const char *tooltip, uint32 cmd, uint8 hotkey)
 	: StaticTextWidget(boss, x, y, w, h, cleanupHotkey(label), Graphics::kTextAlignCenter, tooltip), CommandSender(boss),
-	  _cmd(cmd), _hotkey(hotkey), _lastTime(0), _duringPress(false) {
+	  _cmd(cmd), _hotkey(hotkey), _duringPress(false) {
 
 	if (hotkey == 0)
 		_hotkey = parseHotkey(label);
@@ -335,11 +335,18 @@ ButtonWidget::ButtonWidget(GuiObject *boss, int x, int y, int w, int h, const Co
 
 ButtonWidget::ButtonWidget(GuiObject *boss, const Common::String &name, const Common::String &label, const char *tooltip, uint32 cmd, uint8 hotkey)
 	: StaticTextWidget(boss, name, cleanupHotkey(label), tooltip), CommandSender(boss),
-	  _cmd(cmd), _hotkey(hotkey), _lastTime(0), _duringPress(false) {
+	  _cmd(cmd), _hotkey(hotkey), _duringPress(false) {
 	if (hotkey == 0)
 		_hotkey = parseHotkey(label);
 	setFlags(WIDGET_ENABLED/* | WIDGET_BORDER*/ | WIDGET_CLEARBG);
 	_type = kButtonWidget;
+}
+
+void ButtonWidget::getMinSize(int &minWidth, int &minHeight) {
+	const Graphics::Font &font = g_gui.getFont(_font);
+
+	minWidth  = font.getStringWidth(_label);
+	minHeight = font.getFontHeight();
 }
 
 void ButtonWidget::handleMouseUp(int x, int y, int button, int clickCount) {
@@ -356,10 +363,7 @@ void ButtonWidget::handleMouseDown(int x, int y, int button, int clickCount) {
 }
 
 void ButtonWidget::drawWidget() {
-	g_gui.theme()->drawButtonClip(
-		Common::Rect(_x, _y, _x + _w, _y + _h), getBossClipRect(),
-		_label, _state, getFlags()
-	);
+	g_gui.theme()->drawButton(Common::Rect(_x, _y, _x + _w, _y + _h), _label, _state, getFlags());
 }
 
 void ButtonWidget::setLabel(const Common::String &label) {
@@ -389,37 +393,141 @@ ButtonWidget *addClearButton(GuiObject *boss, const Common::String &name, uint32
 
 void ButtonWidget::setHighLighted(bool enable) {
 	(enable) ? setFlags(WIDGET_HILITED) : clearFlags(WIDGET_HILITED);
-	draw();
+	markAsDirty();
 }
 
 void ButtonWidget::setPressedState() {
 	setFlags(WIDGET_PRESSED);
 	clearFlags(WIDGET_HILITED);
-	draw();
+	markAsDirty();
 }
 
 void ButtonWidget::setUnpressedState() {
 	clearFlags(WIDGET_PRESSED);
-	draw();
+	markAsDirty();
+}
+
+#pragma mark -
+
+DropdownButtonWidget::DropdownButtonWidget(GuiObject *boss, int x, int y, int w, int h, const Common::String &label, const char *tooltip, uint32 cmd, uint8 hotkey) :
+		ButtonWidget(boss, x, y, w, h, label, tooltip, cmd, hotkey) {
+	setFlags(getFlags() | WIDGET_TRACK_MOUSE);
+
+	reset();
+}
+
+DropdownButtonWidget::DropdownButtonWidget(GuiObject *boss, const Common::String &name, const Common::String &label, const char *tooltip, uint32 cmd, uint8 hotkey) :
+		ButtonWidget(boss, name, label, tooltip, cmd, hotkey) {
+	setFlags(getFlags() | WIDGET_TRACK_MOUSE);
+
+	reset();
+}
+
+void DropdownButtonWidget::reset() {
+	_inDropdown = false;
+	_inButton   = false;
+	_dropdownWidth = g_gui.xmlEval()->getVar("Globals.DropdownButton.Width", 13);
+}
+
+bool DropdownButtonWidget::isInDropDown(int x, int y) const {
+	Common::Rect dropdownRect(_w - _dropdownWidth, 0, _w, _h);
+	return dropdownRect.contains(x, y);
+}
+
+void DropdownButtonWidget::handleMouseMoved(int x, int y, int button) {
+	if (_entries.empty()) {
+		return;
+	}
+
+	// Detect which part of the button the cursor is over
+	bool inDropdown = isInDropDown(x, y);
+	bool inButton   = Common::Rect(_w, _h).contains(x, y) && !inDropdown;
+
+	if (inDropdown != _inDropdown) {
+		_inDropdown = inDropdown;
+		markAsDirty();
+	}
+
+	if (inButton != _inButton) {
+		_inButton = inButton;
+		markAsDirty();
+	}
+}
+
+void DropdownButtonWidget::handleMouseUp(int x, int y, int button, int clickCount) {
+	if (isEnabled() && !_entries.empty() && _duringPress && isInDropDown(x, y)) {
+
+		PopUpDialog popupDialog(this, "DropdownDialog", x + getAbsX(), y + getAbsY());
+		popupDialog.setPosition(getAbsX(), getAbsY() + _h);
+		popupDialog.setLineHeight(_h);
+		popupDialog.setPadding(_dropdownWidth, _dropdownWidth);
+
+		for (uint i = 0; i < _entries.size(); i++) {
+			popupDialog.appendEntry(_entries[i].label);
+		}
+
+		int newSel = popupDialog.runModal();
+		if (newSel != -1) {
+			sendCommand(_entries[newSel].cmd, 0);
+		}
+
+		setUnpressedState();
+		_duringPress = false;
+	} else {
+		ButtonWidget::handleMouseUp(x, y, button, clickCount);
+	}
+}
+
+void DropdownButtonWidget::reflowLayout() {
+	ButtonWidget::reflowLayout();
+
+	reset();
+}
+
+void DropdownButtonWidget::getMinSize(int &minWidth, int &minHeight) {
+	ButtonWidget::getMinSize(minWidth, minHeight);
+
+	if (minWidth >= 0) {
+		minWidth += _dropdownWidth * 2;
+	}
+}
+
+void DropdownButtonWidget::appendEntry(const Common::String &label, uint32 cmd) {
+	Entry e;
+	e.label = label;
+	e.cmd = cmd;
+	_entries.push_back(e);
+}
+
+void DropdownButtonWidget::clearEntries() {
+	_entries.clear();
+}
+
+void DropdownButtonWidget::drawWidget() {
+	if (_entries.empty()) {
+		// Degrade to a regular button
+		g_gui.theme()->drawButton(Common::Rect(_x, _y, _x + _w, _y + _h), _label, _state);
+	} else {
+		g_gui.theme()->drawDropDownButton(Common::Rect(_x, _y, _x + _w, _y + _h), _dropdownWidth, _label,
+		                                  _state, _inButton, _inDropdown);
+	}
 }
 
 #pragma mark -
 
 PicButtonWidget::PicButtonWidget(GuiObject *boss, int x, int y, int w, int h, const char *tooltip, uint32 cmd, uint8 hotkey)
 	: ButtonWidget(boss, x, y, w, h, "", tooltip, cmd, hotkey),
-	  _alpha(255), _transparency(false), _showButton(true), _isAlpha(false) {
+	  _alpha(255), _transparency(false), _showButton(true) {
 
 	setFlags(WIDGET_ENABLED/* | WIDGET_BORDER*/ | WIDGET_CLEARBG);
 	_type = kButtonWidget;
-	_mode = ThemeEngine::kAutoScaleNone;
 }
 
 PicButtonWidget::PicButtonWidget(GuiObject *boss, const Common::String &name, const char *tooltip, uint32 cmd, uint8 hotkey)
 	: ButtonWidget(boss, name, "", tooltip, cmd, hotkey),
-	  _alpha(255), _transparency(false), _showButton(true), _isAlpha(false) {
+	  _alpha(255), _transparency(false), _showButton(true) {
 	setFlags(WIDGET_ENABLED/* | WIDGET_BORDER*/ | WIDGET_CLEARBG);
 	_type = kButtonWidget;
-	_mode = ThemeEngine::kAutoScaleNone;
 }
 
 PicButtonWidget::~PicButtonWidget() {
@@ -447,23 +555,6 @@ void PicButtonWidget::setGfx(const Graphics::Surface *gfx, int statenum) {
 	_gfx[statenum].copyFrom(*gfx);
 }
 
-void PicButtonWidget::setAGfx(const Graphics::TransparentSurface *gfx, int statenum, ThemeEngine::AutoScaleMode mode) {
-	_agfx[statenum].free();
-
-	if (!gfx || !gfx->getPixels())
-		return;
-
-	if (gfx->format.bytesPerPixel == 1) {
-		warning("PicButtonWidget::setGfx got paletted surface passed");
-		return;
-	}
-
-	_agfx[statenum].copyFrom(*gfx);
-
-	_isAlpha = true;
-	_mode = mode;
-}
-
 void PicButtonWidget::setGfx(int w, int h, int r, int g, int b, int statenum) {
 	if (w == -1)
 		w = _w;
@@ -479,62 +570,34 @@ void PicButtonWidget::setGfx(int w, int h, int r, int g, int b, int statenum) {
 
 void PicButtonWidget::drawWidget() {
 	if (_showButton)
-		g_gui.theme()->drawButtonClip(Common::Rect(_x, _y, _x + _w, _y + _h), getBossClipRect(), "", _state, getFlags());
+		g_gui.theme()->drawButton(Common::Rect(_x, _y, _x + _w, _y + _h), "", _state, getFlags());
 
-	if (!_isAlpha) {
-		Graphics::Surface *gfx;
+	Graphics::Surface *gfx;
 
-		if (_state == ThemeEngine::kStateHighlight)
-			gfx = &_gfx[kPicButtonHighlight];
-		else if (_state == ThemeEngine::kStateDisabled)
-			gfx = &_gfx[kPicButtonStateDisabled];
-		else if (_state == ThemeEngine::kStatePressed)
-			gfx = &_gfx[kPicButtonStatePressed];
-		else
-			gfx = &_gfx[kPicButtonStateEnabled];
+	if (_state == ThemeEngine::kStateHighlight)
+		gfx = &_gfx[kPicButtonHighlight];
+	else if (_state == ThemeEngine::kStateDisabled)
+		gfx = &_gfx[kPicButtonStateDisabled];
+	else if (_state == ThemeEngine::kStatePressed)
+		gfx = &_gfx[kPicButtonStatePressed];
+	else
+		gfx = &_gfx[kPicButtonStateEnabled];
 
-		if (!gfx->getPixels())
-			gfx = &_gfx[kPicButtonStateEnabled];
+	if (!gfx->getPixels())
+		gfx = &_gfx[kPicButtonStateEnabled];
 
-		if (gfx->getPixels()) {
+	if (gfx->getPixels()) {
 		// Check whether the set up surface needs to be converted to the GUI
 		// color format.
-			const Graphics::PixelFormat &requiredFormat = g_gui.theme()->getPixelFormat();
-			if (gfx->format != requiredFormat) {
-				gfx->convertToInPlace(requiredFormat);
-			}
-
-			const int x = _x + (_w - gfx->w) / 2;
-			const int y = _y + (_h - gfx->h) / 2;
-
-			g_gui.theme()->drawSurfaceClip(Common::Rect(x, y, x + gfx->w,  y + gfx->h), getBossClipRect(), *gfx, _state, _alpha, _transparency);
+		const Graphics::PixelFormat &requiredFormat = g_gui.theme()->getPixelFormat();
+		if (gfx->format != requiredFormat) {
+			gfx->convertToInPlace(requiredFormat);
 		}
-	} else {
-		Graphics::TransparentSurface *gfx;
 
-		if (_state == ThemeEngine::kStateHighlight)
-			gfx = &_agfx[kPicButtonHighlight];
-		else if (_state == ThemeEngine::kStateDisabled)
-			gfx = &_agfx[kPicButtonStateDisabled];
-		else if (_state == ThemeEngine::kStatePressed)
-			gfx = &_agfx[kPicButtonStatePressed];
-		else
-			gfx = &_agfx[kPicButtonStateEnabled];
+		const int x = _x + (_w - gfx->w) / 2;
+		const int y = _y + (_h - gfx->h) / 2;
 
-		if (!gfx->getPixels())
-			gfx = &_agfx[kPicButtonStateEnabled];
-
-		if (gfx->getPixels()) {
-			if (_mode == GUI::ThemeEngine::kAutoScaleNone) {
-				const int x = _x + (_w - gfx->w) / 2;
-				const int y = _y + (_h - gfx->h) / 2;
-
-				g_gui.theme()->drawASurface(Common::Rect(x, y, x + gfx->w,  y + gfx->h), *gfx, _mode, _alpha);
-
-			} else {
-				g_gui.theme()->drawASurface(Common::Rect(_x, _y, _x + _w,  _y + _h), *gfx, _mode, _alpha);
-			}
-		}
+		g_gui.theme()->drawSurface(Common::Point(x, y), *gfx, _transparency);
 	}
 }
 
@@ -563,13 +626,13 @@ void CheckboxWidget::setState(bool state) {
 	if (_state != state) {
 		_state = state;
 		//_flags ^= WIDGET_INV_BORDER;
-		draw();
+		markAsDirty();
 	}
 	sendCommand(_cmd, _state);
 }
 
 void CheckboxWidget::drawWidget() {
-	g_gui.theme()->drawCheckboxClip(Common::Rect(_x, _y, _x+_w, _y+_h), getBossClipRect(), _label, _state, Widget::_state);
+	g_gui.theme()->drawCheckbox(Common::Rect(_x, _y, _x + _w, _y + _h), _label, _state, Widget::_state);
 }
 
 #pragma mark -
@@ -632,13 +695,13 @@ void RadiobuttonWidget::setState(bool state, bool setGroup) {
 	if (_state != state) {
 		_state = state;
 		//_flags ^= WIDGET_INV_BORDER;
-		draw();
+		markAsDirty();
 	}
 	sendCommand(_cmd, _state);
 }
 
 void RadiobuttonWidget::drawWidget() {
-	g_gui.theme()->drawRadiobuttonClip(Common::Rect(_x, _y, _x+_w, _y+_h), getBossClipRect(), _label, _state, Widget::_state);
+	g_gui.theme()->drawRadiobutton(Common::Rect(_x, _y, _x + _w, _y + _h), _label, _state, Widget::_state);
 }
 
 #pragma mark -
@@ -667,7 +730,7 @@ void SliderWidget::handleMouseMoved(int x, int y, int button) {
 
 		if (newValue != _value) {
 			_value = newValue;
-			draw();
+			markAsDirty();
 			sendCommand(_cmd, _value);	// FIXME - hack to allow for "live update" in sound dialog
 		}
 	}
@@ -699,14 +762,14 @@ void SliderWidget::handleMouseWheel(int x, int y, int direction) {
 
 		if (newValue != _value) {
 			_value = newValue;
-			draw();
+			markAsDirty();
 			sendCommand(_cmd, _value);	// FIXME - hack to allow for "live update" in sound dialog
 		}
 	}
 }
 
 void SliderWidget::drawWidget() {
-	g_gui.theme()->drawSliderClip(Common::Rect(_x, _y, _x + _w, _y + _h), getBossClipRect(), valueToBarWidth(_value), _state);
+	g_gui.theme()->drawSlider(Common::Rect(_x, _y, _x + _w, _y + _h), valueToBarWidth(_value), _state);
 }
 
 int SliderWidget::valueToBarWidth(int value) {
@@ -760,26 +823,6 @@ void GraphicsWidget::setGfx(const Graphics::Surface *gfx) {
 	_gfx.copyFrom(*gfx);
 }
 
-void GraphicsWidget::setAGfx(const Graphics::TransparentSurface *gfx, ThemeEngine::AutoScaleMode mode) {
-	_agfx.free();
-
-	if (!gfx || !gfx->getPixels())
-		return;
-
-	if (gfx->format.bytesPerPixel == 1) {
-		warning("GraphicsWidget::setGfx got paletted surface passed");
-		return;
-	}
-
-	if ((gfx->w > _w || gfx->h > _h) && mode == ThemeEngine::kAutoScaleNone) {
-		warning("GraphicsWidget has size %dx%d, but a surface with %dx%d is to be set", _w, _h, gfx->w, gfx->h);
-		return;
-	}
-
-	_agfx.copyFrom(*gfx);
-	_mode = mode;
-}
-
 void GraphicsWidget::setGfx(int w, int h, int r, int g, int b) {
 	if (w == -1)
 		w = _w;
@@ -805,35 +848,22 @@ void GraphicsWidget::drawWidget() {
 		const int x = _x + (_w - _gfx.w) / 2;
 		const int y = _y + (_h - _gfx.h) / 2;
 
-		g_gui.theme()->drawSurfaceClip(Common::Rect(x, y, x + _gfx.w,  y + _gfx.h), getBossClipRect(), _gfx, _state, _alpha, _transparency);
-	} else if (_agfx.getPixels()) {
-		// Check whether the set up surface needs to be converted to the GUI
-		// color format.
-		const Graphics::PixelFormat &requiredFormat = g_gui.theme()->getPixelFormat();
-		if (_agfx.format != requiredFormat) {
-			_agfx.convertToInPlace(requiredFormat);
-		}
-
-		if (_mode == GUI::ThemeEngine::kAutoScaleNone) {
-			const int x = _x + (_w - _agfx.w) / 2;
-			const int y = _y + (_h - _agfx.h) / 2;
-
-			g_gui.theme()->drawASurface(Common::Rect(x, y, x + _agfx.w,  y + _agfx.h), _agfx, _mode, _alpha);
-
-		} else {
-			g_gui.theme()->drawASurface(Common::Rect(_x, _y, _x + _w,  _y + _h), _agfx, _mode, _alpha);
-		}
+		g_gui.theme()->drawSurface(Common::Point(x, y), _gfx, _transparency);
 	}
 }
 
 #pragma mark -
 
-ContainerWidget::ContainerWidget(GuiObject *boss, int x, int y, int w, int h) : Widget(boss, x, y, w, h) {
+ContainerWidget::ContainerWidget(GuiObject *boss, int x, int y, int w, int h) :
+		Widget(boss, x, y, w, h),
+		_backgroundType(ThemeEngine::kWidgetBackgroundBorder) {
 	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG);
 	_type = kContainerWidget;
 }
 
-ContainerWidget::ContainerWidget(GuiObject *boss, const Common::String &name) : Widget(boss, name) {
+ContainerWidget::ContainerWidget(GuiObject *boss, const Common::String &name) :
+		Widget(boss, name),
+		_backgroundType(ThemeEngine::kWidgetBackgroundBorder) {
 	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG);
 	_type = kContainerWidget;
 }
@@ -851,7 +881,10 @@ bool ContainerWidget::containsWidget(Widget *w) const {
 }
 
 Widget *ContainerWidget::findWidget(int x, int y) {
-	return findWidgetInChain(_firstWidget, x, y);
+	Widget *w = findWidgetInChain(_firstWidget, x, y);
+	if (w)
+		return w;
+	return this;
 }
 
 void ContainerWidget::removeWidget(Widget *widget) {
@@ -862,8 +895,12 @@ void ContainerWidget::removeWidget(Widget *widget) {
 	Widget::removeWidget(widget);
 }
 
+void ContainerWidget::setBackgroundType(ThemeEngine::WidgetBackground backgroundType) {
+	_backgroundType = backgroundType;
+}
+
 void ContainerWidget::drawWidget() {
-	g_gui.theme()->drawWidgetBackgroundClip(Common::Rect(_x, _y, _x + _w, _y + _h), getBossClipRect(), 0, ThemeEngine::kWidgetBackgroundBorder);
+	g_gui.theme()->drawWidgetBackground(Common::Rect(_x, _y, _x + _w, _y + _h), _backgroundType);
 }
 
 } // End of namespace GUI

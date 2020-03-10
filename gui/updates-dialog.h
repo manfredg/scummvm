@@ -38,15 +38,13 @@ class PopUpWidget;
 class UpdatesDialog : public Dialog {
 public:
 	UpdatesDialog();
-	virtual ~UpdatesDialog() {}
+	~UpdatesDialog() override {}
 
-	void handleCommand(CommandSender *sender, uint32 cmd, uint32 data);
+	void handleCommand(CommandSender *sender, uint32 cmd, uint32 data) override;
 
 private:
 	PopUpWidget *_updatesPopUp;
-	ButtonWidget *_yesButton;
-	ButtonWidget *_noButton;
-	CheckboxWidget *_updatesCheckbox;
+	ButtonWidget *_proceedButton;
 };
 
 } // End of namespace GUI

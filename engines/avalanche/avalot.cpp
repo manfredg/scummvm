@@ -29,6 +29,7 @@
 
 #include "avalanche/avalanche.h"
 
+#include "common/math.h"
 #include "common/random.h"
 #include "common/system.h"
 #include "common/config-manager.h"
@@ -161,10 +162,11 @@ void AvalancheEngine::handleKeyDown(Common::Event &event) {
 	case Common::KEYCODE_END:
 	case Common::KEYCODE_KP5:
 		if (_alive && _avvyIsAwake) {
-			_animation->handleMoveKey(event); // Fallthroughs are intended.
+			_animation->handleMoveKey(event);
 			drawDirection();
 			return;
 		}
+		// fall through
 	case Common::KEYCODE_BACKSPACE:
 		_parser->handleBackspace();
 		break;
@@ -482,6 +484,8 @@ void AvalancheEngine::exitRoom(byte x) {
 	case kRoomRobins:
 		_timer->loseTimer(Timer::kReasonGettingTiedUp);
 		break;
+	default:
+		break;
 	}
 
 	_interrogation = 0; // Leaving the room cancels all the questions automatically.
@@ -736,8 +740,10 @@ void AvalancheEngine::enterRoom(Room roomId, byte ped) {
 
 	case kRoomCatacombs:
 		if ((ped == 0) || (ped == 3) || (ped == 5) || (ped == 6)) {
-
 			switch (ped) {
+			case 0:
+			default:
+				break;
 			case 3: // Enter from oubliette
 				_catacombX = 8;
 				_catacombY = 4;
@@ -1024,6 +1030,8 @@ void AvalancheEngine::useCompass(const Common::Point &cursorPos) {
 		_animation->stopWalking();
 		drawDirection();
 		break;
+	default:
+		break;
 	}
 }
 
@@ -1070,6 +1078,7 @@ void AvalancheEngine::guideAvvy(Common::Point cursorPos) {
 
 	switch (what) {
 	case 0:
+	default:
 		_animation->stopWalking();
 		break; // Clicked on Avvy: no movement.
 	case 1:
@@ -1299,7 +1308,7 @@ uint16 AvalancheEngine::bearing(byte whichPed) {
 
 	int16 deltaX = avvy->_x - curPed->_x;
 	int16 deltaY = avvy->_y - curPed->_y;
-	uint16 result = (uint16)(atan((float)(deltaY / deltaX)) * 180 / M_PI);
+	uint16 result = Common::rad2deg<float,uint16>(atan((float)deltaY / (float)deltaX)); // TODO: Would atan2 be preferable?
 	if (avvy->_x < curPed->_x) {
 		return result + 90;
 	} else {
@@ -1522,6 +1531,8 @@ Common::String AvalancheEngine::getItem(byte which) {
 		case 3:
 			result = "some vinegar";
 			break;
+		default:
+			break;
 		}
 		break;
 	case kObjectOnion:
@@ -1537,6 +1548,7 @@ Common::String AvalancheEngine::getItem(byte which) {
 			result = Common::String(items[which - 1]);
 		else
 			result = "";
+		break;
 	}
 	return result;
 }
@@ -1658,6 +1670,8 @@ void AvalancheEngine::openDoor(Room whither, byte ped, byte magicnum) {
 			break;
 		case 12:
 			_sequence->startLustiesSeq3(whither, ped);
+			break;
+		default:
 			break;
 		}
 		break;

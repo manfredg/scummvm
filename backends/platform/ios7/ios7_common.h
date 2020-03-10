@@ -25,7 +25,7 @@
 
 #include "graphics/surface.h"
 
-// #define ENABLE_IOS7_SCALERS
+#define ENABLE_IOS7_SCALERS
 
 
 enum InputEvent {
@@ -40,7 +40,8 @@ enum InputEvent {
 	kInputApplicationSuspended,
 	kInputApplicationResumed,
 	kInputSwipe,
-	kInputTap
+	kInputTap,
+	kInputMainMenu
 };
 
 enum ScreenOrientation {
@@ -79,7 +80,8 @@ struct VideoContext {
 	VideoContext() : asprectRatioCorrection(), screenWidth(), screenHeight(), overlayVisible(false),
 	                 overlayWidth(), overlayHeight(), mouseX(), mouseY(),
 	                 mouseHotspotX(), mouseHotspotY(), mouseWidth(), mouseHeight(),
-	                 mouseIsVisible(), graphicsMode(kGraphicsModeNone), filtering(false), shakeOffsetY() {
+	                 mouseIsVisible(), graphicsMode(kGraphicsModeNone), filtering(false),
+	                 shakeXOffset(), shakeYOffset() {
 	}
 
 	// Game screen state
@@ -102,7 +104,8 @@ struct VideoContext {
 	// Misc state
 	GraphicsModes graphicsMode;
 	bool filtering;
-	int shakeOffsetY;
+	int shakeXOffset;
+	int shakeYOffset;
 };
 
 struct InternalEvent {
@@ -122,6 +125,7 @@ void iOS7_updateScreen();
 bool iOS7_fetchEvent(InternalEvent *event);
 bool iOS7_isBigDevice();
 
+void iOS7_buildSharedOSystemInstance();
 void iOS7_main(int argc, char **argv);
 const char *iOS7_getDocumentsDir();
 bool iOS7_touchpadModeEnabled();

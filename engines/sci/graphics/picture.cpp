@@ -127,7 +127,7 @@ void GfxPicture::drawSci11Vga() {
 	if (has_cel) {
 		// Create palette and set it
 		_palette->createFromData(inbuffer.subspan(palette_data_ptr), &palette);
-		_palette->set(&palette, true);
+		_palette->set(&palette, true, false, true);
 
 		drawCelData(inbuffer, cel_headerPos, cel_RlePos, cel_LiteralPos, 0, 0, 0, 0, false);
 	}
@@ -178,15 +178,6 @@ void GfxPicture::drawCelData(const SciSpan<const byte> &inbuffer, int headerPos,
 	pixelCount = width * height;
 	Common::SpanOwner<SciSpan<byte> > celBitmap;
 	celBitmap->allocate(pixelCount, _resource->name());
-
-	if (g_sci->getPlatform() == Common::kPlatformMacintosh && getSciVersion() >= SCI_VERSION_2) {
-		// See GfxView::unpackCel() for why this black/white swap is done
-		// This picture swap is only needed in SCI32, not SCI1.1
-		if (clearColor == 0)
-			clearColor = 0xff;
-		else if (clearColor == 0xff)
-			clearColor = 0;
-	}
 
 	if (compression) {
 		unpackCelData(inbuffer, *celBitmap, clearColor, rlePos, literalPos, _resMan->getViewType(), width, false);
@@ -433,7 +424,6 @@ void GfxPicture::drawVectorData(const SciSpan<const byte> &data) {
 	byte pic_priority = 255, pic_control = 255;
 	int16 x = 0, y = 0, oldx, oldy;
 	byte EGApalettes[PIC_EGAPALETTE_TOTALSIZE] = {0};
-	byte *EGApalette = &EGApalettes[_EGApaletteNo * PIC_EGAPALETTE_SIZE];
 	byte EGApriority[PIC_EGAPRIORITY_SIZE] = {0};
 	bool isEGA = false;
 	uint curPos = 0;
@@ -447,8 +437,10 @@ void GfxPicture::drawVectorData(const SciSpan<const byte> &data) {
 
 	memset(&palette, 0, sizeof(palette));
 
-	if (_EGApaletteNo >= PIC_EGAPALETTE_COUNT)
+	if (_EGApaletteNo >= PIC_EGAPALETTE_COUNT) {
 		_EGApaletteNo = 0;
+	}
+	byte *EGApalette = &EGApalettes[_EGApaletteNo * PIC_EGAPALETTE_SIZE];
 
 	if (_resMan->getViewType() == kViewEga) {
 		isEGA = true;

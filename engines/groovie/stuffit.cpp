@@ -41,17 +41,17 @@ struct SIT14Data;
 class StuffItArchive : public Common::Archive {
 public:
 	StuffItArchive();
-	~StuffItArchive();
+	~StuffItArchive() override;
 
 	bool open(const Common::String &filename);
 	void close();
 	bool isOpen() const { return _stream != 0; }
 
 	// Common::Archive API implementation
-	bool hasFile(const Common::String &name) const;
-	int listMembers(Common::ArchiveMemberList &list) const;
-	const Common::ArchiveMemberPtr getMember(const Common::String &name) const;
-	Common::SeekableReadStream *createReadStreamForMember(const Common::String &name) const;
+	bool hasFile(const Common::String &name) const override;
+	int listMembers(Common::ArchiveMemberList &list) const override;
+	const Common::ArchiveMemberPtr getMember(const Common::String &name) const override;
+	Common::SeekableReadStream *createReadStreamForMember(const Common::String &name) const override;
 
 private:
 	struct FileEntry {
@@ -71,7 +71,7 @@ private:
 
 	// Decompression Helpers
 	void update14(uint16 first, uint16 last, byte *code, uint16 *freq) const;
-	void readTree14(Common::BitStream *bits, SIT14Data *dat, uint16 codesize, uint16 *result) const;
+	void readTree14(Common::BitStream8LSB *bits, SIT14Data *dat, uint16 codesize, uint16 *result) const;
 };
 
 StuffItArchive::StuffItArchive() : Common::Archive() {
@@ -302,7 +302,7 @@ struct SIT14Data {
 	if (b->pos() & 7) \
 		b->skip(8 - (b->pos() & 7))
 
-void StuffItArchive::readTree14(Common::BitStream *bits, SIT14Data *dat, uint16 codesize, uint16 *result) const {
+void StuffItArchive::readTree14(Common::BitStream8LSB *bits, SIT14Data *dat, uint16 codesize, uint16 *result) const {
 	uint32 i, l, n;
 	uint32 k = bits->getBit();
 	uint32 j = bits->getBits(2) + 2;
@@ -429,7 +429,7 @@ Common::SeekableReadStream *StuffItArchive::decompress14(Common::SeekableReadStr
 	byte *dst = (byte *)malloc(uncompressedSize);
 	Common::MemoryWriteStream out(dst, uncompressedSize);
 
-	Common::BitStream *bits = new Common::BitStream8LSB(src);
+	Common::BitStream8LSB *bits = new Common::BitStream8LSB(src);
 
 	uint32 i, j, k, l, m, n;
 

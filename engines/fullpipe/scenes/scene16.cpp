@@ -86,7 +86,7 @@ void scene16_initScene(Scene *sc) {
 
 		StaticANIObject *ani = new StaticANIObject(g_fp->accessScene(SC_COMMON)->getStaticANIObject1ById(ANI_BEARDED_CMN, -1));
 		ani->_movement = 0;
-		ani->_statics = (Statics *)ani->_staticsList[0];
+		ani->_statics = ani->_staticsList[0];
 		sc->addStaticANIObject(ani, 1);
 	}
 
@@ -125,6 +125,7 @@ void sceneHandler16_laughSound() {
 
 	switch (g_vars->scene16_sound) {
 	case SND_16_034:
+	default:
 		snd = SND_16_035;
 		break;
 
@@ -262,7 +263,7 @@ void sceneHandler16_drink() {
 
 							ex = new ExCommand(ANI_MAN, 34, 384, 0, 0, 0, 1, 0, 0, 0);
 							ex->_excFlags |= 3u;
-							ex->_field_14 = 384;
+							ex->_z = 384;
 							ex->_messageNum = 0;
 
 							mq->insertExCommandAt(2, ex);
@@ -275,7 +276,7 @@ void sceneHandler16_drink() {
 
 							ex = new ExCommand(ANI_MAN, 34, 256, 0, 0, 0, 1, 0, 0, 0);
 							ex->_excFlags |= 3u;
-							ex->_field_14 = 256;
+							ex->_z = 256;
 							ex->_messageNum = 0;
 
 							mq->addExCommandToEnd(ex);
@@ -415,11 +416,11 @@ int sceneHandler16(ExCommand *cmd) {
 		break;
 
 	case MSG_SC16_MUGCLICK:
-		if (!g_fp->_aniMan->isIdle() || g_fp->_aniMan->_flags & 0x100)
+		if (!g_fp->_aniMan->isIdle() || g_fp->_aniMan->_flags & 0x100) {
 			cmd->_messageKind = 0;
-		else
+		} else {
 			sceneHandler16_mugClick();
-
+		}
 		break;
 
 	case MSG_SC16_SHOWMAN:
@@ -476,6 +477,10 @@ int sceneHandler16(ExCommand *cmd) {
 		g_fp->_behaviorManager->updateBehaviors();
 		g_fp->startSceneTrack();
 
+		break;
+
+	default:
+		break;
 	}
 
 	return 0;

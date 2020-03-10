@@ -1059,6 +1059,9 @@ void Scene402::step() {
 
 		}
 		break;
+
+	default:
+		break;
 	}
 
 	switch (_game._trigger) {
@@ -1158,6 +1161,9 @@ void Scene402::step() {
 
 		}
 		break;
+
+	default:
+		break;
 	}
 
 	switch (_game._trigger) {
@@ -1226,6 +1232,9 @@ void Scene402::step() {
 		_bartenderReady = true;
 		}
 		break;
+
+	default:
+		break;
 	}
 
 	if (!_waitingGinnyMove && !_ginnyLooking) {
@@ -1275,6 +1284,9 @@ void Scene402::step() {
 		_globals._sequenceIndexes[5] = _scene->_sequences.startCycle(_globals._spriteIndexes[5], false, 1);
 		_scene->_sequences.setDepth(_globals._sequenceIndexes[5], 1);
 		_waitingGinnyMove = false;
+		break;
+
+	default:
 		break;
 	}
 
@@ -1430,6 +1442,9 @@ void Scene402::step() {
 
 	case 31:
 		_blowingSmoke = false;
+		break;
+
+	default:
 		break;
 	}
 
@@ -2127,7 +2142,7 @@ void Scene402::actions() {
 
 			default:
 				break;
-		}
+			}
 		}
 		break;
 
@@ -2165,6 +2180,9 @@ void Scene402::actions() {
 			default:
 				break;
 			}
+			break;
+
+		default:
 			break;
 		}
 	} else if (_action.isAction(VERB_TALKTO, NOUN_WOMAN_IN_CHAIR) && !_firstTalkToGirlInChair) {
@@ -2443,7 +2461,7 @@ void Scene405::step() {
 	}
 
 	if (_game._trigger == 70) {
-		_game._player._priorTimer = _scene->_frameStartTime + _game._player._ticksAmount ;
+		_game._player._priorTimer = _scene->_frameStartTime + _game._player._ticksAmount;
 		_game._player._visible = true;
 		_globals._sequenceIndexes[1] = _scene->_sequences.addReverseSpriteCycle(_globals._spriteIndexes[1], false, 6, 1, 0, 0);
 		_scene->_sequences.addSubEntry(_globals._sequenceIndexes[1], SEQUENCE_TRIGGER_EXPIRE, 0, 71);
@@ -2458,7 +2476,7 @@ void Scene405::step() {
 	}
 
 	if (_game._trigger == 75) {
-		_game._player._priorTimer = _scene->_frameStartTime + _game._player._ticksAmount ;
+		_game._player._priorTimer = _scene->_frameStartTime + _game._player._ticksAmount;
 		_game._player._visible = true;
 		_scene->_sequences.remove(_globals._sequenceIndexes[1]);
 		_globals._sequenceIndexes[1] = _scene->_sequences.addSpriteCycle(_globals._spriteIndexes[1], false, 6, 1, 0, 0);
@@ -3819,13 +3837,16 @@ void Scene411::actions() {
 			_scene->_sequences.setAnimRange(_globals._sequenceIndexes[10], 1, 6);
 			_scene->_sequences.setDepth(_globals._sequenceIndexes[10], 3);
 			_scene->_sequences.addSubEntry(_globals._sequenceIndexes[10], SEQUENCE_TRIGGER_EXPIRE, 0, 112);
-			// No break on purpose
+			// fall through
 		case 112:
 			_game._player._priorTimer = _scene->_frameStartTime - _game._player._ticksAmount;
 			_game._player._visible = true;
 			_game._player._stepEnabled = true;
 			_game._objects[OBJ_CHARGE_CASES].setQuality(3, 1);
 			_vm->_dialogs->showItem(OBJ_CHARGE_CASES, 41142);
+			break;
+
+		default:
 			break;
 		}
 		_action._inProgress = false;

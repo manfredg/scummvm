@@ -57,7 +57,7 @@ CineEngine::CineEngine(OSystem *syst, const CINEGameDescription *gameDesc)
 	// Setup mixer
 	syncSoundSettings();
 
-	_console = new CineConsole(this);
+	setDebugger(new CineConsole(this));
 
 	g_cine = this;
 
@@ -76,7 +76,6 @@ CineEngine::~CineEngine() {
 	}
 
 	DebugMan.clearAllDebugChannels();
-	delete _console;
 }
 
 void CineEngine::syncSoundSettings() {
@@ -94,12 +93,18 @@ void CineEngine::syncSoundSettings() {
 }
 
 Common::Error CineEngine::run() {
+	Graphics::ModeList modes;
+	modes.push_back(Graphics::Mode(320, 200));
 	if (g_cine->getGameType() == GType_FW && (g_cine->getFeatures() & GF_CD)) {
+		modes.push_back(Graphics::Mode(640, 480));
+		initGraphicsModes(modes);
 		showSplashScreen();
+	} else {
+		initGraphicsModes(modes);
 	}
 
 	// Initialize backend
-	initGraphics(320, 200, false);
+	initGraphics(320, 200);
 
 	if (g_cine->getGameType() == GType_FW && (g_cine->getFeatures() & GF_CD))
 		checkCD();
@@ -259,7 +264,7 @@ void CineEngine::showSplashScreen() {
 
 	const Graphics::Surface *surface = decoder.getSurface();
 	if (surface->w == 640 && surface->h == 480) {
-		initGraphics(640, 480, true);
+		initGraphics(640, 480);
 
 		const byte *palette = decoder.getPalette();
 		int paletteColorCount = decoder.getPaletteColorCount();

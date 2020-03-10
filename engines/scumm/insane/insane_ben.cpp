@@ -776,6 +776,7 @@ void Insane::actor02Reaction(int32 buttons) {
 						_actor[0].act[2].state = 106;
 						break;
 					}
+				break;
 			default:
 				smlayer_setActorFacing(0, 2, 20, 180);
 				_actor[0].act[2].state = 16;
@@ -868,7 +869,7 @@ void Insane::actor02Reaction(int32 buttons) {
 					_actor[0].act[2].state = 77;
 					break;
 				}
-				// break skipped intentionally
+				// fall through
 			default:
 				smlayer_setActorFacing(0, 2, 20, 180);
 				_actor[0].act[2].state = 20;
@@ -954,7 +955,7 @@ void Insane::actor02Reaction(int32 buttons) {
 					_actor[0].act[2].state = 83;
 					break;
 				}
-				// break missed intentionally
+				// fall through
 			default:
 				smlayer_setActorFacing(0, 2, 20, 180);
 				_actor[0].act[2].state = 24;
@@ -1035,7 +1036,7 @@ void Insane::actor02Reaction(int32 buttons) {
 					_actor[0].act[2].state = 75;
 					break;
 				}
-				// break missed intentionaly
+				// fall through
 			default:
 				smlayer_setActorFacing(0, 2, 20, 180);
 				_actor[0].act[2].state = 28;
@@ -1721,6 +1722,8 @@ void Insane::actor01Reaction(int32 buttons) {
 			_actor[0].tilt = 2;
 		}
 		break;
+	default:
+		break;
 	}
 
 	if (_actor[0].curFacingFlag != _actor[0].newFacingFlag) {
@@ -1884,6 +1887,9 @@ void Insane::chooseBenWeaponAnim(int buttons) {
 		case INV_DUST:
 			_actor[0].act[2].state = 0;
 			switchBenWeapon();
+			break;
+		default:
+			break;
 		}
 
 		_weaponBenJustSwitched = true;
@@ -2021,6 +2027,8 @@ void Insane::ouchSoundBen() {
 		break;
 	case 3:
 		smlayer_startVoice(98);
+		break;
+	default:
 		break;
 	}
 }

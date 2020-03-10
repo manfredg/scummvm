@@ -352,7 +352,7 @@ void OSystem_Wii::setPalette(const byte *colors, uint start, uint num) {
 	}
 }
 
-void OSystem_Wii::grabPalette(byte *colors, uint start, uint num) {
+void OSystem_Wii::grabPalette(byte *colors, uint start, uint num) const {
 #ifdef USE_RGB_COLOR
 	assert(_pfGame.bytesPerPixel == 1);
 #endif
@@ -544,9 +544,10 @@ void OSystem_Wii::unlockScreen() {
 	_gameDirty = true;
 }
 
-void OSystem_Wii::setShakePos(int shakeOffset) {
+void OSystem_Wii::setShakePos(int shakeXOffset, int shakeYOffset) {
 	gfx_coords(&_coordsGame, &_texGame, GFX_COORD_FULLSCREEN);
-	_coordsGame.y -= f32(shakeOffset) * _currentYScale;
+	_coordsGame.x -= f32(shakeXOffset) * _currentXScale;
+	_coordsGame.y -= f32(shakeYOffset) * _currentYScale;
 }
 
 void OSystem_Wii::showOverlay() {

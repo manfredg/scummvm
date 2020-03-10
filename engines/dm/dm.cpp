@@ -185,7 +185,7 @@ DMEngine::~DMEngine() {
 
 	// dispose of resources
 	delete _rnd;
-	delete _console;
+	//delete _console; Debugger is deleted by Engine
 	delete _displayMan;
 	delete _dungeonMan;
 	delete _eventMan;
@@ -357,8 +357,9 @@ Common::Error DMEngine::run() {
 	initConstants();
 
 	// scummvm/engine specific
-	initGraphics(320, 200, false);
+	initGraphics(320, 200);
 	_console = new Console(this);
+	setDebugger(_console);
 	_displayMan = new DisplayMan(this);
 	_dungeonMan = new DungeonMan(this);
 	_eventMan = new EventManager(this);
@@ -922,7 +923,8 @@ void DMEngine::fuseSequence() {
 	fuseSequenceUpdate();
 	int16 lordChaosMapX = _dungeonMan->_partyMapX;
 	int16 lordChaosMapY = _dungeonMan->_partyMapY;
-	lordChaosMapX += _dirIntoStepCountEast[_dungeonMan->_partyDir], lordChaosMapY += _dirIntoStepCountNorth[_dungeonMan->_partyDir];
+	lordChaosMapX += _dirIntoStepCountEast[_dungeonMan->_partyDir];
+	lordChaosMapY += _dirIntoStepCountNorth[_dungeonMan->_partyDir];
 	Thing lordChaosThing = _groupMan->groupGetThing(lordChaosMapX, lordChaosMapY);
 	Group *lordGroup = (Group*)_dungeonMan->getThingData(lordChaosThing);
 	lordGroup->_health[0] = 10000;

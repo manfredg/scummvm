@@ -97,7 +97,8 @@ protected:
 	uint8 _offscrPixels; // Pixels to skip on each line before start drawing, used to center image
 	uint8 _maxFps; // Max frames-per-second which can be shown on screen
 
-	int _shakeOffset;
+	int _shakeXOffset;
+	int _shakeYOffset;
 
 	uint8 *_cursor_pal; // Cursor buffer, palettized
 	uint16 *_cursor_hic; // Cursor buffer, 16bit
@@ -146,7 +147,6 @@ public:
 	virtual bool getFeatureState(Feature f);
 	virtual const GraphicsMode *getSupportedGraphicsModes() const;
 	virtual int getDefaultGraphicsMode() const;
-	bool setGraphicsMode(const char *name);
 	virtual bool setGraphicsMode(int mode);
 	virtual int getGraphicsMode() const;
 	virtual void initSize(uint width, uint height, const Graphics::PixelFormat *format);
@@ -157,14 +157,14 @@ public:
 protected:
 	// PaletteManager API
 	virtual void setPalette(const byte *colors, uint start, uint num);
-	virtual void grabPalette(byte *colors, uint start, uint num);
+	virtual void grabPalette(byte *colors, uint start, uint num) const;
 
 public:
 	virtual void copyRectToScreen(const void *buf, int pitch, int x, int y, int w, int h);
 	virtual void updateScreen();
 	virtual Graphics::Surface *lockScreen();
 	virtual void unlockScreen();
-	virtual void setShakePos(int shakeOffset);
+	virtual void setShakePos(int shakeXOffset, int shakeYOffset);
 
 	virtual void showOverlay();
 	virtual void hideOverlay();

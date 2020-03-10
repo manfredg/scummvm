@@ -76,7 +76,7 @@ void DrasculaEngine::moveCursor() {
 	moveCharacters();
 	updateRefresh();
 
-	if (!strcmp(textName, "hacker") && _hasName) {
+	if (!strcmp(textName, _textmisc[3]) && _hasName) {
 		if (_color != kColorRed && !_menuScreen)
 			color_abc(kColorRed);
 	} else if (!_menuScreen && _color != kColorLightGreen)
@@ -236,6 +236,7 @@ void DrasculaEngine::print_abc(const char *said, int screenX, int screenY) {
 
 				switch (_charMap[i].charType) {
 				case 0:		// letters
+				default:
 					letterY = (_lang == kSpanish) ? 149 : 158;
 					break;
 				case 1:		// signs

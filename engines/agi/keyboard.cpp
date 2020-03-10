@@ -131,11 +131,6 @@ void AgiEngine::processScummVMEvents() {
 			}
 			break;
 		case Common::EVENT_KEYDOWN:
-			if (event.kbd.hasFlags(Common::KBD_CTRL | Common::KBD_SHIFT) && event.kbd.keycode == Common::KEYCODE_d) {
-				_console->attach();
-				break;
-			}
-
 			key = event.kbd.ascii;
 			if (event.kbd.keycode >= Common::KEYCODE_KP0 && event.kbd.keycode <= Common::KEYCODE_KP9) {
 				if (!(event.kbd.flags & Common::KBD_NUM)) {
@@ -164,42 +159,42 @@ void AgiEngine::processScummVMEvents() {
 				switch (event.kbd.keycode) {
 				case Common::KEYCODE_LEFT:
 				case Common::KEYCODE_KP4:
-					if (_allowSynthetic || !event.synthetic)
+					if (_allowSynthetic || !event.kbdRepeat)
 						key = AGI_KEY_LEFT;
 					break;
 				case Common::KEYCODE_RIGHT:
 				case Common::KEYCODE_KP6:
-					if (_allowSynthetic || !event.synthetic)
+					if (_allowSynthetic || !event.kbdRepeat)
 						key = AGI_KEY_RIGHT;
 					break;
 				case Common::KEYCODE_UP:
 				case Common::KEYCODE_KP8:
-					if (_allowSynthetic || !event.synthetic)
+					if (_allowSynthetic || !event.kbdRepeat)
 						key = AGI_KEY_UP;
 					break;
 				case Common::KEYCODE_DOWN:
 				case Common::KEYCODE_KP2:
-					if (_allowSynthetic || !event.synthetic)
+					if (_allowSynthetic || !event.kbdRepeat)
 						key = AGI_KEY_DOWN;
 					break;
 				case Common::KEYCODE_PAGEUP:
 				case Common::KEYCODE_KP9:
-					if (_allowSynthetic || !event.synthetic)
+					if (_allowSynthetic || !event.kbdRepeat)
 						key = AGI_KEY_UP_RIGHT;
 					break;
 				case Common::KEYCODE_PAGEDOWN:
 				case Common::KEYCODE_KP3:
-					if (_allowSynthetic || !event.synthetic)
+					if (_allowSynthetic || !event.kbdRepeat)
 						key = AGI_KEY_DOWN_RIGHT;
 					break;
 				case Common::KEYCODE_HOME:
 				case Common::KEYCODE_KP7:
-					if (_allowSynthetic || !event.synthetic)
+					if (_allowSynthetic || !event.kbdRepeat)
 						key = AGI_KEY_UP_LEFT;
 					break;
 				case Common::KEYCODE_END:
 				case Common::KEYCODE_KP1:
-					if (_allowSynthetic || !event.synthetic)
+					if (_allowSynthetic || !event.kbdRepeat)
 						key = AGI_KEY_DOWN_LEFT;
 					break;
 				case Common::KEYCODE_KP5:
@@ -453,11 +448,6 @@ bool AgiEngine::handleController(uint16 key) {
 		}
 		// Otherwise go on and look for the ESC controller
 	}
-
-	// AGI 3.149 games, The Black Cauldron and King's Quest 4 need KEY_ESCAPE to use menus
-	// Games with the GF_ESCPAUSE flag need KEY_ESCAPE to pause the game
-	//		(key == KEY_ESCAPE && getVersion() != 0x3149 && getGameID() != GID_BC && getGameID() != GID_KQ4 && !(getFeatures() & GF_ESCPAUSE)) )
-	//		return false;
 
 	if ((getGameID() == GID_MH1 || getGameID() == GID_MH2) && (key == AGI_KEY_ENTER) &&
 	        (!_text->promptIsEnabled())) {

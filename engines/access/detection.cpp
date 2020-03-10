@@ -75,7 +75,6 @@ Common::Platform AccessEngine::getPlatform() const {
 } // End of namespace Access
 
 static const PlainGameDescriptor AccessGames[] = {
-	{"Access", "Access"},
 	{"amazon", "Amazon: Guardians of Eden"},
 	{"martian", "Martian Memorandum"},
 	{0, 0}
@@ -89,20 +88,24 @@ public:
 		_maxScanDepth = 3;
 	}
 
-	virtual const char *getName() const {
-		return "Access Engine";
+	const char *getEngineId() const override {
+		return "access";
 	}
 
-	virtual const char *getOriginalCopyright() const {
+	const char *getName() const override {
+		return "Access";
+	}
+
+	const char *getOriginalCopyright() const override {
 		return "Access Engine (C) 1989-1994 Access Software";
 	}
 
-	virtual bool hasFeature(MetaEngineFeature f) const;
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
-	virtual SaveStateList listSaves(const char *target) const;
-	virtual int getMaximumSaveSlot() const;
-	virtual void removeSaveState(const char *target, int slot) const;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
+	bool hasFeature(MetaEngineFeature f) const override;
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	SaveStateList listSaves(const char *target) const override;
+	int getMaximumSaveSlot() const override;
+	void removeSaveState(const char *target, int slot) const override;
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 };
 
 bool AccessMetaEngine::hasFeature(MetaEngineFeature f) const {
@@ -157,11 +160,9 @@ SaveStateList AccessMetaEngine::listSaves(const char *target) const {
 			Common::InSaveFile *in = g_system->getSavefileManager()->openForLoading(*file);
 
 			if (in) {
-				Access::AccessEngine::readSavegameHeader(in, header);
-				saveList.push_back(SaveStateDescriptor(slot, header._saveName));
+				if (Access::AccessEngine::readSavegameHeader(in, header))
+					saveList.push_back(SaveStateDescriptor(slot, header._saveName));
 
-				header._thumbnail->free();
-				delete header._thumbnail;
 				delete in;
 			}
 		}
@@ -187,7 +188,11 @@ SaveStateDescriptor AccessMetaEngine::querySaveMetaInfos(const char *target, int
 
 	if (f) {
 		Access::AccessSavegameHeader header;
-		Access::AccessEngine::readSavegameHeader(f, header);
+		if (!Access::AccessEngine::readSavegameHeader(f, header, false)) {
+			delete f;
+			return SaveStateDescriptor();
+		}
+
 		delete f;
 
 		// Create the return descriptor

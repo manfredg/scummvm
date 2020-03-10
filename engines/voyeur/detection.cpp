@@ -70,20 +70,24 @@ public:
 		_maxScanDepth = 3;
 	}
 
-	virtual const char *getName() const {
-		return "Voyeur Engine";
+	const char *getEngineId() const override {
+		return "voyeur";
 	}
 
-	virtual const char *getOriginalCopyright() const {
+	const char *getName() const override {
+		return "Voyeur";
+	}
+
+	const char *getOriginalCopyright() const override {
 		return "Voyeur (C) Philips P.O.V. Entertainment Group";
 	}
 
-	virtual bool hasFeature(MetaEngineFeature f) const;
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
-	virtual SaveStateList listSaves(const char *target) const;
-	virtual int getMaximumSaveSlot() const;
-	virtual void removeSaveState(const char *target, int slot) const;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
+	bool hasFeature(MetaEngineFeature f) const override;
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	SaveStateList listSaves(const char *target) const override;
+	int getMaximumSaveSlot() const override;
+	void removeSaveState(const char *target, int slot) const override;
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 };
 
 bool VoyeurMetaEngine::hasFeature(MetaEngineFeature f) const {
@@ -132,7 +136,6 @@ SaveStateList VoyeurMetaEngine::listSaves(const char *target) const {
 			if (in) {
 				if (header.read(in)) {
 					saveList.push_back(SaveStateDescriptor(slot, header._saveName));
-					header._thumbnail->free();
 				}
 				delete in;
 			}
@@ -159,7 +162,7 @@ SaveStateDescriptor VoyeurMetaEngine::querySaveMetaInfos(const char *target, int
 
 	if (f) {
 		Voyeur::VoyeurSavegameHeader header;
-		header.read(f);
+		header.read(f, false);
 		delete f;
 
 		// Create the return descriptor

@@ -56,7 +56,7 @@ void scene02_initScene(Scene *sc) {
 		g_vars->scene02_boxOpen = false;
 	} else {
 		g_vars->scene02_boxOpen = true;
-		g_vars->scene02_boxDelay = 100 * g_fp->_rnd->getRandomNumber(32767) + 150;
+		g_vars->scene02_boxDelay = 100 * g_fp->_rnd.getRandomNumber(32767) + 150;
 	}
 
 	g_fp->_floaters->init(g_fp->_gameLoader->_gameVar->getSubVarByName("SC_2"));
@@ -84,19 +84,19 @@ int sceneHandler02(ExCommand *ex) {
 	switch(ex->_messageNum) {
 	case MSG_SC2_LADDERCLICK:
 		sceneHandler02_ladderClick();
-		return 0;
+		break;
 
 	case MSG_SC2_SHOWLADDER:
 		sceneHandler02_showLadder();
-		return 0;
+		break;
 
 	case MSG_SC2_PUTMANUP:
 		g_fp->_aniMan2->_priority = 0;
-		return 0;
+		break;
 
 	case MSG_SC2_HIDELADDER:
 		sceneHandler02_hideLadder();
-		return 0;
+		break;
 
 	case 33:
 		if (g_fp->_aniMan2) {
@@ -113,16 +113,16 @@ int sceneHandler02(ExCommand *ex) {
 			if (g_vars->scene02_boxDelay >= 1) {
 				--g_vars->scene02_boxDelay;
 			} else if (g_fp->_floaters->_array2.size() >= 1) {
-				if (g_fp->_floaters->_array2[0]->val5 == -50) {
+				if (g_fp->_floaters->_array2[0].val5 == -50) {
 					g_fp->_floaters->stopAll();
 					g_vars->scene02_boxOpen = false;
-					g_vars->scene02_boxDelay = 100 * g_fp->_rnd->getRandomNumber(32767) + 150;
+					g_vars->scene02_boxDelay = 100 * g_fp->_rnd.getRandomNumber(32767) + 150;
 				} else {
-					g_fp->_floaters->_array2[0]->val3 = -50;
+					g_fp->_floaters->_array2[0].val3 = -50;
 				}
 			} else {
-				g_fp->_floaters->genFlies(g_fp->_currentScene, g_fp->_rnd->getRandomNumber(700) + 100, -50, 0, 0);
-				g_vars->scene02_boxDelay = 500 * g_fp->_rnd->getRandomNumber(32767) + 1000;
+				g_fp->_floaters->genFlies(g_fp->_currentScene, g_fp->_rnd.getRandomNumber(700) + 100, -50, 0, 0);
+				g_vars->scene02_boxDelay = 500 * g_fp->_rnd.getRandomNumber(32767) + 1000;
 			}
 		}
 
@@ -130,6 +130,10 @@ int sceneHandler02(ExCommand *ex) {
 		g_fp->_behaviorManager->updateBehaviors();
 
 		g_fp->startSceneTrack();
+		break;
+
+	default:
+		break;
 	}
 
 	return res;

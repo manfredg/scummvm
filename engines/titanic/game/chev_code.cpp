@@ -132,7 +132,7 @@ bool CChevCode::GetChevFloorNum(CGetChevFloorNum *msg) {
 		break;
 	}
 
-	msg->_floorNum = (val1 >= 10) ? 0 : val1 * 10;
+	msg->_floorNum = (val1 >= 10) ? 0 : val2 * 10 + val1;
 	return true;
 }
 
@@ -249,6 +249,9 @@ bool CChevCode::CheckChevCode(CCheckChevCode *msg) {
 					classNum = 3;
 				else
 					classNum = 5;
+				break;
+
+			default:
 				break;
 			}
 		}

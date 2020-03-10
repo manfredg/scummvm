@@ -43,7 +43,7 @@ SoundMan *SoundMan::getSoundMan(DMEngine *vm, const DMADGameDescription *gameVer
 	switch (gameVersion->_desc.platform) {
 	default:
 		warning("Unknown platform, using default Amiga SoundMan");
-		// No break on purpose
+		// fall through
 	case Common::kPlatformAmiga:
 		return new SoundMan(vm);
 	case Common::kPlatformAtariST:
@@ -179,6 +179,8 @@ bool SoundMan::soundGetVolume(int16 mapX, int16 mapY, uint8 *leftVolume, uint8 *
 	case kDMDirWest:
 		rightVolumeColumnIndex = -(mapY - _vm->_dungeonMan->_partyMapY);
 		lineIndex = mapX - _vm->_dungeonMan->_partyMapX;
+		break;
+	default:
 		break;
 	}
 

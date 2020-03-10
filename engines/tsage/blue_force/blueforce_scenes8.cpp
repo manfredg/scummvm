@@ -214,6 +214,8 @@ void Scene800::Action1::signal() {
 		BF_GLOBALS._player.enableControl();
 		remove();
 		break;
+	default:
+		break;
 	}
 
 }
@@ -344,6 +346,8 @@ void Scene800::signal() {
 		BF_GLOBALS.clearFlag(fWithLyle);
 		_lyle.remove();
 		BF_GLOBALS._player.enableControl();
+		break;
+	default:
 		break;
 	}
 }
@@ -1720,6 +1724,8 @@ void Scene830::postInit(SceneObjectList *OwnerList) {
 			_field18AC = 1;
 		}
 		break;
+	default:
+		break;
 	}
 
 	_item2.setDetails(7, 830, 9, 10, 11, 1);
@@ -1876,6 +1882,8 @@ void Scene830::signal() {
 	case 8312:
 		_object1.remove();
 		BF_GLOBALS._player.enableControl();
+		break;
+	default:
 		break;
 	}
 }
@@ -2505,6 +2513,8 @@ void Scene840::signal() {
 		BF_INVENTORY.setObjectScene(INV_RENTAL_KEYS, 0);
 		BF_GLOBALS._player.enableControl();
 		break;
+	default:
+		break;
 	}
 }
 
@@ -2624,7 +2634,7 @@ void Scene860::Action1::signal() {
 			BF_GLOBALS._player.setStrip(2);
 		}
 		signal();
-		// Deliberate fall-through
+		// fall through
 	case 2:
 		BF_GLOBALS._player.animate(ANIM_MODE_1, NULL);
 		ADD_MOVER_NULL(BF_GLOBALS._player, scene->_destPos.x, scene->_destPos.y);

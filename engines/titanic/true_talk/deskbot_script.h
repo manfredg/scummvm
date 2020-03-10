@@ -30,20 +30,10 @@ namespace Titanic {
 
 class DeskbotScript : public TTnpcScript {
 private:
-	static int _oldId;
-	TTupdateStateArray _states;
-	TTsentenceEntries _entries2;
-	TTsentenceEntries _entries3;
-private:
 	/**
 	 * Setup sentence data
 	 */
 	void setupSentences();
-
-	/**
-	 * Adds dialogue for the player's assigned room
-	 */
-	uint addAssignedRoomDialogue();
 
 	/**
 	 * Adds dialogue for the player's assigned room
@@ -66,11 +56,6 @@ private:
 	void setCurrentState(uint newId, uint index);
 
 	/**
-	 * Does preprocessing for the sentence
-	 */
-	int preprocess(const TTroomScript *roomScript, const TTsentence *sentence);
-
-	/**
 	 * Scans the quotes tree
 	 */
 	int searchQuotes(const TTroomScript *roomScript, const TTsentence *sentence);
@@ -89,6 +74,21 @@ private:
 	 * Adds a dialogue description for the player's assigned room
 	 */
 	void addAssignedRoom();
+protected:
+	static int _oldId;
+	TTupdateStateArray _states;
+	TTsentenceEntries _entries2;
+	TTsentenceEntries _entries3;
+protected:
+	/**
+	 * Does preprocessing for the sentence
+	 */
+	int preprocess(const TTroomScript *roomScript, const TTsentence *sentence);
+
+	/**
+	 * Adds dialogue for the player's assigned room
+	 */
+	uint addAssignedRoomDialogue();
 public:
 	DeskbotScript(int val1, const char *charClass, int v2,
 		const char *charName, int v3, int val2);
@@ -96,40 +96,40 @@ public:
 	/**
 	 * Does NPC specific processing of the parsed sentence
 	 */
-	virtual int process(const TTroomScript *roomScript, const TTsentence *sentence);
+	int process(const TTroomScript *roomScript, const TTsentence *sentence) override;
 
 	/**
 	 * Called when the script/id changes
 	 */
-	virtual ScriptChangedResult scriptChanged(const TTroomScript *roomScript, uint id);
+	ScriptChangedResult scriptChanged(const TTroomScript *roomScript, uint id) override;
 
-	virtual int handleQuote(const TTroomScript *roomScript, const TTsentence *sentence,
-		uint val, uint tagId, uint remainder);
+	int handleQuote(const TTroomScript *roomScript, const TTsentence *sentence,
+		uint tag1, uint tag2, uint remainder) override;
 
 	/**
 	 * Handles updating NPC state based on specified dialogue Ids and dial positions
 	 */
-	virtual int updateState(uint oldId, uint newId, int index);
+	int updateState(uint oldId, uint newId, int index) override;
 
 	/**
 	 * Handles getting a pre-response
 	 */
-	virtual int preResponse(uint id);
+	int preResponse(uint id) override;
 
 	/**
 	 * Returns a bitset of the first three dialgs being on or not
 	 */
-	virtual uint getDialsBitset() const;
+	uint getDialsBitset() const override;
 
 	/**
 	 * Process a sentence fragment entry
 	 */
-	virtual int doSentenceEntry(int val1, const int *srcIdP, const TTroomScript *roomScript, const TTsentence *sentence);
+	int doSentenceEntry(int val1, const int *srcIdP, const TTroomScript *roomScript, const TTsentence *sentence) override;
 
 	/**
 	 * Handles a randomzied response
 	 */
-	virtual bool randomResponse(uint index);
+	bool randomResponse(uint index) override;
 
 	/**
 	 * Returns true if dial 1 is the medium (1) region

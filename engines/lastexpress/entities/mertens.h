@@ -41,7 +41,7 @@ private:
 
 public:
 	Mertens(LastExpressEngine *engine);
-	~Mertens() {}
+	~Mertens() override {}
 
 	/**
 	 * Resets the entity
@@ -126,7 +126,7 @@ public:
 	* @param entity The entity
 	*/
 	DECLARE_FUNCTION_1(bonsoir, EntityIndex entity)
-	DECLARE_FUNCTION_2(function13, bool, bool)
+	DECLARE_FUNCTION_2(function13, bool, EntityIndex entity)
 	DECLARE_FUNCTION_1(function14, EntityIndex entity)
 	DECLARE_FUNCTION_1(function15, bool)
 	DECLARE_FUNCTION_1(function16, bool)

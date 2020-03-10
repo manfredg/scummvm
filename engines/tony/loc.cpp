@@ -1005,7 +1005,7 @@ void RMCharacter::goTo(CORO_PARAM, RMPoint destcoord, bool bReversed) {
 	_walkCount = 0;
 
 	if (bReversed) {
-		while (0) ;
+		while (0);
 	}
 
 	int nPatt = getCurPattern();
@@ -1304,6 +1304,8 @@ void RMCharacter::newBoxEntered(int nBox) {
 				break;
 			case PAT_WALKLEFT:
 				setPattern(PAT_WALKRIGHT);
+				break;
+			default:
 				break;
 			}
 		}

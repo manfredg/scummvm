@@ -49,6 +49,11 @@ void PegasusChip::select() {
 	setUpPegasusChip();
 }
 
+void PegasusChip::takeSharedArea() {
+	BiochipItem::takeSharedArea();
+	setUpPegasusChip();
+}
+
 void PegasusChip::setUpPegasusChip() {
 	switch (GameState.getCurrentNeighborhood()) {
 	case kCaldoriaID:
@@ -84,6 +89,8 @@ void PegasusChip::setUpPegasusChip() {
 		else
 			setItemState(kPegasusNorad10);
 		break;
+	default:
+		break;
 	}
 }
 
@@ -107,6 +114,8 @@ void PegasusChip::setUpPegasusChipRude() {
 		if (GameState.getNoradFinished())
 			setItemState(kPegasusNorad00);
 		break;
+	default:
+		break;
 	}
 }
 
@@ -124,6 +133,8 @@ void PegasusChip::activatePegasusHotspots() {
 	case kNoradAlphaID:
 	case kNoradDeltaID:
 		_recallSpot.setActive();
+		break;
+	default:
 		break;
 	}
 }

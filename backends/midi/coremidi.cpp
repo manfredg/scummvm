@@ -53,22 +53,23 @@ http://lists.apple.com/archives/coreaudio-api/2003/Jul/msg00137.html
  */
 class MidiDriver_CoreMIDI : public MidiDriver_MPU401 {
 public:
-	MidiDriver_CoreMIDI();
+	MidiDriver_CoreMIDI(ItemCount device);
 	~MidiDriver_CoreMIDI();
-	int open();
-	bool isOpen() const { return mOutPort != 0 && mDest != 0; }
-	void close();
-	void send(uint32 b);
-	void sysEx(const byte *msg, uint16 length);
+	int open() override;
+	bool isOpen() const override { return mOutPort != 0 && mDest != 0; }
+	void close() override;
+	void send(uint32 b) override;
+	void sysEx(const byte *msg, uint16 length) override;
 
 private:
+	ItemCount mDevice;
 	MIDIClientRef	mClient;
 	MIDIPortRef		mOutPort;
 	MIDIEndpointRef	mDest;
 };
 
-MidiDriver_CoreMIDI::MidiDriver_CoreMIDI()
-	: mClient(0), mOutPort(0), mDest(0) {
+MidiDriver_CoreMIDI::MidiDriver_CoreMIDI(ItemCount device)
+	: mDevice(device), mClient(0), mOutPort(0), mDest(0) {
 
 	OSStatus err;
 	err = MIDIClientCreate(CFSTR("ScummVM MIDI Driver for OS X"), NULL, NULL, &mClient);
@@ -88,9 +89,9 @@ int MidiDriver_CoreMIDI::open() {
 
 	mOutPort = 0;
 
-	int dests = MIDIGetNumberOfDestinations();
-	if (dests > 0 && mClient) {
-		mDest = MIDIGetDestination(0);
+	ItemCount dests = MIDIGetNumberOfDestinations();
+	if (mDevice < dests && mClient) {
+		mDest = MIDIGetDestination(mDevice);
 		err = MIDIOutputPortCreate( mClient,
 									CFSTR("scummvm_output_port"),
 									&mOutPort);
@@ -116,6 +117,8 @@ void MidiDriver_CoreMIDI::close() {
 
 void MidiDriver_CoreMIDI::send(uint32 b) {
 	assert(isOpen());
+
+	midiDriverCommonSend(b);
 
 	// Extract the MIDI data
 	byte status_byte = (b & 0x000000FF);
@@ -195,20 +198,59 @@ public:
 
 	MusicDevices getDevices() const;
 	Common::Error createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle = 0) const;
+
+private:
+	bool getDeviceName(ItemCount deviceIndex, Common::String &outName) const;
 };
 
 MusicDevices CoreMIDIMusicPlugin::getDevices() const {
+	// TODO: Is it possible to get the music type for each device?
+	// Maybe look at the kMIDIPropertyModel property?
+
 	MusicDevices devices;
-	// TODO: Return a different music type depending on the configuration
-	// TODO: List the available devices
-	devices.push_back(MusicDevice(this, "", MT_GM));
+	ItemCount deviceCount = MIDIGetNumberOfDestinations();
+	for (ItemCount i = 0 ; i < deviceCount ; ++i) {
+		Common::String name;
+		if (getDeviceName(i, name))
+			devices.push_back(MusicDevice(this, name, MT_GM));
+	}
 	return devices;
 }
 
-Common::Error CoreMIDIMusicPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle) const {
-	*mididriver = new MidiDriver_CoreMIDI();
+Common::Error CoreMIDIMusicPlugin::createInstance(MidiDriver **mididriver, MidiDriver::DeviceHandle device) const {
+	ItemCount deviceCount = MIDIGetNumberOfDestinations();
+	for (ItemCount i = 0 ; i < deviceCount ; ++i) {
+		Common::String name;
+		if (getDeviceName(i, name)) {
+			MusicDevice md(this, name, MT_GM);
+			if (md.getHandle() == device) {
+				*mididriver = new MidiDriver_CoreMIDI(i);
+				return Common::kNoError;
+			}
+		}
+	}
 
-	return Common::kNoError;
+	return Common::kUnknownError;
+}
+
+bool CoreMIDIMusicPlugin::getDeviceName(ItemCount deviceIndex, Common::String &outName) const {
+	MIDIEndpointRef dest = MIDIGetDestination(deviceIndex);
+	if (!dest)
+		return false;
+	CFStringRef name = nil;
+	if (MIDIObjectGetStringProperty(dest, kMIDIPropertyDisplayName, &name) == noErr) {
+		char buffer[128];
+		if (CFStringGetCString(name, buffer, sizeof(buffer), kCFStringEncodingASCII)) {
+			outName = buffer;
+			CFRelease(name);
+			return true;
+		}
+		CFRelease(name);
+	}
+	// Rather than fail use a default name
+	warning("Failed to get name for CoreMIDi device %lu", deviceIndex);
+	outName = Common::String::format("Unknown Device %lu", deviceIndex);
+	return true;
 }
 
 //#if PLUGIN_ENABLED_DYNAMIC(COREMIDI)

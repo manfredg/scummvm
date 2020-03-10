@@ -278,6 +278,9 @@ void ScummEngine::readIndexFile() {
 				_numSounds = _fileHandle->readUint16LE();
 				itemsize -= 2;
 				break;
+
+			default:
+				break;
 			}
 			_fileHandle->seek(itemsize - 8, SEEK_CUR);
 		}
@@ -887,7 +890,7 @@ void ResourceManager::setHeapThreshold(int min, int max) {
 
 bool ResourceManager::validateResource(const char *str, ResType type, ResId idx) const {
 	if (type < rtFirst || type > rtLast || (uint)idx >= (uint)_types[type].size()) {
-		error("%s Illegal Glob type %s (%d) num %d", str, nameOfResType(type), type, idx);
+		warning("%s Illegal Glob type %s (%d) num %d", str, nameOfResType(type), type, idx);
 		return false;
 	}
 	return true;

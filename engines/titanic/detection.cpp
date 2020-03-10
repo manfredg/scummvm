@@ -20,10 +20,10 @@
  *
  */
 
-#include "titanic/titanic.h"
 #include "titanic/core/project_item.h"
+#include "titanic/events.h"
 #include "titanic/support/simple_file.h"
-
+#include "titanic/titanic.h"
 #include "base/plugins.h"
 #include "common/savefile.h"
 #include "common/str-array.h"
@@ -33,8 +33,6 @@
 #include "graphics/colormasks.h"
 #include "graphics/surface.h"
 
-#define MAX_SAVES 99
-
 namespace Titanic {
 
 struct TitanicGameDescription {
@@ -43,10 +41,6 @@ struct TitanicGameDescription {
 
 uint32 TitanicEngine::getFeatures() const {
 	return _gameDescription->desc.flags;
-}
-
-bool TitanicEngine::isDemo() const {
-	return (bool)(_gameDescription->desc.flags & ADGF_DEMO);
 }
 
 Common::Language TitanicEngine::getLanguage() const {
@@ -68,28 +62,34 @@ public:
 		_maxScanDepth = 3;
 	}
 
-	virtual const char *getName() const {
-		return "Titanic Engine";
+	const char *getEngineId() const override {
+		return "titanic";
 	}
 
-	virtual const char *getOriginalCopyright() const {
-		return "Titanic Engine (c)";
+	const char *getName() const override {
+		return "Starship Titanic";
 	}
 
-	virtual bool hasFeature(MetaEngineFeature f) const;
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
-	virtual SaveStateList listSaves(const char *target) const;
-	virtual int getMaximumSaveSlot() const;
-	virtual void removeSaveState(const char *target, int slot) const;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
+	const char *getOriginalCopyright() const override {
+		return "Starship Titanic (C) The Digital Village";
+	}
+
+	bool hasFeature(MetaEngineFeature f) const override;
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	SaveStateList listSaves(const char *target) const override;
+	int getMaximumSaveSlot() const override;
+	void removeSaveState(const char *target, int slot) const override;
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 };
 
 bool TitanicMetaEngine::hasFeature(MetaEngineFeature f) const {
 	return
-	    (f == kSupportsListSaves) ||
+		(f == kSupportsListSaves) ||
 		(f == kSupportsLoadingDuringStartup) ||
 		(f == kSupportsDeleteSave) ||
 		(f == kSavesSupportMetaInfo) ||
+		(f == kSavesSupportCreationDate) ||
+		(f == kSavesSupportPlayTime) ||
 		(f == kSavesSupportThumbnail) ||
 		(f == kSimpleSavesNames);
 }
@@ -122,7 +122,7 @@ SaveStateList TitanicMetaEngine::listSaves(const char *target) const {
 		const char *ext = strrchr(file->c_str(), '.');
 		int slot = ext ? atoi(ext + 1) : -1;
 
-		if (slot >= 0 && slot < MAX_SAVES) {
+		if (slot >= 0 && slot <= MAX_SAVES) {
 			Common::InSaveFile *in = g_system->getSavefileManager()->openForLoading(*file);
 
 			if (in) {
@@ -131,11 +131,6 @@ SaveStateList TitanicMetaEngine::listSaves(const char *target) const {
 
 				if (Titanic::CProjectItem::readSavegameHeader(&cf, header))
 					saveList.push_back(SaveStateDescriptor(slot, header._saveName));
-
-				if (header._thumbnail) {
-					header._thumbnail->free();
-					delete header._thumbnail;
-				}
 
 				cf.close();
 			}
@@ -165,16 +160,22 @@ SaveStateDescriptor TitanicMetaEngine::querySaveMetaInfos(const char *target, in
 		file.open(f);
 
 		Titanic::TitanicSavegameHeader header;
-		Titanic::CProjectItem::readSavegameHeader(&file, header);
+		if (!Titanic::CProjectItem::readSavegameHeader(&file, header, false)) {
+			file.close();
+			return SaveStateDescriptor();
+		}
 
 		file.close();
 
 		// Create the return descriptor
 		SaveStateDescriptor desc(slot, header._saveName);
-		desc.setThumbnail(header._thumbnail);
-		desc.setSaveDate(header._year, header._month, header._day);
-		desc.setSaveTime(header._hour, header._minute);
-		desc.setPlayTime(header._totalFrames * GAME_FRAME_TIME);
+
+		if (header._version) {
+			desc.setThumbnail(header._thumbnail);
+			desc.setSaveDate(header._year, header._month, header._day);
+			desc.setSaveTime(header._hour, header._minute);
+			desc.setPlayTime(header._totalFrames * GAME_FRAME_TIME);
+		}
 
 		return desc;
 	}

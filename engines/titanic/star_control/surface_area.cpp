@@ -22,7 +22,6 @@
 
 #include "titanic/star_control/surface_area.h"
 #include "graphics/primitives.h"
-#include "titanic/titanic.h"
 
 namespace Titanic {
 
@@ -116,6 +115,9 @@ void CSurfaceArea::pixelToRGB(uint pixel, uint *rgb) {
 	case 3:
 	case 4:
 		*rgb = pixel;
+		break;
+
+	default:
 		break;
 	}
 }

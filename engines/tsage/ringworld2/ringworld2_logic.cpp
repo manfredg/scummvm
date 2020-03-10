@@ -387,9 +387,13 @@ void SceneExt::postInit(SceneObjectList *OwnerList) {
 	int prevScene = R2_GLOBALS._sceneManager._previousScene;
 	int sceneNumber = R2_GLOBALS._sceneManager._sceneNumber;
 	if (g_vm->getFeatures() & GF_DEMO) {
-		if (((prevScene == -1) && (sceneNumber != 180) && (sceneNumber != 205) && (sceneNumber != 50))
+		if (prevScene == 0 && sceneNumber == 180) {
+			// Very start of the demo, title & intro about to be shown
+			R2_GLOBALS._uiElements._active = false;
+			R2_GLOBALS._uiElements.hide();
+		} else if (((prevScene == -1) && (sceneNumber != 180) && (sceneNumber != 205) && (sceneNumber != 50))
 			|| (prevScene == 0) || (sceneNumber == 600)
-			|| ((prevScene == 205 || prevScene == 180) && (sceneNumber == 100))) {
+			|| ((prevScene == 205 || prevScene == 180 || prevScene == 50) && (sceneNumber == 100))) {
 				R2_GLOBALS._uiElements._active = true;
 				R2_GLOBALS._uiElements.show();
 		} else {
@@ -1126,7 +1130,7 @@ void Ringworld2Game::start() {
 
 	if (ConfMan.hasKey("save_slot")) {
 		slot = ConfMan.getInt("save_slot");
-		Common::String file = g_vm->generateSaveName(slot);
+		Common::String file = g_vm->getSaveStateName(slot);
 		Common::InSaveFile *in = g_vm->_system->getSavefileManager()->openForLoading(file);
 		if (in)
 			delete in;
@@ -1218,6 +1222,13 @@ void Ringworld2Game::processEvent(Event &event) {
 			// F4 - Restart
 			restartGame();
 			R2_GLOBALS._events.setCursorFromFlag();
+			break;
+
+		case Common::KEYCODE_F5:
+			// F5 - Save
+			saveGame();
+			R2_GLOBALS._events.setCursorFromFlag();
+			event.handled = true;
 			break;
 
 		case Common::KEYCODE_F7:

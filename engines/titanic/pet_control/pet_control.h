@@ -130,27 +130,27 @@ public:
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 
 	/**
 	 * Allows the item to draw itself
 	 */
-	virtual void draw(CScreenManager *screenManager);
+	void draw(CScreenManager *screenManager) override;
 
 	/**
 	 * Gets the bounds occupied by the item
 	 */
-	virtual Rect getBounds() const;
+	Rect getBounds() const override;
 
 	/**
-	 * Setups the sections within the PET
+	 * Resets the PET, including all the sections within it
 	 */
-	void setup();
+	void reset();
 
 	/**
 	 * Called after loading a game has finished
@@ -297,6 +297,11 @@ public:
 	bool checkNode(const CString &name);
 
 	/**
+	 * Handles updates to the sound levels
+	 */
+	void syncSoundSettings();
+
+	/**
 	 * Play a sound
 	 */
 	void playSound(int soundNum);
@@ -433,10 +438,10 @@ public:
 	}
 
 	/**
-	 * Returns true if the Rooms list has a room with the given flags
+	 * Returns true if the player is in the current or previously assigned rooms
 	 */
-	bool hasRoomFlags() const {
-		return _rooms.hasRoomFlags(getRoomFlags());
+	bool isInAssignedRoom() const {
+		return _rooms.isAssignedRoom(getRoomFlags());
 	}
 
 	uint getRoomFlags() const {
@@ -499,11 +504,18 @@ public:
 		return _rooms.getWellEntry();
 	}
 
-	void setRooms1CC(int v) {
-		_rooms.set1CC(v);
+	/**
+	 * Sets the sub-level an SGT or 2nd class room is on
+	 */
+	void setRoomsSublevel(int level) {
+		_rooms.setSublevel(level);
 	}
-	int getRooms1CC() const {
-		return _rooms.get1CC();
+
+	/**
+	 * Gets the current sub-level for a stateroom
+	 */
+	int getRoomsSublevel() const {
+		return _rooms.getSublevel();
 	}
 
 	/**

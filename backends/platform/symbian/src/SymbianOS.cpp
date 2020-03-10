@@ -161,17 +161,19 @@ void OSystem_SDL_Symbian::checkMappings() {
 	GUI::Actions::Instance()->initInstanceGame();
 }
 
-// make sure we always go to normal, even if the string might be set wrong!
-bool OSystem_SDL_Symbian::setGraphicsMode(const char * /*name*/) {
-	return _graphicsManager->setGraphicsMode(0);
-}
-
 Common::String OSystem_SDL_Symbian::getDefaultConfigFileName() {
 	char configFile[MAXPATHLEN];
 	strcpy(configFile, Symbian::GetExecutablePath());
 	strcat(configFile, DEFAULT_CONFIG_FILE);
 	return configFile;
 }
+
+bool OSystem_SDL_Symbian::hasFeature(Feature f) {
+	if (f == kFeatureJoystickDeadzone) return false;
+
+	return OSystem_SDL::hasFeature(f);
+}
+
 
 RFs& OSystem_SDL_Symbian::FsSession() {
 	return *_RFs;

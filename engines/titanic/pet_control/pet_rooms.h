@@ -47,7 +47,7 @@ private:
 	int _floorNum;
 	int _elevatorNum;
 	int _roomNum;
-	int _field1CC;
+	int _sublevel;
 	int _wellEntry;
 	bool _elevatorBroken;
 private:
@@ -76,77 +76,77 @@ public:
 	/**
 	 * Sets up the section
 	 */
-	virtual bool setup(CPetControl *petControl);
+	bool setup(CPetControl *petControl) override;
 
 	/**
 	 * Reset the section
 	 */
-	virtual bool reset();
+	bool reset() override;
 
 	/**
 	 * Draw the section
 	 */
-	virtual void draw(CScreenManager *screenManager);
+	void draw(CScreenManager *screenManager) override;
 
 	/**
 	 * Following are handlers for the various messages that the PET can
 	 * pass onto the currently active section/area
 	 */
-	virtual bool MouseButtonDownMsg(CMouseButtonDownMsg *msg);
-	virtual bool MouseDragStartMsg(CMouseDragStartMsg *msg);
-	virtual bool MouseButtonUpMsg(CMouseButtonUpMsg *msg);
-	virtual bool MouseDoubleClickMsg(CMouseDoubleClickMsg *msg);
-	virtual bool VirtualKeyCharMsg(CVirtualKeyCharMsg *msg);
+	bool MouseButtonDownMsg(CMouseButtonDownMsg *msg) override;
+	bool MouseDragStartMsg(CMouseDragStartMsg *msg) override;
+	bool MouseButtonUpMsg(CMouseButtonUpMsg *msg) override;
+	bool MouseDoubleClickMsg(CMouseDoubleClickMsg *msg) override;
+	bool VirtualKeyCharMsg(CVirtualKeyCharMsg *msg) override;
 
 	/**
 	 * Check whether a drag drop can occur
 	 */
-	virtual bool checkDragEnd(CGameObject *item);
+	bool checkDragEnd(CGameObject *item) override;
 
 	/**
 	 * Display a message
 	 */
-	virtual void displayMessage(const CString &msg);
+	void displayMessage(const CString &msg) override;
 
 	/**
 	 * Returns true if the object is in a valid state
 	 */
-	virtual bool isValid(CPetControl *petControl);
+	bool isValid(CPetControl *petControl) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file, int param);
+	void load(SimpleFile *file, int param) override;
 
 	/**
 	 * Called after a game has been loaded
 	 */
-	virtual void postLoad();
+	void postLoad() override;
 
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Called when a section is switched to
 	 */
-	virtual void enter(PetArea oldArea);
+	void enter(PetArea oldArea) override;
 
 	/**
 	 * Called when a new room is entered
 	 */
-	virtual void enterRoom(CRoomItem *room);
+	void enterRoom(CRoomItem *room) override;
 
 	/**
 	 * Get a reference to the tooltip text associated with the section
 	 */
-	virtual CTextControl *getText();
+	CTextControl *getText() override;
 
 	/**
 	 * Special retrieval of glyph background image
 	 */
-	virtual CGameObject *getBackground(int index) const;
+	CGameObject *getBackground(int index) const override;
 
 	/**
 	 * Reset the highlight
@@ -164,9 +164,10 @@ public:
 	bool changeLocationClass(PassengerClass newClassNum);
 
 	/**
-	 * Returns true if a room glyph exists with the given flags
+	 * Returns true if the specified location is the current or
+	 * previously assigned room
 	 */
-	bool hasRoomFlags(uint roomFlags) const;
+	bool isAssignedRoom(uint roomFlags) const;
 
 	/**
 	 * Returns the room flags for the player's currently assigned room
@@ -199,8 +200,8 @@ public:
 	int getElevatorNum() const { return _elevatorNum; }
 	void setRoomNum(int roomNum) { _roomNum = roomNum; }
 	int getRoomNum() const { return _roomNum; }
-	void set1CC(int val) { _field1CC = val; }
-	int get1CC() const { return _field1CC; }
+	void setSublevel(int level) { _sublevel = level; }
+	int getSublevel() const { return _sublevel; }
 
 	/**
 	 * Sets the entry number for arriving at the well
@@ -212,9 +213,12 @@ public:
 	 */
 	int getWellEntry() const { return _wellEntry; }
 
+	/**
+	 * Sets the broken elevator flag
+	 */
 	void setElevatorBroken(bool flag) { _elevatorBroken = flag; }
 };
 
 } // End of namespace Titanic
 
-#endif /* TITANIC_PET_ROOMS_SECTION_H */
+#endif /* TITANIC_PET_ROOMS_H */

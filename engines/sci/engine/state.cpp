@@ -117,8 +117,6 @@ void EngineState::reset(bool isRestoring) {
 
 	scriptStepCounter = 0;
 	scriptGCInterval = GC_INTERVAL;
-
-	_videoState.reset();
 }
 
 void EngineState::speedThrottler(uint32 neededSleep) {
@@ -136,11 +134,24 @@ void EngineState::speedThrottler(uint32 neededSleep) {
 	}
 }
 
-void EngineState::wait(int16 ticks) {
+uint16 EngineState::wait(uint16 ticks) {
 	uint32 time = g_system->getMillis();
-	r_acc = make_reg(0, ((long)time - (long)lastWaitTime) * 60 / 1000);
-	lastWaitTime = time;
 
+	uint32 ms = ticks * 1000 / 60;
+	uint32 duration = time - lastWaitTime;
+	if (ms > duration) {
+		uint32 sleepTime = ms - duration;
+		sleepTime *= g_debug_sleeptime_factor;
+		g_sci->sleep(sleepTime);
+		time += sleepTime;
+	}
+
+	uint16 tickDelta = (uint16)(((long)time - lastWaitTime) * 60 / 1000);
+	lastWaitTime = time;
+	return tickDelta;
+}
+
+void EngineState::sleep(uint16 ticks) {
 	ticks *= g_debug_sleeptime_factor;
 	g_sci->sleep(ticks * 1000 / 60);
 }
@@ -253,7 +264,11 @@ Common::String SciEngine::getSciLanguageString(const Common::String &str, kLangu
 						fullWidth += 0x0D; // CR
 						textPtr += 2;
 						continue;
+					default:
+						break;
 					}
+				default:
+					break;
 				}
 
 				textPtr++;
@@ -421,6 +436,18 @@ SciCallOrigin EngineState::getCurrentCallOrigin() const {
 	reply.localCallOffset = xs->debugLocalCallOffset;
 	reply.roomNr = currentRoomNumber();
 	return reply;
+}
+
+bool EngineState::callInStack(const reg_t object, const Selector selector) const {
+	Common::List<ExecStack>::const_iterator it;
+	for (it = _executionStack.begin(); it != _executionStack.end(); ++it) {
+		const ExecStack &call = *it;
+		if (call.sendp == object && call.debugSelector == selector) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 } // End of namespace Sci

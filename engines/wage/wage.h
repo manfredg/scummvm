@@ -49,6 +49,7 @@
 #define WAGE_WAGE_H
 
 #include "engines/engine.h"
+#include "audio/mixer.h"
 #include "common/debug.h"
 #include "common/endian.h"
 #include "common/rect.h"
@@ -113,18 +114,20 @@ class WageEngine : public Engine {
 	friend class Dialog;
 public:
 	WageEngine(OSystem *syst, const ADGameDescription *gameDesc);
-	~WageEngine();
+	~WageEngine() override;
 
-	virtual bool hasFeature(EngineFeature f) const;
+	bool hasFeature(EngineFeature f) const override;
 
-	virtual Common::Error run();
+	Common::Error run() override;
 
-	bool canLoadGameStateCurrently();
-	bool canSaveGameStateCurrently();
+	bool canLoadGameStateCurrently() override;
+	bool canSaveGameStateCurrently() override;
 
 	const char *getGameFile() const;
 	void processTurn(Common::String *textInput, Designed *clickInput);
 	void regen();
+
+	const char *getTargetName() { return _targetName.c_str(); }
 
 private:
 	bool loadWorld(Common::MacResManager *resMan);
@@ -174,8 +177,6 @@ public:
 public:
 	Common::RandomSource *_rnd;
 
-	Debugger *_debugger;
-
 	Gui *_gui;
 	World *_world;
 
@@ -190,6 +191,8 @@ public:
 	bool _temporarilyHidden;
 	bool _isGameOver;
 	bool _commandWasQuick;
+
+	bool _shouldQuit;
 
 	Common::String _inputText;
 
@@ -207,8 +210,8 @@ public:
 	void redrawScene();
 	void saveGame();
 
-	virtual Common::Error loadGameState(int slot);
-	virtual Common::Error saveGameState(int slot, const Common::String &description);
+	Common::Error loadGameState(int slot) override;
+	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 	bool scummVMSaveLoadDialog(bool isSave);
 
 private:
@@ -220,27 +223,13 @@ private:
 	Scene *getSceneByOffset(int offset) const;
 	int saveGame(const Common::String &fileName, const Common::String &descriptionString);
 	int loadGame(int slotId);
-	Common::String getSavegameFilename(int16 slotId) const;
-
-public:
-
-	virtual GUI::Debugger *getDebugger() { return _debugger; }
 
 private:
-	Console *_console;
-
 	const ADGameDescription *_gameDescription;
 
 	Common::MacResManager *_resManager;
 
-	bool _shouldQuit;
-};
-
-// Example console class
-class Console : public GUI::Debugger {
-public:
-	Console(WageEngine *vm) {}
-	virtual ~Console(void) {}
+	Audio::SoundHandle _soundHandle;
 };
 
 } // End of namespace Wage

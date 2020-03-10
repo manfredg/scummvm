@@ -47,7 +47,7 @@ CruiseEngine::CruiseEngine(OSystem * syst, const CRUISEGameDescription *gameDesc
 	DebugMan.addDebugChannel(kCruiseDebugSound, "sound", "Sound debug level");
 
 	_vm = this;
-	_debugger = new Debugger();
+	setDebugger(new Debugger());
 	_sound = new PCSound(_mixer, this);
 
 	PCFadeFlag = false;
@@ -66,7 +66,6 @@ CruiseEngine::CruiseEngine(OSystem * syst, const CRUISEGameDescription *gameDesc
 extern void listMemory();
 
 CruiseEngine::~CruiseEngine() {
-	delete _debugger;
 	delete _sound;
 
 	freeSystem();
@@ -84,7 +83,7 @@ bool CruiseEngine::hasFeature(EngineFeature f) const {
 
 Common::Error CruiseEngine::run() {
 	// Initialize backend
-	initGraphics(320, 200, false);
+	initGraphics(320, 200);
 
 	if (!loadLanguageStrings()) {
 		error("Could not setup language data for your version");
@@ -206,7 +205,7 @@ bool CruiseEngine::canLoadGameStateCurrently() {
 	return playerMenuEnabled != 0;
 }
 
-Common::Error CruiseEngine::saveGameState(int slot, const Common::String &desc) {
+Common::Error CruiseEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
 	return saveSavegameData(slot, desc);
 }
 

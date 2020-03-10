@@ -81,6 +81,8 @@ void Scene100::Action1::signal() {
 	case 4:
 		error("??exit");
 		break;
+	default:
+		break;
 	}
 }
 
@@ -157,6 +159,8 @@ void Scene100::Action2::signal() {
 	}
 	case 3:
 		remove();
+		break;
+	default:
 		break;
 	}
 }
@@ -281,6 +285,8 @@ void Scene109::Action1::signal() {
 		// End scene
 		scene->_sceneMode = 1;
 		remove();
+		break;
+	default:
 		break;
 	}
 }
@@ -410,7 +416,7 @@ void Scene110::Action1::signal() {
 		NpcMover *mover = new NpcMover();
 		scene->_object4.addMover(mover, &pt, this);
 		}
-	// No break on purpose
+		// fall through
 	case 7:
 		setDelay(30);
 		break;
@@ -1745,11 +1751,11 @@ void Scene115::signal() {
 		++_lineNumModifier;
 		if (_lineNumModifier >= 4)
 			_lineNumModifier = 0;
-	// No break on purpose
+		// fall through
 	case 0:
-	// No break on purpose
+		// fall through
 	case 5115:
-	// No break on purpose
+		// fall through
 	default:
 		BF_GLOBALS._player.enableControl();
 		break;
@@ -1980,6 +1986,7 @@ void Scene125::Action3::signal() {
 		scene->_object1.changeZoom(2);
 		scene->_object1.show();
 		setDelay(1);
+		break;
 	case 13:
 		BF_GLOBALS._sound1.play(6);
 		scene->_object1.changeZoom(4);
@@ -2295,7 +2302,7 @@ void Scene140::Action1::signal() {
 	case 10:
 		owner->setPosition(Common::Point(212, 117));
 		setDelay(10);
-	// No break on purpose
+		// fall through
 	case 11:
 		owner->setPosition(owner->_position, 1000);
 		setDelay(60);
@@ -2303,7 +2310,7 @@ void Scene140::Action1::signal() {
 	case 12:
 		BF_GLOBALS._sound1.play(8);
 		setDelay(60);
-	// No break on purpose
+		// fall through
 	case 13:
 		BF_GLOBALS._sceneManager.changeScene(150);
 	default:
@@ -2384,7 +2391,7 @@ void Scene150::Action1::signal() {
 		break;
 	case 8:
 		BF_GLOBALS._sound1.stop();
-	// No break on purpose
+		// fall through
 	case 9:
 		_sound1.play(8);
 		setDelay(30);
@@ -3186,6 +3193,8 @@ void Scene190::Action1::signal() {
 	case 5:
 		BF_GLOBALS._sound1.fadeOut2(NULL);
 		BF_GLOBALS._sceneManager.changeScene(315);
+		break;
+	default:
 		break;
 	}
 }

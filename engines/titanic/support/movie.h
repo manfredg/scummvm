@@ -50,7 +50,6 @@ protected:
 public:
 	bool _handled;
 	bool _hasVideoFrame;
-	bool _hasAudioTiming;
 public:
 	static CMovieList *_playingMovies;
 	static CVideoSurface *_movieSurface;
@@ -66,7 +65,7 @@ public:
 	static void deinit();
 public:
 	CMovie();
-	virtual ~CMovie();
+	~CMovie() override;
 
 	/**
 	 * Starts playing the movie
@@ -86,8 +85,9 @@ public:
 	/**
 	 * Plays a sub-section of a movie, and doesn't return until either
 	 * the playback ends or a key has been pressed
+	 * @returns		True if the cutscene was not interrupted
 	 */
-	virtual void playCutscene(const Rect &drawRect, uint startFrame, uint endFrame) = 0;
+	virtual bool playCutscene(const Rect &drawRect, uint startFrame, uint endFrame) = 0;
 
 	/**
 	 * Pauses a movie
@@ -138,6 +138,11 @@ public:
 	virtual void setFrameRate(double rate) = 0;
 
 	/**
+	 * Sets whether the video is playing (versus paused)
+	 */
+	virtual void setPlaying(bool playingFlag) = 0;
+
+	/**
 	 * Creates a duplicate of the transparency surface
 	 */
 	virtual Graphics::ManagedSurface *duplicateTransparency() const = 0;
@@ -173,28 +178,29 @@ private:
 	void movieStarted();
 public:
 	OSMovie(const CResourceKey &name, CVideoSurface *surface);
-	virtual ~OSMovie();
+	~OSMovie() override;
 
 	/**
 	 * Starts playing the movie
 	 */
-	virtual void play(uint flags, CGameObject *obj);
+	void play(uint flags, CGameObject *obj) override;
 
 	/**
 	 * Starts playing the movie
 	 */
-	virtual void play(uint startFrame, uint endFrame, uint flags, CGameObject *obj);
+	void play(uint startFrame, uint endFrame, uint flags, CGameObject *obj) override;
 
 	/**
 	 * Starts playing the movie
 	 */
-	virtual void play(uint startFrame, uint endFrame, uint initialFrame, uint flags, CGameObject *obj);
+	void play(uint startFrame, uint endFrame, uint initialFrame, uint flags, CGameObject *obj) override;
 
 	/**
 	 * Plays a sub-section of a movie, and doesn't return until either
 	 * the playback ends or a key has been pressed
+	 * @returns		True if the cutscene was not interrupted
 	 */
-	virtual void playCutscene(const Rect &drawRect, uint startFrame, uint endFrame);
+	bool playCutscene(const Rect &drawRect, uint startFrame, uint endFrame) override;
 
 	/**
 	 * Pauses a movie
@@ -202,52 +208,57 @@ public:
 	 * as part of a scene load need to be paused until the scene is interactive,
 	 * or else they get played back too quickly
 	 */
-	virtual void pause();
+	void pause() override;
 
 	/**
 	 * Stops the movie
 	 */
-	virtual void stop();
+	void stop() override;
 
 	/**
 	 * Add a playback event
 	 */
-	virtual void addEvent(int eventId, CGameObject *obj);
+	void addEvent(int eventId, CGameObject *obj) override;
 
 	/**
 	 * Set the current frame number
 	 */
-	virtual void setFrame(uint frameNumber);
+	void setFrame(uint frameNumber) override;
 
 	/**
 	 * Handle any pending movie events
 	 */
-	virtual bool handleEvents(CMovieEventList &events);
+	bool handleEvents(CMovieEventList &events) override;
 
 	/**
 	 * Get the current frame number
 	 */
-	virtual int getFrame() const;
+	int getFrame() const override;
 
 	/**
 	 * Return any movie range info associated with the movie
 	 */
-	virtual const CMovieRangeInfoList *getMovieRangeInfo() const;
+	const CMovieRangeInfoList *getMovieRangeInfo() const override;
 
 	/**
 	 * Set the sound manager reference
 	 */
-	virtual void setSoundManager(CSoundManager *soundManager);
+	void setSoundManager(CSoundManager *soundManager) override;
 
 	/**
 	 * Set the frame rate for the movie
 	 */
-	virtual void setFrameRate(double rate);
+	void setFrameRate(double rate) override;
+
+	/**
+	 * Sets whether the video is playing (versus paused)
+	 */
+	void setPlaying(bool playingFlag) override;
 
 	/**
 	 * Creates a duplicate of the transparency surface
 	 */
-	virtual Graphics::ManagedSurface *duplicateTransparency() const;
+	Graphics::ManagedSurface *duplicateTransparency() const override;
 };
 
 } // End of namespace Titanic

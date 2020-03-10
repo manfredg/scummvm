@@ -205,7 +205,7 @@ void UIInventoryScroll::process(Event &event) {
 		toggle(true);
 
 		// Wait for the mouse to be released
-		BF_GLOBALS._events.waitForPress(EVENT_BUTTON_UP);
+		g_globals->_events.waitForPress(EVENT_BUTTON_UP);
 
 		// Restore unselected version
 		toggle(false);
@@ -415,6 +415,8 @@ void UIElements::setup(const Common::Point &pt) {
 		case 3:
 			item = &_slot4;
 			break;
+		default:
+			break;
 		}
 
 		xp = idx * 63 + 2;
@@ -487,6 +489,8 @@ void UIElements::updateInventory(int objectNumber) {
 		break;
 	case GType_Ringworld2:
 		_character.setFrame(R2_GLOBALS._player._characterIndex);
+		break;
+	default:
 		break;
 	}
 

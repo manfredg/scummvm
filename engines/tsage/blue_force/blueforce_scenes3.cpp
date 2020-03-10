@@ -960,6 +960,8 @@ void Scene315::Action1::signal() {
 		remove();
 		BF_GLOBALS._player.enableControl();
 		break;
+	default:
+		break;
 	}
 }
 
@@ -1240,7 +1242,7 @@ void Scene315::signal() {
 		BF_GLOBALS._walkRegions.disableRegion(4);
 		_object7.remove();
 		_object6.remove();
-	// No break on purpose
+		// fall through
 	case 3155:
 		BF_GLOBALS._player.enableControl();
 		_field1B68 = false;
@@ -1907,6 +1909,8 @@ void Scene340::Action6::signal() {
 		scene->_sceneMode = 4;
 		scene->signal();
 		remove();
+		break;
+	default:
 		break;
 	}
 }
@@ -2722,7 +2726,7 @@ void Scene350::postInit(SceneObjectList *OwnerList) {
 		BF_GLOBALS._player.enableControl();
 		T2_GLOBALS._uiElements._active = true;
 		T2_GLOBALS._uiElements.show();
-		// Deliberate fall-through
+		// fall through
 	case 355:
 		if (BF_GLOBALS.getFlag(onDuty) && BF_GLOBALS.getFlag(gunDrawn))
 			BF_GLOBALS._player.setVisage(351);
@@ -3448,6 +3452,8 @@ void Scene355::Action2::signal() {
 		scene->signal();
 		remove();
 		break;
+	default:
+		break;
 	}
 }
 
@@ -3730,7 +3736,7 @@ void Scene355::signal() {
 		break;
 	case 2357:
 		_harrison.animate(ANIM_MODE_1, NULL);
-		// Deliberate fall-through
+		// fall through
 	case 1357:
 		BF_GLOBALS._player.enableControl();
 		if (BF_GLOBALS.getFlag(gunDrawn))
@@ -4787,7 +4793,7 @@ bool Scene370::Laura::startAction(CursorType action, Event &event) {
 			scene->setAction(&scene->_sequenceManager, scene, 3705, &BF_GLOBALS._player, this, NULL);
 			return true;
 		}
-		// Deliberate fall-through
+		// fall through
 	default:
 		return NamedObject::startAction(action, event);
 	}
@@ -4953,7 +4959,7 @@ void Scene370::signal() {
 	case 3707:
 		_object5.setDetails(370, 6, -1, 7, 1, (SceneItem *)NULL);
 		BF_GLOBALS._sceneItems.push_back(&_object5);
-		// Deliberate fall-through
+		// fall through
 	case 3700:
 	case 3706:
 		_green.setAction(&_sequenceManager, this, 3701, NULL);
@@ -5062,6 +5068,8 @@ void Scene370::signal() {
 		_harrison.remove();
 		_green.remove();
 		BF_GLOBALS._player.enableControl();
+		break;
+	default:
 		break;
 	}
 }
@@ -5277,6 +5285,8 @@ void Scene385::Action1::signal() {
 		BF_GLOBALS._player.enableControl();
 		remove();
 		break;
+	default:
+		break;
 	}
 }
 
@@ -5308,6 +5318,8 @@ void Scene385::Action2::signal() {
 	case 6:
 		BF_GLOBALS._player.enableControl();
 		remove();
+		break;
+	default:
 		break;
 	}
 }
@@ -5525,6 +5537,8 @@ void Scene385::signal() {
 	case 3852:
 		BF_GLOBALS._player.enableControl();
 		break;
+	default:
+		break;
 	}
 }
 
@@ -5610,6 +5624,8 @@ void Scene390::Action1::signal() {
 	case 4:
 		BF_GLOBALS._player.enableControl();
 		remove();
+		break;
+	default:
 		break;
 	}
 }
@@ -5968,6 +5984,8 @@ void Scene390::signal() {
 	case 3906:
 		BF_GLOBALS._deathReason = 18;
 		BF_GLOBALS._sceneManager.changeScene(666);
+		break;
+	default:
 		break;
 	}
 }

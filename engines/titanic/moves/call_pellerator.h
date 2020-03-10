@@ -34,18 +34,25 @@ class CCallPellerator : public CGameObject {
 	bool LeaveViewMsg(CLeaveViewMsg *msg);
 	bool PETActivateMsg(CPETActivateMsg *msg);
 	bool MouseButtonDownMsg(CMouseButtonDownMsg *msg);
+	bool TimerMsg(CTimerMsg *msg);
+private:
+	/**
+	 * Switches to the PET Remote tab, and selects the 'Call Pellerator'
+	 * glyph by default
+	 */
+	void showCallPellerator();
 public:
 	CLASSDEF;
 
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 };
 
 } // End of namespace Titanic

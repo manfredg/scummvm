@@ -413,6 +413,7 @@ Bits Operator::TemplateVolume(  ) {
 			return vol;
 		}
 		//In sustain phase, but not sustaining, do regular release
+		//fall through
 	case RELEASE:
 		vol += RateForward( releaseAdd );
 		if ( GCC_UNLIKELY(vol >= ENV_MAX) ) {
@@ -420,6 +421,8 @@ Bits Operator::TemplateVolume(  ) {
 			SetState( OFF );
 			return ENV_MAX;
 		}
+		break;
+	default:
 		break;
 	}
 	volume = vol;
@@ -752,6 +755,8 @@ void Channel::WriteC0( const Chip* chip, Bit8u val ) {
 			case 3:
 				chan0->synthHandler = &Channel::BlockTemplate< sm3AMAM >;
 				break;
+			default:
+				break;
 			}
 		//Disable updating percussion channels
 		} else if ((fourMask & 0x40) && ( chip->regBD & 0x20) ) {
@@ -899,6 +904,8 @@ Channel* Channel::BlockTemplate( Chip* chip, Bit32u samples, Bit32s* output ) {
 		// thus we leave this blank.
 		// TODO: Consider checking this.
 		break;
+	default:
+		break;
 	}
 	//Init the operators with the the current vibrato and tremolo values
 	Op( 0 )->Prepare( chip );
@@ -984,6 +991,8 @@ Channel* Channel::BlockTemplate( Chip* chip, Bit32u samples, Bit32s* output ) {
 			// thus we leave this blank.
 			// TODO: Consider checking this.
 			break;
+		default:
+			break;
 		}
 	}
 	switch( mode ) {
@@ -1009,6 +1018,8 @@ Channel* Channel::BlockTemplate( Chip* chip, Bit32u samples, Bit32s* output ) {
 		// This case was not handled in the DOSBox code either
 		// thus we leave this blank.
 		// TODO: Consider checking this.
+		break;
+	default:
 		break;
 	}
 	return 0;
@@ -1202,6 +1213,8 @@ void Chip::WriteReg( Bit32u reg, Bit8u val ) {
 	case 0xf0 >> 4:
 		REGOP( WriteE0 );
 		break;
+	default:
+		break;
 	}
 }
 
@@ -1215,6 +1228,9 @@ Bit32u Chip::WriteAddr( Bit32u port, Bit8u val ) {
 			return 0x100 | val;
 		else
 			return val;
+		break;
+	default:
+		break;
 	}
 	return 0;
 }

@@ -261,7 +261,8 @@ float Sortie::calcH() {
 		if ((*i)->getState() == DUS_ON) {
 			switch ((*i)->getType()) {
 			case DUT_ANTI_AIR:
-				retValue += 1;
+				retValue += 1; // Is it bug in the original? Fixing it may break replay compatibility
+				// fall through
 
 			case DUT_MINE:
 				retValue += 1;
@@ -269,6 +270,9 @@ float Sortie::calcH() {
 
 			case DUT_SHIELD:
 				retValue += 1;
+				break;
+
+			default:
 				break;
 			}
 		}

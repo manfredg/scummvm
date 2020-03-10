@@ -284,12 +284,11 @@ const char *SegManager::getObjectName(reg_t pos) {
 	return name;
 }
 
-reg_t SegManager::findObjectByName(const Common::String &name, int index) {
+Common::Array<reg_t> SegManager::findObjectsByName(const Common::String &name) {
 	Common::Array<reg_t> result;
-	uint i;
 
 	// Now all values are available; iterate over all objects.
-	for (i = 0; i < _heap.size(); i++) {
+	for (uint i = 0; i < _heap.size(); i++) {
 		const SegmentObj *mobj = _heap[i];
 
 		if (!mobj)
@@ -320,12 +319,18 @@ reg_t SegManager::findObjectByName(const Common::String &name, int index) {
 		}
 	}
 
+	return result;
+}
+
+reg_t SegManager::findObjectByName(const Common::String &name, int index) {
+	Common::Array<reg_t> result = findObjectsByName(name);
+
 	if (result.empty())
 		return NULL_REG;
 
 	if (result.size() > 1 && index < 0) {
 		debug("findObjectByName(%s): multiple matches:", name.c_str());
-		for (i = 0; i < result.size(); i++)
+		for (uint i = 0; i < result.size(); i++)
 			debug("  %3x: [%04x:%04x]", i, PRINT_REG(result[i]));
 		return NULL_REG; // Ambiguous
 	}
@@ -342,11 +347,11 @@ SegmentId SegManager::getScriptSegment(int script_id) const {
 	return _scriptSegMap.getVal(script_id, 0);
 }
 
-SegmentId SegManager::getScriptSegment(int script_nr, ScriptLoadType load) {
+SegmentId SegManager::getScriptSegment(int script_nr, ScriptLoadType load, bool applyScriptPatches) {
 	SegmentId segment;
 
 	if ((load & SCRIPT_GET_LOAD) == SCRIPT_GET_LOAD)
-		instantiateScript(script_nr);
+		instantiateScript(script_nr, applyScriptPatches);
 
 	segment = getScriptSegment(script_nr);
 
@@ -609,7 +614,25 @@ static inline void setChar(const SegmentRef &ref, uint offset, byte value) {
 		val->setOffset((val->getOffset() & 0xff00) | value);
 }
 
-// TODO: memcpy, strcpy and strncpy could maybe be folded into a single function
+template <bool STRING>
+static void forwardCopy(byte *dest, const byte *src, size_t n) {
+	const bool zeroPad = (STRING && n != 0xFFFFFFFFU);
+
+	while (n) {
+		--n;
+		const byte b = *src++;
+		*dest++ = b;
+		if (STRING && b == '\0') {
+			break;
+		}
+	}
+	if (zeroPad) {
+		while (n--) {
+			*dest++ = '\0';
+		}
+	}
+}
+
 void SegManager::strncpy(reg_t dest, const char* src, size_t n) {
 	SegmentRef dest_r = dereference(dest);
 	if (!dest_r.isValid()) {
@@ -619,11 +642,7 @@ void SegManager::strncpy(reg_t dest, const char* src, size_t n) {
 
 
 	if (dest_r.isRaw) {
-		// raw -> raw
-		if (n == 0xFFFFFFFFU)
-			::strcpy((char *)dest_r.raw, src);
-		else
-			::strncpy((char *)dest_r.raw, src, n);
+		forwardCopy<true>(dest_r.raw, (const byte *)src, n);
 	} else {
 		// raw -> non-raw
 		for (uint i = 0; i < n; i++) {
@@ -706,7 +725,7 @@ void SegManager::memcpy(reg_t dest, const byte* src, size_t n) {
 
 	if (dest_r.isRaw) {
 		// raw -> raw
-		::memcpy((char *)dest_r.raw, src, n);
+		forwardCopy<false>(dest_r.raw, src, n);
 	} else {
 		// raw -> non-raw
 		for (uint i = 0; i < n; i++)
@@ -762,7 +781,7 @@ void SegManager::memcpy(byte *dest, reg_t src, size_t n) {
 
 	if (src_r.isRaw) {
 		// raw -> raw
-		::memcpy(dest, src_r.raw, n);
+		forwardCopy<false>(dest, src_r.raw, n);
 	} else {
 		// non-raw -> raw
 		for (uint i = 0; i < n; i++) {
@@ -984,7 +1003,7 @@ void SegManager::createClassTable() {
 	}
 }
 
-reg_t SegManager::getClassAddress(int classnr, ScriptLoadType lock, uint16 callerSegment) {
+reg_t SegManager::getClassAddress(int classnr, ScriptLoadType lock, uint16 callerSegment, bool applyScriptPatches) {
 	if (classnr == 0xffff)
 		return NULL_REG;
 
@@ -993,7 +1012,7 @@ reg_t SegManager::getClassAddress(int classnr, ScriptLoadType lock, uint16 calle
 	} else {
 		Class *the_class = &_classTable[classnr];
 		if (!the_class->reg.getSegment()) {
-			getScriptSegment(the_class->script, lock);
+			getScriptSegment(the_class->script, lock, applyScriptPatches);
 
 			if (!the_class->reg.getSegment()) {
 				if (lock == SCRIPT_GET_DONT_LOAD)
@@ -1009,7 +1028,7 @@ reg_t SegManager::getClassAddress(int classnr, ScriptLoadType lock, uint16 calle
 	}
 }
 
-int SegManager::instantiateScript(int scriptNum) {
+int SegManager::instantiateScript(int scriptNum, bool applyScriptPatches) {
 	SegmentId segmentId = getScriptSegment(scriptNum);
 	Script *scr = getScriptIfLoaded(segmentId);
 	if (scr) {
@@ -1023,10 +1042,10 @@ int SegManager::instantiateScript(int scriptNum) {
 		scr = allocateScript(scriptNum, &segmentId);
 	}
 
-	scr->load(scriptNum, _resMan, _scriptPatcher);
+	scr->load(scriptNum, _resMan, _scriptPatcher, applyScriptPatches);
 	scr->initializeLocals(this);
 	scr->initializeClasses(this);
-	scr->initializeObjects(this, segmentId);
+	scr->initializeObjects(this, segmentId, applyScriptPatches);
 #ifdef ENABLE_SCI32
 	g_sci->_guestAdditions->instantiateScriptHook(*scr);
 #endif

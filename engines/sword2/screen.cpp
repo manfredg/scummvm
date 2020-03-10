@@ -157,6 +157,8 @@ void Screen::setRenderLevel(int8 level) {
 		// edge-blending + improved stretching
 		_renderCaps = RDBLTFX_SPRITEBLEND | RDBLTFX_SHADOWBLEND | RDBLTFX_EDGEBLEND;
 		break;
+	default:
+		break;
 	}
 }
 
@@ -609,6 +611,8 @@ void Screen::processImage(BuildUnit *build_unit) {
 			if (Sword2Engine::isPsx())
 				colTablePtr++; // There is one additional byte to skip before the table in psx version
 			break;
+		default:
+			break;
 		}
 	}
 
@@ -845,22 +849,18 @@ enum {
 };
 
 struct CreditsLine {
-	char *str;
+	Common::String str;
 	byte type;
 	int top;
 	int height;
 	byte *sprite;
 
 	CreditsLine() {
-		str = NULL;
 		sprite = NULL;
 	}
 
 	~CreditsLine() {
-		free(str);
 		free(sprite);
-		str = NULL;
-		sprite = NULL;
 	}
 };
 
@@ -1036,7 +1036,7 @@ void Screen::rollCredits() {
 				creditsLines[lineCount]->top = lineTop;
 				creditsLines[lineCount]->height = CREDITS_FONT_HEIGHT;
 				creditsLines[lineCount]->type = LINE_LEFT;
-				creditsLines[lineCount]->str = strdup(line);
+				creditsLines[lineCount]->str = line;
 
 				lineCount++;
 				*center_mark = '^';
@@ -1063,7 +1063,7 @@ void Screen::rollCredits() {
 			lineTop += CREDITS_LINE_SPACING;
 		}
 
-		creditsLines[lineCount]->str = strdup(line);
+		creditsLines[lineCount]->str = line;
 		lineCount++;
 	}
 
@@ -1113,7 +1113,7 @@ void Screen::rollCredits() {
 			// Free any sprites that have scrolled off the screen
 
 			if (creditsLines[i]->top + creditsLines[i]->height < scrollPos) {
-				debug(2, "Freeing line %d: '%s'", i, creditsLines[i]->str);
+				debug(2, "Freeing line %d: '%s'", i, creditsLines[i]->str.c_str());
 
 				delete creditsLines[i];
 				creditsLines[i] = NULL;
@@ -1121,8 +1121,8 @@ void Screen::rollCredits() {
 				startLine = i + 1;
 			} else if (creditsLines[i]->top < scrollPos + 400) {
 				if (!creditsLines[i]->sprite) {
-					debug(2, "Creating line %d: '%s'", i, creditsLines[i]->str);
-					creditsLines[i]->sprite = _vm->_fontRenderer->makeTextSprite((byte *)creditsLines[i]->str, 600, 14, _vm->_speechFontId, 0);
+					debug(2, "Creating line %d: '%s'", i, creditsLines[i]->str.c_str());
+					creditsLines[i]->sprite = _vm->_fontRenderer->makeTextSprite((const byte *)creditsLines[i]->str.c_str(), 600, 14, _vm->_speechFontId, 0);
 				}
 
 				FrameHeader frame;
@@ -1143,13 +1143,16 @@ void Screen::rollCredits() {
 					spriteInfo.x = RENDERWIDE / 2 + 5;
 					break;
 				case LINE_CENTER:
-					if (strcmp(creditsLines[i]->str, "@") == 0) {
+					if (strcmp(creditsLines[i]->str.c_str(), "@") == 0) {
 						spriteInfo.data = logoData;
 						spriteInfo.x = (RENDERWIDE - logoWidth) / 2;
 						spriteInfo.w = logoWidth;
 						spriteInfo.h = logoHeight;
-					} else
+					} else {
 						spriteInfo.x = (RENDERWIDE - frame.width) / 2;
+					}
+					break;
+				default:
 					break;
 				}
 

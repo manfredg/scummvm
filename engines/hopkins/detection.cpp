@@ -106,20 +106,24 @@ public:
 		_directoryGlobs = directoryGlobs;
 	}
 
-	virtual const char *getName() const {
-		return "Hopkins Engine";
+	const char *getEngineId() const override {
+		return "hopkins";
 	}
 
-	virtual const char *getOriginalCopyright() const {
-		return "Hopkins FBI (C)1997-2003 MP Entertainment";
+	const char *getName() const override {
+		return "Hopkins FBI";
 	}
 
-	virtual bool hasFeature(MetaEngineFeature f) const;
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
-	virtual SaveStateList listSaves(const char *target) const;
-	virtual int getMaximumSaveSlot() const;
-	virtual void removeSaveState(const char *target, int slot) const;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
+	const char *getOriginalCopyright() const override {
+		return "Hopkins FBI (C) 1997-2003 MP Entertainment";
+	}
+
+	bool hasFeature(MetaEngineFeature f) const override;
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	SaveStateList listSaves(const char *target) const override;
+	int getMaximumSaveSlot() const override;
+	void removeSaveState(const char *target, int slot) const override;
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 };
 
 bool HopkinsMetaEngine::hasFeature(MetaEngineFeature f) const {
@@ -168,9 +172,6 @@ SaveStateList HopkinsMetaEngine::listSaves(const char *target) const {
 			if (in) {
 				if (Hopkins::SaveLoadManager::readSavegameHeader(in, header)) {
 					saveList.push_back(SaveStateDescriptor(slot, header._saveName));
-
-					header._thumbnail->free();
-					delete header._thumbnail;
 				}
 
 				delete in;
@@ -198,7 +199,11 @@ SaveStateDescriptor HopkinsMetaEngine::querySaveMetaInfos(const char *target, in
 
 	if (f) {
 		Hopkins::hopkinsSavegameHeader header;
-		Hopkins::SaveLoadManager::readSavegameHeader(f, header);
+		if (!Hopkins::SaveLoadManager::readSavegameHeader(f, header, false)) {
+			delete f;
+			return SaveStateDescriptor();
+		}
+
 		delete f;
 
 		// Create the return descriptor

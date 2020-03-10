@@ -22,6 +22,7 @@
 
 
 #include "common/file.h"
+#include "common/str.h"
 #include "scumm/scumm.h"
 #include "scumm/util.h"
 
@@ -191,12 +192,18 @@ void SmushFont::drawSubstring(const char *str, byte *buffer, int dst_width, int 
 	if (x < 0)
 		x = 0;
 
-	for (int i = 0; str[i] != 0; i++) {
-		if ((byte)str[i] >= 0x80 && _vm->_useCJKMode) {
-			x += draw2byte(buffer, dst_width, x, y, (byte)str[i] + 256 * (byte)str[i+1]);
-			i++;
-		} else
+	if (_vm->_language == Common::HE_ISR) {
+		for (int i = strlen(str); i >= 0; i--) {
 			x += drawChar(buffer, dst_width, x, y, str[i]);
+		}
+	} else {
+		for (int i = 0; str[i] != 0; i++) {
+			if ((byte)str[i] >= 0x80 && _vm->_useCJKMode) {
+				x += draw2byte(buffer, dst_width, x, y, (byte)str[i] + 256 * (byte)str[i+1]);
+				i++;
+			} else
+				x += drawChar(buffer, dst_width, x, y, str[i]);
+		}
 	}
 }
 
@@ -226,11 +233,11 @@ void SmushFont::drawStringWrap(const char *str, byte *buffer, int dst_width, int
 	debugC(DEBUG_SMUSH, "SmushFont::drawStringWrap(%s, %d, %d, %d, %d, %d)", str, x, y, left, right, center);
 
 	const int width = right - left;
-	char *s = strdup(str);
+	Common::String s(str);
 	char *words[MAX_WORDS];
 	int word_count = 0;
 
-	char *tmp = s;
+	Common::String::iterator tmp = s.begin();
 	while (tmp) {
 		assert(word_count < MAX_WORDS);
 		words[word_count++] = tmp;
@@ -293,8 +300,6 @@ void SmushFont::drawStringWrap(const char *str, byte *buffer, int dst_width, int
 			y += getStringHeight(substrings[i]);
 		}
 	}
-
-	free(s);
 }
 
 } // End of namespace Scumm

@@ -34,9 +34,9 @@ protected:
 	static bool _chestOpen;
 	static bool _puzzleSolved;
 	static int _volume1;
-	static int _v4;
+	static int _slider1;
 	static int _volume2;
-	static int _v7;
+	static int _slider2;
 	static bool _leftSliderHooked;
 	static bool _rightSliderHooked;
 	static bool _priorLeftSliderHooked;
@@ -47,12 +47,12 @@ public:
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 };
 
 } // End of namespace Titanic

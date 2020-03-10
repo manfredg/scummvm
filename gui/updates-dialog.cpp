@@ -33,9 +33,7 @@
 namespace GUI {
 
 enum {
-	kYesCmd = 'YES ',
-	kNoCmd = 'NO  ',
-	kCheckBoxCmd = 'CHK '
+	kProceedCmd = 'PROC'
 };
 
 
@@ -49,10 +47,10 @@ UpdatesDialog::UpdatesDialog() : Dialog(30, 20, 260, 124) {
 
 	const char *message = _(
 		"ScummVM now supports automatic check for updates\n"
-		"which requires access to the Internet.\n"
-  		"\n"
-		"Would you like to enable this feature?");
-	const char *message2 = _("(You can always enable it in the options dialog on the Misc tab)");
+		"which requires access to the Internet. Would you\n"
+		"like to enable this feature?");
+	const char *message2 = _("You can change this setting later in the Misc tab\n"
+		"in the Options dialog.");
 
 	// First, determine the size the dialog needs. For this we have to break
 	// down the string into lines, and taking the maximum of their widths.
@@ -60,7 +58,7 @@ UpdatesDialog::UpdatesDialog() : Dialog(30, 20, 260, 124) {
 	// the real size of the dialog
 	Common::Array<Common::String> lines, lines2;
 	int maxlineWidth = g_gui.getFont().wordWrapText(message, screenW - 2 * 20, lines);
-	int maxlineWidth2 = g_gui.getFont(ThemeEngine::kFontStyleTooltip).wordWrapText(message2, screenW - 2 * 20, lines2);
+	int maxlineWidth2 = g_gui.getFont().wordWrapText(message2, screenW - 2 * 20, lines2);
 
 	_w = MAX(MAX(maxlineWidth, maxlineWidth2), (2 * buttonWidth) + 10) + 20;
 
@@ -79,21 +77,19 @@ UpdatesDialog::UpdatesDialog() : Dialog(30, 20, 260, 124) {
 	uint y = 10;
 	for (uint i = 0; i < lines.size(); i++) {
 		new StaticTextWidget(this, 10, y, maxlineWidth, kLineHeight,
-								lines[i], Graphics::kTextAlignCenter);
-		y += kLineHeight;
-	}
-	for (uint i = 0; i < lines2.size(); i++) {
-		new StaticTextWidget(this, 10, y, maxlineWidth2, kLineHeight,
-								lines2[i], Graphics::kTextAlignCenter, 0, ThemeEngine::kFontStyleTooltip);
+								lines[i], Graphics::kTextAlignLeft);
 		y += kLineHeight;
 	}
 
 	y += kLineHeight;
-	_updatesCheckbox = new CheckboxWidget(this, 10, y, _w, kLineHeight, _("Check for updates automatically"), 0, kCheckBoxCmd);
 
-	y += kLineHeight + 3;
+	const char *updMessage = _("Update check:");
 
-	_updatesPopUp = new PopUpWidget(this, 10, y, _w - 20, g_gui.xmlEval()->getVar("Globals.PopUp.Height", kLineHeight));
+	int updatelineWidth = g_gui.getFont().getStringWidth(updMessage) + 5;
+
+	new StaticTextWidget(this, 10, y, updatelineWidth, kLineHeight, updMessage, Graphics::kTextAlignLeft);
+
+	_updatesPopUp = new PopUpWidget(this, 10 + updatelineWidth, y, _w - 20 - updatelineWidth, g_gui.xmlEval()->getVar("Globals.PopUp.Height", kLineHeight));
 
 	const int *vals = Common::UpdateManager::getUpdateIntervals();
 
@@ -104,25 +100,28 @@ UpdatesDialog::UpdatesDialog() : Dialog(30, 20, 260, 124) {
 
 	_updatesPopUp->setSelectedTag(Common::UpdateManager::kUpdateIntervalOneWeek);
 
-	int yesButtonPos = (_w - (buttonWidth * 2)) / 2;
-	int noButtonPos = ((_w - (buttonWidth * 2)) / 2) + buttonWidth + 10;
+	y += kLineHeight * 2;
 
-	_yesButton = new ButtonWidget(this, yesButtonPos, _h - buttonHeight - 8, buttonWidth, buttonHeight,
-				_("Proceed"), 0, kYesCmd, Common::ASCII_RETURN);
-	_noButton = new ButtonWidget(this, noButtonPos, _h - buttonHeight - 8, buttonWidth, buttonHeight,
-				_("Cancel"), 0, kNoCmd, Common::ASCII_ESCAPE);
+	for (uint i = 0; i < lines2.size(); i++) {
+		new StaticTextWidget(this, 10, y, maxlineWidth2, kLineHeight,
+								lines2[i], Graphics::kTextAlignLeft);
+		y += kLineHeight;
+	}
 
-	_updatesPopUp->setEnabled(false);
-	_yesButton->setEnabled(false);
+	y += kLineHeight + 3;
+
+	int buttonPos = _w - buttonWidth - 10;
+
+	_proceedButton = new ButtonWidget(this, buttonPos, _h - buttonHeight - 8, buttonWidth, buttonHeight,
+				_("Proceed"), nullptr, kProceedCmd, Common::ASCII_RETURN);
 }
 
 void UpdatesDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
-	if (cmd == kYesCmd) {
+	if (cmd == kProceedCmd) {
 		ConfMan.setInt("updates_check", _updatesPopUp->getSelectedTag());
 
 		if (g_system->getUpdateManager()) {
-			if (_updatesCheckbox->getState() == false ||
-					_updatesPopUp->getSelectedTag() == Common::UpdateManager::kUpdateIntervalNotSupported) {
+			if (_updatesPopUp->getSelectedTag() == Common::UpdateManager::kUpdateIntervalNotSupported) {
 				g_system->getUpdateManager()->setAutomaticallyChecksForUpdates(Common::UpdateManager::kUpdateStateDisabled);
 			} else {
 				g_system->getUpdateManager()->setAutomaticallyChecksForUpdates(Common::UpdateManager::kUpdateStateEnabled);
@@ -130,16 +129,6 @@ void UpdatesDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data
 			}
 		}
 		close();
-	} else if (cmd == kNoCmd) {
-		ConfMan.setInt("updates_check", Common::UpdateManager::kUpdateIntervalNotSupported);
-		g_system->getUpdateManager()->setAutomaticallyChecksForUpdates(Common::UpdateManager::kUpdateStateDisabled);
-
-		close();
-	} else if (cmd == kCheckBoxCmd) {
-		_updatesPopUp->setEnabled(_updatesCheckbox->getState());
-		_yesButton->setEnabled(_updatesCheckbox->getState());
-
-		draw();
 	} else {
 		Dialog::handleCommand(sender, cmd, data);
 	}

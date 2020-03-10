@@ -24,21 +24,22 @@
 #define TITANIC_STAR_MARKERS_H
 
 #include "titanic/star_control/base_stars.h"
+
 namespace Titanic {
 
 class CStarMarkers : public CBaseStars {
 public:
-	virtual ~CStarMarkers() { clear(); }
+	~CStarMarkers() override { clear(); }
 
 	/**
 	 * Draw the item
 	 */
-	virtual void draw(CSurfaceArea *surfaceArea, CStarCamera *camera, CStarCloseup *closeup);
+	void draw(CSurfaceArea *surfaceArea, CCamera *camera, CStarCloseup *closeup) override;
 
 	/**
 	 * Adds a new star, or removes one if already present at the given co-ordinates
 	 */
-	virtual bool addStar(const CBaseStarEntry *entry);
+	bool addStar(const CBaseStarEntry *entry) override;
 };
 
 } // End of namespace Titanic

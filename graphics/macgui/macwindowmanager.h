@@ -23,10 +23,11 @@
 #ifndef GRAPHICS_MACGUI_MACWINDOWMANAGER_H
 #define GRAPHICS_MACGUI_MACWINDOWMANAGER_H
 
-#include "common/array.h"
+#include "common/hashmap.h"
 #include "common/list.h"
 #include "common/events.h"
 
+#include "graphics/font.h"
 #include "graphics/fontman.h"
 #include "graphics/macgui/macwindow.h"
 
@@ -54,12 +55,25 @@ enum {
 	kPatternLightGray = 5,
 	kPatternDarkGray = 6
 };
+
+enum {
+	kWMModeNone         	= 0,
+	kWMModeNoDesktop    	= (1 << 0),
+	kWMModeAutohideMenu 	= (1 << 1),
+	kWMModalMenuMode 		= (1 << 2),
+	kWMModeForceBuiltinFonts= (1 << 3),
+	kWMModeUnicode			= (1 << 4)
+};
+
 }
 using namespace MacGUIConstants;
 
 class ManagedSurface;
 
 class MacMenu;
+class MacTextWindow;
+
+class MacFont;
 
 class MacFontManager;
 
@@ -69,11 +83,13 @@ struct MacPlotData {
 	Graphics::ManagedSurface *surface;
 	MacPatterns *patterns;
 	uint fillType;
+	int fillOriginX;
+	int fillOriginY;
 	int thickness;
 	uint bgColor;
 
-	MacPlotData(Graphics::ManagedSurface *s, MacPatterns *p, int f, int t, uint bg = kColorWhite) :
-		surface(s), patterns(p), fillType(f), thickness(t), bgColor(bg) {
+	MacPlotData(Graphics::ManagedSurface *s, MacPatterns *p, uint f, int fx, int fy, int t, uint bg) :
+		surface(s), patterns(p), fillType(f), fillOriginX(fx), fillOriginY(fy), thickness(t), bgColor(bg) {
 	}
 };
 
@@ -85,7 +101,7 @@ void macDrawPixel(int x, int y, int color, void *data);
  */
 class MacWindowManager {
 public:
-	MacWindowManager();
+	MacWindowManager(uint32 mode = 0);
 	~MacWindowManager();
 
 	/**
@@ -93,7 +109,7 @@ public:
 	 * Note that this method should be called as soon as the WM is created.
 	 * @param screen Surface on which the desktop will be drawn.
 	 */
-	void setScreen(ManagedSurface *screen) { _screen = screen; }
+	void setScreen(ManagedSurface *screen) { _screen = screen; delete _screenCopy; _screenCopy = nullptr; }
 	/**
 	 * Create a window with the given parameters.
 	 * Note that this method allocates the necessary memory for the window.
@@ -103,6 +119,24 @@ public:
 	 * @return Pointer to the newly created window.
 	 */
 	MacWindow *addWindow(bool scrollable, bool resizable, bool editable);
+	MacTextWindow *addTextWindow(const MacFont *font, int fgcolor, int bgcolor, int maxWidth, TextAlign textAlignment, MacMenu *menu, bool cursorHandler = true);
+
+	/**
+	 * Adds a window that has already been initialized to the registry.
+	 * Like addWindow, but this doesn't create/allocate the Window.
+	 * @param macWindow the window to be added to the registry
+	 */
+	void addWindowInitialized(MacWindow *macwindow);
+	/**
+	 * Returns the last allocated id
+	 * @return last allocated window id
+	 */
+	int getLastId() { return _lastId; }
+	/**
+	 * Returns the next available id and the increments the internal counter.
+	 * @return next (new) window id that can be used
+	 */
+	int getNextId() { return _lastId++; }
 	/**
 	 * Add the menu to the desktop.
 	 * Note that the returned menu is empty, and therefore must be filled
@@ -110,6 +144,20 @@ public:
 	 * @return Pointer to a new empty menu.
 	 */
 	MacMenu *addMenu();
+
+	void activateMenu();
+
+	bool isMenuActive();
+
+	/**
+	 * Set hot zone where menu appears (works only with autohide menu)
+	 */
+	void setMenuHotzone(const Common::Rect &rect) { _menuHotzone = rect; }
+
+	/**
+	 * Set delay in milliseconds when menu appears (works only with autohide menu)
+	 */
+	void setMenuDelay(int delay) { _menuDelay = delay; }
 	/**
 	 * Set the desired window state to active.
 	 * @param id ID of the window that has to be set to active.
@@ -126,7 +174,7 @@ public:
 	 * Mutator to indicate that the entire desktop must be refreshed.
 	 * @param redraw Currently unused.
 	 */
-	void setFullRefresh(bool redraw) { _fullRefresh = true; }
+	void setFullRefresh(bool redraw) { _fullRefresh = redraw; }
 
 	/**
 	 * Method to draw the desktop into the screen,
@@ -163,10 +211,29 @@ public:
 	void pushCrossHairCursor();
 	void pushCrossBarCursor();
 	void pushWatchCursor();
+	void pushCustomCursor(byte *data, int w, int h, int transcolor);
 	void popCursor();
+
+	void pauseEngine(bool pause);
+
+	void setMode(uint32 mode);
+
+	void setEnginePauseCallback(void *engine, void (*pauseCallback)(void *engine, bool pause));
+	void setEngineRedrawCallback(void *engine, void (*redrawCallback)(void *engine));
+
+	void passPalette(const byte *palette, uint size);
+	uint findBestColor(byte cr, byte cg, byte cb);
 
 public:
 	MacFontManager *_fontMan;
+	uint32 _mode;
+
+	Common::Point _lastMousePos;
+	Common::Rect _menuHotzone;
+
+	bool _menuTimerActive;
+
+	int _colorBlack, _colorWhite;
 
 private:
 	void drawDesktop();
@@ -175,11 +242,13 @@ private:
 	void removeFromStack(BaseMacWindow *target);
 	void removeFromWindowList(BaseMacWindow *target);
 
-private:
+public:
 	ManagedSurface *_screen;
+	ManagedSurface *_screenCopy;
 
+private:
 	Common::List<BaseMacWindow *> _windowStack;
-	Common::Array<BaseMacWindow *> _windows;
+	Common::HashMap<uint, BaseMacWindow *> _windows;
 
 	Common::List<BaseMacWindow *> _windowsToRemove;
 	bool _needsRemoval;
@@ -190,8 +259,16 @@ private:
 	bool _fullRefresh;
 
 	MacPatterns _patterns;
+	byte *_palette;
+	uint _paletteSize;
 
 	MacMenu *_menu;
+	uint32 _menuDelay;
+
+	void *_engineP;
+	void *_engineR;
+	void (*_pauseEngineCallback)(void *engine, bool pause);
+	void (*_redrawEngineCallback)(void *engine);
 
 	bool _cursorIsArrow;
 };

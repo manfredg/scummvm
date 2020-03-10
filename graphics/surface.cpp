@@ -354,6 +354,20 @@ void Surface::move(int dx, int dy, int height) {
 	}
 }
 
+void Surface::flipVertical(const Common::Rect &r) {
+	const int width = r.width() * format.bytesPerPixel;
+	byte *temp = new byte[width];
+	for (int y = r.top; y < r.bottom / 2; y++) {
+		byte *row1 = (byte *)getBasePtr(r.left, y);
+		byte *row2 = (byte *)getBasePtr(r.left, r.bottom - y - 1);
+
+		memcpy(temp, row1, width);
+		memcpy(row1, row2, width);
+		memcpy(row2, temp, width);
+	}
+	delete[] temp;
+}
+
 void Surface::convertToInPlace(const PixelFormat &dstFormat, const byte *palette) {
 	// Do not convert to the same format and ignore empty surfaces.
 	if (format == dstFormat || pixels == 0) {
@@ -434,8 +448,8 @@ Graphics::Surface *Surface::convertTo(const PixelFormat &dstFormat, const byte *
 	if (format.bytesPerPixel == 0 || format.bytesPerPixel > 4)
 		error("Surface::convertTo(): Can only convert from 1Bpp, 2Bpp, 3Bpp, and 4Bpp");
 
-	if (dstFormat.bytesPerPixel != 2 && dstFormat.bytesPerPixel != 4)
-		error("Surface::convertTo(): Can only convert to 2Bpp and 4Bpp");
+	if (dstFormat.bytesPerPixel < 2 || dstFormat.bytesPerPixel > 4)
+		error("Surface::convertTo(): Can only convert to 2Bpp, 3Bpp and 4Bpp");
 
 	surface->create(w, h, dstFormat);
 
@@ -457,6 +471,8 @@ Graphics::Surface *Surface::convertTo(const PixelFormat &dstFormat, const byte *
 
 				if (dstFormat.bytesPerPixel == 2)
 					*((uint16 *)dstRow) = color;
+				else if (dstFormat.bytesPerPixel == 3)
+					WRITE_UINT24(dstRow, color);
 				else
 					*((uint32 *)dstRow) = color;
 
@@ -487,6 +503,8 @@ Graphics::Surface *Surface::convertTo(const PixelFormat &dstFormat, const byte *
 
 				if (dstFormat.bytesPerPixel == 2)
 					*((uint16 *)dstRow) = color;
+				else if (dstFormat.bytesPerPixel == 3)
+					WRITE_UINT24(dstRow, color);
 				else
 					*((uint32 *)dstRow) = color;
 

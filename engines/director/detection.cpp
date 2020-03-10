@@ -24,10 +24,8 @@
 
 #include "engines/advancedDetector.h"
 
+#include "common/file.h"
 #include "common/config-manager.h"
-#include "common/savefile.h"
-#include "common/system.h"
-#include "common/textconsole.h"
 
 #include "director/director.h"
 
@@ -73,6 +71,7 @@ bool DirectorEngine::hasFeature(EngineFeature f) const {
 static const PlainGameDescriptor directorGames[] = {
 	{ "director",	"Macromedia Director Game" },
 	{ "directortest",	"Macromedia Director Test Target" },
+	{ "directortest-all",	"Macromedia Director All Movies Test Target" },
 	{ "theapartment",	"The Apartment, Interactive demo" },
 	{ "gundam0079",	"Gundam 0079: The War for Earth" },
 	{ "jewels",		"Jewels of the Oracle" },
@@ -86,6 +85,18 @@ static const PlainGameDescriptor directorGames[] = {
 	{ "vvdinosaur",	"Victor Vector & Yondo: The Last Dinosaur Egg"},
 	{ "warlock", 	"Spaceship Warlock"},
 	{ "ernie",		"Ernie"},
+	{ "id4p1",      "iD4 Mission Disk 1 - Alien Supreme Commander" },
+	{ "id4p2",      "iD4 Mission Disk 2 - Alien Science Officer" },
+	{ "id4p3",      "iD4 Mission Disk 3 - Warrior Alien" },
+	{ "id4p4",      "iD4 Mission Disk 4 - Alien Navigator" },
+	{ "id4p5",      "iD4 Mission Disk 5 - Captain Steve Hiller" },
+	{ "id4p6",      "iD4 Mission Disk 6 - Dave's Computer" },
+	{ "id4p7",      "iD4 Mission Disk 7 - President Whitmore" },
+	{ "id4p8",      "iD4 Mission Disk 8 - Alien Attack Fighter" },
+	{ "id4p9",      "iD4 Mission Disk 9 - FA-18 Fighter Jet" },
+	{ "id4p10",     "iD4 Mission Disk 10 - Alien Bomber" },
+	{ "id4p11",     "iD4 Mission Disk 11 - Area 51" },
+	{ "chopsuey",   "Chop Suey" },
 	{ 0, 0 }
 };
 
@@ -99,21 +110,24 @@ static const char *directoryGlobs[] = {
 class DirectorMetaEngine : public AdvancedMetaEngine {
 public:
 	DirectorMetaEngine() : AdvancedMetaEngine(Director::gameDescriptions, sizeof(Director::DirectorGameDescription), directorGames) {
-		_singleId = "director";
-		_maxScanDepth = 2,
+		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	virtual const char *getName() const {
+	const char *getEngineId() const override {
+		return "director";
+	}
+
+	const char *getName() const override {
 		return "Macromedia Director";
 	}
 
-	virtual const char *getOriginalCopyright() const {
-		return "Macromedia Director (C) Macromedia";
+	const char *getOriginalCopyright() const override {
+		return "Macromedia Director (C) 1990-1995 Macromedia";
 	}
 
-	const ADGameDescription *fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const;
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
+	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const override;
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
 };
 
 bool DirectorMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
@@ -141,7 +155,7 @@ static Director::DirectorGameDescription s_fallbackDesc = {
 
 static char s_fallbackFileNameBuffer[51];
 
-const ADGameDescription *DirectorMetaEngine::fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const {
+ADDetectedGame DirectorMetaEngine::fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const {
 	// TODO: Handle Mac fallback
 
 	// reset fallback description
@@ -165,28 +179,23 @@ const ADGameDescription *DirectorMetaEngine::fallbackDetect(const FileMap &allFi
 		if (!fileName.hasSuffix(".exe"))
 			continue;
 
-		SearchMan.clear();
-		SearchMan.addDirectory(file->getParent().getName(), file->getParent());
-
-		Common::SeekableReadStream *stream = SearchMan.createReadStreamForMember(file->getName());
-
-		if (!stream)
+		Common::File f;
+		if (!f.open(*file))
 			continue;
 
-		stream->seek(-4, SEEK_END);
+		f.seek(-4, SEEK_END);
 
-		uint32 offset = stream->readUint32LE();
+		uint32 offset = f.readUint32LE();
 
-		if (stream->eos() || offset == 0 || offset >= (uint32)(stream->size() - 4)) {
-			delete stream;
+		if (f.eos() || offset == 0 || offset >= (uint32)(f.size() - 4))
 			continue;
-		}
 
-		stream->seek(offset);
+		f.seek(offset);
 
-		uint32 tag = stream->readUint32LE();
+		uint32 tag = f.readUint32LE();
 
 		switch (tag) {
+		case MKTAG('P', 'J', '9', '3'):
 		case MKTAG('3', '9', 'J', 'P'):
 			desc->version = 4;
 			break;
@@ -200,41 +209,31 @@ const ADGameDescription *DirectorMetaEngine::fallbackDetect(const FileMap &allFi
 			// Prior to version 4, there was no tag here. So we'll use a bit of a
 			// heuristic to detect. The first field is the entry count, of which
 			// there should only be one.
-			if ((tag & 0xFFFF) != 1) {
-				delete stream;
+			if ((tag & 0xFFFF) != 1)
 				continue;
-			}
 
-			stream->skip(3);
+			f.skip(3);
 
-			uint32 mmmSize = stream->readUint32LE();
+			uint32 mmmSize = f.readUint32LE();
 
-			if (stream->eos() || mmmSize == 0) {
-				delete stream;
+			if (f.eos() || mmmSize == 0)
 				continue;
-			}
 
-			byte fileNameSize = stream->readByte();
+			byte fileNameSize = f.readByte();
 
-			if (stream->eos()) {
-				delete stream;
+			if (f.eos())
 				continue;
-			}
 
-			stream->skip(fileNameSize);
-			byte directoryNameSize = stream->readByte();
+			f.skip(fileNameSize);
+			byte directoryNameSize = f.readByte();
 
-			if (stream->eos()) {
-				delete stream;
+			if (f.eos())
 				continue;
-			}
 
-			stream->skip(directoryNameSize);
+			f.skip(directoryNameSize);
 
-			if (stream->pos() != stream->size() - 4) {
-				delete stream;
+			if (f.pos() != f.size() - 4)
 				continue;
-			}
 
 			// Assume v3 at this point (for now at least)
 			desc->version = 3;
@@ -246,10 +245,10 @@ const ADGameDescription *DirectorMetaEngine::fallbackDetect(const FileMap &allFi
 
 		warning("Director fallback detection D%d", desc->version);
 
-		return (ADGameDescription *)desc;
+		return ADDetectedGame(&desc->desc);
 	}
 
-	return 0;
+	return ADDetectedGame();
 }
 
 #if PLUGIN_ENABLED_DYNAMIC(DIRECTOR)

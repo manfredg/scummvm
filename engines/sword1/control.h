@@ -31,6 +31,7 @@
 class OSystem;
 namespace Common {
 class SaveFileManager;
+class MemoryWriteStreamDynamic;
 }
 
 namespace Sword1 {
@@ -114,6 +115,7 @@ private:
 	uint8 _cursorTick;
 	bool _cursorVisible;
 	bool _panelShown;
+	Common::MemoryWriteStreamDynamic *_tempThumbnail;
 
 	uint8 getClicks(uint8 mode, uint8 *retVal);
 	uint8 handleButtonClick(uint8 id, uint8 mode, uint8 *retVal);
@@ -142,6 +144,8 @@ private:
 	ControlButton *_buttons[MAX_BUTTONS];
 	static const ButtonInfo _deathButtons[3], _panelButtons[7], _saveButtons[16], _volumeButtons[4];
 	static const uint8 _languageStrings[8 * 20][43];
+	bool loadCustomStrings(const char* filename);
+	uint8 _customStrings[20][43];
 	const uint8(*_lStrings)[43];
 	Common::SaveFileManager *_saveFileMan;
 	ObjectMan *_objMan;

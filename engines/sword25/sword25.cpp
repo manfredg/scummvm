@@ -69,12 +69,11 @@ Sword25Engine::Sword25Engine(OSystem *syst, const ADGameDescription *gameDesc):
 	DebugMan.addDebugChannel(kDebugScript, "Scripts", "Script debug level");
 	DebugMan.addDebugChannel(kDebugSound, "Sound", "Sound debug level");
 
-	_console = new Sword25Console(this);
+	setDebugger(new Sword25Console(this));
 }
 
 Sword25Engine::~Sword25Engine() {
 	DebugMan.clearAllDebugChannels();
-	delete _console;
 }
 
 Common::Error Sword25Engine::run() {
@@ -97,7 +96,7 @@ Common::Error Sword25Engine::run() {
 Common::Error Sword25Engine::appStart() {
 	// Initialize the graphics mode to RGBA8888
 	Graphics::PixelFormat format = Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0);
-	initGraphics(800, 600, true, &format);
+	initGraphics(800, 600, &format);
 	if (format != g_system->getScreenFormat())
 		return Common::kUnsupportedColorMode;
 

@@ -668,7 +668,7 @@ void ActionThread(CORO_PARAM, const void *param) {
 		int j, k;
 		LpMpalItem item;
 
-		~CoroContextTag() {
+		~CoroContextTag() override {
 			if (item)
 				globalDestroy(item);
 		}
@@ -797,7 +797,7 @@ void LocationPollThread(CORO_PARAM, const void *param) {
 		MYACTION *myActions;
 		MYTHREAD *myThreads;
 
-		~CoroContextTag() {
+		~CoroContextTag() override {
 			// Free data blocks
 			if (myThreads)
 				globalDestroy(myThreads);
@@ -1548,7 +1548,7 @@ void mpalFree() {
  * @remarks		This is the specialized version of the original single mpalQuery
  * method that returns numeric results.
  */
-uint32 mpalQueryDWORD(uint16 wQueryType, ...) {
+uint32 mpalQueryDWORD(uint wQueryType, ...) {
 	Common::String buf;
 	uint32 dwRet = 0;
 
@@ -1744,7 +1744,7 @@ uint32 mpalQueryDWORD(uint16 wQueryType, ...) {
  * @remarks		This is the specialized version of the original single mpalQuery
  * method that returns a pointer or handle.
  */
-MpalHandle mpalQueryHANDLE(uint16 wQueryType, ...) {
+MpalHandle mpalQueryHANDLE(uint wQueryType, ...) {
 	Common::String buf;
 	va_list v;
 	va_start(v, wQueryType);

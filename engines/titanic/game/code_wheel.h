@@ -39,8 +39,7 @@ private:
 	int _value;
 	bool _matched;
 	// German specific fields
-	int _field114;
-	int _field118;
+	int _row, _column;
 public:
 	CLASSDEF;
 	CodeWheel();
@@ -48,17 +47,17 @@ public:
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 
 	/**
 	 * Resets a code wheel back to the default 'O' value
 	 */
-	void reset() { _value = 4; }
+	void reset();
 };
 
 } // End of namespace Titanic

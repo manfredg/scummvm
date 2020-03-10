@@ -35,7 +35,7 @@ class CAutoSoundPlayer : public CGameObject {
 	bool SetVolumeMsg(CSetVolumeMsg *msg);
 	bool LoadSuccessMsg(CLoadSuccessMsg *msg);
 public:
-	int _fieldBC;
+	int _unused;
 	CString _filename;
 	int _volume;
 	int _balance;
@@ -44,7 +44,7 @@ public:
 	int _stopSeconds;
 	int _startSeconds;
 	bool _active;
-	int _fieldE8;
+	bool _isVectorSound;
 public:
 	CLASSDEF;
 	CAutoSoundPlayer();
@@ -52,12 +52,12 @@ public:
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 };
 
 } // End of namespace Titanic

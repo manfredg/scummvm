@@ -31,11 +31,14 @@
 #include "graphics/font.h"
 #include "graphics/surface.h"
 
+#include "common/file.h"
+#include "common/config-manager.h"
 #include "common/singleton.h"
 #include "common/stream.h"
 #include "common/memstream.h"
 #include "common/hashmap.h"
 #include "common/ptr.h"
+#include "common/unzip.h"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -236,6 +239,9 @@ bool TTFFont::load(Common::SeekableReadStream &stream, int size, TTFSizeMode siz
 		_loadFlags = FT_LOAD_TARGET_MONO;
 		_renderMode = FT_RENDER_MODE_MONO;
 		break;
+
+	default:
+		break;
 	}
 
 	FT_Fixed yScale = _face->size->metrics.y_scale;
@@ -294,6 +300,8 @@ int TTFFont::computePointSize(int size, TTFSizeMode sizeMode) const {
 	}
 	case kTTFSizeModeCharacter:
 		ptSize = size;
+		break;
+	default:
 		break;
 	}
 
@@ -663,6 +671,33 @@ Font *loadTTFFont(Common::SeekableReadStream &stream, int size, TTFSizeMode size
 		return 0;
 	}
 
+	return font;
+}
+
+Font *loadTTFFontFromArchive(const Common::String &filename, int size, TTFSizeMode sizeMode, uint dpi, TTFRenderMode renderMode, const uint32 *mapping) {
+	Common::SeekableReadStream *archiveStream = nullptr;
+	if (ConfMan.hasKey("extrapath")) {
+		Common::FSDirectory extrapath(ConfMan.get("extrapath"));
+		archiveStream = extrapath.createReadStreamForMember("fonts.dat");
+	}
+
+	if (!archiveStream) {
+		archiveStream = SearchMan.createReadStreamForMember("fonts.dat");
+	}
+
+	Common::Archive *archive = Common::makeZipArchive(archiveStream);
+	if (!archive) {
+		return nullptr;
+	}
+
+	Common::File f;
+	if (!f.open(filename, *archive)) {
+		return nullptr;
+	}
+
+	Font *font = loadTTFFont(f, size, sizeMode, dpi, renderMode, mapping);
+
+	delete archive;
 	return font;
 }
 

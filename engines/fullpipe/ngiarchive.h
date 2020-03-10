@@ -23,6 +23,7 @@
 #ifndef FULLPIPE_NGIARCHIVE_H
 #define FULLPIPE_NGIARCHIVE_H
 
+#include "common/ptr.h"
 #include "common/str.h"
 
 namespace Fullpipe {
@@ -39,7 +40,7 @@ struct NgiHeader {
 	char  filename[NGI_FILENAME_MAX];
 };
 
-typedef Common::HashMap<Common::String, NgiHeader*, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> NgiHeadersMap;
+typedef Common::HashMap<Common::String, Common::ScopedPtr<NgiHeader>, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> NgiHeadersMap;
 
 class NGIArchive : public Common::Archive {
 	NgiHeadersMap _headers;
@@ -47,13 +48,13 @@ class NGIArchive : public Common::Archive {
 
 public:
 	NGIArchive(const Common::String &name);
-	virtual ~NGIArchive();
+	~NGIArchive() override;
 
 	// Archive implementation
-	virtual bool hasFile(const Common::String &name) const;
-	virtual int listMembers(Common::ArchiveMemberList &list) const;
-	virtual const Common::ArchiveMemberPtr getMember(const Common::String &name) const;
-	virtual Common::SeekableReadStream *createReadStreamForMember(const Common::String &name) const;
+	bool hasFile(const Common::String &name) const override;
+	int listMembers(Common::ArchiveMemberList &list) const override;
+	const Common::ArchiveMemberPtr getMember(const Common::String &name) const override;
+	Common::SeekableReadStream *createReadStreamForMember(const Common::String &name) const override;
 };
 
 /**
@@ -62,7 +63,7 @@ public:
  *
  * May return 0 in case of a failure.
  */
-Common::Archive *makeNGIArchive(const Common::String &name);
+NGIArchive *makeNGIArchive(const Common::String &name);
 
 } // End of namespace Fullpipe
 

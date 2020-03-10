@@ -235,7 +235,7 @@ void sceneHandler27_startBat(StaticANIObject *bat) {
 	newbat->currX = newbat->powerCos + (double)g_fp->_aniMan->_ox + 42.0;
 	newbat->currY = newbat->powerSin + (double)g_fp->_aniMan->_oy + 58.0;
 
-	bat->_statics = (Statics *)bat->_staticsList[0];
+	bat->_statics = bat->_staticsList[0];
 	bat->setOXY((int)newbat->currX, (int)newbat->currY);
 	bat->_flags |= 4;
 
@@ -335,7 +335,7 @@ void sceneHandler27_knockBats(int bat1n, int bat2n) {
 	debugC(2, kDebugSceneLogic, "scene27: knockBats(%d, %d)", bat1n, bat2n);
 
 	if (bat1->power != 0.0) {
-		double rndF = (double)g_fp->_rnd->getRandomNumber(32767) * 0.03 / 32767.0 - 0.015
+		double rndF = (double)g_fp->_rnd.getRandomNumber(32767) * 0.03 / 32767.0 - 0.015
 			+ atan2(bat2->currY - bat1->currY, bat2->currX - bat1->currX);
 
 		double pow1x = cos(bat1->angle - rndF) * ((bat2->currX - bat1->currX) >= 0 ? bat1->power : -bat1->power);
@@ -349,7 +349,7 @@ void sceneHandler27_knockBats(int bat1n, int bat2n) {
 
 		debugC(3, kDebugSceneLogic, "scene27: knockBats: bat1 to: powerCos: %f powerSin: %f", bat1->powerCos, bat1->powerSin);
 
-		double rndF2 = (double)g_fp->_rnd->getRandomNumber(32767) * 0.03 / 32767.0 - 0.015
+		double rndF2 = (double)g_fp->_rnd.getRandomNumber(32767) * 0.03 / 32767.0 - 0.015
 								+ atan2(bat1->currY - bat2->currY, bat1->currX - bat2->currX);
 		double pow2x = cos(bat2->angle - rndF2) * ((bat1->currX - bat2->currX) >= 0 ? bat2->power : -bat2->power);
 		double pow2y = sin(bat2->angle - rndF2) * ((bat1->currY - bat2->currY) >= 0 ? bat2->power : -bat2->power);
@@ -644,7 +644,6 @@ int sceneHandler27(ExCommand *cmd) {
 		g_vars->scene27_wipeIsNeeded = true;
 
 		g_fp->playSound(SND_27_027, 0);
-
 		break;
 
 	case MSG_SC27_CLICKBET:
@@ -652,22 +651,21 @@ int sceneHandler27(ExCommand *cmd) {
 		break;
 
 	case MSG_SC27_STARTBET:
-		if (g_vars->scene27_bat)
+		if (g_vars->scene27_bat) {
 			sceneHandler27_startBat(g_vars->scene27_bat);
-
+		}
 		break;
 
 	case 30:
-		if (g_vars->scene27_dudeIsAiming)
+		if (g_vars->scene27_dudeIsAiming) {
 			sceneHandler27_startAiming();
-
+		}
 		break;
 
 	case 29:
-		if (g_fp->_aniMan == g_fp->_currentScene->getStaticANIObjectAtPos(g_fp->_sceneRect.left + cmd->_x, g_fp->_sceneRect.top + cmd->_y)
-			&& g_vars->scene27_maxPhaseReached)
+		if (g_fp->_aniMan == g_fp->_currentScene->getStaticANIObjectAtPos(g_fp->_sceneRect.left + cmd->_x, g_fp->_sceneRect.top + cmd->_y) && g_vars->scene27_maxPhaseReached) {
 			sceneHandler27_initAiming(cmd);
-
+		}
 		break;
 
 	case 33:
@@ -696,6 +694,9 @@ int sceneHandler27(ExCommand *cmd) {
 		g_fp->_behaviorManager->updateBehaviors();
 		g_fp->startSceneTrack();
 
+		break;
+
+	default:
 		break;
 	}
 

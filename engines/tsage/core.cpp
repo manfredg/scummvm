@@ -93,7 +93,7 @@ InvObject::InvObject(int strip, int frame) {
 void InvObject::setCursor() {
 	if (g_vm->getGameID() != GType_Ringworld) {
 		// All other games
-		_cursorId = (CursorType)BF_GLOBALS._inventory->indexOf(this);
+		_cursorId = (CursorType)g_globals->_inventory->indexOf(this);
 		g_globals->_events.setCursor(_cursorId);
 	} else {
 		// Ringworld cursor handling
@@ -1183,6 +1183,8 @@ void PaletteRotation::signal() {
 				_rotationMode = 2;
 			}
 		}
+		break;
+	default:
 		break;
 	}
 
@@ -2358,8 +2360,11 @@ int SceneObject::checkRegion(const Common::Point &pt) {
 	return regionIndex;
 }
 
-void SceneObject::animate(AnimateMode animMode, ...) {
-	_animateMode = animMode;
+// The parameter to the function below should really be an AnimateMode value.
+// However passing an enum type as last argument of a variadic function may
+// result in undefined behaviour.
+void SceneObject::animate(int animMode, ...) {
+	_animateMode = (AnimateMode)animMode;
 	_updateStartFrame = g_globals->_events.getFrameNumber();
 	if (_numFrames)
 		_updateStartFrame += 60 / _numFrames;
@@ -2431,6 +2436,8 @@ void SceneObject::animate(AnimateMode animMode, ...) {
 			if (_frame == _endFrame)
 				setFrame(getNewFrame());
 		}
+		break;
+	default:
 		break;
 	}
 	va_end(va);
@@ -4344,14 +4351,6 @@ void SceneHandler::process(Event &event) {
 			g_globals->_events.setCursorFromFlag();
 		}
 
-		// Check for debugger
-		if ((event.eventType == EVENT_KEYPRESS) && (event.kbd.keycode == Common::KEYCODE_d) &&
-			(event.kbd.flags & Common::KBD_CTRL)) {
-			// Attach to the debugger
-			g_vm->_debugger->attach();
-			g_vm->_debugger->onFrame();
-		}
-
 		if ((event.eventType == EVENT_KEYPRESS) && g_globals->_player._enabled) {
 			// Keyboard shortcuts for different actions
 			switch (event.kbd.keycode) {
@@ -4486,9 +4485,6 @@ void SceneHandler::dispatch() {
 
 	// Check to see if any scene change is required
 	g_globals->_sceneManager.checkScene();
-
-	// Signal the ScummVM debugger
-	g_vm->_debugger->onFrame();
 
 	// Delay between frames
 	g_globals->_events.delay(_delayTicks);

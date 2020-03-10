@@ -23,6 +23,7 @@
 #ifndef FULLPIPE_OBJECTS_H
 #define FULLPIPE_OBJECTS_H
 
+#include "common/ptr.h"
 #include "fullpipe/utils.h"
 
 namespace Fullpipe {
@@ -34,13 +35,12 @@ class GameProject : public CObject {
  public:
 	int _field_4;
 	Common::String _headerFilename;
-	SceneTagList *_sceneTagList;
+	Common::ScopedPtr<SceneTagList> _sceneTagList;
 	int _field_10;
 
  public:
 	GameProject();
-	~GameProject();
-	virtual bool load(MfcArchive &file);
+	bool load(MfcArchive &file) override;
 };
 
 struct PicAniInfo {
@@ -66,6 +66,7 @@ struct PicAniInfo {
 
 	PicAniInfo() { memset(this, 0, sizeof(PicAniInfo)); }
 };
+typedef Common::Array<PicAniInfo> PicAniInfoList;
 
 union VarValue {
 	float floatValue;
@@ -86,10 +87,10 @@ class GameVar : public CObject {
 
  public:
 	GameVar();
-	virtual ~GameVar();
+	~GameVar() override;
 
-	virtual bool load(MfcArchive &file);
-	virtual void save(MfcArchive &file);
+	bool load(MfcArchive &file) override;
+	void save(MfcArchive &file) override;
 	GameVar *getSubVarByName(const Common::String &name);
 	bool setSubVarAsInt(const Common::String &name, int value);
 	int getSubVarAsInt(const Common::String &name);

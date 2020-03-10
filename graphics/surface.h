@@ -327,6 +327,13 @@ public:
 
 	// See comment in graphics/surface.cpp about it
 	void move(int dx, int dy, int height);
+
+	/**
+	 * Flip the specified rect vertically.
+	 *
+	 * @param r Rect to flip
+	 */
+	void flipVertical(const Common::Rect &r);
 };
 
 /**
@@ -334,7 +341,7 @@ public:
  *
  * This deleter assures Surface::free is called on deletion.
  */
-struct SharedPtrSurfaceDeleter {
+struct SurfaceDeleter {
 	void operator()(Surface *ptr) {
 		if (ptr) {
 			ptr->free();

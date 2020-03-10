@@ -49,6 +49,8 @@ void Scene550::Action1::signal() {
 		BF_GLOBALS._player.enableControl();
 		remove();
 		break;
+	default:
+		break;
 	}
 }
 
@@ -417,6 +419,8 @@ bool Scene551::Drunk::startAction(CursorType action, Event &event) {
 			break;
 		case 3:
 			SceneItem::display2(550, 27);
+			break;
+		default:
 			break;
 		}
 		return true;
@@ -1534,6 +1538,8 @@ void Scene560::signal() {
 	case 11:
 		BF_GLOBALS._sceneManager.changeScene(270);
 		break;
+	default:
+		break;
 	}
 }
 
@@ -1876,6 +1882,8 @@ bool Scene570::Icon::startAction(CursorType action, Event &event) {
 			scene->_sceneMode = 5704;
 			scene->setAction(&scene->_sequenceManager, scene, 5704, &scene->_object3, NULL);
 			break;
+		default:
+			break;
 		}
 		return true;
 	case CURSOR_TALK:
@@ -2122,7 +2130,7 @@ void Scene570::signal() {
 		_object3.setVisage(572);
 		_object3.setStrip(4);
 		_object3.setFrame(1);
-		// Deliberate fall-through
+		// fall through
 	case 5702:
 	case 5703:
 		_object3.fixPriority(1);
@@ -2416,6 +2424,8 @@ void Scene590::Action2::signal() {
 	case 5:
 		scene->_sceneMode = 3;
 		scene->signal();
+		break;
+	default:
 		break;
 	}
 }

@@ -36,6 +36,7 @@ class CViewItem : public CNamedItem {
 	bool MouseButtonUpMsg(CMouseButtonUpMsg *msg);
 	bool MouseMoveMsg(CMouseMoveMsg *msg);
 	bool MouseDoubleClickMsg(CMouseDoubleClickMsg *msg);
+	bool MovementMsg(CMovementMsg *msg);
 private:
 	CTreeItem *_buttonUpTargets[4];
 private:
@@ -53,6 +54,12 @@ private:
 	 * Handles mouse button up messages
 	 */
 	void handleButtonUpMsg(CMouseButtonUpMsg *msg);
+
+	/**
+	 * Returns the item in the view at a given point that will
+	 * receive any mouse click
+	 */
+	CTreeItem *getItemAtPoint(const Point &pt);
 protected:
 	int _field24;
 	CResourceKey _resourceKey;
@@ -67,12 +74,12 @@ public:
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 
 	/**
 	 * Get the resource key for the view

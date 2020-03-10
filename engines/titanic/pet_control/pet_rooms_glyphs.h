@@ -24,10 +24,11 @@
 #define TITANIC_PET_ROOMS_GLYPHS_H
 
 #include "titanic/pet_control/pet_glyphs.h"
-#include "titanic/support/simple_file.h"
 #include "titanic/game_location.h"
 
 namespace Titanic {
+
+class SimpleFile;
 
 enum RoomGlyphMode {
 	RGM_UNASSIGNED = 0, RGM_ASSIGNED_ROOM = 1, RGM_PREV_ASSIGNED_ROOM = 2
@@ -64,39 +65,39 @@ public:
 	/**
 	 * Setup the glyph
 	 */
-	virtual bool setup(CPetControl *petControl, CPetGlyphs *owner);
+	bool setup(CPetControl *petControl, CPetGlyphs *owner) override;
 
 	/**
 	 * Draw the glyph at a specified position
 	 */
-	virtual void drawAt(CScreenManager *screenManager, const Point &pt, bool isHighlighted);
+	void drawAt(CScreenManager *screenManager, const Point &pt, bool isHighlighted) override;
 
 	/**
 	 * Handles any secondary drawing of the glyph
 	 */
-	virtual void draw2(CScreenManager *screenManager) {}
+	void draw2(CScreenManager *screenManager) override {}
 
 	/**
 	 * Selects a glyph
 	 */
-	virtual void selectGlyph(const Point &topLeft, const Point &pt);
+	void selectGlyph(const Point &topLeft, const Point &pt) override;
 
 	/**
 	 * Called when a glyph drag starts
 	 */
-	virtual bool dragGlyph(const Point &topLeft, CMouseDragStartMsg *msg);
+	bool dragGlyph(const Point &topLeft, CMouseDragStartMsg *msg) override;
 
 	/**
 	 * Returns the tooltip text for when the glyph is selected
 	 */
-	virtual void getTooltip(CTextControl *text);
+	void getTooltip(CTextControl *text) override;
 
 	/**
 	 * Saves the data for the glyph
 	 */
-	virtual void saveGlyph(SimpleFile *file, int indent);
+	void saveGlyph(SimpleFile *file, int indent) override;
 
-	virtual bool proc33(CPetGlyph *glyph);
+	bool proc33(CPetGlyph *glyph) override;
 
 	/**
 	 * Loads flags for the glyph

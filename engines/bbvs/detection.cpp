@@ -44,7 +44,7 @@ static const ADGameDescription gameDescriptions[] = {
 		Common::EN_ANY,
 		Common::kPlatformWindows,
 		ADGF_NO_FLAGS,
-		GUIO0()
+		GUIO1(GUIO_NOMIDI)
 	},
 	{
 		"bbvs",
@@ -53,7 +53,7 @@ static const ADGameDescription gameDescriptions[] = {
 		Common::RU_RUS,
 		Common::kPlatformWindows,
 		GF_GUILANGSWITCH | ADGF_NO_FLAGS,
-		GUIO0()
+		GUIO1(GUIO_NOMIDI)
 	},
 
 	AD_TABLE_END_MARKER
@@ -69,25 +69,28 @@ static const char * const directoryGlobs[] = {
 class BbvsMetaEngine : public AdvancedMetaEngine {
 public:
 	BbvsMetaEngine() : AdvancedMetaEngine(Bbvs::gameDescriptions, sizeof(ADGameDescription), bbvsGames) {
-		_singleId = "bbvs";
 		_maxScanDepth = 3;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	virtual const char *getName() const {
+	const char *getEngineId() const override {
+		return "bbvs";
+	}
+
+	const char *getName() const override {
 		return "MTV's Beavis and Butt-head in Virtual Stupidity";
 	}
 
-	virtual const char *getOriginalCopyright() const {
+	const char *getOriginalCopyright() const override {
 		return "(C) 1995 Viacom New Media";
 	}
 
-	virtual bool hasFeature(MetaEngineFeature f) const;
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
-	virtual int getMaximumSaveSlot() const;
-	virtual SaveStateList listSaves(const char *target) const;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
-	virtual void removeSaveState(const char *target, int slot) const;
+	bool hasFeature(MetaEngineFeature f) const override;
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	int getMaximumSaveSlot() const override;
+	SaveStateList listSaves(const char *target) const override;
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
+	void removeSaveState(const char *target, int slot) const override;
 };
 
 bool BbvsMetaEngine::hasFeature(MetaEngineFeature f) const {
@@ -124,7 +127,7 @@ SaveStateList BbvsMetaEngine::listSaves(const char *target) const {
 		if (slotNum >= 0 && slotNum <= 999) {
 			Common::InSaveFile *in = saveFileMan->openForLoading(file->c_str());
 			if (in) {
-				if (Bbvs::BbvsEngine::readSaveHeader(in, false, header) == Bbvs::BbvsEngine::kRSHENoError) {
+				if (Bbvs::BbvsEngine::readSaveHeader(in, header) == Bbvs::BbvsEngine::kRSHENoError) {
 					saveList.push_back(SaveStateDescriptor(slotNum, header.description));
 				}
 				delete in;
@@ -142,7 +145,7 @@ SaveStateDescriptor BbvsMetaEngine::querySaveMetaInfos(const char *target, int s
 	if (in) {
 		Bbvs::BbvsEngine::SaveHeader header;
 		Bbvs::BbvsEngine::kReadSaveHeaderError error;
-		error = Bbvs::BbvsEngine::readSaveHeader(in, true, header);
+		error = Bbvs::BbvsEngine::readSaveHeader(in, header, false);
 		delete in;
 		if (error == Bbvs::BbvsEngine::kRSHENoError) {
 			SaveStateDescriptor desc(slot, header.description);

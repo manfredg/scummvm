@@ -23,6 +23,9 @@
 #ifndef FULLPIPE_SOUND_H
 #define FULLPIPE_SOUND_H
 
+#include "common/array.h"
+#include "common/ptr.h"
+
 namespace Audio {
 class SoundHandle;
 }
@@ -31,21 +34,18 @@ namespace Fullpipe {
 
 class Sound : public MemoryObject {
 	int _id;
-	int _directSoundBuffer;
-	int _directSoundBuffers[7];
 	byte *_soundData;
 	Audio::SoundHandle *_handle;
-	int _volume;
 
 public:
 	int16 _objectId;
 
 public:
 	Sound();
-	virtual ~Sound();
+	~Sound() override;
 
 	virtual bool load(MfcArchive &file, NGIArchive *archive);
-	virtual bool load(MfcArchive &file) { assert(0); return false; } // Disable base class
+	bool load(MfcArchive &file) override { assert(0); return false; } // Disable base class
 	void updateVolume();
 	int getId() const { return _id; }
 	Audio::SoundHandle *getHandle() const { return _handle; }
@@ -60,19 +60,16 @@ public:
 };
 
 class SoundList : public CObject {
-	Sound **_soundItems;
-	int _soundItemsCount;
-	NGIArchive *_libHandle;
+	Common::Array<Sound> _soundItems;
+	Common::ScopedPtr<NGIArchive> _libHandle;
 
  public:
-	SoundList();
-	~SoundList();
 	virtual bool load(MfcArchive &file, const Common::String &fname);
-	virtual bool load(MfcArchive &file) { assert(0); return false; } // Disable base class
+	bool load(MfcArchive &file) override { assert(0); return false; } // Disable base class
 	bool loadFile(const Common::String &fname, const Common::String &libname);
 
-	int getCount() { return _soundItemsCount; }
-	Sound *getSoundByIndex(int idx) { return _soundItems[idx]; }
+	int getCount() { return _soundItems.size(); }
+	Sound &getSoundByIndex(int idx) { return _soundItems[idx]; }
 	Sound *getSoundItemById(int id);
 };
 

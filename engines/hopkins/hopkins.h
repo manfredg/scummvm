@@ -63,7 +63,8 @@ namespace Hopkins {
 #define SCREEN_HEIGHT 480
 
 enum HopkinsDebugChannels {
-	kDebugPath      = 1 <<  0
+	kDebugPath     = 1 << 0,
+	kDebugGraphics = 1 << 1
 };
 
 /**
@@ -71,8 +72,6 @@ enum HopkinsDebugChannels {
  * ensure portability. Typical usage: MKTAG24('E','N','D').
  */
 #define MKTAG24(a0,a1,a2) ((uint32)((a2) | (a1) << 8 | ((a0) << 16)))
-
-#define READ_LE_INT16(x) (int16) READ_LE_UINT16(x)
 
 struct HopkinsGameDescription;
 
@@ -129,16 +128,13 @@ private:
 	bool displayAdultDisclaimer();
 protected:
 	// Engine APIs
-	virtual Common::Error run();
-	virtual bool hasFeature(EngineFeature f) const;
-
-	GUI::Debugger *getDebugger() { return _debug; }
+	Common::Error run() override;
+	bool hasFeature(EngineFeature f) const override;
 
 public:
 	AnimationManager *_animMan;
 	ComputerManager *_computer;
 	DialogsManager *_dialog;
-	Debugger *_debug;
 	EventsManager *_events;
 	FileManager *_fileIO;
 	FontManager *_fontMan;
@@ -154,7 +150,7 @@ public:
 
 public:
 	HopkinsEngine(OSystem *syst, const HopkinsGameDescription *gameDesc);
-	virtual ~HopkinsEngine();
+	~HopkinsEngine() override;
 	void GUIError(const Common::String &msg);
 
 	uint32 getFeatures() const;
@@ -165,12 +161,13 @@ public:
 	const Common::String &getTargetName() const;
 
 	int getRandomNumber(int maxNumber);
-	Common::String generateSaveName(int slotNumber);
-	virtual bool canLoadGameStateCurrently();
-	virtual bool canSaveGameStateCurrently();
-	virtual Common::Error loadGameState(int slot);
-	virtual Common::Error saveGameState(int slot, const Common::String &desc);
+	bool canLoadGameStateCurrently() override;
+	bool canSaveGameStateCurrently() override;
+	Common::Error loadGameState(int slot) override;
+	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
+
 	int _startGameSlot;
+
 	/**
 	 * Run the introduction sequence
 	 */
@@ -179,7 +176,7 @@ public:
 	/**
 	 * Synchronizes the sound settings from ScummVM into the engine
 	 */
-	virtual void syncSoundSettings();
+	void syncSoundSettings() override;
 };
 
 } // End of namespace Hopkins

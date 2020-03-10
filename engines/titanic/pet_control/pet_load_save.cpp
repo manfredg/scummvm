@@ -117,12 +117,12 @@ Rect CPetLoadSave::getSlotBounds(int index) {
 
 void CPetLoadSave::resetSlots() {
 	for (int idx = 0; idx < SAVEGAME_SLOTS_COUNT; ++idx) {
-		_slotNames[idx].setText("Empty");
+		_slotNames[idx].setText(EMPTY);
 		_slotInUse[idx] = false;
 
 		// Try and open up the savegame for access
 		Common::InSaveFile *in = g_system->getSavefileManager()->openForLoading(
-			g_vm->generateSaveName(idx));
+			g_vm->getSaveStateName(idx));
 
 		if (in) {
 			// Read in the savegame header data
@@ -133,11 +133,6 @@ void CPetLoadSave::resetSlots() {
 			if (CProjectItem::readSavegameHeader(&file, header)) {
 				_slotInUse[idx] = true;
 				_slotNames[idx].setText(header._saveName);
-			}
-
-			if (header._thumbnail) {
-				header._thumbnail->free();
-				delete header._thumbnail;
 			}
 
 			file.close();

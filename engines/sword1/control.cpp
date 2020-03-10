@@ -28,6 +28,7 @@
 #include "common/config-manager.h"
 #include "common/textconsole.h"
 #include "common/translation.h"
+#include "common/memstream.h"
 
 #include "graphics/palette.h"
 #include "graphics/thumbnail.h"
@@ -236,9 +237,10 @@ Control::Control(Common::SaveFileManager *saveFileMan, ResMan *pResMan, ObjectMa
 	_mouse = pMouse;
 	_music = pMusic;
 	_sound = pSound;
-	_lStrings = _languageStrings + SwordEngine::_systemVars.language * 20;
+	_lStrings = loadCustomStrings("strings.txt") ? _customStrings : _languageStrings + SwordEngine::_systemVars.language * 20;
 	_selectedButton = 255;
 	_panelShown = false;
+	_tempThumbnail = 0;
 }
 
 void Control::askForCd() {
@@ -299,6 +301,11 @@ static int volToBalance(int volL, int volR) {
 }
 
 uint8 Control::runPanel() {
+	// Make a thumbnail of the screen before displaying the menu in case we want to save
+	// the game from the menu.
+	_tempThumbnail = new Common::MemoryWriteStreamDynamic(DisposeAfterUse::YES);
+	Graphics::saveThumbnail(*_tempThumbnail);
+
 	_panelShown = true;
 	_mouseDown = false;
 	_restoreBuf = NULL;
@@ -392,18 +399,31 @@ uint8 Control::runPanel() {
 	if (SwordEngine::_systemVars.controlPanelMode == CP_NORMAL) {
 		uint8 volL, volR;
 		_music->giveVolume(&volL, &volR);
-		ConfMan.setInt("music_volume", (int)((volR + volL) / 2));
-		ConfMan.setInt("music_balance", volToBalance(volL, volR));
+		int vol = (int)((volR + volL) / 2);
+		int volBalance = volToBalance(volL, volR);
+		if (vol != ConfMan.getInt("music_volume"))
+			ConfMan.setInt("music_volume", vol);
+		if (volBalance != ConfMan.getInt("music_balance"))
+			ConfMan.setInt("music_balance", volBalance);
 
 		_sound->giveSpeechVol(&volL, &volR);
-		ConfMan.setInt("speech_volume", (int)((volR + volL) / 2));
-		ConfMan.setInt("speech_balance", volToBalance(volL, volR));
+		vol = (int)((volR + volL) / 2);
+		volBalance = volToBalance(volL, volR);
+		if (vol != ConfMan.getInt("speech_volume"))
+			ConfMan.setInt("speech_volume", vol);
+		if (volBalance != ConfMan.getInt("speech_balance"))
+			ConfMan.setInt("speech_balance", volBalance);
 
 		_sound->giveSfxVol(&volL, &volR);
-		ConfMan.setInt("sfx_volume", (int)((volR + volL) / 2));
-		ConfMan.setInt("sfx_balance", volToBalance(volL, volR));
+		vol = (int)((volR + volL) / 2);
+		volBalance = volToBalance(volL, volR);
+		if (vol != ConfMan.getInt("sfx_volume"))
+			ConfMan.setInt("sfx_volume", vol);
+		if (volBalance != ConfMan.getInt("sfx_balance"))
+			ConfMan.setInt("sfx_balance", volBalance);
 
-		ConfMan.setBool("subtitles", SwordEngine::_systemVars.showText == 1);
+		if (SwordEngine::_systemVars.showText != ConfMan.getBool("subtitles"))
+			ConfMan.setBool("subtitles", SwordEngine::_systemVars.showText);
 		ConfMan.flushToDisk();
 	}
 
@@ -418,6 +438,8 @@ uint8 Control::runPanel() {
 	_music->startMusic(Logic::_scriptVars[CURRENT_MUSIC], 1);
 	_sound->newScreen(Logic::_scriptVars[SCREEN]);
 	_panelShown = false;
+	delete _tempThumbnail;
+	_tempThumbnail = 0;
 	return retVal;
 }
 
@@ -494,8 +516,8 @@ uint8 Control::handleButtonClick(uint8 id, uint8 mode, uint8 *retVal) {
 		           (id == BUTTON_DONE) || (id == BUTTON_VOLUME_PANEL))
 			return id;
 		else if (id == BUTTON_TEXT) {
-			SwordEngine::_systemVars.showText ^= 1;
-			_buttons[5]->setSelected(SwordEngine::_systemVars.showText);
+			SwordEngine::_systemVars.showText = !SwordEngine::_systemVars.showText;
+			_buttons[5]->setSelected(SwordEngine::_systemVars.showText ? 1 : 0);
 		} else if (id == BUTTON_QUIT) {
 			if (getConfirm(_lStrings[STR_QUIT]))
 				Engine::quitGame();
@@ -526,6 +548,8 @@ uint8 Control::handleButtonClick(uint8 id, uint8 mode, uint8 *retVal) {
 		break;
 	case BUTTON_VOLUME_PANEL:
 		return id;
+	default:
+		break;
 	}
 	return 0;
 }
@@ -557,7 +581,7 @@ void Control::setupMainPanel() {
 		createButtons(_deathButtons, 3);
 	else {
 		createButtons(_panelButtons, 7);
-		_buttons[5]->setSelected(SwordEngine::_systemVars.showText);
+		_buttons[5]->setSelected(SwordEngine::_systemVars.showText ? 1 : 0);
 	}
 
 	if (SwordEngine::_systemVars.controlPanelMode == CP_THEEND) // end of game
@@ -611,7 +635,7 @@ void Control::setupVolumePanel() {
 
 	renderText(_lStrings[STR_MUSIC], 149, 39 + 40, TEXT_LEFT_ALIGN);
 	renderText(_lStrings[STR_SPEECH], 320, 39 + 40, TEXT_CENTER);
-	renderText(_lStrings[STR_FX], 438, 39 + 40, TEXT_LEFT_ALIGN);
+	renderText(_lStrings[STR_FX], 449, 39 + 40, TEXT_CENTER);
 
 	createButtons(_volumeButtons, 4);
 	renderText(_lStrings[STR_DONE], _volumeButtons[0].x - 10, _volumeButtons[0].y, TEXT_RIGHT_ALIGN);
@@ -905,15 +929,15 @@ void Control::showSavegameNames() {
 		_buttons[cnt]->draw();
 		uint8 textMode = TEXT_LEFT_ALIGN;
 		uint16 ycoord = _saveButtons[cnt].y + 2;
-		uint8 str[40];
-		sprintf((char *)str, "%d. %s", cnt + _saveScrollPos + 1, _saveNames[cnt + _saveScrollPos].c_str());
+		Common::String savegameNameStr = Common::String::format("%d. %s", cnt + _saveScrollPos + 1, _saveNames[cnt + _saveScrollPos].c_str());
 		if (cnt + _saveScrollPos == _selectedSavegame) {
 			textMode |= TEXT_RED_FONT;
 			ycoord += 2;
-			if (_cursorVisible)
-				strcat((char *)str, "_");
+			if (_cursorVisible) {
+				savegameNameStr += "_";
+			}
 		}
-		renderText(str, _saveButtons[cnt].x + 6, ycoord, textMode);
+		renderText((const uint8*)savegameNameStr.c_str(), _saveButtons[cnt].x + 6, ycoord, textMode);
 	}
 }
 
@@ -1105,8 +1129,13 @@ void Control::saveGameToFile(uint8 slot) {
 	outf->write(_saveNames[slot].c_str(), 40);
 	outf->writeByte(SAVEGAME_VERSION);
 
-	if (!isPanelShown()) // Generate a thumbnail only if we are outside of game menu
+	// Saving can occur either delayed from the GMM (in which case the panel is now shown and we can make
+	// a thumbnail now) or from the game menu (the panel, in which case we created the _tempThumbnail just
+	// before showing the panel).
+	if (!isPanelShown())
 		Graphics::saveThumbnail(*outf);
+	else if (_tempThumbnail)
+		outf->write(_tempThumbnail->getData(), _tempThumbnail->size());
 
 	// Date / time
 	TimeDate curTime;
@@ -1414,6 +1443,26 @@ const ButtonInfo Control::_volumeButtons[4] = {
 	{ 273, 135, SR_VKNOB, 0, 0 },
 	{ 404, 135, SR_VKNOB, 0, 0 },
 };
+
+bool Control::loadCustomStrings(const char *filename) {
+	Common::File f;
+
+	if (f.open(filename)) {
+		Common::String line;
+
+		for (int lineNo = 0; lineNo < 20; lineNo++) {
+			line = f.readLine();
+
+			if (f.eos())
+				return false;
+
+			memset((void*)_customStrings[lineNo], 0, 43);
+			strncpy((char*)_customStrings[lineNo], line.c_str(), 42);
+		}
+		return true;
+	}
+	return false;
+}
 
 const uint8 Control::_languageStrings[8 * 20][43] = {
 	// BS1_ENGLISH:

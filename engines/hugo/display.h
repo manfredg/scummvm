@@ -61,7 +61,7 @@ public:
 
 	void     displayBackground();
 	void     displayFrame(const int sx, const int sy, Seq *seq, const bool foreFl);
-	void     displayList(Dupdate update, ...);
+	void     displayList(int update, ...);
 	void     displayRect(const int16 x, const int16 y, const int16 dx, const int16 dy);
 	void     drawBoundaries();
 	void     drawRectangle(const bool filledFl, const int16 x1, const int16 y1, const int16 x2, const int16 y2, const int color);
@@ -150,23 +150,23 @@ private:
 class Screen_v1d : public Screen {
 public:
 	Screen_v1d(HugoEngine *vm);
-	~Screen_v1d();
+	~Screen_v1d() override;
 
-	void loadFont(int16 fontId);
-	void loadFontArr(Common::ReadStream &in);
+	void loadFont(int16 fontId) override;
+	void loadFontArr(Common::ReadStream &in) override;
 protected:
-	OverlayState findOvl(Seq *seqPtr, ImagePtr dstPtr, uint16 y);
+	OverlayState findOvl(Seq *seqPtr, ImagePtr dstPtr, uint16 y) override;
 };
 
 class Screen_v1w : public Screen {
 public:
 	Screen_v1w(HugoEngine *vm);
-	~Screen_v1w();
+	~Screen_v1w() override;
 
-	void loadFont(int16 fontId);
-	void loadFontArr(Common::ReadStream &in);
+	void loadFont(int16 fontId) override;
+	void loadFontArr(Common::ReadStream &in) override;
 protected:
-	OverlayState findOvl(Seq *seqPtr, ImagePtr dstPtr, uint16 y);
+	OverlayState findOvl(Seq *seqPtr, ImagePtr dstPtr, uint16 y) override;
 };
 
 } // End of namespace Hugo

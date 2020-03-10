@@ -21,8 +21,9 @@
  */
 
 #include "titanic/star_control/star_field_base.h"
-#include "titanic/star_control/star_camera.h"
-#include "titanic/titanic.h"
+#include "titanic/debugger.h"
+#include "titanic/star_control/camera.h"
+#include "titanic/support/simple_file.h"
 
 namespace Titanic {
 
@@ -38,7 +39,7 @@ bool CStarFieldBase::loadYale(int v1) {
 }
 
 bool CStarFieldBase::selectStar(CSurfaceArea *surfaceArea,
-		CStarCamera *camera, const Common::Point &pt, void *handler) {
+		CCamera *camera, const Common::Point &pt, void *handler) {
 		int index = findStar(surfaceArea, camera, pt);
 	if (index == -1) {
 		return false;

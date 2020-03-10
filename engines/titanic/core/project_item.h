@@ -42,6 +42,13 @@ struct TitanicSavegameHeader {
 	int _year, _month, _day;
 	int _hour, _minute;
 	int _totalFrames;
+
+	TitanicSavegameHeader() { clear(); }
+
+	/**
+	 * Clear the header
+	 */
+	void clear();
 };
 
 
@@ -61,12 +68,12 @@ public:
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 };
 
 /**
@@ -148,26 +155,26 @@ public:
 	/**
 	 * Read in the header information for a savegame
 	 */
-	static bool readSavegameHeader(SimpleFile *file, TitanicSavegameHeader &header);
+	WARN_UNUSED_RESULT static bool readSavegameHeader(SimpleFile *file, TitanicSavegameHeader &header, bool skipThumbnail = true);
 public:
 	CLASSDEF;
 	CProjectItem();
-	virtual ~CProjectItem() { destroyChildren(); }
+	~CProjectItem() override { destroyChildren(); }
 
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 
 	/**
 	 * Get the game manager for the project
 	 */
-	virtual CGameManager *getGameManager() const;
+	CGameManager *getGameManager() const override;
 
 	/**
 	 * Sets the game manager for the project, if not already set
@@ -228,6 +235,22 @@ public:
 	 * Finds a view
 	 */
 	CViewItem *findView(int roomNumber, int nodeNumber, int viewNumber);
+
+	/**
+	 * Parses a view into it's components of room, node, and view,
+	 * and locates the designated view
+	 */
+	CViewItem *parseView(const CString &viewString);
+
+	/**
+	 * Change the view
+	 */
+	bool changeView(const CString &viewName, const CString &clipName);
+
+	/**
+	 * Change the view
+	 */
+	bool changeView(const CString &viewName);
 };
 
 } // End of namespace Titanic

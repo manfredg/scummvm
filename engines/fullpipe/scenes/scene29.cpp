@@ -569,7 +569,7 @@ void sceneHandler29_manRideBack() {
 
 void sceneHandler29_shoot() {
 	if (g_vars->scene29_arcadeIsOn && g_vars->scene29_manX < 1310) {
-		if (g_fp->_rnd->getRandomNumber(32767) <= 16383|| g_vars->scene29_shooter1->_movement || g_vars->scene29_shooter1->_statics->_staticsId != ST_STR1_RIGHT) {
+		if (g_fp->_rnd.getRandomNumber(32767) <= 16383|| g_vars->scene29_shooter1->_movement || g_vars->scene29_shooter1->_statics->_staticsId != ST_STR1_RIGHT) {
 			if (!g_vars->scene29_shooter2->_movement && g_vars->scene29_shooter2->_statics->_staticsId == ST_STR2_RIGHT) {
 				if (g_vars->scene29_shooter2->_flags & 4) {
 					g_vars->scene29_shooter2->startAnim(MV_STR2_SHOOT, 0, -1);
@@ -637,7 +637,7 @@ void sceneHandler29_animBearded() {
 		if (g_vars->scene29_arcadeIsOn && g_vars->scene29_bearders[i]->wbcounter > 30) {
 			int newx;
 
-			if (g_fp->_rnd->getRandomNumber(1))
+			if (g_fp->_rnd.getRandomNumber(1))
 				goto dostuff;
 
 			if (g_vars->scene29_manX <= 700) {
@@ -687,11 +687,9 @@ int sceneHandler29(ExCommand *cmd) {
 	case MSG_SC29_LAUGH:
 		if (g_vars->scene29_hitBall == ANI_SHELL_GREEN) {
 			g_fp->playSound(SND_29_028, 0);
-			break;
+		} else {
+			g_fp->playSound(SND_29_029, 0);
 		}
-
-		g_fp->playSound(SND_29_029, 0);
-
 		break;
 
 	case MSG_SC29_SHOWLASTRED:
@@ -719,7 +717,6 @@ int sceneHandler29(ExCommand *cmd) {
 			g_vars->scene29_greenBalls.back()->show1(-1, -1, -1, 0);
 			g_vars->scene29_greenBalls.back()->startAnim(MV_SHG_HITASS, 0, -1);
 		}
-
 		break;
 
 	case MSG_SC29_STOPRIDE:
@@ -764,20 +761,17 @@ int sceneHandler29(ExCommand *cmd) {
 					cmd->_messageKind = 0;
 					break;
 				}
-				break;
+			} else {
+				sceneHandler29_manJump();
+				cmd->_messageKind = 0;
 			}
-
-			sceneHandler29_manJump();
-
-			cmd->_messageKind = 0;
-			break;
 		}
 		break;
 
 	case 107:
-		if (g_vars->scene29_arcadeIsOn)
+		if (g_vars->scene29_arcadeIsOn) {
 			sceneHandler29_manBend();
-
+		}
 		break;
 
 	case 33:
@@ -826,6 +820,9 @@ int sceneHandler29(ExCommand *cmd) {
 		g_fp->_behaviorManager->updateBehaviors();
 		g_fp->startSceneTrack();
 
+		break;
+
+	default:
 		break;
 	}
 

@@ -39,7 +39,13 @@
 
 namespace Image {
 
-PNGDecoder::PNGDecoder() : _outputSurface(0), _palette(0), _paletteColorCount(0) {
+PNGDecoder::PNGDecoder() :
+        _outputSurface(0),
+        _palette(0),
+        _paletteColorCount(0),
+        _skipSignature(false),
+		_keepTransparencyPaletted(false),
+		_transparentColor(-1) {
 }
 
 PNGDecoder::~PNGDecoder() {
@@ -54,6 +60,14 @@ void PNGDecoder::destroy() {
 	}
 	delete[] _palette;
 	_palette = NULL;
+}
+
+Graphics::PixelFormat PNGDecoder::getByteOrderRgbaPixelFormat() const {
+#ifdef SCUMM_BIG_ENDIAN
+	return Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0);
+#else
+	return Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24);
+#endif
 }
 
 #ifdef USE_PNG
@@ -99,12 +113,14 @@ bool PNGDecoder::loadStream(Common::SeekableReadStream &stream) {
 #ifdef USE_PNG
 	destroy();
 
-	// First, check the PNG signature
-	if (stream.readUint32BE() != MKTAG(0x89, 'P', 'N', 'G')) {
-		return false;
-	}
-	if (stream.readUint32BE() != MKTAG(0x0d, 0x0a, 0x1a, 0x0a)) {
-		return false;
+	// First, check the PNG signature (if not set to skip it)
+	if (!_skipSignature) {
+		if (stream.readUint32BE() != MKTAG(0x89, 'P', 'N', 'G')) {
+			return false;
+		}
+		if (stream.readUint32BE() != MKTAG(0x0d, 0x0a, 0x1a, 0x0a)) {
+			return false;
+		}
 	}
 
 	// The following is based on the guide provided in:
@@ -118,11 +134,6 @@ bool PNGDecoder::loadStream(Common::SeekableReadStream &stream) {
 	png_infop infoPtr = png_create_info_struct(pngPtr);
 	if (!infoPtr) {
 		png_destroy_read_struct(&pngPtr, NULL, NULL);
-		return false;
-	}
-	png_infop endInfo = png_create_info_struct(pngPtr);
-	if (!endInfo) {
-		png_destroy_read_struct(&pngPtr, &infoPtr, NULL);
 		return false;
 	}
 
@@ -150,7 +161,7 @@ bool PNGDecoder::loadStream(Common::SeekableReadStream &stream) {
 
 	// Images of all color formats except PNG_COLOR_TYPE_PALETTE
 	// will be transformed into ARGB images
-	if (colorType == PNG_COLOR_TYPE_PALETTE && !png_get_valid(pngPtr, infoPtr, PNG_INFO_tRNS)) {
+	if (colorType == PNG_COLOR_TYPE_PALETTE && (_keepTransparencyPaletted || !png_get_valid(pngPtr, infoPtr, PNG_INFO_tRNS))) {
 		int numPalette = 0;
 		png_colorp palette = NULL;
 		uint32 success = png_get_PLTE(pngPtr, infoPtr, &palette, &numPalette);
@@ -166,16 +177,24 @@ bool PNGDecoder::loadStream(Common::SeekableReadStream &stream) {
 			_palette[(i * 3) + 2] = palette[i].blue;
 
 		}
+
+		if (png_get_valid(pngPtr, infoPtr, PNG_INFO_tRNS)) {
+			png_bytep trans;
+			int numTrans;
+			png_color_16p transColor;
+			png_get_tRNS(pngPtr, infoPtr, &trans, &numTrans, &transColor);
+			assert(numTrans == 1);
+			_transparentColor = *trans;
+		}
+
 		_outputSurface->create(width, height, Graphics::PixelFormat::createFormatCLUT8());
 		png_set_packing(pngPtr);
 	} else {
-		bool isAlpha = (colorType & PNG_COLOR_MASK_ALPHA);
 		if (png_get_valid(pngPtr, infoPtr, PNG_INFO_tRNS)) {
-			isAlpha = true;
 			png_set_expand(pngPtr);
 		}
-		_outputSurface->create(width, height, Graphics::PixelFormat(4,
-		                       8, 8, 8, isAlpha ? 8 : 0, 24, 16, 8, 0));
+
+		_outputSurface->create(width, height, getByteOrderRgbaPixelFormat());
 		if (!_outputSurface->getPixels()) {
 			error("Could not allocate memory for output image.");
 		}
@@ -187,17 +206,8 @@ bool PNGDecoder::loadStream(Common::SeekableReadStream &stream) {
 			colorType == PNG_COLOR_TYPE_GRAY_ALPHA)
 			png_set_gray_to_rgb(pngPtr);
 
-		// PNGs are Big-Endian:
-#ifdef SCUMM_LITTLE_ENDIAN
-		png_set_bgr(pngPtr);
-		png_set_swap_alpha(pngPtr);
-		if (colorType != PNG_COLOR_TYPE_RGB_ALPHA)
-			png_set_filler(pngPtr, 0xff, PNG_FILLER_BEFORE);
-#else
 		if (colorType != PNG_COLOR_TYPE_RGB_ALPHA)
 			png_set_filler(pngPtr, 0xff, PNG_FILLER_AFTER);
-#endif
-
 	}
 
 	// After the transformations have been registered, the image data is read again.
@@ -237,7 +247,7 @@ bool PNGDecoder::loadStream(Common::SeekableReadStream &stream) {
 	png_read_end(pngPtr, NULL);
 
 	// Destroy libpng structures
-	png_destroy_read_struct(&pngPtr, &infoPtr, &endInfo);
+	png_destroy_read_struct(&pngPtr, &infoPtr, NULL);
 
 	return true;
 #else
@@ -245,27 +255,47 @@ bool PNGDecoder::loadStream(Common::SeekableReadStream &stream) {
 #endif
 }
 
-bool writePNG(Common::WriteStream &out, const Graphics::Surface &input, const bool bottomUp) {
+bool writePNG(Common::WriteStream &out, const Graphics::Surface &input) {
 #ifdef USE_PNG
-	const Graphics::PixelFormat requiredFormat(3, 8, 8, 8, 0, 16, 8, 0, 0);
+#ifdef SCUMM_LITTLE_ENDIAN
+	const Graphics::PixelFormat requiredFormat_3byte(3, 8, 8, 8, 0, 0, 8, 16, 0);
+	const Graphics::PixelFormat requiredFormat_4byte(4, 8, 8, 8, 8, 0, 8, 16, 24);
+#else
+	const Graphics::PixelFormat requiredFormat_3byte(3, 8, 8, 8, 0, 16, 8, 0, 0);
+	const Graphics::PixelFormat requiredFormat_4byte(4, 8, 8, 8, 8, 24, 16, 8, 0);
+#endif
 
-	if (input.format != requiredFormat) {
-		warning("Cannot currently write PNG with pixel format other than %s", requiredFormat.toString().c_str());
-		return false;
+	int colorType;
+	Graphics::Surface *tmp = NULL;
+	const Graphics::Surface *surface;
+
+	if (input.format == requiredFormat_3byte) {
+		surface = &input;
+		colorType = PNG_COLOR_TYPE_RGB;
+	} else {
+		if (input.format == requiredFormat_4byte) {
+			surface = &input;
+		} else {
+			surface = tmp = input.convertTo(requiredFormat_4byte);
+		}
+		colorType = PNG_COLOR_TYPE_RGB_ALPHA;
 	}
 
 	png_structp pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (!pngPtr) {
+		if (tmp) {
+			tmp->free();
+			delete tmp;
+		}
 		return false;
 	}
 	png_infop infoPtr = png_create_info_struct(pngPtr);
 	if (!infoPtr) {
 		png_destroy_write_struct(&pngPtr, NULL);
-		return false;
-	}
-	png_infop endInfo = png_create_info_struct(pngPtr);
-	if (!endInfo) {
-		png_destroy_write_struct(&pngPtr, &infoPtr);
+		if (tmp) {
+			tmp->free();
+			delete tmp;
+		}
 		return false;
 	}
 
@@ -274,23 +304,24 @@ bool writePNG(Common::WriteStream &out, const Graphics::Surface &input, const bo
 
 	png_set_write_fn(pngPtr, &out, pngWriteToStream, pngFlushStream);
 
-	png_set_IHDR(pngPtr, infoPtr, input.w, input.h, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+	png_set_IHDR(pngPtr, infoPtr, surface->w, surface->h, 8, colorType, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
 	Common::Array<const uint8 *> rows;
-	rows.reserve(input.h);
-	if (bottomUp) {
-		for (uint y = input.h; y-- > 0;) {
-			rows.push_back((const uint8 *)input.getBasePtr(0, y));
-		}
-	} else {
-		for (uint y = 0; y < input.h; ++y) {
-			rows.push_back((const uint8 *)input.getBasePtr(0, y));
-		}
+	rows.reserve(surface->h);
+	for (uint y = 0; y < surface->h; ++y) {
+		rows.push_back((const uint8 *)surface->getBasePtr(0, y));
 	}
 
 	png_set_rows(pngPtr, infoPtr, const_cast<uint8 **>(&rows.front()));
 	png_write_png(pngPtr, infoPtr, 0, NULL);
 	png_destroy_write_struct(&pngPtr, &infoPtr);
+
+	// free tmp surface
+	if (tmp) {
+		tmp->free();
+		delete tmp;
+	}
+
 	return true;
 #else
 	return false;

@@ -28,6 +28,7 @@
 #include "common/hashmap.h"
 #include "common/hash-str.h"
 #include "common/array.h"
+#include "common/str.h"
 #include "common/str-array.h"
 
 namespace GUI {
@@ -64,7 +65,7 @@ public:
 	 * 'Attach' the debugger. This ensures that the next time onFrame()
 	 * is invoked, the debugger will activate and accept user input.
 	 */
-	virtual void attach(const char *entry = 0);
+	virtual void attach(const char *entry = nullptr);
 
 	/**
 	 * Return true if the debugger is currently active (i.e. executing
@@ -161,7 +162,7 @@ private:
 	 */
 	bool _isActive;
 
-	char *_errStr;
+	Common::String _errStr;
 
 	/**
 	 * Initially true, set to false when Debugger::enter is called
@@ -193,6 +194,13 @@ protected:
 	virtual void postEnter();
 
 	/**
+	 * Process the given command line.
+	 * Returns true if and only if argv[0] is a known command and was
+	 * handled, false otherwise.
+	 */
+	virtual bool handleCommand(int argc, const char **argv, bool &keepRunning);
+
+	/**
 	 * Subclasses should invoke the detach() method in their cmdFOO methods
 	 * if that command will resume execution of the program (as opposed to
 	 * executing, say, a "single step through code" command).
@@ -204,15 +212,14 @@ protected:
 private:
 	void enter();
 
+	/**
+	 * Splits up the input into individual parameters
+	 * @remarks		Adapted from code provided by torek on StackOverflow
+	 */
+	void splitCommand(Common::String &input, int &argc, const char **argv);
+
 	bool parseCommand(const char *input);
 	bool tabComplete(const char *input, Common::String &completion) const;
-
-	/**
-	 * Process the given command line.
-	 * Returns true if and only if argv[0] is a known command and was
-	 * handled, false otherwise.
-	 */
-	virtual bool handleCommand(int argc, const char **argv, bool &keepRunning);
 
 protected:
 	bool cmdExit(int argc, const char **argv);

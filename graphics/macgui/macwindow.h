@@ -36,6 +36,7 @@ namespace Graphics {
 
 class MacWindowManager;
 class MacWindowBorder;
+class MacWidget;
 
 namespace MacWindowConstants {
 enum WindowType {
@@ -61,6 +62,14 @@ enum WindowClick {
 };
 }
 using namespace MacWindowConstants;
+
+struct WidgetInfo {
+	Common::Rect bbox;
+	MacWidget *widget;
+
+	WidgetInfo(MacWidget *widget_, int x, int y);
+	~WidgetInfo();
+};
 
 /**
  * Abstract class that defines common functionality for all window classes.
@@ -150,6 +159,8 @@ public:
 	 */
 	void setCallback(bool (*callback)(WindowClick, Common::Event &, void *), void *data) { _callback = callback; _dataPtr = data; }
 
+	void addWidget(MacWidget *widget, int x, int y);
+
 protected:
 	int _id;
 	WindowType _type;
@@ -164,6 +175,9 @@ protected:
 	bool (*_callback)(WindowClick, Common::Event &, void *);
 	void *_dataPtr;
 
+	Common::List<WidgetInfo *> _widgets;
+
+public:
 	MacWindowManager *_wm;
 };
 
@@ -198,7 +212,7 @@ public:
 	 * @param w New width of the window.
 	 * @param h New height of the window.
 	 */
-	void resize(int w, int h);
+	virtual void resize(int w, int h);
 
 	/**
 	 * Change the dimensions of the window ([0, 0, 0, 0] by default).
@@ -228,7 +242,7 @@ public:
 	 * @param g See BaseMacWindow.
 	 * @param forceRedraw If true, the borders are guarranteed to redraw.
 	 */
-	bool draw(ManagedSurface *g, bool forceRedraw = false);
+	virtual bool draw(ManagedSurface *g, bool forceRedraw = false);
 
 	/**
 	 * Mutator to change the active state of the window.
@@ -262,7 +276,7 @@ public:
 	/**
 	 * See BaseMacWindow.
 	 */
-	bool processEvent(Common::Event &event);
+	virtual bool processEvent(Common::Event &event);
 	bool hasAllFocus() { return _beingDragged || _beingResized; }
 
 	/**
@@ -276,8 +290,8 @@ public:
 	 * @param to Width of the top side of the border, in pixels.
 	 * @param bo Width of the bottom side of the border, in pixels.
 	 */
-	void loadBorder(Common::SeekableReadStream &file, bool active, int lo, int ro, int to, int bo);
-	//void setBorder(TransparentSurface &border, bool active);
+	void loadBorder(Common::SeekableReadStream &file, bool active, int lo = -1, int ro = -1, int to = -1, int bo = -1);
+	void setBorder(TransparentSurface *border, bool active, int lo = -1, int ro = -1, int to = -1, int bo = -1);
 
 	/**
 	 * Indicate whether the window can be closed (false by default).
@@ -286,7 +300,6 @@ public:
 	void setCloseable(bool closeable);
 
 private:
-	void drawBorder();
 	void prepareBorderSurface(ManagedSurface *g);
 	void drawSimpleBorder(ManagedSurface *g);
 	void drawBorderFromSurface(ManagedSurface *g);
@@ -295,16 +308,22 @@ private:
 	void fillRect(ManagedSurface *g, int x, int y, int w, int h, int color);
 	const Font *getTitleFont();
 	void updateInnerDims();
-	WindowClick isInBorder(int x, int y);
 
 	bool isInCloseButton(int x, int y);
 	bool isInResizeButton(int x, int y);
 	WindowClick isInScroll(int x, int y);
 
-private:
+protected:
+	void drawBorder();
+	WindowClick isInBorder(int x, int y);
+
+protected:
 	ManagedSurface _borderSurface;
 	ManagedSurface _composeSurface;
 
+	bool _borderIsDirty;
+
+private:
 	MacWindowBorder _macBorder;
 
 	int _pattern;
@@ -313,19 +332,17 @@ private:
 	bool _scrollable;
 	bool _resizable;
 	bool _active;
-	bool _borderIsDirty;
 
 	bool _closeable;
 
 	int _borderWidth;
+	Common::Rect _innerDims;
 
 	bool _beingDragged, _beingResized;
 	int _draggedX, _draggedY;
 
 	WindowClick _highlightedPart;
 	float _scrollPos, _scrollSize;
-
-	Common::Rect _innerDims;
 
 	Common::String _title;
 };

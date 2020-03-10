@@ -13,6 +13,11 @@ ifeq ($(ENABLE_WINTERMUTE), STATIC_PLUGIN)
 	TEST_LIBS += engines/wintermute/libwintermute.a
 endif
 
+ifeq ($(ENABLE_ULTIMA), STATIC_PLUGIN)
+	TESTS += $(srcdir)/test/engines/ultima/*/*/*.h
+	TEST_LIBS += engines/ultima/libultima.a
+endif
+
 #
 TEST_FLAGS   := --runner=StdioPrinter --no-std --no-eh --include=$(srcdir)/test/cxxtest_mingw.h
 TEST_CFLAGS  := $(CFLAGS) -I$(srcdir)/test/cxxtest
@@ -27,13 +32,6 @@ ifdef PSP
 TEST_LIBS += backends/platform/psp/memory.o \
 	backends/platform/psp/mp3.o \
 	backends/platform/psp/trace.o
-endif
-
-ifdef HAVE_GCC3
-# In test/common/str.h, we test a zero length format string. This causes GCC
-# to generate a warning which in turn poses a problem when building with -Werror.
-# To work around this, we disable -Wformat here.
-TEST_CFLAGS  +=  -Wno-format
 endif
 
 # Enable this to get an X11 GUI for the error reporter.

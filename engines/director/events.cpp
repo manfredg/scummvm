@@ -21,7 +21,8 @@
  */
 
 #include "common/system.h"
-#include "common/events.h"
+
+#include "graphics/macgui/macwindowmanager.h"
 
 #include "director/director.h"
 #include "director/frame.h"
@@ -43,7 +44,7 @@ void processQuitEvent() {
 void DirectorEngine::processEvents() {
 	Common::Event event;
 
-	uint endTime = g_system->getMillis() + 200;
+	uint endTime = g_system->getMillis() + 10;
 
 	Score *sc = getCurrentScore();
 	if (sc->getCurrentFrame() >= sc->_frames.size()) {
@@ -57,6 +58,9 @@ void DirectorEngine::processEvents() {
 
 	while (g_system->getMillis() < endTime) {
 		while (g_system->getEventManager()->pollEvent(event)) {
+			if (_wm->processEvent(event))
+				continue;
+
 			switch (event.type) {
 			case Common::EVENT_QUIT:
 				sc->_stopPlay = true;
@@ -70,13 +74,10 @@ void DirectorEngine::processEvents() {
 				spriteId = currentFrame->getSpriteIDFromPos(pos);
 				sc->_currentMouseDownSpriteId = spriteId;
 
-				debugC(3, kDebugEvents, "event: Button Down @(%d, %d), sprite id: %d", pos.x, pos.y, spriteId);
+				sc->_mouseIsDown = true;
 
-				if (getVersion() > 3) {
-					// TODO: check that this is the order of script execution!
-					_lingo->processEvent(kEventMouseDown, kCastScript, currentFrame->_sprites[spriteId]->_castId);
-					_lingo->processEvent(kEventMouseDown, kSpriteScript, currentFrame->_sprites[spriteId]->_scriptId);
-				}
+				debugC(3, kDebugEvents, "event: Button Down @(%d, %d), sprite id: %d", pos.x, pos.y, spriteId);
+				_lingo->processEvent(kEventMouseDown);
 
 				if (currentFrame->_sprites[spriteId]->_moveable) {
 					warning("Moveable");
@@ -90,18 +91,9 @@ void DirectorEngine::processEvents() {
 
 				debugC(3, kDebugEvents, "event: Button Up @(%d, %d), sprite id: %d", pos.x, pos.y, spriteId);
 
-				if (getVersion() > 3) {
-					// TODO: check that this is the order of script execution!
-					_lingo->processEvent(kEventMouseUp, kCastScript, currentFrame->_sprites[spriteId]->_castId);
-					_lingo->processEvent(kEventMouseUp, kSpriteScript, currentFrame->_sprites[spriteId]->_scriptId);
-				} else {
-					// Frame script overrides sprite script
-					if (!currentFrame->_sprites[spriteId]->_scriptId)
-						_lingo->processEvent(kEventNone, kSpriteScript, currentFrame->_sprites[spriteId]->_castId + 1024);
-					else
-						_lingo->processEvent(kEventNone, kFrameScript, currentFrame->_sprites[spriteId]->_scriptId);
-				}
+				sc->_mouseIsDown = false;
 
+				_lingo->processEvent(kEventMouseUp);
 				sc->_currentMouseDownSpriteId = 0;
 				break;
 
@@ -123,10 +115,10 @@ void DirectorEngine::processEvents() {
 					_keyCode = 126;
 					break;
 				default:
-					warning("Keycode: %d", _keyCode);
+					debugC(1, kDebugEvents, "processEvents(): keycode: %d", _keyCode);
 				}
 
-				_lingo->processEvent(kEventKeyDown, kGlobalScript, 0);
+				_lingo->processEvent(kEventKeyDown);
 				break;
 
 			default:
@@ -138,7 +130,7 @@ void DirectorEngine::processEvents() {
 		g_system->delayMillis(10);
 
 		if (sc->getCurrentFrame() > 0)
-			_lingo->processEvent(kEventIdle, kFrameScript, sc->getCurrentFrame());
+			_lingo->processEvent(kEventIdle);
 	}
 }
 

@@ -134,9 +134,7 @@ void scene11_initScene(Scene *sc) {
 		getCurrSceneSc2MotionController()->enableLinks(sO_CloseThing1, 1);
 		getCurrSceneSc2MotionController()->enableLinks(sO_CloseThing2, 1);
 		getCurrSceneSc2MotionController()->enableLinks(sO_CloseThing3, 0);
-
-		((MctlCompound *)getCurrSceneSc2MotionController())->replaceNodeX(805, 905);
-
+		getCurrSceneSc2MotionController()->replaceNodeX(805, 905);
 		getSc2MctlCompoundBySceneId(sc->_sceneId)->replaceNodeX(303, 353);
 	} else if (swingie == g_fp->getObjectEnumState(sO_Swingie, sO_IsStandingInBoots)
 				|| swingie == g_fp->getObjectEnumState(sO_Swingie, sO_IsStandingInCorner)) {
@@ -148,8 +146,7 @@ void scene11_initScene(Scene *sc) {
 		getCurrSceneSc2MotionController()->enableLinks(sO_CloseThing1, 0);
 		getCurrSceneSc2MotionController()->enableLinks(sO_CloseThing2, 1);
 		getCurrSceneSc2MotionController()->enableLinks(sO_CloseThing3, 0);
-
-		((MctlCompound *)getCurrSceneSc2MotionController())->replaceNodeX(905, 805);
+		getCurrSceneSc2MotionController()->replaceNodeX(905, 805);
 	} else {
 		g_vars->scene11_swingIsSwinging = false;
 		g_vars->scene11_swingieStands = false;
@@ -319,7 +316,7 @@ void sceneHandler11_jumpFromSwing() {
 
 	MessageQueue *mq = new MessageQueue(g_fp->_globalMessageQueueList->compact());
 	ExCommand *ex = new ExCommand(g_fp->_aniMan->_id, 34, 256, 0, 0, 0, 1, 0, 0, 0);
-	ex->_field_14 = 256;
+	ex->_z = 256;
 	ex->_messageNum = 0;
 	ex->_excFlags |= 3;
 	mq->addExCommandToEnd(ex);
@@ -634,8 +631,9 @@ int sceneHandler11(ExCommand *cmd) {
 		break;
 
 	case 107:
-		if (g_vars->scene11_arcadeIsOn)
+		if (g_vars->scene11_arcadeIsOn) {
 			sceneHandler11_swingLogic();
+		}
 		break;
 
 	case 33:
@@ -732,6 +730,7 @@ int sceneHandler11(ExCommand *cmd) {
 			g_fp->startSceneTrack();
 			return res;
 		}
+		break;
 
 	case 29:
 		if (g_vars->scene11_swingIsSwinging) {
@@ -760,12 +759,16 @@ int sceneHandler11(ExCommand *cmd) {
 						|| (cmd->_sceneClickX - g_fp->_sceneRect.left < 47 && g_fp->_sceneRect.left > 0)) {
 						g_fp->processArcade(cmd);
 
-						return 0;
+						break;
 					}
 				}
 			}
-			return 0;
+			break;
 		}
+		break;
+
+	default:
+		break;
 	}
 
 	return 0;

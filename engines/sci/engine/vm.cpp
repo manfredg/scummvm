@@ -141,10 +141,15 @@ static reg_t read_var(EngineState *s, int type, int index) {
 			}
 			case VAR_PARAM: {
 				// Out-of-bounds read for a parameter that goes onto stack and hits an uninitialized temp
-				//  We return 0 currently in that case
-				const SciCallOrigin origin = s->getCurrentCallOrigin();
-				warning("Uninitialized read for parameter %d from %s", index, origin.toString().c_str());
-				return NULL_REG;
+				//  We need to find correct replacements for each situation manually
+				SciCallOrigin originReply;
+				SciWorkaroundSolution solution = trackOriginAndFindWorkaround(index, uninitializedReadForParamWorkarounds, &originReply);
+				if (solution.type == WORKAROUND_NONE) {
+					warning("Uninitialized read for parameter %d from %s", index, originReply.toString().c_str());
+					return NULL_REG;
+				} else {
+					return make_reg(0, solution.value);
+				}
 			}
 			default:
 				break;
@@ -217,7 +222,9 @@ ExecStack *execute_method(EngineState *s, uint16 script, uint16 pubfunct, StackP
 	}
 
 	// Check if a breakpoint is set on this method
-	g_sci->checkExportBreakpoint(script, pubfunct);
+	if (g_sci->checkExportBreakpoint(script, pubfunct)) {
+		logExportCall(script, pubfunct, s, argc, argp);
+	}
 
 	uint32 exportAddr = scr->validateExportFunc(pubfunct, false);
 	if (!exportAddr)
@@ -287,11 +294,10 @@ ExecStack *send_selector(EngineState *s, reg_t send_obj, reg_t work_obj, StackPt
 
 		ExecStackType stackType = EXEC_STACK_TYPE_VARSELECTOR;
 		StackPtr curSP = NULL;
-		reg32_t curFP = make_reg32(0, 0);
+		reg_t curFP = make_reg32(0, 0);
 		if (selectorType == kSelectorMethod) {
 			stackType = EXEC_STACK_TYPE_CALL;
 			curSP = sp;
-			// TODO: Will this offset suffice for large SCI3 scripts?
 			curFP = make_reg32(funcp.getSegment(), funcp.getOffset());
 			sp = CALL_SP_CARRY; // Destroy sp, as it will be carried over
 		}
@@ -1056,6 +1062,14 @@ void run_vm(EngineState *s) {
 			if (!r_temp.isPointer())
 				error("[VM]: Invalid superclass in object");
 			else {
+				// SCI3 sets r_acc to whatever was in EAX at the start of a
+				// send. In the case of a super call this is the object ID of
+				// the superclass, as determined by the interpreter, rather than
+				// by the game scripts
+				if (getSciVersion() == SCI_VERSION_3) {
+					s->r_acc = r_temp;
+				}
+
 				s_temp = s->xs->sp;
 				s->xs->sp -= ((opparams[1] >> 1) + s->r_rest); // Adjust stack
 
@@ -1121,7 +1135,7 @@ void run_vm(EngineState *s) {
 		case op_pToa: // 0x31 (49)
 			// Property To Accumulator
 			if (g_sci->_debugState._activeBreakpointTypes & BREAK_SELECTORREAD) {
-				debugPropertyAccess(obj, s->xs->objp, opparams[0],
+				debugPropertyAccess(obj, s->xs->objp, opparams[0], NULL_SELECTOR,
 				                    validate_property(s, obj, opparams[0]), NULL_REG,
 				                    s->_segMan, BREAK_SELECTORREAD);
 			}
@@ -1133,7 +1147,7 @@ void run_vm(EngineState *s) {
 			// Accumulator To Property
 			reg_t &opProperty = validate_property(s, obj, opparams[0]);
 			if (g_sci->_debugState._activeBreakpointTypes & BREAK_SELECTORWRITE) {
-				debugPropertyAccess(obj, s->xs->objp, opparams[0],
+				debugPropertyAccess(obj, s->xs->objp, opparams[0], NULL_SELECTOR,
 				                    opProperty, s->r_acc,
 				                    s->_segMan, BREAK_SELECTORWRITE);
 			}
@@ -1150,7 +1164,7 @@ void run_vm(EngineState *s) {
 			// Property To Stack
 			reg_t value = validate_property(s, obj, opparams[0]);
 			if (g_sci->_debugState._activeBreakpointTypes & BREAK_SELECTORREAD) {
-				debugPropertyAccess(obj, s->xs->objp, opparams[0],
+				debugPropertyAccess(obj, s->xs->objp, opparams[0], NULL_SELECTOR,
 				                    value, NULL_REG,
 				                    s->_segMan, BREAK_SELECTORREAD);
 			}
@@ -1164,7 +1178,7 @@ void run_vm(EngineState *s) {
 			reg_t newValue = POP32();
 			reg_t &opProperty = validate_property(s, obj, opparams[0]);
 			if (g_sci->_debugState._activeBreakpointTypes & BREAK_SELECTORWRITE) {
-				debugPropertyAccess(obj, s->xs->objp, opparams[0],
+				debugPropertyAccess(obj, s->xs->objp, opparams[0], NULL_SELECTOR,
 				                    opProperty, newValue,
 				                    s->_segMan, BREAK_SELECTORWRITE);
 			}
@@ -1186,7 +1200,7 @@ void run_vm(EngineState *s) {
 			reg_t oldValue = opProperty;
 
 			if (g_sci->_debugState._activeBreakpointTypes & BREAK_SELECTORREAD) {
-				debugPropertyAccess(obj, s->xs->objp, opparams[0],
+				debugPropertyAccess(obj, s->xs->objp, opparams[0], NULL_SELECTOR,
 				                    oldValue, NULL_REG,
 				                    s->_segMan, BREAK_SELECTORREAD);
 			}
@@ -1197,7 +1211,7 @@ void run_vm(EngineState *s) {
 				opProperty -= 1;
 
 			if (g_sci->_debugState._activeBreakpointTypes & BREAK_SELECTORWRITE) {
-				debugPropertyAccess(obj, s->xs->objp, opparams[0],
+				debugPropertyAccess(obj, s->xs->objp, opparams[0], NULL_SELECTOR,
 				                    oldValue, opProperty,
 				                    s->_segMan, BREAK_SELECTORWRITE);
 			}

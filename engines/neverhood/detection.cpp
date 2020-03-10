@@ -198,25 +198,28 @@ static const ExtraGuiOption neverhoodExtraGuiOption3 = {
 class NeverhoodMetaEngine : public AdvancedMetaEngine {
 public:
 	NeverhoodMetaEngine() : AdvancedMetaEngine(Neverhood::gameDescriptions, sizeof(Neverhood::NeverhoodGameDescription), neverhoodGames) {
-		_singleId = "neverhood";
 		_guiOptions = GUIO2(GUIO_NOSUBTITLES, GUIO_NOMIDI);
 	}
 
-	virtual const char *getName() const {
-		return "Neverhood Engine";
+	const char *getEngineId() const override {
+		return "neverhood";
 	}
 
-	virtual const char *getOriginalCopyright() const {
-		return "Neverhood (C) The Neverhood, Inc.";
+	const char *getName() const override {
+		return "The Neverhood Chronicles";
 	}
 
-	virtual bool hasFeature(MetaEngineFeature f) const;
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
-	virtual const ExtraGuiOptions getExtraGuiOptions(const Common::String &target) const;
-	SaveStateList listSaves(const char *target) const;
-	virtual int getMaximumSaveSlot() const;
-	void removeSaveState(const char *target, int slot) const;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
+	const char *getOriginalCopyright() const override {
+		return "The Neverhood Chronicles (C) The Neverhood, Inc.";
+	}
+
+	bool hasFeature(MetaEngineFeature f) const override;
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	const ExtraGuiOptions getExtraGuiOptions(const Common::String &target) const override;
+	SaveStateList listSaves(const char *target) const override;
+	int getMaximumSaveSlot() const override;
+	void removeSaveState(const char *target, int slot) const override;
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 
 };
 
@@ -271,7 +274,7 @@ SaveStateList NeverhoodMetaEngine::listSaves(const char *target) const {
 		if (slotNum >= 0 && slotNum <= 999) {
 			Common::InSaveFile *in = saveFileMan->openForLoading(file->c_str());
 			if (in) {
-				if (Neverhood::NeverhoodEngine::readSaveHeader(in, false, header) == Neverhood::NeverhoodEngine::kRSHENoError) {
+				if (Neverhood::NeverhoodEngine::readSaveHeader(in, header) == Neverhood::NeverhoodEngine::kRSHENoError) {
 					saveList.push_back(SaveStateDescriptor(slotNum, header.description));
 				}
 				delete in;
@@ -302,7 +305,7 @@ SaveStateDescriptor NeverhoodMetaEngine::querySaveMetaInfos(const char *target, 
 		Neverhood::NeverhoodEngine::SaveHeader header;
 		Neverhood::NeverhoodEngine::kReadSaveHeaderError error;
 
-		error = Neverhood::NeverhoodEngine::readSaveHeader(in, true, header);
+		error = Neverhood::NeverhoodEngine::readSaveHeader(in, header, false);
 		delete in;
 
 		if (error == Neverhood::NeverhoodEngine::kRSHENoError) {

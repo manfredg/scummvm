@@ -34,8 +34,8 @@
 
 #include "audio/mixer.h"
 
-#include "kyra/script.h"
-#include "kyra/item.h"
+#include "kyra/script/script.h"
+#include "kyra/engine/item.h"
 
 namespace Common {
 class OutSaveFile;
@@ -122,6 +122,7 @@ struct GameFlags {
 	bool isOldFloppy          : 1;
 	bool useHiRes             : 1;
 	bool use16ColorMode       : 1;
+	bool useHiColorMode       : 1;
 	bool useDigSound          : 1;
 	bool useInstallerPackage  : 1;
 
@@ -180,12 +181,12 @@ friend class ::KyraMetaEngine;
 friend class GUI;
 friend class GUI_v1;
 friend class GUI_EoB;
-friend class SoundMidiPC;    // For _eventMan
-friend class SeqPlayer_HOF; // For skipFlag()
-friend class TransferPartyWiz; // For save state API
+friend class SoundMidiPC;		// For _eventMan
+friend class SeqPlayer_HOF;		// For skipFlag()
+friend class TransferPartyWiz;	// For save state API
 public:
 	KyraEngine_v1(OSystem *system, const GameFlags &flags);
-	virtual ~KyraEngine_v1();
+	~KyraEngine_v1() override;
 
 	uint8 game() const { return _flags.gameID; }
 	const GameFlags &gameFlags() const { return _flags; }
@@ -221,7 +222,7 @@ public:
 	void setVolume(kVolumeEntry vol, uint8 value);
 	uint8 getVolume(kVolumeEntry vol);
 
-	virtual void syncSoundSettings();
+	void syncSoundSettings() override;
 
 	// game flag handling
 	int setGameFlag(int flag);
@@ -246,7 +247,7 @@ protected:
 	virtual Common::Error init();
 	virtual Common::Error go() = 0;
 
-	virtual Common::Error run() {
+	Common::Error run() override {
 		Common::Error err;
 		registerDefaultSettings();
 		err = init();
@@ -255,9 +256,8 @@ protected:
 		return go();
 	}
 
-	virtual ::GUI::Debugger *getDebugger();
-	virtual bool hasFeature(EngineFeature f) const;
-	virtual void pauseEngineIntern(bool pause);
+	bool hasFeature(EngineFeature f) const override;
+	void pauseEngineIntern(bool pause) override;
 
 	// intern
 	Resource *_res;
@@ -266,7 +266,6 @@ protected:
 	StaticResource *_staticres;
 	TimerManager *_timer;
 	EMCInterpreter *_emc;
-	Debugger *_debugger;
 
 	// input
 	void setupKeyMap();
@@ -289,6 +288,8 @@ protected:
 	Common::List<Event> _eventList;
 	typedef Common::HashMap<Common::KeyCode, int16, KeyCodeHash> KeyMap;
 	KeyMap _keyMap;
+	bool _asciiCodeEvents;
+	bool _kbEventSkip;
 
 	// config specific
 	virtual void registerDefaultSettings();
@@ -300,6 +301,7 @@ protected:
 	int _configMusic;
 	bool _configSounds;
 	uint8 _configVoice;
+	bool _configNullSound;
 
 	Common::RenderMode _configRenderMode;
 
@@ -361,6 +363,8 @@ protected:
 	const int8 *_trackMap;
 	int _trackMapSize;
 
+	bool _preventScriptSfx;
+
 	virtual int convertVolumeToMixer(int value);
 	virtual int convertVolumeFromMixer(int value);
 
@@ -384,13 +388,11 @@ protected:
 	// save/load
 	int _gameToLoad;
 
-	uint32 _lastAutosave;
-	void checkAutosave();
-
 	bool _isSaveAllowed;
 
-	bool canLoadGameStateCurrently() { return _isSaveAllowed; }
-	bool canSaveGameStateCurrently() { return _isSaveAllowed; }
+	bool canLoadGameStateCurrently() override { return _isSaveAllowed; }
+	bool canSaveGameStateCurrently() override { return _isSaveAllowed; }
+	virtual int getAutosaveSlot() const override { return 999; }
 
 	const char *getSavegameFilename(int num);
 	Common::String _savegameFilename;
@@ -416,11 +418,13 @@ protected:
 		kRSHEIoError = 3
 	};
 
-	static ReadSaveHeaderError readSaveHeader(Common::SeekableReadStream *file, bool loadThumbnail, SaveHeader &header);
+	WARN_UNUSED_RESULT static ReadSaveHeaderError readSaveHeader(Common::SeekableReadStream *file, SaveHeader &header, bool skipThumbnail = true);
 
 	void loadGameStateCheck(int slot);
-	virtual Common::Error loadGameState(int slot) = 0;
-	Common::Error saveGameState(int slot, const Common::String &desc) { return saveGameStateIntern(slot, desc.c_str(), 0); }
+	Common::Error loadGameState(int slot) override = 0;
+	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override {
+		return saveGameStateIntern(slot, desc.c_str(), 0);
+	}
 	virtual Common::Error saveGameStateIntern(int slot, const char *saveName, const Graphics::Surface *thumbnail) = 0;
 
 	Common::SeekableReadStream *openSaveForReading(const char *filename, SaveHeader &header, bool checkID = true);

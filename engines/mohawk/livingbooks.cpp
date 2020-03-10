@@ -145,6 +145,7 @@ MohawkEngine_LivingBooks::MohawkEngine_LivingBooks(OSystem *syst, const MohawkGa
 	_rnd = new Common::RandomSource("livingbooks");
 
 	_sound = NULL;
+	_video = NULL;
 	_page = NULL;
 
 	const Common::FSNode gameDataDir(ConfMan.get("path"));
@@ -158,8 +159,8 @@ MohawkEngine_LivingBooks::MohawkEngine_LivingBooks(OSystem *syst, const MohawkGa
 MohawkEngine_LivingBooks::~MohawkEngine_LivingBooks() {
 	destroyPage();
 
-	delete _console;
 	delete _sound;
+	delete _video;
 	delete _gfx;
 	delete _rnd;
 	_bookInfoFile.clear();
@@ -168,7 +169,11 @@ MohawkEngine_LivingBooks::~MohawkEngine_LivingBooks() {
 Common::Error MohawkEngine_LivingBooks::run() {
 	MohawkEngine::run();
 
-	_console = new LivingBooksConsole(this);
+	if (!_mixer->isReady()) {
+		return Common::kAudioDeviceInitFailed;
+	}
+
+	setDebugger(new LivingBooksConsole(this));
 	// Load the book info from the detected file
 	loadBookInfo(getBookInfoFileName());
 
@@ -184,6 +189,7 @@ Common::Error MohawkEngine_LivingBooks::run() {
 		error("Could not find xRes/yRes variables");
 
 	_gfx = new LBGraphics(this, _screenWidth, _screenHeight);
+	_video = new VideoManager(this);
 	_sound = new Sound(this);
 
 	if (getGameType() != GType_LIVINGBOOKSV1)
@@ -228,13 +234,6 @@ Common::Error MohawkEngine_LivingBooks::run() {
 
 			case Common::EVENT_KEYDOWN:
 				switch (event.kbd.keycode) {
-				case Common::KEYCODE_d:
-					if (event.kbd.flags & Common::KBD_CTRL) {
-						_console->attach();
-						_console->onFrame();
-					}
-					break;
-
 				case Common::KEYCODE_SPACE:
 					pauseGame();
 					break;
@@ -285,6 +284,17 @@ Common::Error MohawkEngine_LivingBooks::run() {
 	}
 
 	return Common::kNoError;
+}
+
+void MohawkEngine_LivingBooks::pauseEngineIntern(bool pause) {
+	MohawkEngine::pauseEngineIntern(pause);
+
+	if (pause) {
+		_video->pauseVideos();
+	} else {
+		_video->resumeVideos();
+		_system->updateScreen();
+	}
 }
 
 void MohawkEngine_LivingBooks::loadBookInfo(const Common::String &filename) {
@@ -584,6 +594,9 @@ void MohawkEngine_LivingBooks::updatePage() {
 				if (item)
 					item->setVisible(false);
 				break;
+
+			default:
+				break;
 			}
 		}
 		_phase++;
@@ -611,6 +624,9 @@ void MohawkEngine_LivingBooks::updatePage() {
 
 		_phase++;
 		break;
+
+	default:
+		break;
 	}
 
 	while (_eventQueue.size()) {
@@ -634,6 +650,8 @@ void MohawkEngine_LivingBooks::updatePage() {
 				break;
 			case kLBDelayedEventDone:
 				_items[i]->done(true);
+				break;
+			default:
 				break;
 			}
 
@@ -823,6 +841,7 @@ void LBPage::loadBITL(uint16 resourceId) {
 			break;
 		default:
 			warning("Unknown item type %04x", type);
+			// fall through
 		case 3: // often used for buttons
 			res = new LBItem(_vm, this, rect);
 			break;
@@ -1202,6 +1221,9 @@ void MohawkEngine_LivingBooks::handleUIQuitClick(uint controlId) {
 		if (!tryLoadPageStart(kLBControlMode, 1))
 			error("couldn't return to menu");
 		break;
+
+	default:
+		break;
 	}
 }
 
@@ -1274,6 +1296,9 @@ void MohawkEngine_LivingBooks::handleUIOptionsClick(uint controlId) {
 		if (!tryLoadPageStart(kLBPlayMode, _curSelectedPage))
 			error("failed to load page %d", _curSelectedPage);
 		break;
+
+	default:
+		break;
 	}
 }
 
@@ -1317,6 +1342,9 @@ void MohawkEngine_LivingBooks::handleNotify(NotifyEvent &event) {
 		case 3:
 			// options screen
 			handleUIOptionsClick(event.param);
+			break;
+
+		default:
 			break;
 		}
 		break;
@@ -1566,6 +1594,8 @@ NodeState LBAnimationNode::update(bool seeking) {
 				debug(4, "d: ResetSound(%0d)", soundResourceId);
 				// TODO
 				_vm->_sound->stopSound(soundResourceId);
+				break;
+			default:
 				break;
 			}
 			}
@@ -2666,6 +2696,8 @@ void LBItem::startPhase(uint phase) {
 			setNextTime(_periodMin, _periodMax);
 		}
 		break;
+	default:
+		break;
 	}
 }
 
@@ -2816,6 +2848,8 @@ int LBItem::runScriptEntry(LBScriptEntry *entry) {
 			case 2:
 				// Loop.
 				entry->state = 0;
+				break;
+			default:
 				break;
 			}
 		}
@@ -3041,6 +3075,8 @@ int LBItem::runScriptEntry(LBScriptEntry *entry) {
 				case kLBOpJumpToExpression:
 					debug(2, "JumpToExpression got %d (on %d, of %d)", e, i, entry->subentries.size());
 					i = e - 1;
+					break;
+				default:
 					break;
 				}
 			}
@@ -3814,8 +3850,8 @@ LBMovieItem::~LBMovieItem() {
 
 void LBMovieItem::update() {
 	if (_playing) {
-		VideoHandle videoHandle = _vm->_video->findVideoHandle(_resourceId);
-		if (!videoHandle || videoHandle->endOfVideo())
+		VideoEntryPtr video = _vm->_video->findVideo(_resourceId);
+		if (!video || video->endOfVideo())
 			done(true);
 	}
 
@@ -3826,11 +3862,11 @@ bool LBMovieItem::togglePlaying(bool playing, bool restart) {
 	if (playing) {
 		if ((_loaded && _enabled && _globalEnabled) || _phase == kLBPhaseNone) {
 			debug("toggled video for phase %d", _phase);
-			VideoHandle handle = _vm->_video->playMovie(_resourceId);
-			if (!handle)
+			VideoEntryPtr video = _vm->_video->playMovie(_resourceId);
+			if (!video)
 				error("Failed to open tMOV %d", _resourceId);
 
-			handle->moveTo(_rect.left, _rect.top);
+			video->moveTo(_rect.left, _rect.top);
 			return true;
 		}
 	}

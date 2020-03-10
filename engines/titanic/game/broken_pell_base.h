@@ -27,26 +27,28 @@
 
 namespace Titanic {
 
+enum CloseAction { CLOSE_NONE = 0, CLOSE_LEFT = 1, CLOSE_RIGHT = 2 };
+
 class CBrokenPellBase : public CBackground {
 	DECLARE_MESSAGE_MAP;
 protected:
-	static bool _v1;
-	static int _v2;
+	static bool _pelleratorOpen;
+	static bool _gottenHose;
 
-	int _exitAction;
+	CloseAction _closeAction;
 public:
 	CLASSDEF;
-	CBrokenPellBase() : CBackground(), _exitAction(0) {}
+	CBrokenPellBase() : CBackground(), _closeAction(CLOSE_NONE) {}
 
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 };
 
 } // End of namespace Titanic

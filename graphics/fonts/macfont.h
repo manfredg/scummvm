@@ -102,12 +102,14 @@ struct MacGlyph {
 	void clear() {
 		bitmapOffset = 0;
 		width = 0;
+		height = 0;
 		bitmapWidth = 0;
 		kerningOffset = 0;
 	}
 
 	uint16 bitmapOffset;
 	byte width;
+	uint16 height;
 	uint16 bitmapWidth;
 	int kerningOffset;
 };
@@ -157,7 +159,7 @@ public:
 
 	int getFontSize() const { return _data._size; }
 
-	static MacFONTFont *scaleFont(const MacFONTFont *src, int newSize);
+	static MacFONTFont *scaleFont(const MacFONTFont *src, int newSize, bool bold = false, bool italic = false);
 	static void testBlit(const MacFONTFont *src, ManagedSurface *dst, int color, int x0, int y0, int width);
 
 private:

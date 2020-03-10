@@ -199,7 +199,7 @@ bool DrasculaEngine::canLoadGameStateCurrently() {
 	return _canSaveLoad;
 }
 
-Common::Error DrasculaEngine::saveGameState(int slot, const Common::String &desc) {
+Common::Error DrasculaEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
 	saveGame(slot, desc);
 	return Common::kNoError;
 }
@@ -229,7 +229,7 @@ void DrasculaEngine::saveGame(int slot, const Common::String &desc) {
 	Common::OutSaveFile *out;
 	int l;
 
-	Common::String saveFileName = Common::String::format("%s.%03d", _targetName.c_str(), slot);
+	Common::String saveFileName = getSaveStateName(slot);
 	if (!(out = _saveFileMan->openForSaving(saveFileName))) {
 		error("Unable to open the file");
 	}
@@ -271,7 +271,7 @@ bool DrasculaEngine::loadGame(int slot) {
 	if (currentChapter != 1)
 		clearRoom();
 
-	Common::String saveFileName = Common::String::format("%s.%03d", _targetName.c_str(), slot);
+	Common::String saveFileName = getSaveStateName(slot);
 	if (!(in = _saveFileMan->openForLoading(saveFileName))) {
 		error("missing savegame file %s", saveFileName.c_str());
 	}
@@ -281,7 +281,7 @@ bool DrasculaEngine::loadGame(int slot) {
 	// things. Reset those before loading the savegame otherwise we may have some
 	// issues such as the protagonist being invisible after reloading a savegame.
 	if (_roomNumber == 102 && flags[1] == 2) {
-		characterVisible = 1;
+		_characterVisible = true;
 		loadPic(96, frontSurface);
 		loadPic(97, frontSurface);
 		loadPic(97, extraSurface);
@@ -317,9 +317,8 @@ bool DrasculaEngine::loadGame(int slot) {
 	takeObject = in->readSint32LE();
 	pickedObject = in->readSint32LE();
 	_loadedDifferentChapter = false;
-	if (!sscanf(currentData, "%d.ald", &roomNum)) {
+	if (!sscanf(currentData, "%d.ald", &roomNum))
 		error("Bad save format");
-	}
 
 	// When loading room 102 while being attached below the pendulum Some variables
 	// are not correctly set and can cause random crashes when calling enterRoom below.

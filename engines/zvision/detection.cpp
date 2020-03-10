@@ -61,23 +61,26 @@ public:
 	ZVisionMetaEngine() : AdvancedMetaEngine(ZVision::gameDescriptions, sizeof(ZVision::ZVisionGameDescription), ZVision::zVisionGames, ZVision::optionsList) {
 		_maxScanDepth = 2;
 		_directoryGlobs = ZVision::directoryGlobs;
-		_singleId = "zvision";
 	}
 
-	virtual const char *getName() const {
+	const char *getEngineId() const override {
+		return "zvision";
+	}
+
+	const char *getName() const override {
 		return "Z-Vision";
 	}
 
-	virtual const char *getOriginalCopyright() const {
+	const char *getOriginalCopyright() const override {
 		return "Z-Vision (C) 1996 Activision";
 	}
 
-	virtual bool hasFeature(MetaEngineFeature f) const;
-	virtual bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const;
-	SaveStateList listSaves(const char *target) const;
-	virtual int getMaximumSaveSlot() const;
-	void removeSaveState(const char *target, int slot) const;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const;
+	bool hasFeature(MetaEngineFeature f) const override;
+	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	SaveStateList listSaves(const char *target) const override;
+	int getMaximumSaveSlot() const override;
+	void removeSaveState(const char *target, int slot) const override;
+	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 };
 
 bool ZVisionMetaEngine::hasFeature(MetaEngineFeature f) const {
@@ -88,8 +91,8 @@ bool ZVisionMetaEngine::hasFeature(MetaEngineFeature f) const {
 		(f == kSavesSupportMetaInfo) ||
 		(f == kSavesSupportThumbnail) ||
 		(f == kSavesSupportCreationDate) ||
+		(f == kSavesSupportPlayTime) ||
 		(f == kSimpleSavesNames);
-		//(f == kSavesSupportPlayTime);
 }
 
 bool ZVision::ZVision::hasFeature(EngineFeature f) const {
@@ -103,7 +106,7 @@ Common::Error ZVision::ZVision::loadGameState(int slot) {
 	return _saveManager->loadGame(slot);
 }
 
-Common::Error ZVision::ZVision::saveGameState(int slot, const Common::String &desc) {
+Common::Error ZVision::ZVision::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
 	_saveManager->saveGame(slot, desc, false);
 	return Common::kNoError;
 }
@@ -178,7 +181,7 @@ SaveStateDescriptor ZVisionMetaEngine::querySaveMetaInfos(const char *target, in
 
 		// We only use readSaveGameHeader() here, which doesn't need an engine callback
 		ZVision::SaveManager *zvisionSaveMan = new ZVision::SaveManager(NULL);
-		bool successfulRead = zvisionSaveMan->readSaveGameHeader(in, header);
+		bool successfulRead = zvisionSaveMan->readSaveGameHeader(in, header, false);
 		delete zvisionSaveMan;
 		delete in;
 
@@ -192,7 +195,7 @@ SaveStateDescriptor ZVisionMetaEngine::querySaveMetaInfos(const char *target, in
 
 			desc.setThumbnail(header.thumbnail);
 
-			if (header.version > 0) {
+			if (header.version >= 1) {
 				int day = header.saveDay;
 				int month = header.saveMonth;
 				int year = header.saveYear;
@@ -203,8 +206,10 @@ SaveStateDescriptor ZVisionMetaEngine::querySaveMetaInfos(const char *target, in
 				int minutes = header.saveMinutes;
 
 				desc.setSaveTime(hour, minutes);
+			}
 
-				//desc.setPlayTime(header.playTime * 1000);
+			if (header.version >= 2) {
+				desc.setPlayTime(header.playTime * 1000);
 			}
 
 			return desc;

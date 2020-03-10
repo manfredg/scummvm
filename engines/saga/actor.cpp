@@ -644,6 +644,9 @@ int Actor::getFrameType(ActorFrameTypes frameType) {
 			return kFrameITEPickUp;
 		case kFrameLook:
 			return kFrameITELook;
+		default:
+			error("Actor::getFrameType() unknown frame type %d", frameType);
+			return kFrameITEStand;		// for compilers that don't support NORETURN
 		}
 #ifdef ENABLE_IHNM
 	} else if (_vm->getGameId() == GID_IHNM) {
@@ -661,12 +664,14 @@ int Actor::getFrameType(ActorFrameTypes frameType) {
 		case kFrameGive:
 		case kFramePickUp:
 		case kFrameLook:
+		default:
 			error("Actor::getFrameType() unknown frame type %d", frameType);
 			return kFrameIHNMStand;		// for compilers that don't support NORETURN
 		}
 #endif
 	}
 	error("Actor::getFrameType() unknown frame type %d", frameType);
+	return kFrameITEStand;		// for compilers that don't support NORETURN
 }
 
 ActorFrameRange *Actor::getActorFrameRange(uint16 actorId, int frameType) {
@@ -796,6 +801,8 @@ void Actor::handleSpeech(int msec) {
 				break;
 			case 0:
 				_activeSpeech.playingTime = 0x7fffff;
+				break;
+			default:
 				break;
 			}
 		} else {
@@ -1172,21 +1179,6 @@ void Actor::actorSpeech(uint16 actorId, const char **strings, int stringsCount, 
 	if (_activeSpeech.speechBox.right > _vm->getDisplayInfo().width - 10) {
 		_activeSpeech.speechBox.left -= _activeSpeech.speechBox.right - _vm->getDisplayInfo().width - 10;
 		_activeSpeech.speechBox.right = _vm->getDisplayInfo().width - 10;
-	}
-
-	// HACK for the compact disk in Ellen's chapter
-	// Once Ellen starts saying that "Something is different", bring the compact disk in the
-	// scene. After speaking with AM, the compact disk is visible. She always says this line
-	// when entering room 59, after speaking with AM, if the compact disk is not picked up yet
-	// Check Script::sfDropObject for the other part of this hack
-	if (_vm->getGameId() == GID_IHNM && _vm->_scene->currentChapterNumber() == 3 &&
-		_vm->_scene->currentSceneNumber() == 59 && _activeSpeech.sampleResourceId == 286) {
-		for (ObjectDataArray::iterator obj = _objs.begin(); obj != _objs.end(); ++obj) {
-			if (obj->_id == 16385) {	// the compact disk
-				obj->_sceneNumber = 59;
-				break;
-			}
-		}
 	}
 
 }

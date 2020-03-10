@@ -497,7 +497,7 @@ void CGEEngine::snGame(Sprite *spr, int num) {
 		// the test has been restricted to some specific OSes
 		// in order to avoid some obvious issues (like Android, iOS, NDS, N64...)
 		// Not perfect, but at least better than nothing.
-#if defined(WIN32) || defined(UNIX) || defined(MACOSX) || defined(MOTOEZX) || defined(LINUPY) || defined(LINUXMOTO_SDL)
+#if defined(WIN32) || defined(UNIX) || defined(MACOSX)
 		if (spr->_ref == 1 && _keyboard->_keyAlt) {
 #else
 		if (spr->_ref == 1 && _gameCase2Cpt > 1) {
@@ -508,26 +508,29 @@ void CGEEngine::snGame(Sprite *spr, int num) {
 		}
 
 		_commandHandler->addCommand(kCmdSetZ, 20700, 0, NULL);
-		bool hit = (_sprK1->_seqPtr + _sprK2->_seqPtr + _sprK3->_seqPtr == 15);
-		if (hit) {
-			if (spr->_ref == 1) {
-				_commandHandler->addCommand(kCmdSay,       1, 20003, NULL);       // hurray!
-				_commandHandler->addCommand(kCmdSeq,   20011,     2, NULL);       // Camera away
-				_commandHandler->addCommand(kCmdSend,  20701,    -1, NULL);       // move dice1 to scene -1
-				_commandHandler->addCommand(kCmdSend,  20702,    -1, NULL);       // move dice2 to scene -1
-				_commandHandler->addCommand(kCmdSend,  20703,    -1, NULL);       // move dice3 to scene -1
-				_commandHandler->addCommand(kCmdSend,  20700,    -1, NULL);       // move TV to scene -1
-				_commandHandler->addCommand(kCmdKeep,  20007,     0, NULL);       // to pocket
-				_commandHandler->addCommand(kCmdSend,  20006,    20, NULL);       // Move Coin to scene 20
-				_commandHandler->addCommand(kCmdSound, 20006, 20002, NULL);       // Play Coin sound
-				_commandHandler->addCommand(kCmdSay,   20002, 20004, NULL);	      // Say "Luck guy..."
-				_commandHandler->addCommand(kCmdSend,  20010,    20, NULL);       // Move Paper to scene 20
-				_commandHandler->addCommand(kCmdSound, 20010, 20003, NULL);       // Play "ksh" sound! (fx20003.wav)
-				_commandHandler->addCommand(kCmdSay,   20001, 20005, NULL);       // Say "Congratulations"
-				_game = false;
-				return;
-			} else
-				_sprK3->step(newRandom(5));
+		{
+			bool hit = (_sprK1->_seqPtr + _sprK2->_seqPtr + _sprK3->_seqPtr == 15);
+			if (hit) {
+				if (spr->_ref == 1) {
+					_commandHandler->addCommand(kCmdSay,       1, 20003, NULL);       // hurray!
+					_commandHandler->addCommand(kCmdSeq,   20011,     2, NULL);       // Camera away
+					_commandHandler->addCommand(kCmdSend,  20701,    -1, NULL);       // move dice1 to scene -1
+					_commandHandler->addCommand(kCmdSend,  20702,    -1, NULL);       // move dice2 to scene -1
+					_commandHandler->addCommand(kCmdSend,  20703,    -1, NULL);       // move dice3 to scene -1
+					_commandHandler->addCommand(kCmdSend,  20700,    -1, NULL);       // move TV to scene -1
+					_commandHandler->addCommand(kCmdKeep,  20007,     0, NULL);       // to pocket
+					_commandHandler->addCommand(kCmdSend,  20006,    20, NULL);       // Move Coin to scene 20
+					_commandHandler->addCommand(kCmdSound, 20006, 20002, NULL);       // Play Coin sound
+					_commandHandler->addCommand(kCmdSay,   20002, 20004, NULL);	      // Say "Luck guy..."
+					_commandHandler->addCommand(kCmdSend,  20010,    20, NULL);       // Move Paper to scene 20
+					_commandHandler->addCommand(kCmdSound, 20010, 20003, NULL);       // Play "ksh" sound! (fx20003.wav)
+					_commandHandler->addCommand(kCmdSay,   20001, 20005, NULL);       // Say "Congratulations"
+					_game = false;
+					return;
+				} else {
+					_sprK3->step(newRandom(5));
+				}
+			}
 		}
 
 		if (_gameCase2Cpt < 100) {
@@ -543,6 +546,8 @@ void CGEEngine::snGame(Sprite *spr, int num) {
 				// Tell to use ALT key
 				_commandHandler->addCommand(kCmdSay, 20003, 20022, NULL);
 				break;
+			default:
+				break;
 			}
 			_gameCase2Cpt++;
 		}
@@ -550,7 +555,7 @@ void CGEEngine::snGame(Sprite *spr, int num) {
 		switch (spr->_ref) {
 		case 1:
 			_commandHandler->addCommand(kCmdSay,   20001, 20011, NULL);        // Say "It'a my turn"
-			_commandHandler->addCommand(kCmdSeq,   20001,     1, NULL);        // Throw dice
+			_commandHandler->addCommand(kCmdSeq,   20001,     1, NULL);        // Throw dice
 			_commandHandler->addCommand(kCmdWait,  20001,     1, NULL);        // wait
 			_commandHandler->addCommand(kCmdSetZ,  20700,     2, NULL);        // hide dice
 			_commandHandler->addCommand(kCmdHide,  20007,     1, NULL);        // hide dice
@@ -564,7 +569,7 @@ void CGEEngine::snGame(Sprite *spr, int num) {
 
 		case 20001:
 			_commandHandler->addCommand(kCmdSay,   20002, 20012, NULL);        // Say "Now it's mine"
-			_commandHandler->addCommand(kCmdSeq,   20002,     1, NULL);        // Throw dice
+			_commandHandler->addCommand(kCmdSeq,   20002,     1, NULL);        // Throw dice
 			_commandHandler->addCommand(kCmdWait,  20002,     3, NULL);        // wait
 			_commandHandler->addCommand(kCmdSetZ,  20700,     2, NULL);        // hide dice
 			_commandHandler->addCommand(kCmdHide,  20007,     1, NULL);        // hide dice
@@ -581,7 +586,7 @@ void CGEEngine::snGame(Sprite *spr, int num) {
 			_commandHandler->addCommand(kCmdWalk,  20005,    -1, NULL);        // Walk to table
 			_commandHandler->addCommand(kCmdWait,      1,    -1, NULL);        // Wait
 			_commandHandler->addCommand(kCmdCover,     1, 20101, NULL);        // grasol ??
-			_commandHandler->addCommand(kCmdSeq,   20101,     1, NULL);        // Start Chief animation (20solgra)
+			_commandHandler->addCommand(kCmdSeq,   20101,     1, NULL);        // Start Chief animation (20solgra)
 			_commandHandler->addCommand(kCmdWait,  20101,     5, NULL);        // Wait
 			_commandHandler->addCommand(kCmdSetZ,  20700,     2, NULL);        // Hide dice
 			_commandHandler->addCommand(kCmdHide,  20007,     1, NULL);        // Hide dice
@@ -593,7 +598,13 @@ void CGEEngine::snGame(Sprite *spr, int num) {
 			_commandHandler->addCommand(kCmdUncover,   1, 20101, NULL);        // SDS ??
 			_commandHandler->addCommand(kCmdGame,      1,     2, NULL);        // again!
 			break;
+
+		default:
+			break;
 		}
+
+	default:
+		break;
 	}
 }
 
@@ -1192,7 +1203,7 @@ void CGEEngine::snFlash(bool on) {
 		if (pal) {
 			memcpy(pal, _vga->_sysPal, kPalSize);
 			for (int i = 0; i < kPalCount; i++) {
-				register int c;
+				int c;
 				c = pal[i]._r << 1;
 				pal[i]._r = (c < 64) ? c : 63;
 				c = pal[i]._g << 1;

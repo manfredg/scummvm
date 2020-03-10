@@ -30,6 +30,7 @@ namespace Titanic {
 class CBellBot : public CTrueTalkNPC {
 	DECLARE_MESSAGE_MAP;
 	bool OnSummonBotMsg(COnSummonBotMsg *msg);
+	bool EnterViewMsg(CEnterViewMsg *msg);
 	bool LeaveViewMsg(CLeaveViewMsg *msg);
 	bool MovieEndMsg(CMovieEndMsg *msg);
 	bool Use(CUse *msg);
@@ -51,12 +52,12 @@ public:
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 };
 
 } // End of namespace Titanic

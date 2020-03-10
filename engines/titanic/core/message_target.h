@@ -34,7 +34,7 @@ typedef bool (CMessageTarget::*PMSG)(CMessage *msg);
 
 struct MSGMAP_ENTRY {
 	PMSG _fn;
-	ClassDef *_class;
+	const ClassDef * const *_class;
 };
 
 struct MSGMAP {
@@ -58,7 +58,7 @@ protected: \
 		static const MSGMAP_ENTRY _messageEntries[] = {
 
 #define ON_MESSAGE(msgClass) \
-	{ static_cast<PMSG>((FNPTR)&ThisClass::msgClass), C##msgClass::_type },
+	{ static_cast<PMSG>((FNPTR)&ThisClass::msgClass), &C##msgClass::_type },
 
 #define END_MESSAGE_MAP() \
 		{ (PMSG)nullptr, nullptr } \
@@ -91,12 +91,12 @@ public:
 	/**
 	 * Save the data for the class to file
 	 */
-	virtual void save(SimpleFile *file, int indent);
+	void save(SimpleFile *file, int indent) override;
 
 	/**
 	 * Load the data for the class from file
 	 */
-	virtual void load(SimpleFile *file);
+	void load(SimpleFile *file) override;
 };
 
 } // End of namespace Titanic

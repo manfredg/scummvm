@@ -210,7 +210,7 @@ void sceneHandler03_takeEgg(ExCommand *ex) {
 			 && ex1) {
 
 			if (ex1->_objtype == kObjTypeObjstateCommand) {
-				ObjstateCommand *com = (ObjstateCommand *)ex1;
+				ObjstateCommand *com = static_cast<ObjstateCommand *>(ex1);
 
 				com->_value = g_fp->getObjectEnumState(sO_EggGulper, sO_WantsNothing);
 			}
@@ -298,9 +298,8 @@ int sceneHandler03(ExCommand *ex) {
 								return 0;
 							}
 			}
-
-			break;
 		}
+		break;
 
 	case 33:
 		{
@@ -322,6 +321,10 @@ int sceneHandler03(ExCommand *ex) {
 
 			return res;
 		}
+		break;
+
+	default:
+		break;
 	}
 
 	return 0;

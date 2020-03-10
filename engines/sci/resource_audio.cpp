@@ -52,7 +52,7 @@ AudioVolumeResourceSource::AudioVolumeResourceSource(ResourceManager *resMan, co
 	switch (compressionType) {
 	case MKTAG('M','P','3',' '):
 	case MKTAG('O','G','G',' '):
-	case MKTAG('F','L','A','C'):
+	case MKTAG('F','L','A','C'): {
 		_audioCompressionType = compressionType;
 		const uint32 numEntries = fileStream->readUint32LE();
 		if (!numEntries) {
@@ -73,6 +73,10 @@ AudioVolumeResourceSource::AudioVolumeResourceSource(ResourceManager *resMan, co
 		}
 
 		lastEntry->size = fileStream->size() - lastEntry->offset;
+		}
+		break;
+	default:
+		break;
 	}
 
 	resMan->disposeVolumeFileStream(fileStream, this);
@@ -297,10 +301,26 @@ int ResourceManager::readAudioMapSCI11(IntMapResourceSource *map) {
 
 	uint32 offset = 0;
 	const ResourceId mapResId(kResourceTypeMap, map->_mapNumber);
-	Resource *mapRes = findResource(mapResId, false);
+	Resource *mapRes = _resMap.getVal(mapResId, nullptr);
 
 	if (!mapRes) {
 		warning("Failed to open %s", mapResId.toString().c_str());
+		return SCI_ERROR_RESMAP_NOT_FOUND;
+	}
+
+	// Here, we allocate audio maps ourselves instead of using findResource to
+	// do this for us. This is in order to prevent the map resources from
+	// getting into the LRU cache. These resources must be read and then
+	// deallocated in games with multi-disc audio in order to read the audio
+	// maps from every CD, and LRU eviction freaks out if an unallocated
+	// resource ends up in the LRU list. It is also not necessary for these
+	// resources to be cached in the LRU at all, since they are only used upon
+	// game startup to populate _resMap.
+	assert(mapRes->_status == kResStatusNoMalloc);
+	loadResource(mapRes);
+
+	if (!mapRes->data()) {
+		warning("Failed to read data for %s", mapResId.toString().c_str());
 		return SCI_ERROR_RESMAP_NOT_FOUND;
 	}
 
@@ -318,18 +338,23 @@ int ResourceManager::readAudioMapSCI11(IntMapResourceSource *map) {
 		return SCI_ERROR_NO_RESOURCE_FILES_FOUND;
 	}
 
-	const uint32 srcSize = fileStream->size();
 	disposeVolumeFileStream(fileStream, src);
 
 	SciSpan<const byte>::const_iterator ptr = mapRes->cbegin();
 
-	// Heuristic to detect entry size
 	uint32 entrySize = 0;
-	for (int i = mapRes->size() - 1; i >= 0; --i) {
-		if (ptr[i] == 0xff)
-			entrySize++;
-		else
-			break;
+	if (_volVersion >= kResVersionSci2) {
+		// The heuristic size detection is incompatible with at least Torin RU,
+		// which is fine because it is not needed for SCI32
+		entrySize = 11;
+	} else {
+		// Heuristic to detect entry size
+		for (int i = mapRes->size() - 1; i >= 0; --i) {
+			if (ptr[i] == 0xff)
+				entrySize++;
+			else
+				break;
+		}
 	}
 
 	if (map->_mapNumber == 65535) {
@@ -403,20 +428,34 @@ int ResourceManager::readAudioMapSCI11(IntMapResourceSource *map) {
 
 		disposeVolumeFileStream(stream, src);
 	} else {
-		bool isEarly = (entrySize != 11);
+		// EQ1CD & SQ4CD are "early" games; KQ6CD and all SCI32 are "late" games
+		const bool isEarly = (entrySize != 11);
 
 		if (!isEarly) {
 			offset = ptr.getUint32LE();
 			ptr += 4;
 		}
 
+		enum {
+			kRaveFlag = 0x40,
+			kSyncFlag = 0x80,
+			kEndOfMapFlag = 0xFF
+		};
+
 		while (ptr != mapRes->cend()) {
 			uint32 n = ptr.getUint32BE();
 			uint32 syncSize = 0;
 			ptr += 4;
 
-			if (n == 0xffffffff)
+			// Checking the entire tuple breaks Torin RU and is not how SSCI
+			// works
+			if ((n & kEndOfMapFlag) == kEndOfMapFlag) {
+				const uint32 bytesLeft = mapRes->cend() - ptr;
+				if (bytesLeft >= entrySize && entrySize > 0) {
+					warning("End of %s reached, but %u entries remain", mapResId.toString().c_str(), bytesLeft / entrySize);
+				}
 				break;
+			}
 
 			if (isEarly) {
 				offset = ptr.getUint32LE();
@@ -426,7 +465,7 @@ int ResourceManager::readAudioMapSCI11(IntMapResourceSource *map) {
 				ptr += 3;
 			}
 
-			if (isEarly || (n & 0x80)) {
+			if (isEarly || (n & kSyncFlag)) {
 				syncSize = ptr.getUint16LE();
 				ptr += 2;
 
@@ -439,7 +478,7 @@ int ResourceManager::readAudioMapSCI11(IntMapResourceSource *map) {
 
 			// Checking for this 0x40 flag breaks at least Laura Bow 2 CD 1.1
 			// map 448
-			if (g_sci->getGameId() == GID_KQ6 && (n & 0x40)) {
+			if (g_sci->getGameId() == GID_KQ6 && (n & kRaveFlag)) {
 				// This seems to define the size of raw lipsync data (at least
 				// in KQ6 CD Windows).
 				uint32 kq6HiresSyncSize = ptr.getUint16LE();
@@ -466,23 +505,66 @@ int ResourceManager::readAudioMapSCI11(IntMapResourceSource *map) {
 			// and points to garbage in the RESOURCE.AUD. The affected audio36
 			// assets seem to be able to load successfully from one of the later
 			// CDs, so just ignore the map on this disc
-			if (g_sci->getGameId() == GID_PQSWAT && map->_volumeNumber == 1 && map->_mapNumber == 405) {
+			if (g_sci->getGameId() == GID_PQSWAT &&
+				g_sci->getLanguage() == Common::EN_ANY &&
+				map->_volumeNumber == 1 &&
+				map->_mapNumber == 405) {
 				continue;
 			}
 
-			// At least version 1.00 of GK2 has multiple invalid audio36 map
-			// entries on CD 6
-			if (g_sci->getGameId() == GID_GK2 &&
-				map->_volumeNumber == 6 &&
-				offset + syncSize >= srcSize) {
+			// GK2 has invalid audio36 map entries on CD 1 of the German 
+			//  version and CD 6 of all versions. All are safe to ignore
+			//  because their content doesn't apply to the disc's chapter.
+			if (g_sci->getGameId() == GID_GK2) {
+				// Map 2020 on CD 1 only exists in localized versions and
+				//  contains inventory messages from later chapters.
+				if (map->_volumeNumber == 1 &&
+					map->_mapNumber == 2020) {
+					continue;
+				}
 
-				debugC(kDebugLevelResMan, "Invalid offset %u for %s in map %d for disc %d", offset + syncSize, id.toPatchNameBase36().c_str(), map->_mapNumber, map->_volumeNumber);
+				// Maps 22 and 160 on CD 6 appear in various broken forms
+				//  in English and apparently every localized version.
+				//  These messages are for Grace's notebook and castle
+				//  secret passage rooms which aren't in chapter 6.
+				if (map->_volumeNumber == 6 &&
+					(map->_mapNumber == 22 || map->_mapNumber == 160)) {
+					continue;
+				}
+			}
+			
+			// Lighthouse German has invalid audio36 map entries for
+			//  content that was cut from the game. These resources
+			//  existed in the English version even though they were
+			//  inaccessible.
+			if (g_sci->getGameId() == GID_LIGHTHOUSE &&
+				map->_mapNumber == 800) {
+				continue;
+			}
+
+			// LSL7 French has an invalid audio36 map entry for a narrator
+			//  message that was cut from the game. This resource existed
+			//  in the English version even though it was inaccessible.
+			if (g_sci->getGameId() == GID_LSL7 &&
+				map->_mapNumber == 999) {
+				continue;
+			}
+
+			// Map 800 and 4176 contain content that was cut from the game. The
+			// French version of the game includes map files from the US
+			// release, but the audio resources are French so the maps don't
+			// match. Since the content was never used, just ignore these maps
+			// everywhere
+			if (g_sci->getGameId() == GID_PHANTASMAGORIA2 &&
+				(map->_mapNumber == 800 || map->_mapNumber == 4176)) {
 				continue;
 			}
 
 			addResource(id, src, offset + syncSize, 0, map->getLocationName());
 		}
 	}
+
+	mapRes->unalloc();
 
 	return 0;
 }
@@ -651,9 +733,7 @@ SoundResource::SoundResource(uint32 resourceNr, ResourceManager *resMan, SciVers
 
 	Channel *channel, *sampleChannel;
 
-	switch (_soundVersion) {
-	case SCI_VERSION_0_EARLY:
-	case SCI_VERSION_0_LATE:
+	if (_soundVersion <= SCI_VERSION_0_LATE) {
 		// SCI0 only has a header of 0x11/0x21 byte length and the actual midi track follows afterwards
 		_trackCount = 1;
 		_tracks = new Track[_trackCount];
@@ -663,6 +743,8 @@ SoundResource::SoundResource(uint32 resourceNr, ResourceManager *resMan, SciVers
 		// Digital sample data included? -> Add an additional channel
 		if (resource->getUint8At(0) == 2)
 			_tracks->channelCount++;
+		// header information that can be passed to the SCI0 sound driver
+		_tracks->header = resource->subspan(0, _soundVersion == SCI_VERSION_0_EARLY ? 0x11 : 0x21);
 		_tracks->channels = new Channel[_tracks->channelCount];
 		channel = &_tracks->channels[0];
 		channel->flags |= 2; // don't remap (SCI0 doesn't have remapping)
@@ -693,11 +775,7 @@ SoundResource::SoundResource(uint32 resourceNr, ResourceManager *resMan, SciVers
 			_tracks->digitalSampleEnd = 0;
 			sampleChannel->data += 44; // Skip over header
 		}
-		break;
-
-	case SCI_VERSION_1_EARLY:
-	case SCI_VERSION_1_LATE:
-	case SCI_VERSION_2_1_EARLY: {
+	} else if (_soundVersion >= SCI_VERSION_1_EARLY && _soundVersion <= SCI_VERSION_2_1_MIDDLE) {
 		SciSpan<const byte> data = *resource;
 		// Count # of tracks
 		_trackCount = 0;
@@ -748,7 +826,7 @@ SoundResource::SoundResource(uint32 resourceNr, ResourceManager *resMan, SciVers
 
 					uint16 size = data.getUint16LEAt(4);
 
-					if (dataOffset + size > resource->size()) {
+					if ((uint32)dataOffset + size > resource->size()) {
 						warning("Invalid size inside sound resource %d: track %d, channel %d", resourceNr, trackNr, channelNr);
 						size = resource->size() - dataOffset;
 					}
@@ -799,11 +877,8 @@ SoundResource::SoundResource(uint32 resourceNr, ResourceManager *resMan, SciVers
 			}
 			++data; // Skipping 0xFF that closes channels list
 		}
-		break;
-	}
-
-	default:
-		error("SoundResource: SCI version %d is unsupported", _soundVersion);
+	} else {
+		error("SoundResource: SCI version %s is unsupported", getSciVersionDesc(_soundVersion));
 	}
 }
 
@@ -982,62 +1057,93 @@ bool ResourceManager::addAudioSources() {
 	return true;
 }
 
-void ResourceManager::changeAudioDirectory(const Common::String &path) {
-	// Resources must be cleared before ResourceSources because the destructor
-	// of a Resource accesses its own ResourceSource
-	ResourceMap::iterator resIt = _resMap.begin();
-	while (resIt != _resMap.end()) {
-		Resource *resource = resIt->_value;
-		ResourceType type = resource->getType();
-		if (type == kResourceTypeMap ||
-			type == kResourceTypeAudio36 ||
-			type == kResourceTypeSync36) {
+void ResourceManager::changeAudioDirectory(Common::String path) {
+	if (!path.empty()) {
+		path += "/";
+	}
 
-			if (type == kResourceTypeMap && resource->getNumber() == 65535) {
-				++resIt;
+	const Common::String resAudPath = path + "RESOURCE.AUD";
+
+	if (!SearchMan.hasFile(resAudPath)) {
+		error("Could not find %s", resAudPath.c_str());
+	}
+
+	// When a IntMapResourceSource is scanned, it will not update existing
+	// resources. There is also no guarantee that there are exactly the same
+	// number of audio36/sync36/map resources in each audio directory.
+	// Therefore, all of these resources must be deleted before scanning.
+	for (ResourceMap::iterator it = _resMap.begin(); it != _resMap.end(); ++it) {
+		const ResourceType type = it->_key.getType();
+
+		if (type == kResourceTypeMap || type == kResourceTypeAudio36 || type == kResourceTypeSync36) {
+			if (type == kResourceTypeMap && it->_key.getNumber() == 65535) {
 				continue;
 			}
 
-			if (resource->_status == kResStatusLocked) {
-				resource->_lockers = 1;
-				unlockResource(resource);
+			Resource *resource = it->_value;
+			if (resource) {
+				// If one of these resources ends up being locked here, it
+				// probably means Audio32 is using it and we need to stop
+				// playback of audio before switching directories
+				assert(!resource->isLocked());
+
+				if (resource->_status == kResStatusEnqueued) {
+					removeFromLRU(resource);
+				}
+
+				// A PatchResourceSource is not added to _sources and is
+				// automatically deleted when the corresponding Resource is
+				// deleted
+				delete resource;
 			}
-			if (resource->_status == kResStatusEnqueued) {
-				removeFromLRU(resource);
-			}
-			delete resource;
-			_resMap.erase(resIt);
-		}
 
-		++resIt;
-	}
-
-	Common::List<ResourceSource *>::iterator sourceIt = _sources.begin();
-	while (sourceIt != _sources.end()) {
-		ResourceSource *source = *sourceIt;
-		ResSourceType sourceType = source->getSourceType();
-		if ((sourceType == kSourceIntMap && source->_volumeNumber != 65535) ||
-			(sourceType == kSourceAudioVolume && source->getLocationName() != "RESOURCE.SFX")) {
-
-			sourceIt = _sources.erase(sourceIt);
-			delete source;
-		} else {
-			++sourceIt;
+			_resMap.erase(it);
 		}
 	}
 
-	const Common::String audioResourceName = (path.empty() ? "" : path + "/") + "RESOURCE.AUD";
-
-	Common::List<ResourceId> resources = listResources(kResourceTypeMap);
-	Common::List<ResourceId>::iterator it;
-	for (it = resources.begin(); it != resources.end(); ++it) {
-		// Don't readd 65535.map or resource.sfx
-		if (it->getNumber() == 65535)
+	for (SourcesList::iterator it = _sources.begin(); it != _sources.end(); ) {
+		IntMapResourceSource *mapSource = dynamic_cast<IntMapResourceSource *>(*it);
+		if (mapSource && mapSource->_mapNumber != 65535) {
+			delete *it;
+			it = _sources.erase(it);
 			continue;
+		}
 
-		const Resource *mapResource = _resMap.getVal(*it);
-		ResourceSource *src = addSource(new IntMapResourceSource(mapResource->getResourceLocation(), 0, it->getNumber()));
-		addSource(new AudioVolumeResourceSource(this, audioResourceName, src, 0));
+		AudioVolumeResourceSource *volSource = dynamic_cast<AudioVolumeResourceSource *>(*it);
+		if (volSource && volSource->getLocationName().contains("RESOURCE.AUD")) {
+			delete volSource;
+			it = _sources.erase(it);
+			continue;
+		}
+
+		++it;
+	}
+
+	// # is used as the first pattern character to avoid matching non-audio maps
+	// like RESOURCE.MAP
+	Common::ArchiveMemberList mapFiles;
+	SearchMan.listMatchingMembers(mapFiles, path + "#*.MAP");
+
+	for (Common::ArchiveMemberList::const_iterator it = mapFiles.begin(); it != mapFiles.end(); ++it) {
+		const Common::ArchiveMemberPtr &file = *it;
+		assert(file);
+
+		const Common::String fileName = file->getName();
+		const int mapNo = atoi(fileName.c_str());
+
+		// Sound effects are the same across all audio directories, so ignore
+		// any new SFX map
+		if (mapNo == 65535) {
+			continue;
+		}
+
+		ResourceSource *newSource = new PatchResourceSource(path + fileName);
+		processPatch(newSource, kResourceTypeMap, mapNo);
+		Resource *mapResource = _resMap.getVal(ResourceId(kResourceTypeMap, mapNo));
+		assert(mapResource);
+
+		ResourceSource *audioMap = addSource(new IntMapResourceSource(mapResource->getResourceLocation(), 0, mapNo));
+		addSource(new AudioVolumeResourceSource(this, resAudPath, audioMap, 0));
 	}
 
 	scanNewSources();
