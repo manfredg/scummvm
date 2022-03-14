@@ -788,7 +788,7 @@ void OptionsDialog::apply() {
 
 			if (gfxError & OSystem::kTransactionCRTEmulationFailed) {
 				ConfMan.setBool("crt_emulation", g_system->getFeatureState(OSystem::kFeatureCRTEmulation), _domain);
-				message += "\n";
+				message += Common::U32String("\n");
 				message += _("the CRT emulation setting could not be changed");
 			}
 
