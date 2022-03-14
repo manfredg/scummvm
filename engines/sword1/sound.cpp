@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -68,7 +67,7 @@ Sound::~Sound() {
 uint32 Sound::getSampleId(int32 fxNo) {
 	byte cluster = _fxList[fxNo].sampleId.cluster;
 	byte id;
-	if (SwordEngine::_systemVars.isDemo && SwordEngine::_systemVars.platform == Common::kPlatformWindows) {
+	if (SwordEngine::_systemVars.isDemo && SwordEngine::_systemVars.platform == Common::kPlatformWindows && !SwordEngine::_systemVars.isSpanishDemo) {
 		id = _fxList[fxNo].sampleId.idWinDemo;
 	} else {
 		id = _fxList[fxNo].sampleId.idStd;
@@ -130,11 +129,11 @@ void Sound::checkSpeechFileEndianness() {
 		int16 *data = uncompressSpeech(index + _cowHeaderSize, sampleSize, &size, &leOk);
 		uint32 maxSamples = size > 2000 ? 2000 : size;
 		double le_diff = endiannessHeuristicValue(data, size, maxSamples);
-		delete[] data;
+		free(data);
 		_bigEndianSpeech = true;
 		data = uncompressSpeech(index + _cowHeaderSize, sampleSize, &size, &beOk);
 		double be_diff = endiannessHeuristicValue(data, size, maxSamples);
-		delete [] data;
+		free(data);
 		// Set the big endian flag
 		if (leOk && !beOk)
 			_bigEndianSpeech = false;
@@ -477,7 +476,7 @@ int16 *Sound::uncompressSpeech(uint32 index, uint32 cSize, uint32 *size, bool* o
 			// the demo speech files have the uncompressed size
 			// embedded in the compressed stream *sigh*
 			//
-			// But not always, apparently. See bug #2182450. Is
+			// But not always, apparently. See bug #4002. Is
 			// there any way to figure out the size other than
 			// decoding the sound in that case?
 

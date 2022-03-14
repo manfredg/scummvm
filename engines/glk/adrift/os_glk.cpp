@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -83,12 +82,12 @@ sc_game gsc_game = nullptr;
 
 /* Special out-of-band os_confirm() options used locally with os_glk. */
 static const sc_int GSC_CONF_SUBTLE_HINT = INTEGER_MAX,
-                    GSC_CONF_UNSUBTLE_HINT = INTEGER_MAX - 1,
-                   GSC_CONF_CONTINUE_HINTS = INTEGER_MAX - 2;
+					GSC_CONF_UNSUBTLE_HINT = INTEGER_MAX - 1,
+				   GSC_CONF_CONTINUE_HINTS = INTEGER_MAX - 2;
 
 /* Forward declaration of event wait functions, and a short delay. */
 static void gsc_event_wait_2(glui32 wait_type_1,
-                             glui32 wait_type_2, event_t *event);
+							 glui32 wait_type_2, event_t *event);
 static void gsc_event_wait(glui32 wait_type, event_t *event);
 static void gsc_short_delay();
 
@@ -467,7 +466,7 @@ static void glk_put_char_uni(glui32 ch) {
 }
 
 static void glk_request_line_event_uni(winid_t win,
-                                       glui32 *buf, glui32 maxlen, glui32 initlen) {
+									   glui32 *buf, glui32 maxlen, glui32 initlen) {
 	winid_t unused1;
 	glui32 *unused2;
 	glui32 unused3, unused4;
@@ -486,7 +485,7 @@ static void glk_request_line_event_uni(winid_t win,
  * we also make an explicit range check against guaranteed to print chars.
  */
 static const glui32 GSC_MIN_PRINTABLE = ' ',
-                    GSC_MAX_PRINTABLE = '~';
+					GSC_MAX_PRINTABLE = '~';
 
 
 /* List of pointers to supported and available locales, nullptr terminated. */
@@ -1002,7 +1001,7 @@ static void gsc_status_redraw() {
  * been silenced as a result of already using a Glk command.
  */
 static int gsc_help_requested = FALSE,
-           gsc_help_hints_silenced = FALSE;
+		   gsc_help_hints_silenced = FALSE;
 
 /* Font descriptor type, encapsulating size and monospaced boolean. */
 struct gsc_font_size_t {
@@ -1015,14 +1014,14 @@ enum { GSC_MAX_STYLE_NESTING = 32 };
 static gsc_font_size_t gsc_font_stack[GSC_MAX_STYLE_NESTING];
 static glui32 gsc_font_index = 0;
 static glui32 gsc_attribute_bold = 0,
-              gsc_attribute_italic = 0,
-              gsc_attribute_underline = 0,
-              gsc_attribute_secondary_color = 0;
+			  gsc_attribute_italic = 0,
+			  gsc_attribute_underline = 0,
+			  gsc_attribute_secondary_color = 0;
 
 /* Notional default font size, and limit font sizes. */
 static const sc_int GSC_DEFAULT_FONT_SIZE = 12,
-                    GSC_MEDIUM_FONT_SIZE = 14,
-                    GSC_LARGE_FONT_SIZE = 16;
+					GSC_MEDIUM_FONT_SIZE = 14,
+					GSC_LARGE_FONT_SIZE = 16;
 
 /* Milliseconds per second and timeouts count for delay tags. */
 static const glui32 GSC_MILLISECONDS_PER_SECOND = 1000;
@@ -1033,7 +1032,7 @@ static const sc_int GSC_HINT_REFUSAL_LIMIT = 5;
 
 /* The keypresses used to cancel any <wait x.x> early. */
 static const glui32 GSC_CANCEL_WAIT_1 = ' ',
-                    GSC_CANCEL_WAIT_2 = keycode_Return;
+					GSC_CANCEL_WAIT_2 = keycode_Return;
 
 
 /*
@@ -2800,7 +2799,7 @@ static int gsc_startup_code(Common::SeekableReadStream *game_stream, int restore
 	assert(game_stream);
 
 	/* Open a temporary Glk main window. */
-	window = g_vm->glk_window_open(0, 0, 0, wintype_TextBuffer, 0);
+	window = g_vm->glk_window_open(nullptr, 0, 0, wintype_TextBuffer, 0);
 	if (window) {
 		/* Clear and initialize the temporary window. */
 		g_vm->glk_window_clear(window);
@@ -2811,7 +2810,7 @@ static int gsc_startup_code(Common::SeekableReadStream *game_stream, int restore
 		 * Display a brief loading game message; here we have to use a timeout
 		 * to ensure that the text is flushed to Glk.
 		 */
-		g_vm->glk_put_string(_("Loading game...\n"));
+		g_vm->glk_put_string_uni(_("Loading game...\n").u32_str());
 		if (g_vm->glk_gestalt(gestalt_Timer, 0)) {
 			event_t event;
 
@@ -2907,7 +2906,7 @@ static void gsc_main() {
 	}
 
 	/* Create the Glk window, and set its stream as the current one. */
-	gsc_main_window = g_vm->glk_window_open(0, 0, 0, wintype_TextBuffer, 0);
+	gsc_main_window = g_vm->glk_window_open(nullptr, 0, 0, wintype_TextBuffer, 0);
 	if (!gsc_main_window) {
 		gsc_fatal("GLK: Can't open main window");
 		g_vm->glk_exit();
@@ -3019,7 +3018,7 @@ static void gsc_main() {
  * we only get a call to main once.
  */
 static int gsc_startup_called = FALSE,
-           gsc_main_called = FALSE;
+		   gsc_main_called = FALSE;
 
 /*
  * adrift_main()

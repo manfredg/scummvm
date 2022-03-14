@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -1402,7 +1401,7 @@ const SoundLookUp soundList[] =  {
 	{DEMO_SCIENTIST_01,		DEMO_SCIENTIST_01_MP3,		"DEMO_SCIENTIST_01"},
 	{DEMO_SCIENTIST_02,		DEMO_SCIENTIST_02_MP3,		"DEMO_SCIENTIST_02"},
 
-	{LAST_SOUND,			NULL,						NULL}
+	{LAST_SOUND,			nullptr,						nullptr}
 };
 
 Sound::Sound() {
@@ -1441,8 +1440,6 @@ void Sound::init() {
 		}
 		debug(9, "Registering sound: sName: %s, \tsLuaName: %s, \tExtension: %s", soundList[index].name, soundList[index].luaName, _soundCache[index].ext == SNDTYPE_MP3 ? "MP3" : "WAV");
 		index++;
-		if (index >= kMaxSounds)
-			error("Reached MAX_SOUNDS in Sound::Init() !");
 	}
 	_numSounds = index;
 
@@ -1521,7 +1518,7 @@ void Sound::playSound(int index) {
 		audioStream = Audio::makeWAVStream(stream, DisposeAfterUse::YES);
 	}
 
-	if (audioStream == 0) {
+	if (audioStream == nullptr) {
 		warning("playSound: sound %d is corrupt", index);
 		return;
 	}
@@ -1585,7 +1582,7 @@ void Sound::playSoundEx(int index, int channel, bool loop) {
 		audioStream = Audio::makeWAVStream(stream, DisposeAfterUse::YES);
 	}
 
-	if (audioStream == 0) {
+	if (audioStream == nullptr) {
 		warning("playSoundEx: sound %d is corrupt", index);
 		return;
 	}
@@ -1757,7 +1754,7 @@ void Sound::beginMusic(SoundType song, bool fadeIn, int ramp) {
 		if (_song2.isPlaying()) {
 			_song2.fadeOut(ramp);
 		}
-		
+
 		_song1.playSong(song, fadeIn, ramp);
 	}
 	else if (!_song2.isPlaying()) {
@@ -1886,6 +1883,12 @@ void Song::update() {
 	else if (fadingIn) {
 		fadeInVol = g_hdb->_sound->_musicVolume;
 		fadingIn = false;
+	}
+}
+
+Sound::~Sound() {
+	for (int i = 0; i < kMaxSounds; i++) {
+		free(_soundCache[i].data);
 	}
 }
 

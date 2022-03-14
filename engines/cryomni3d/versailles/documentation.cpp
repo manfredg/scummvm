@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -82,14 +81,17 @@ const Versailles_Documentation::TimelineEntry Versailles_Documentation::kTimelin
 };
 
 void Versailles_Documentation::init(const Sprites *sprites, FontManager *fontManager,
-                                    const Common::StringArray *messages, CryOmni3DEngine *engine,
-                                    const Common::String &allDocsFileName, const Common::String &linksDocsFileName) {
+									const Common::StringArray *messages, CryOmni3DEngine *engine,
+									const Common::String &allDocsFileName, const Common::String &linksDocsFileName) {
 	_sprites = sprites;
 	_fontManager = fontManager;
 	_messages = messages;
 	_engine = engine;
 	_allDocsFileName = allDocsFileName;
 	_linksDocsFileName = linksDocsFileName;
+
+	// Japanese version of Versailles handles records attributeswith multilines
+	_multilineAttributes = (_engine->getLanguage() == Common::JA_JPN);
 
 	// Build list of records
 	Common::File allDocsFile;
@@ -666,7 +668,7 @@ void Versailles_Documentation::docAreaPrepareNavigation() {
 }
 
 void Versailles_Documentation::docAreaPrepareRecord(Graphics::ManagedSurface &surface,
-        MouseBoxes &boxes) {
+		MouseBoxes &boxes) {
 	boxes.reset();
 
 	setupRecordBoxes(true, boxes);
@@ -695,7 +697,7 @@ void Versailles_Documentation::docAreaPrepareRecord(Graphics::ManagedSurface &su
 }
 
 uint Versailles_Documentation::docAreaHandleRecord(Graphics::ManagedSurface &surface,
-        MouseBoxes &boxes, Common::String &nextRecord) {
+		MouseBoxes &boxes, Common::String &nextRecord) {
 	// Hovering is only handled for timeline entries
 	_engine->setCursor(181);
 	_engine->showMouse(true);
@@ -1315,7 +1317,7 @@ Common::String Versailles_Documentation::docAreaHandleCastleMap() {
 }
 
 void Versailles_Documentation::inGamePrepareRecord(Graphics::ManagedSurface &surface,
-        MouseBoxes &boxes) {
+		MouseBoxes &boxes) {
 	_categoryStartRecord = "";
 	_categoryEndRecord = "";
 	_categoryTitle = "";
@@ -1347,7 +1349,7 @@ void Versailles_Documentation::inGamePrepareRecord(Graphics::ManagedSurface &sur
 }
 
 uint Versailles_Documentation::inGameHandleRecord(Graphics::ManagedSurface &surface,
-        MouseBoxes &boxes, Common::String &nextRecord) {
+		MouseBoxes &boxes, Common::String &nextRecord) {
 	_engine->setCursor(181);
 	_engine->showMouse(true);
 
@@ -1398,8 +1400,8 @@ uint Versailles_Documentation::inGameHandleRecord(Graphics::ManagedSurface &surf
 }
 
 void Versailles_Documentation::drawRecordData(Graphics::ManagedSurface &surface,
-        const Common::String &text, const Common::String &title,
-        const Common::String &subtitle, const Common::String &caption) {
+		const Common::String &text, const Common::String &title,
+		const Common::String &subtitle, const Common::String &caption) {
 	unsigned char foreColor = 247;
 	Common::String background;
 	Common::Rect blockTitle;
@@ -1448,6 +1450,14 @@ void Versailles_Documentation::drawRecordData(Graphics::ManagedSurface &surface,
 		blockContent1 = Common::Rect(60, 80, 351, 345);
 		blockContent2 = Common::Rect(60, 345, 605, 437);
 	}
+	// Fix of overlapping areas for Chinese and Japanese (as in original binary)
+	if ((_engine->getLanguage() == Common::JA_JPN ||
+	        _engine->getLanguage() == Common::ZH_TWN) &&
+	        !_currentMapLayout) {
+		blockContent1.bottom += 30;
+		blockContent2.top += 30;
+	}
+
 	if (_currentInTimeline) {
 		background = "CHRONO1";
 		foreColor = 241;
@@ -1477,7 +1487,14 @@ void Versailles_Documentation::drawRecordData(Graphics::ManagedSurface &surface,
 	Common::String text = getRecordData(_currentRecord, title, subtitle, caption, hyperlinks);*/
 
 	uint lineHeight = 21;
-	_fontManager->setCurrentFont(4);
+
+	if (_engine->getLanguage() == Common::JA_JPN ||
+	        _engine->getLanguage() == Common::KO_KOR ||
+	        _engine->getLanguage() == Common::ZH_TWN) {
+		_fontManager->setCurrentFont(8);
+	} else {
+		_fontManager->setCurrentFont(4);
+	}
 	_fontManager->setTransparentBackground(true);
 	_fontManager->setSpaceWidth(1);
 	_fontManager->setCharSpacing(1);
@@ -1508,7 +1525,7 @@ void Versailles_Documentation::drawRecordData(Graphics::ManagedSurface &surface,
 		blockContent2.top = _fontManager->blockTextLastPos().y + lineHeight;
 		_fontManager->setupBlock(blockContent2);
 
-		if (!_fontManager->displayBlockText(text, _fontManager->blockTextRemaining())) {
+		if (!_fontManager->displayBlockTextContinue()) {
 			// All text was drawn
 			break;
 		}
@@ -1603,7 +1620,7 @@ void Versailles_Documentation::setupRecordBoxes(bool inDocArea, MouseBoxes &boxe
 }
 
 void Versailles_Documentation::drawRecordBoxes(Graphics::ManagedSurface &surface, bool inDocArea,
-        MouseBoxes &boxes) {
+		MouseBoxes &boxes) {
 	if (_visitTrace.size()) {
 		surface.transBlitFrom(_sprites->getSurface(105), boxes.getBoxOrigin(0), _sprites->getKeyColor(105));
 	}
@@ -1644,9 +1661,9 @@ void Versailles_Documentation::drawRecordBoxes(Graphics::ManagedSurface &surface
 }
 
 uint Versailles_Documentation::handlePopupMenu(const Graphics::ManagedSurface
-        &originalSurface,
-        const Common::Point &anchor, bool rightAligned, uint itemHeight,
-        const Common::StringArray &items) {
+		&originalSurface,
+		const Common::Point &anchor, bool rightAligned, uint itemHeight,
+		const Common::StringArray &items) {
 
 	uint maxTextWidth = 0;
 
@@ -1846,9 +1863,25 @@ char *Versailles_Documentation::getDocPartAddress(char *start, char *end, const 
 	}
 	/*debug("Matched %.10s", foundPos);*/
 	foundPos += patternLen;
-	char *eol = foundPos;
-	for (; *eol != '\r' && *eol != '\0'; eol++) {}
-	*eol = '\0';
+	if (_multilineAttributes) {
+		char *eoa = foundPos;
+
+		// Find next '='
+		for (; eoa < end && *eoa != '\0' && *eoa != '='; eoa++) {}
+
+		if (eoa == end || *eoa == '\0') {
+			// This is the end of block or data has already been split
+			return foundPos;
+		}
+
+		// Go back to start of line
+		for (; eoa != foundPos && *eoa != '\r'; eoa--) {}
+		*eoa = '\0';
+	} else {
+		char *eol = foundPos;
+		for (; *eol != '\r' && *eol != '\0'; eol++) {}
+		*eol = '\0';
+	}
 	return foundPos;
 }
 
@@ -1918,7 +1951,7 @@ const char *Versailles_Documentation::getRecordSubtitle(char *start, char *end) 
 }
 
 void Versailles_Documentation::getRecordHyperlinks(char *start, char *end,
-        Common::StringArray &hyperlinks) {
+		Common::StringArray &hyperlinks) {
 	const char *const hyperlinksPatterns[] = { "SAVOIR-PLUS 1=", "SAVOIR-PLUS 2=", "SAVOIR-PLUS 3=" };
 
 	hyperlinks.clear();
@@ -1958,8 +1991,8 @@ Common::String Versailles_Documentation::getRecordTitle(const Common::String &re
 }
 
 Common::String Versailles_Documentation::getRecordData(const Common::String &record,
-        Common::String &title, Common::String &subtitle, Common::String &caption,
-        Common::StringArray &hyperlinks) {
+		Common::String &title, Common::String &subtitle, Common::String &caption,
+		Common::StringArray &hyperlinks) {
 	Common::HashMap<Common::String, RecordInfo>::iterator it = _records.find(record);
 	if (it == _records.end()) {
 		warning("Can't find %s record data", record.c_str());
@@ -1990,7 +2023,16 @@ Common::String Versailles_Documentation::getRecordData(const Common::String &rec
 	caption = captionP ? captionP : "";
 	getRecordHyperlinks(recordData, recordDataEnd, hyperlinks);
 
-	Common::String text(getDocTextAddress(recordData, recordDataEnd));
+	const char *textP = nullptr;
+	if (_multilineAttributes) {
+		const char *patterns[] = { "TEXTE=", "TEXT=", nullptr };
+		textP = getDocPartAddress(recordData, recordDataEnd, patterns);
+	} else {
+		textP = getDocTextAddress(recordData, recordDataEnd);
+	}
+
+	assert(textP != nullptr);
+	Common::String text(textP);
 
 	delete[] recordData;
 
@@ -1998,7 +2040,7 @@ Common::String Versailles_Documentation::getRecordData(const Common::String &rec
 }
 
 void Versailles_Documentation::convertHyperlinks(const Common::StringArray &hyperlinks,
-        Common::Array<LinkInfo> &links) {
+		Common::Array<LinkInfo> &links) {
 	for (Common::StringArray::const_iterator it = hyperlinks.begin(); it != hyperlinks.end(); it++) {
 		LinkInfo link;
 		link.record = *it;
@@ -2026,7 +2068,7 @@ void Versailles_Documentation::loadLinksFile() {
 }
 
 void Versailles_Documentation::getLinks(const Common::String &record,
-                                        Common::Array<LinkInfo> &links) {
+										Common::Array<LinkInfo> &links) {
 	loadLinksFile();
 
 	links.clear();

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -120,6 +119,7 @@ public:
 #ifdef ENABLE_SCI32
 	uint32 _eventCounter; /**< total times kGetEvent was invoked since the last call to kFrameOut */
 #endif
+	uint32 _paletteSetIntensityCounter; /**< total times kPaletteSetIntensity was invoked since the last call to kGameIsRestarting or kWait */
 	uint32 _throttleLastTime; /**< last time kAnimate was invoked */
 	bool _throttleTrigger;
 	bool _gameIsBenchmarking;
@@ -135,6 +135,10 @@ public:
 
 	// see detection.cpp / SciEngine::loadGameState()
 	int _delayedRestoreGameId; // the saved game id, that it supposed to get restored (triggered by ScummVM menu)
+
+	// see kmisc.cpp / kMacPlatform32
+	int _kq7MacSaveGameId; // the saved game id to use when saving (might not exist yet)
+	Common::String _kq7MacSaveGameDescription; // description to use when saving game
 
 	uint _chosenQfGImportItem; // Remembers the item selected in QfG import rooms
 

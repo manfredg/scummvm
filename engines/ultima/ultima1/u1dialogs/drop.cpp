@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,18 +38,18 @@ END_MESSAGE_MAP()
 Drop::Drop(Ultima1Game *game) : FullScreenDialog(game), _mode(SELECT) {
 }
 
-bool Drop::ShowMsg(CShowMsg &msg) {
+bool Drop::ShowMsg(CShowMsg *msg) {
 	addInfoMsg(_game->_res->DROP_PENCE_WEAPON_armour, false);
 	getKeypress();
 	return true;
 }
 
-bool Drop::CharacterInputMsg(CCharacterInputMsg &msg) {
+bool Drop::CharacterInputMsg(CCharacterInputMsg *msg) {
 	Shared::Character &c = *_game->_party;
 
 	switch (_mode) {
 	case SELECT:
-		switch (msg._keyState.keycode) {
+		switch (msg->_keyState.keycode) {
 		case Common::KEYCODE_p:
 			setMode(DROP_PENCE);
 			break;
@@ -67,10 +66,10 @@ bool Drop::CharacterInputMsg(CCharacterInputMsg &msg) {
 		break;
 
 	case DROP_WEAPON:
-		if (msg._keyState.keycode >= Common::KEYCODE_b && msg._keyState.keycode < (Common::KEYCODE_b + (int)c._weapons.size())
-			&& !c._weapons[msg._keyState.keycode - Common::KEYCODE_a]->empty()) {
+		if (msg->_keyState.keycode >= Common::KEYCODE_b && msg->_keyState.keycode < (Common::KEYCODE_b + (int)c._weapons.size())
+			&& !c._weapons[msg->_keyState.keycode - Common::KEYCODE_a]->empty()) {
 			// Drop the weapon
-			int weaponNum = msg._keyState.keycode - Common::KEYCODE_a;
+			int weaponNum = msg->_keyState.keycode - Common::KEYCODE_a;
 			if (c._weapons[weaponNum]->decrQuantity() && c._equippedWeapon == weaponNum)
 				c.removeWeapon();
 
@@ -83,10 +82,10 @@ bool Drop::CharacterInputMsg(CCharacterInputMsg &msg) {
 		break;
 
 	case DROP_armour:
-		if (msg._keyState.keycode >= Common::KEYCODE_b && msg._keyState.keycode < (Common::KEYCODE_b + (int)c._armour.size())
-			&& c._armour[msg._keyState.keycode - Common::KEYCODE_a]->_quantity > 0) {
+		if (msg->_keyState.keycode >= Common::KEYCODE_b && msg->_keyState.keycode < (Common::KEYCODE_b + (int)c._armour.size())
+			&& c._armour[msg->_keyState.keycode - Common::KEYCODE_a]->_quantity > 0) {
 			// Drop the armor
-			int armorNum = msg._keyState.keycode - Common::KEYCODE_a;
+			int armorNum = msg->_keyState.keycode - Common::KEYCODE_a;
 			if (c._armour[armorNum]->decrQuantity() && c._equippedArmour == armorNum)
 				c.removeArmour();
 
@@ -105,15 +104,15 @@ bool Drop::CharacterInputMsg(CCharacterInputMsg &msg) {
 	return true;
 }
 
-bool Drop::TextInputMsg(CTextInputMsg &msg) {
+bool Drop::TextInputMsg(CTextInputMsg *msg) {
 	Shared::Character &c = *_game->_party;
 	assert(_mode == DROP_PENCE);
 	Ultima1Game *game = _game;
 	Maps::Ultima1Map *map = getMap();
 
-	uint amount = atoi(msg._text.c_str());
+	uint amount = atoi(msg->_text.c_str());
 
-	if (msg._escaped || !amount) {
+	if (msg->_escaped || !amount) {
 		none();
 
 	} else {

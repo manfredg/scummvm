@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,6 +35,9 @@ Reader::Reader() {
 	_window = nullptr;
 	_windowUsed = 0;
 	_windowSize = 0;
+	_windowReadPosition = 0;
+	_windowWritePosition = 0;
+	_windowHash = 0;
 
 	_headersStream = nullptr;
 	_firstBlock = true;
@@ -63,6 +65,9 @@ Reader &Reader::operator=(Reader &r) {
 	_window = r._window;
 	_windowUsed = r._windowUsed;
 	_windowSize = r._windowSize;
+	_windowReadPosition = r._windowReadPosition;
+	_windowWritePosition = r._windowWritePosition;
+	_windowHash = r._windowHash;
 	r._window = nullptr;
 
 	_headersStream = r._headersStream;
@@ -94,8 +99,18 @@ void Reader::cleanup() {
 		freeWindow();
 }
 
+namespace {
+uint32 calculateHash(const Common::String& boundary) {
+	uint32 result = 0;
+	for (uint32 i = 0; i < boundary.size(); ++i)
+		result ^= boundary[i];
+	return result;
+}
+}
+
 bool Reader::readAndHandleFirstHeaders() {
 	Common::String boundary = "\r\n\r\n";
+	uint32 boundaryHash = calculateHash(boundary);
 	if (_window == nullptr) {
 		makeWindow(boundary.size());
 	}
@@ -103,7 +118,7 @@ bool Reader::readAndHandleFirstHeaders() {
 		_headersStream = new Common::MemoryReadWriteStream(DisposeAfterUse::YES);
 	}
 
-	while (readOneByteInStream(_headersStream, boundary)) {
+	while (readOneByteInStream(_headersStream, boundary, boundaryHash)) {
 		if (_headersStream->size() > SUSPICIOUS_HEADERS_SIZE) {
 			_isBadRequest = true;
 			return true;
@@ -120,9 +135,10 @@ bool Reader::readAndHandleFirstHeaders() {
 
 bool Reader::readBlockHeadersIntoStream(Common::WriteStream *stream) {
 	Common::String boundary = "\r\n\r\n";
+	uint32 boundaryHash = calculateHash(boundary);
 	if (_window == nullptr) makeWindow(boundary.size());
 
-	while (readOneByteInStream(stream, boundary)) {
+	while (readOneByteInStream(stream, boundary, boundaryHash)) {
 		if (!bytesLeft())
 			return false;
 	}
@@ -288,7 +304,8 @@ bool Reader::readContentIntoStream(Common::WriteStream *stream) {
 	if (_window == nullptr)
 		makeWindow(boundary.size());
 
-	while (readOneByteInStream(stream, boundary)) {
+	uint32 boundaryHash = calculateHash(boundary);
+	while (readOneByteInStream(stream, boundary, boundaryHash)) {
 		if (!bytesLeft())
 			return false;
 	}
@@ -308,21 +325,26 @@ void Reader::makeWindow(uint32 size) {
 	_window = new byte[size];
 	_windowUsed = 0;
 	_windowSize = size;
+	_windowReadPosition = 0;
+	_windowWritePosition = 0;
+	_windowHash = 0;
 }
 
 void Reader::freeWindow() {
 	delete[] _window;
 	_window = nullptr;
 	_windowUsed = _windowSize = 0;
+	_windowReadPosition = _windowWritePosition = 0;
+	_windowHash = 0;
 }
 
 namespace {
-bool windowEqualsString(const byte *window, uint32 windowSize, const Common::String &boundary) {
+bool windowEqualsString(const byte *window, uint32 windowStart, uint32 windowSize, const Common::String &boundary) {
 	if (boundary.size() != windowSize)
 		return false;
 
 	for (uint32 i = 0; i < windowSize; ++i) {
-		if (window[i] != boundary[i])
+		if (window[(windowStart + i) % windowSize] != boundary[i])
 			return false;
 	}
 
@@ -330,21 +352,24 @@ bool windowEqualsString(const byte *window, uint32 windowSize, const Common::Str
 }
 }
 
-bool Reader::readOneByteInStream(Common::WriteStream *stream, const Common::String &boundary) {
+bool Reader::readOneByteInStream(Common::WriteStream *stream, const Common::String &boundary, const uint32 boundaryHash) {
 	byte b = readOne();
-	_window[_windowUsed++] = b;
+	++_windowUsed;
+	_window[_windowWritePosition] = b;
+	_windowWritePosition = (_windowWritePosition + 1) % _windowSize;
+	_windowHash ^= b;
 	if (_windowUsed < _windowSize)
 		return true;
 
 	//when window is filled, check whether that's the boundary
-	if (windowEqualsString(_window, _windowSize, boundary))
+	if (_windowHash == boundaryHash && windowEqualsString(_window, _windowReadPosition, _windowSize, boundary))
 		return false;
 
 	//if not, add the first byte of the window to the string
 	if (stream)
-		stream->writeByte(_window[0]);
-	for (uint32 i = 1; i < _windowSize; ++i)
-		_window[i - 1] = _window[i];
+		stream->writeByte(_window[_windowReadPosition]);
+	_windowHash ^= _window[_windowReadPosition];
+	_windowReadPosition = (_windowReadPosition + 1) % _windowSize;
 	--_windowUsed;
 	return true;
 }
@@ -442,7 +467,7 @@ Common::String Reader::path() const { return _path; }
 
 Common::String Reader::query() const { return _query; }
 
-Common::String Reader::queryParameter(Common::String name) const { return _queryParameters[name]; }
+Common::String Reader::queryParameter(Common::String name) const { return _queryParameters.getValOrDefault(name); }
 
 Common::String Reader::anchor() const { return _anchor; }
 

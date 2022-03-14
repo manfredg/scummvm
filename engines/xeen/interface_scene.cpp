@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,10 +26,10 @@
 
 namespace Xeen {
 
-const int COMBAT_POS_X[3][2] = { { 102, 134 },{ 36, 67 },{ 161, 161 } };
-const int INDOOR_POW_INDEXES[3] = { 157, 151, 154 };
-const int OUTDOOR_POW_INDEXES[3] = { 119, 113, 116 };
-const int COMBAT_OFFSET_X[4] = { 8, 6, 4, 2 };
+static const int COMBAT_POS_X[3][2] = { { 102, 134 },{ 36, 67 },{ 161, 161 } };
+static const int INDOOR_POW_INDEXES[3] = { 157, 151, 154 };
+static const int OUTDOOR_POW_INDEXES[3] = { 119, 113, 116 };
+static const int COMBAT_OFFSET_X[4] = { 8, 6, 4, 2 };
 
 OutdoorDrawList::OutdoorDrawList() : _sky1(_data[0]), _sky2(_data[1]),
 	_groundSprite(_data[2]), _attackImgs1(&_data[124]), _attackImgs2(&_data[95]),

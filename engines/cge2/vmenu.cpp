@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 /*
  * This code is based on original Sfinx source code
- * Copyright (c) 1994-1997 Janus B. Wisniewski and L.K. Avalon
+ * Copyright (c) 1994-1997 Janusz B. Wisniewski and L.K. Avalon
  */
 
+#include "common/config-manager.h"
+#include "common/text-to-speech.h"
 #include "cge2/text.h"
 #include "cge2/vmenu.h"
 #include "cge2/events.h"
@@ -83,7 +84,7 @@ MenuBar::MenuBar(CGE2Engine *vm, uint16 w, byte *c) : Talk(vm) {
 VMenu *VMenu::_addr = nullptr;
 
 VMenu::VMenu(CGE2Engine *vm, Common::Array<Choice *> list, V2D pos, ColorBank col)
-	: Talk(vm, vmGather(list), kTBRect, col), _menu(list), _bar(nullptr), _items(list.size()), _vm(vm) {
+	: Talk(vm, vmGather(list), kTBRect, col), _menu(list), _bar(nullptr), _items(list.size()), _vm(vm), _lastN(2) {
 	delete[] _vmgt; // Lefotver of vmGather.
 
 	_addr = this;
@@ -150,6 +151,12 @@ void VMenu::touch(uint16 mask, V2D pos, Common::KeyCode keyCode) {
 
 		_bar->gotoxyz(V2D(_vm, _pos2D.x, _pos2D.y + kTextVMargin + n * h - kMenuBarVerticalMargin));
 		n = _items - 1 - n;
+
+		Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+		if (_lastN != n) {
+			ttsMan->say(_menu[n]->_text, Common::TextToSpeechManager::INTERRUPT);
+			_lastN = n;
+		}
 
 		if (ok && (mask & kMouseLeftUp)) {
 			_items = 0;

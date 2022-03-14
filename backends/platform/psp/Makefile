@@ -79,7 +79,6 @@ AR      = psp-ar cru
 RANLIB  = psp-ranlib
 AS      = psp-gcc
 LD      = psp-gcc
-HAVE_GCC3 = true
 CXX_UPDATE_DEP_FLAG = -Wp,-MMD,"$(*D)/$(DEPDIR)/$(*F).d",-MQ,"$@",-MP
 
 # Variables for dynamic plugin building
@@ -173,7 +172,7 @@ LDFLAGS += -Wl,-T../../plugins/psp/main_prog.ld
 all: $(PSP_EBOOT)
 
 $(TARGET).elf: $(OBJS)
-	$(LD) $(PRE_OBJS_FLAGS) $(OBJS) $(POST_OBJS_FLAGS) $(LDFLAGS) $(LIBS) -o $@
+	+$(LD) $(PRE_OBJS_FLAGS) $(OBJS) $(POST_OBJS_FLAGS) $(LDFLAGS) $(LIBS) -o $@
 	cp $(TARGET).elf $(TARGET).org.elf
 	$(FIXUP) $@
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,34 +15,27 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef ULTIMA8_KERNEL_OBJECT_H
 #define ULTIMA8_KERNEL_OBJECT_H
 
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
+#include "ultima/ultima8/misc/classtype.h"
 #include "ultima/ultima8/misc/pent_include.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
 class Usecode;
-class ODataSource;
-class IDataSource;
 
 class Object {
 public:
 	Object() : _objId(0xFFFF) {}
 	virtual ~Object();
 
-	// p_dynamic_cast stuff
 	ENABLE_RUNTIME_CLASSTYPE_BASE()
-
-	// memory pooling stuff
-	ENABLE_CUSTOM_MEMORY_ALLOCATION()
 
 	//! get this Object's objID
 	inline ObjId getObjId() const {
@@ -59,9 +52,6 @@ public:
 	//! dump some info about this object to pout
 	virtual void dumpInfo() const;
 
-	//! save this object
-	void save(ODataSource *ods);
-
 	//! Spawn a usecode function on this object
 	//! \param classid The usecode class to run
 	//! \param offset The offset in that class to run
@@ -72,15 +62,10 @@ public:
 	ProcId callUsecode(uint16 classid, uint16 offset,
 	                   const uint8 *args = 0, int argsize = 0);
 
-	bool loadData(IDataSource *ids, uint32 version);
+	bool loadData(Common::ReadStream *rs, uint32 version);
+	virtual void saveData(Common::WriteStream *ws);
 
 protected:
-	//! write the Object savegame header (mainly consisting of the classname)
-	void writeObjectHeader(ODataSource *ods) const;
-
-	//! save the actual Object data
-	virtual void saveData(ODataSource *ods);
-
 	ObjId _objId;
 };
 

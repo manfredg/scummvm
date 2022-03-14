@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,15 +24,15 @@
 
 namespace Director {
 
-class BitmapCast;
-class ButtonCast;
-class ShapeCast;
-class TextCast;
+class Frame;
+class BitmapCastMember;
+class ShapeCastMember;
+class TextCastMember;
 
 enum SpritePosition {
 	kSpritePositionUnk1 = 0,
-	kSpritePositionEnabled,
-	kSpritePositionUnk2,
+	kSpritePositionEnabled = 1,
+	kSpritePositionUnk2 = 2,
 	kSpritePositionFlags = 4,
 	kSpritePositionCastId = 6,
 	kSpritePositionY = 8,
@@ -59,55 +58,69 @@ enum MainChannelsPosition {
 
 class Sprite {
 public:
-	Sprite();
+	Sprite(Frame *frame = nullptr);
 	Sprite(const Sprite &sprite);
+	Sprite& operator=(const Sprite &sprite);
 	~Sprite();
+
+	Frame *getFrame() const { return _frame; }
+	Score *getScore() const { return _score; }
+
+	void updateEditable();
+
+	bool respondsToMouse();
+	bool isActive();
+	bool shouldHilite();
+	bool checkSpriteType();
 
 	uint16 getPattern();
 	void setPattern(uint16 pattern);
 
-	uint16 _scriptId;
-	byte _flags2;  // x40 editable, 0x80 moveable
-	byte _unk2;
+	void setCast(CastMemberID memberID);
+	bool isQDShape();
+	Graphics::Surface *getQDMatte();
+	void createQDMatte();
+	MacShape *getShape();
+	uint32 getForeColor();
+	uint32 getBackColor();
+	Common::Point getRegistrationOffset();
+
+	Frame *_frame;
+	Score *_score;
+	Movie *_movie;
+
+	Graphics::FloodFill *_matte; // matte for quickdraw shape
+
+	CastMemberID _scriptId;
+	byte _colorcode; // x40 editable, 0x80 moveable
+	byte _blendAmount;
 	uint32 _unk3;
 
 	bool _enabled;
-	uint16 _castId;
-	byte _spriteType;
+	SpriteType _spriteType;
+	byte _inkData;
 	InkType _ink;
 	uint16 _trails;
 
-	Cast *_cast;
+	CastMemberID _castId;
+	uint16 _pattern;
+	CastMember *_cast;
 
-	uint16 _flags;
+	byte _thickness;
 	Common::Point _startPoint;
-	uint16 _width;
-	uint16 _height;
-	// TODO: default constraint = 0, if turned on, sprite is constrainted to the bounding rect
-	// As i know, constrainted != 0 only if sprite moveable
-	byte _constraint;
-	byte _moveable;
-	byte _backColor;
-	byte _foreColor;
+	int16 _width;
+	int16 _height;
+	bool _moveable;
+	bool _editable;
+	bool _puppet;
+	bool _immediate;
+	uint32 _backColor;
+	uint32 _foreColor;
 
-	uint16 _left;
-	uint16 _right;
-	uint16 _top;
-	uint16 _bottom;
 	byte _blend;
-	bool _visible;
-	SpriteType _type;
-	// Using in digital movie sprites
-	byte _movieRate;
-	uint16 _movieTime;
-	uint16 _startTime;
-	uint16 _stopTime;
+
 	byte _volume;
 	byte _stretch;
-	// Using in shape sprites
-	byte _lineSize;
-	// Using in text sprites
-	Common::String _editableText;
 };
 
 } // End of namespace Director

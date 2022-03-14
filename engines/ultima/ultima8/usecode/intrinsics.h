@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,9 @@ typedef uint32(*Intrinsic)(const uint8 *args, unsigned int argsize);
 
 // TODO: range checking on args
 
-#define ARG_UINT8(x)   uint8  x = (*args++);
+// UINT8s are pushed on the stack as words (see push byte opcodes),
+// so we ignore the top byte when popping.
+#define ARG_UINT8(x)   uint8  x = (*args++); args++;
 #define ARG_UINT16(x)  uint16 x = (*args++); x += ((*args++) << 8);
 #define ARG_UINT32(x)  uint32 x = (*args++); x += ((*args++) << 8); \
 	x+= ((*args++) << 16); x += ((*args++) << 24);
@@ -73,9 +74,9 @@ typedef uint32(*Intrinsic)(const uint8 *args, unsigned int argsize);
 
 #define ARG_EGG_FROM_PTR(x) ARG_UC_PTR(ucptr_##x); \
 	uint16 id_##x = UCMachine::ptrToObject(ucptr_##x); \
-	Egg* x = p_dynamic_cast<Egg*>(getObject(id_##x));
+	Egg* x = dynamic_cast<Egg*>(getObject(id_##x));
 #define ARG_EGG_FROM_ID(x)    ARG_OBJID(id_##x); \
-	Egg* x = p_dynamic_cast<Egg*>(getObject(id_##x));
+	Egg* x = dynamic_cast<Egg*>(getObject(id_##x));
 
 #define ARG_STRING(x) ARG_UC_PTR(ucptr_##x); \
 	uint16 id_##x = UCMachine::ptrToObject(ucptr_##x); \
@@ -88,7 +89,8 @@ typedef uint32(*Intrinsic)(const uint8 *args, unsigned int argsize);
 	WorldPoint x; \
 	UCMachine::get_instance()->dereferencePointer(ucptr_##x, x._buf, 5);
 
-#define ARG_NULL8()  args+=1;
+// See comment on ARG_UINT8 for why +2 on NULL8
+#define ARG_NULL8()  args+=2;
 #define ARG_NULL16() args+=2;
 #define ARG_NULL32() args+=4;
 

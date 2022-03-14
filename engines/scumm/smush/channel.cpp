@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,9 +28,9 @@ namespace Scumm {
 
 SmushChannel::SmushChannel(int32 track) :
 	_track(track),
-	_tbuffer(0),
+	_tbuffer(nullptr),
 	_tbufferSize(0),
-	_sbuffer(0),
+	_sbuffer(nullptr),
 	_sbufferSize(0),
 	_dataSize(-1),
 	_inData(false),
@@ -45,9 +44,9 @@ SmushChannel::~SmushChannel() {
 }
 
 void SmushChannel::processBuffer() {
-	assert(_tbuffer != 0);
+	assert(_tbuffer != nullptr);
 	assert(_tbufferSize != 0);
-	assert(_sbuffer == 0);
+	assert(_sbuffer == nullptr);
 	assert(_sbufferSize == 0);
 
 	if (_inData) {
@@ -67,18 +66,18 @@ void SmushChannel::processBuffer() {
 				memcpy(_tbuffer, _sbuffer + offset, new_size);
 				_tbufferSize = new_size;
 			} else {
-				_tbuffer = 0;
+				_tbuffer = nullptr;
 				_tbufferSize = 0;
 			}
 			if (_sbufferSize == 0) {
 				free(_sbuffer);
-				_sbuffer = 0;
+				_sbuffer = nullptr;
 			}
 		} else {
 			_sbufferSize = _tbufferSize;
 			_sbuffer = _tbuffer;
 			_tbufferSize = 0;
-			_tbuffer = 0;
+			_tbuffer = nullptr;
 		}
 	} else {
 		int32 offset = 0;
@@ -92,7 +91,7 @@ void SmushChannel::processBuffer() {
 				error("smush channel failed to allocate memory");
 			memcpy(_sbuffer, _tbuffer + offset, _sbufferSize);
 			free(_tbuffer);
-			_tbuffer = 0;
+			_tbuffer = nullptr;
 			_tbufferSize = 0;
 		} else {
 			if (offset) {

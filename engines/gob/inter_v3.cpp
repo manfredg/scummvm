@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -76,7 +75,7 @@ void Inter_v3::o3_speakerOn(OpFuncParams &params) {
 	// we have delay in certain places avoid 100% CPU all the time and
 	// our PC speaker emulator sometimes "swallows" very short beeper
 	// bursts issued in this way, this is in general quite wonky and
-	// prone to fail, as can be seen in bug report #3376547. Therefore,
+	// prone to fail, as can be seen in bug report #5808. Therefore,
 	// we explicitely set a length in this case and ignore the next
 	// speaker off command.
 	if (frequency == 50) {

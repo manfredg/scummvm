@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2021 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -90,7 +90,7 @@ static Bit32u calcBasePitch(const Partial *partial, const TimbreParam::PartialPa
 	basePitch += fineToPitch(patchTemp->patch.fineTune);
 
 	const ControlROMPCMStruct *controlROMPCMStruct = partial->getControlROMPCMStruct();
-	if (controlROMPCMStruct != NULL) {
+	if (controlROMPCMStruct != nullptr) {
 		basePitch += (Bit32s(controlROMPCMStruct->pitchMSB) << 8) | Bit32s(controlROMPCMStruct->pitchLSB);
 	} else {
 		if ((partialParam->wg.waveform & 1) == 0) {
@@ -104,12 +104,12 @@ static Bit32u calcBasePitch(const Partial *partial, const TimbreParam::PartialPa
 
 	// MT-32 GEN0 does 16-bit calculations here, allowing an integer overflow.
 	// This quirk is observable playing the patch defined for timbre "HIT BOTTOM" in Larry 3.
+	// Note, the upper bound isn't checked either.
 	if (controlROMFeatures->quirkBasePitchOverflow) {
 		basePitch = basePitch & 0xffff;
 	} else if (basePitch < 0) {
 		basePitch = 0;
-	}
-	if (basePitch > 59392) {
+	} else if (basePitch > 59392) {
 		basePitch = 59392;
 	}
 	return Bit32u(basePitch);
@@ -151,6 +151,7 @@ void TVP::reset(const Part *usePart, const TimbreParam::PartialParam *usePartial
 
 	// FIXME: We're using a per-TVP timer instead of a system-wide one for convenience.
 	timeElapsed = 0;
+	processTimerIncrement = 0;
 
 	basePitch = calcBasePitch(partial, partialParam, patchTemp, key, partial->getSynth()->controlROMFeatures);
 	currentPitchOffset = calcTargetPitchOffsetWithoutLFO(partialParam, 0, velocity);
@@ -194,6 +195,7 @@ void TVP::updatePitch() {
 	} else if (newPitch < 0) {
 		newPitch = 0;
 	}
+	// This check is present in every unit.
 	if (newPitch > 59392) {
 		newPitch = 59392;
 	}
@@ -268,7 +270,7 @@ void TVP::setupPitchChange(int targetPitchOffset, Bit8u changeDuration) {
 		pitchOffsetDelta = -pitchOffsetDelta;
 	}
 	// We want to maximise the number of bits of the Bit16s "pitchOffsetChangePerBigTick" we use in order to get the best possible precision later
-	Bit32u absPitchOffsetDelta = pitchOffsetDelta << 16;
+	Bit32u absPitchOffsetDelta = (pitchOffsetDelta & 0xFFFF) << 16;
 	Bit8u normalisationShifts = normalise(absPitchOffsetDelta); // FIXME: Double-check: normalisationShifts is usually between 0 and 15 here, unless the delta is 0, in which case it's 31
 	absPitchOffsetDelta = absPitchOffsetDelta >> 1; // Make room for the sign bit
 
@@ -335,13 +337,16 @@ void TVP::process() {
 		return;
 	}
 	// FIXME: Write explanation for this stuff
+	// NOTE: Value of shifts may happily exceed the maximum of 31 specified for the 8095 MCU.
+	// We assume the device performs a shift with the rightmost 5 bits of the counter regardless of argument size,
+	// since shift instructions of any size have the same maximum.
 	int rightShifts = shifts;
 	if (rightShifts > 13) {
 		rightShifts -= 13;
-		negativeBigTicksRemaining = negativeBigTicksRemaining >> rightShifts; // PORTABILITY NOTE: Assumes arithmetic shift
+		negativeBigTicksRemaining = negativeBigTicksRemaining >> (rightShifts & 0x1F); // PORTABILITY NOTE: Assumes arithmetic shift
 		rightShifts = 13;
 	}
-	int newResult = (negativeBigTicksRemaining * pitchOffsetChangePerBigTick) >> rightShifts; // PORTABILITY NOTE: Assumes arithmetic shift
+	int newResult = (negativeBigTicksRemaining * pitchOffsetChangePerBigTick) >> (rightShifts & 0x1F); // PORTABILITY NOTE: Assumes arithmetic shift
 	newResult += targetPitchOffsetWithoutLFO + lfoPitchOffset;
 	currentPitchOffset = newResult;
 	updatePitch();

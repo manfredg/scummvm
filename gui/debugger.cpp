@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 // NB: This is really only necessary if USE_READLINE is defined
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
 
+#include "common/file.h"
 #include "common/debug.h"
 #include "common/debug-channels.h"
 #include "common/system.h"
@@ -59,7 +59,7 @@ Debugger::Debugger() {
 #endif
 
 	// Register variables
-	registerVar("debug_countdown", &_frameCountdown, DVAR_INT, 0);
+	registerVarImpl("debug_countdown", &_frameCountdown, DVAR_INT, 0);
 
 	// Register commands
 	//registerCmd("continue",			WRAP_METHOD(Debugger, cmdExit));
@@ -72,6 +72,7 @@ Debugger::Debugger() {
 	registerCmd("md5",				WRAP_METHOD(Debugger, cmdMd5));
 	registerCmd("md5mac",			WRAP_METHOD(Debugger, cmdMd5Mac));
 #endif
+	registerCmd("exec",				WRAP_METHOD(Debugger, cmdExecFile));
 
 	registerCmd("debuglevel",		WRAP_METHOD(Debugger, cmdDebugLevel));
 	registerCmd("debugflag_list",		WRAP_METHOD(Debugger, cmdDebugFlagsList));
@@ -83,6 +84,10 @@ Debugger::~Debugger() {
 #ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
 	delete _debuggerDialog;
 #endif
+}
+
+void Debugger::clearVars() {
+	_vars.resize(1); // Keep "debug_countdown"
 }
 
 
@@ -147,11 +152,11 @@ void Debugger::debugPrintColumns(const Common::StringArray &list) {
 }
 
 void Debugger::preEnter() {
-	g_engine->pauseEngine(true);
+	_debugPauseToken = g_engine->pauseEngine();
 }
 
 void Debugger::postEnter() {
-	g_engine->pauseEngine(false);
+	_debugPauseToken.clear();
 }
 
 void Debugger::attach(const char *entry) {
@@ -319,6 +324,10 @@ bool Debugger::parseCommand(const char *inputOrig) {
 					*(int32 *)_vars[i].variable = atoi(param[1]);
 					debugPrintf("(int)%s = %d\n", param[0], *(int32 *)_vars[i].variable);
 					break;
+				case DVAR_FLOAT:
+					*(float *)_vars[i].variable = (float)atof(param[1]);
+					debugPrintf("(float)%s = %f\n", param[0], *(float *)_vars[i].variable);
+					break;
 				case DVAR_BOOL:
 					if (Common::parseBool(param[1], *(bool *)_vars[i].variable))
 						debugPrintf("(bool)%s = %s\n", param[0], *(bool *)_vars[i].variable ? "true" : "false");
@@ -355,6 +364,9 @@ bool Debugger::parseCommand(const char *inputOrig) {
 					break;
 				case DVAR_INT:
 					debugPrintf("(int)%s = %d\n", param[0], *(const int32 *)_vars[i].variable);
+					break;
+				case DVAR_FLOAT:
+					debugPrintf("(float)%s = %f\n", param[0], *(const float *)_vars[i].variable);
 					break;
 				case DVAR_BOOL:
 					debugPrintf("(bool)%s = %s\n", param[0], *(const bool *)_vars[i].variable ? "true" : "false");
@@ -520,7 +532,7 @@ char *Debugger::readlineComplete(const char *input, int state) {
 #endif
 
 // Variable registration function
-void Debugger::registerVar(const Common::String &varname, void *pointer, VarType type, int arraySize) {
+void Debugger::registerVarImpl(const Common::String &varname, void *pointer, VarType type, int arraySize) {
 	// TODO: Filter out duplicates
 	// TODO: Sort this list? Then we can do binary search later on when doing lookups.
 	assert(pointer);
@@ -611,7 +623,7 @@ bool Debugger::cmdOpenLog(int argc, const char **argv) {
 #ifndef DISABLE_MD5
 struct ArchiveMemberLess {
 	bool operator()(const Common::ArchiveMemberPtr &x, const Common::ArchiveMemberPtr &y) const {
-		return (*x).getDisplayName().compareToIgnoreCase((*y).getDisplayName()) < 0;
+		return (*x).getName().compareToIgnoreCase((*y).getName()) < 0;
 	}
 };
 
@@ -647,7 +659,7 @@ bool Debugger::cmdMd5(int argc, const char **argv) {
 			for (Common::ArchiveMemberList::iterator iter = list.begin(); iter != list.end(); ++iter) {
 				Common::SeekableReadStream *stream = (*iter)->createReadStream();
 				Common::String md5 = Common::computeStreamMD5AsString(*stream, length);
-				debugPrintf("%s  %s  %d\n", md5.c_str(), (*iter)->getDisplayName().c_str(), stream->size());
+				debugPrintf("%s  %s  %d\n", md5.c_str(), (*iter)->getName().c_str(), (int32)stream->size());
 				delete stream;
 			}
 		}
@@ -687,17 +699,17 @@ bool Debugger::cmdMd5Mac(int argc, const char **argv) {
 			debugPrintf("Resource file '%s' not found\n", filename.c_str());
 		} else {
 			if (!macResMan.hasResFork() && !macResMan.hasDataFork()) {
-				debugPrintf("'%s' has neither data not resource fork\n", macResMan.getBaseFileName().c_str());
+				debugPrintf("'%s' has neither data not resource fork\n", macResMan.getBaseFileName().toString().c_str());
 			} else {
 				// The resource fork is probably the most relevant one.
 				if (macResMan.hasResFork()) {
 					Common::String md5 = macResMan.computeResForkMD5AsString(length);
-					debugPrintf("%s  %s (resource)  %d\n", md5.c_str(), macResMan.getBaseFileName().c_str(), macResMan.getResForkDataSize());
+					debugPrintf("%s  %s (resource)  %d\n", md5.c_str(), macResMan.getBaseFileName().toString().c_str(), macResMan.getResForkDataSize());
 				}
 				if (macResMan.hasDataFork()) {
 					Common::SeekableReadStream *stream = macResMan.getDataFork();
 					Common::String md5 = Common::computeStreamMD5AsString(*stream, length);
-					debugPrintf("%s  %s (data)  %d\n", md5.c_str(), macResMan.getBaseFileName().c_str(), stream->size());
+					debugPrintf("%s  %s (data)  %d\n", md5.c_str(), macResMan.getBaseFileName().toString().c_str(), (int32)stream->size());
 				}
 			}
 			macResMan.close();
@@ -727,7 +739,7 @@ bool Debugger::cmdDebugLevel(int argc, const char **argv) {
 }
 
 bool Debugger::cmdDebugFlagsList(int argc, const char **argv) {
-	const Common::DebugManager::DebugChannelList &debugLevels = DebugMan.listDebugChannels();
+	const Common::DebugManager::DebugChannelList &debugLevels = DebugMan.getDebugChannels();
 
 	debugPrintf("Engine debug levels:\n");
 	debugPrintf("--------------------\n");
@@ -757,6 +769,28 @@ bool Debugger::cmdDebugFlagEnable(int argc, const char **argv) {
 			debugPrintf("Failed to enable debug flag '%s'\n", argv[1]);
 		}
 	}
+	return true;
+}
+
+bool Debugger::cmdExecFile(int argc, const char **argv) {
+	if (argc <= 1) {
+		debugPrintf("Expected to get the file with debug commands\n");
+		return false;
+	}
+	const Common::String filename(argv[1]);
+	Common::File file;
+	if (!file.open(filename)) {
+		debugPrintf("Can't open file %s\n", filename.c_str());
+		return false;
+	}
+	for (;;) {
+		const Common::String &line = file.readLine();
+		if (line.empty()) {
+			break;
+		}
+		parseCommand(line.c_str());
+	}
+
 	return true;
 }
 

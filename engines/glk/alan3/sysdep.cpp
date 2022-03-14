@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -101,17 +100,17 @@ static const byte upperCaseCharacters[] = {
 
 
 int isSpace(unsigned int c) {
-	return (c != '\0' && strchr((const char *)spaceCharacters, c) != 0);
+	return (c != '\0' && strchr((const char *)spaceCharacters, c) != nullptr);
 }
 
 
 int isLower(unsigned int c) {
-	return (c != '\0' && strchr((const char *)lowerCaseCharacters, c) != 0);
+	return (c != '\0' && strchr((const char *)lowerCaseCharacters, c) != nullptr);
 }
 
 
 int isUpper(unsigned int c) {
-	return (c != '\0' && strchr((const char *)upperCaseCharacters, c) != 0);
+	return (c != '\0' && strchr((const char *)upperCaseCharacters, c) != nullptr);
 }
 
 int isLetter(unsigned int c) {
@@ -219,8 +218,8 @@ int compareStrings(char *str1, char *str2) {
 
   */
 void toIso(char copy[], /* OUT - Mapped  string */
-           char original[], /* IN - string to convert */
-           int charset) {   /* IN - the current character set */
+		   char original[], /* IN - string to convert */
+		   int charset) {   /* IN - the current character set */
 	static const unsigned char macMap[256]
 	= {
 		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0A, 0x0E, 0x0F,
@@ -321,7 +320,7 @@ char *baseNameStart(char *fullPathName) {
 	int i;
 
 	for (i = strlen(fullPathName) - 1; i > 0; i--)
-		if (strchr(delimiters, fullPathName[i]) != NULL)
+		if (strchr(delimiters, fullPathName[i]) != nullptr)
 			return &fullPathName[i + 1];
 	return (fullPathName);
 }

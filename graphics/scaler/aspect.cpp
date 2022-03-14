@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -206,17 +205,17 @@ void makeRectStretchable(int &x, int &y, int &w, int &h, bool interpolate) {
  * through real2Aspect(srcY + height - 1).
  */
 
-int stretch200To240Nearest(uint8 *buf, uint32 pitch, int width, int height, int srcX, int srcY, int origSrcY) {
+int stretch200To240Nearest(uint8 *buf, uint32 pitch, int width, int height, int srcX, int srcY, int origSrcY, const Graphics::PixelFormat &format) {
 	int maxDstY = real2Aspect(origSrcY + height - 1);
 	int y;
-	const uint8 *startSrcPtr = buf + srcX * 2 + (srcY - origSrcY) * pitch;
-	uint8 *dstPtr = buf + srcX * 2 + maxDstY * pitch;
+	const uint8 *startSrcPtr = buf + srcX * format.bytesPerPixel + (srcY - origSrcY) * pitch;
+	uint8 *dstPtr = buf + srcX * format.bytesPerPixel + maxDstY * pitch;
 
 	for (y = maxDstY; y >= srcY; y--) {
 		const uint8 *srcPtr = startSrcPtr + aspect2Real(y) * pitch;
 		if (srcPtr == dstPtr)
 			break;
-		memcpy(dstPtr, srcPtr, sizeof(uint16) * width);
+		memcpy(dstPtr, srcPtr, format.bytesPerPixel * width);
 		dstPtr -= pitch;
 	}
 
@@ -259,18 +258,15 @@ int stretch200To240Interpolated(uint8 *buf, uint32 pitch, int width, int height,
 	return 1 + maxDstY - srcY;
 }
 
-int stretch200To240(uint8 *buf, uint32 pitch, int width, int height, int srcX, int srcY, int origSrcY, bool interpolate) {
+int stretch200To240(uint8 *buf, uint32 pitch, int width, int height, int srcX, int srcY, int origSrcY, bool interpolate, const Graphics::PixelFormat &format) {
 #if ASPECT_MODE != kSuperFastAndUglyAspectMode
-	extern int gBitFormat;
-	if (interpolate) {
-		if (gBitFormat == 565)
+	if (interpolate && format.bytesPerPixel == 2) {
+		if (format.gLoss == 2)
 			return stretch200To240Interpolated<Graphics::ColorMasks<565> >(buf, pitch, width, height, srcX, srcY, origSrcY);
-		else // gBitFormat == 555
+		else if (format.gLoss == 3)
 			return stretch200To240Interpolated<Graphics::ColorMasks<555> >(buf, pitch, width, height, srcX, srcY, origSrcY);
-	} else {
-#endif
-		return stretch200To240Nearest(buf, pitch, width, height, srcX, srcY, origSrcY);
-#if ASPECT_MODE != kSuperFastAndUglyAspectMode
 	}
 #endif
+
+	return stretch200To240Nearest(buf, pitch, width, height, srcX, srcY, origSrcY, format);
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -116,7 +115,7 @@ void Intro::introMovies_run() {
 	case 4:
 		_introStep = 5;
 
-		if (!(_vm->getFeatures() & GF_DEMO)) { // The demo doesn't have the intro video
+		if (!_vm->isGameVariant(GF_DEMO)) { // The demo doesn't have the intro video
 			video = _vm->playMovieFullscreen("intro", kIntroStack);
 		}
 		break;
@@ -125,7 +124,7 @@ void Intro::introMovies_run() {
 			_introStep = 6;
 		break;
 	default:
-		if (_vm->getFeatures() & GF_DEMO)
+		if (_vm->isGameVariant(GF_DEMO))
 			_vm->changeToCard(2001, kTransitionRightToLeft);
 		else
 			_vm->changeToCard(2, kTransitionRightToLeft);
@@ -135,7 +134,7 @@ void Intro::introMovies_run() {
 void Intro::o_playIntroMovies(uint16 var, const ArgumentsArray &args) {
 	_introMoviesRunning = true;
 
-	if (_vm->getFeatures() & GF_25TH) {
+	if (_vm->isGameVariant(GF_25TH)) {
 		// In the 25th anniversary version, the Broderbund / Cyan Logo were already shown
 		// before the main menu. No need to play them again here.
 		_introStep = 4;

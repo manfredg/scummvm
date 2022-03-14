@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -224,7 +223,6 @@ void FontRendererGui::drawText(byte *text, int x, int y, int alignment) {
 		case kAlignCenter:
 			x -= (textWidth / 2);
 			break;
-		case kAlignLeft:
 		default:
 			break;
 		}
@@ -906,10 +904,10 @@ OptionsDialog::OptionsDialog(Sword2Engine *vm) : Dialog(vm) {
 	_mixer = _vm->_mixer;
 
 	_panel = new Widget(this, 1);
-	_panel->createSurfaceImages(3405, 0, 40);
+	_panel->createSurfaceImages(3405, (_vm->_features & GF_SPANISHDEMO) ? 45 : 0, 40);
 
 	_objectLabelsSwitch = new Switch(this, 304, 100, 53, 32);
-	_objectLabelsSwitch->createSurfaceImages(3687, 304, 100);
+	_objectLabelsSwitch->createSurfaceImages((_vm->_features & GF_SPANISHDEMO) ? 901 : 3687, 304, 100);
 
 	_subtitlesSwitch = new Switch(this, 510, 100, 53, 32);
 	_subtitlesSwitch->linkSurfaceImages(_objectLabelsSwitch, 510, 100);
@@ -1180,7 +1178,7 @@ SaveRestoreDialog::SaveRestoreDialog(Sword2Engine *vm, int mode) : Dialog(vm) {
 	_fr2 = new FontRendererGui(_vm, _vm->_redFontId);
 
 	_panel = new Widget(this, 1);
-	_panel->createSurfaceImages(2016, 0, 40);
+	_panel->createSurfaceImages(2016, (_vm->_features & GF_SPANISHDEMO) ? 84 : 0, 40);
 
 	for (i = 0; i < 4; i++) {
 		_slotButton[i] = new Slot(this, 114, 0, 384, 36);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -322,7 +321,6 @@ void LoLEngine::gui_changeCharacterStats(int charNum) {
 
 void LoLEngine::gui_drawCharInventoryItem(int itemIndex) {
 	static const uint8 slotShapes[] = { 0x30, 0x34, 0x30, 0x34, 0x2E, 0x2F, 0x32, 0x33, 0x31, 0x35, 0x35 };
-	//2Eh, 32h, 2Eh, 32h, 2Ch, 2Dh, 30h, 31h, 2Fh, 33h, 33h
 	const uint8 *coords = &_charInvDefs[_charInvIndex[_characters[_selectedCharacter].raceClassSex] * 22 + itemIndex * 2];
 	uint8 x = *coords++;
 	uint8 y = *coords;
@@ -678,8 +676,8 @@ void LoLEngine::gui_toggleButtonDisplayMode(int shapeIndex, int mode) {
 
 	int pageNum = 0;
 
-	int16 x1 = buttonX[shapeIndex - subst];
-	int16 y1 = buttonY[shapeIndex - subst];
+	int16 x1 = shapeIndex ? buttonX[shapeIndex - subst] : 0;
+	int16 y1 = shapeIndex ? buttonY[shapeIndex - subst] : 0;
 	int16 x2 = 0;
 	int16 y2 = 0;
 	uint32 t = 0;
@@ -2234,6 +2232,9 @@ int GUI_LoL::runMenu(Menu &menu) {
 	uint8 hasSpecialButtons = 0;
 	_saveSlotsListUpdateNeeded = true;
 
+	Common::Keymap *const lolKeyboardKeymap = _vm->_eventMan->getKeymapper()->getKeymap(LoLEngine::kKeyboardKeymapName);
+	assert(lolKeyboardKeymap);
+
 	while (_displayMenu) {
 		_vm->_mouseX = _vm->_mouseY = 0;
 
@@ -2398,6 +2399,9 @@ int GUI_LoL::runMenu(Menu &menu) {
 			f = _screen->setFont(f);
 			_screen->fillRect((d->sx << 3) + fC, d->sy, (d->sx << 3) + fC + wW, d->sy + d->h - (_vm->gameFlags().use16ColorMode ? 2 : 1), d->unk8, 0);
 			_screen->setCurPage(pg);
+
+			// Disable keyboard keymap during text input (save menu)
+			lolKeyboardKeymap->setEnabled(false);
 		}
 
 		while (!_newMenu && _displayMenu) {
@@ -2442,8 +2446,13 @@ int GUI_LoL::runMenu(Menu &menu) {
 				_displayMenu = false;
 		}
 
-		if (_newMenu != _currentMenu || !_displayMenu)
+		if (_newMenu != _currentMenu || !_displayMenu) {
+			if (_currentMenu == &_savenameMenu) {
+				// Restore keyboard keymap after text input (save menu)
+				lolKeyboardKeymap->setEnabled(true);
+			}
 			restorePage0();
+		}
 
 		_currentMenu->highlightedItem = hasSpecialButtons;
 
@@ -2521,6 +2530,14 @@ void GUI_LoL::setupSaveMenuSlots(Menu &menu, int num) {
 				fC = _screen->getTextWidth(s);
 			}
 
+			if (_vm->gameFlags().lang == Common::JA_JPN) {
+				// Strip special characters from GMM save dialog which might get misinterpreted as SJIS
+				for (uint ii = 0; ii < strlen(s); ++ii) {
+					if (s[ii] < 32) // due to the signed char type this will also clean up everything >= 0x80
+						s[ii] = ' ';
+				}
+			}
+
 			menu.item[i].itemString = s;
 			s += (strlen(s) + 1);
 			menu.item[i].saveSlot = _saveSlots[i + _savegameOffset - slotOffs];
@@ -2542,15 +2559,15 @@ void GUI_LoL::sortSaveSlots() {
 	Common::sort(_saveSlots.begin(), _saveSlots.end(), Common::Greater<int>());
 }
 
-void GUI_LoL::printMenuText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 flags) {
-	_screen->fprintString("%s", x, y, c0, c1, _vm->gameFlags().use16ColorMode ? (flags & 3) : flags , str);
+void GUI_LoL::printMenuText(const Common::String &str, int x, int y, uint8 c0, uint8 c1, uint8 flags) {
+	_screen->fprintString("%s", x, y, c0, c1, _vm->gameFlags().use16ColorMode ? (flags & 3) : flags , str.c_str());
 }
 
-int GUI_LoL::getMenuCenterStringX(const char *str, int x1, int x2) {
-	if (!str)
+int GUI_LoL::getMenuCenterStringX(const Common::String &str, int x1, int x2) {
+	if (str.empty())
 		return 0;
 
-	int strWidth = _screen->getTextWidth(str);
+	int strWidth = _screen->getTextWidth(str.c_str());
 	int w = x2 - x1 + 1;
 	return x1 + (w - strWidth) / 2;
 }
@@ -2558,11 +2575,6 @@ int GUI_LoL::getMenuCenterStringX(const char *str, int x1, int x2) {
 int GUI_LoL::getInput() {
 	if (!_displayMenu)
 		return 0;
-
-	// Disable the keymap during text input
-	Common::Keymapper *const mapper = _vm->_eventMan->getKeymapper();
-	Common::Keymap *const lolKeymap = mapper->getKeymap(LoLEngine::kKeymapName);
-	lolKeymap->setEnabled(false);
 
 	Common::Point p = _vm->getMousePos();
 	_vm->_mouseX = p.x;
@@ -2600,8 +2612,6 @@ int GUI_LoL::getInput() {
 		_displayMenu = false;
 
 	_vm->delay(8);
-
-	lolKeymap->setEnabled(true);
 
 	return inputFlag & 0x8000 ? 1 : 0;
 }
@@ -2671,8 +2681,21 @@ int GUI_LoL::clickedSaveMenu(Button *button) {
 	_menuResult = _saveMenu.item[-s - 2].saveSlot + 1;
 	_saveDescription = (char *)_vm->_tempBuffer5120 + 1000;
 	_saveDescription[0] = 0;
-	if (_saveMenu.item[-s - 2].saveSlot != -3)
-		strcpy(_saveDescription, _saveMenu.item[-s - 2].itemString);
+	if (_saveMenu.item[-s - 2].saveSlot != -3) {
+		strcpy(_saveDescription, _saveMenu.item[-s - 2].itemString.c_str());
+	} else if (_vm->_autoSaveNamesEnabled) {
+		TimeDate td;
+		g_system->getTimeAndDate(td);
+		// Skip character name for Japanese to prevent garbage rendering (the save description is rendered in the non-SJIS default font).
+		Common::String ts = (_vm->gameFlags().lang != Common::JA_JPN) ? Common::String::format("%s / ", _vm->_characters[0].name) : "";
+		Common::String lvl1 = Common::String(_vm->_lastBlockDataFile).substr(0, 1);
+		Common::String lvl2 = Common::String(_vm->_lastBlockDataFile).substr(1);
+		lvl1.toUppercase();
+		lvl2.toLowercase();
+		ts = ts + lvl1 + lvl2;
+		ts += Common::String::format(" / %02d-%02d-%02d - %02d:%02d:%02d", td.tm_year + 1900, td.tm_mon + 1, td.tm_mday, td.tm_hour, td.tm_min, td.tm_sec);
+		strcpy(_saveDescription, ts.c_str());
+	}
 
 	return 1;
 }
@@ -2795,7 +2818,7 @@ int GUI_LoL::clickedAudioMenu(Button *button) {
 				vocIndex = (int16)READ_LE_UINT16(&_vm->_ingameSoundIndex[_sliderSfx * 2]);
 				if (vocIndex == -1)
 					continue;
-				if (!scumm_stricmp(_vm->_ingameSoundList[vocIndex], "EMPTY"))
+				if (_vm->_ingameSoundList[vocIndex].equalsIgnoreCase("EMPTY"))
 					continue;
 				break;
 			} while (1);
@@ -2822,7 +2845,7 @@ int GUI_LoL::clickedSavenameMenu(Button *button) {
 	updateMenuButton(button);
 	if (button->arg == _savenameMenu.item[0].itemId) {
 
-		Util::convertDOSToISO(_saveDescription);
+		Util::convertDOSToUTF8(_saveDescription, 5120 - (int)((uint8*)_saveDescription - _vm->_tempBuffer5120));
 
 		int slot = _menuResult == -2 ? getNextSavegameSlot() : _menuResult - 1;
 		Graphics::Surface thumb;
@@ -2891,21 +2914,21 @@ int GUI_LoL::scrollDown(Button *button) {
 	return 1;
 }
 
-const char *GUI_LoL::getMenuTitle(const Menu &menu) {
+Common::String GUI_LoL::getMenuTitle(const Menu &menu) {
 	if (!menu.menuNameId)
 		return 0;
 	return _vm->getLangString(menu.menuNameId);
 }
 
-const char *GUI_LoL::getMenuItemTitle(const MenuItem &menuItem) {
-	if (menuItem.itemId & 0x8000 && menuItem.itemString)
+Common::String GUI_LoL::getMenuItemTitle(const MenuItem &menuItem) {
+	if (menuItem.itemId & 0x8000 && !menuItem.itemString.empty())
 		return menuItem.itemString;
 	else if (menuItem.itemId & 0x8000 || !menuItem.itemId)
 		return 0;
 	return _vm->getLangString(menuItem.itemId);
 }
 
-const char *GUI_LoL::getMenuItemLabel(const MenuItem &menuItem) {
+Common::String GUI_LoL::getMenuItemLabel(const MenuItem &menuItem) {
 	if (menuItem.labelId & 0x8000 && menuItem.labelString)
 		return menuItem.labelString;
 	else if (menuItem.labelId & 0x8000 || !menuItem.labelId)

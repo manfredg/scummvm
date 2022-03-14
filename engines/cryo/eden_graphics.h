@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,8 @@ class HnmPlayer;
 
 class EdenGraphics {
 public:
-	EdenGraphics(EdenGame *game, HnmPlayer *video);
+	EdenGraphics(EdenGame *game);
+	~EdenGraphics();
 
 	// Original name: noclipax
 	void drawSprite(int16 index, int16 x, int16 y, bool withBlack = false, bool onSubtitle = false);
@@ -53,7 +53,7 @@ public:
 
 	void setGlowX(int16 value);
 
-	void setGlowY(int16 value);	
+	void setGlowY(int16 value);
 
 	// Original name : blackbars
 	void drawBlackBars();
@@ -154,7 +154,6 @@ public:
 
 private:
 	EdenGame *_game;
-	HnmPlayer *_video;
 
 	int16 _glowX;
 	int16 _glowY;
@@ -171,16 +170,16 @@ private:
 	View  *_underBarsView;
 
 	Common::Rect _underSubtitlesScreenRect;
-	Common::Rect _underSubtitlesBackupRect;	
+	Common::Rect _underSubtitlesBackupRect;
 
 	Common::Rect _underTopBarScreenRect;
 	Common::Rect _underBottomBarBackupRect;
 	Common::Rect _underBottomBarScreenRect;
 	Common::Rect _underTopBarBackupRect;
 
-	byte *_underSubtitlesViewBuf; // CHECKME: Useless?	
+	byte *_underSubtitlesViewBuf; // CHECKME: Useless?
 
-	byte *_mainViewBuf;	
+	byte *_mainViewBuf;
 
 	View  *_hnmView;
 	byte *_hnmViewBuf;
@@ -190,7 +189,7 @@ private:
 
 	Common::Rect _rect_dst, _rect_src;
 
-	View  *_view2;	
+	View  *_view2;
 
 	int _hnmFrameNum;
 
@@ -202,11 +201,13 @@ private:
 
 	bool _needToFade;
 
+	int _eff2pat;
+
 	color3_t _newColor;
 	color_t  _oldPalette[256];    // TODO palette_t ?
 	color_t  _newPalette[256];
 
-	bool _showBlackBars;	
+	bool _showBlackBars;
 
 	void saveUnderSubtitles(int16 y);
 
@@ -226,14 +227,14 @@ private:
 	// Original name: effet4
 	void displayEffect4();
 
-	void colimacon(int16 pattern[]);
+	void colimacon(const int16 pattern[]);
 
 	// Original name: rectanglenoir32
 	void blackRect32();
 
 	////// film.c
 	// Original name: showfilm
-	void showMovie(char arg1);
+	void showMovie(int16 num, char arg1);
 
 	// Original name bullehnm
 	void handleHNMSubtitles();

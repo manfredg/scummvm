@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,12 +24,12 @@
 
 /* Abstract datatype Set for Alan interpreter
 
-    A set is implemented as a struct holding a size and a
-    dynamically allocated array of members. Members can be
-    integers or instance numbers. Attributes of Set type is
-    allocated and the pointer to it is used as the attribute
-    value. As members are only references, clearing a set can
-    simply be done by setting the size to zero.
+	A set is implemented as a struct holding a size and a
+	dynamically allocated array of members. Members can be
+	integers or instance numbers. Attributes of Set type is
+	allocated and the pointer to it is used as the attribute
+	value. As members are only references, clearing a set can
+	simply be done by setting the size to zero.
 */
 
 #include "glk/alan3/acode.h"

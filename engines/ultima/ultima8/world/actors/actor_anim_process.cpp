@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,40 +15,31 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "common/config-manager.h"
 
 #include "ultima/ultima8/world/actors/actor_anim_process.h"
-#include "ultima/ultima8/games/game_data.h"
-#include "ultima/ultima8/world/actors/animation.h"
-#include "ultima/ultima8/graphics/anim_dat.h"
 #include "ultima/ultima8/world/actors/anim_action.h"
 #include "ultima/ultima8/world/actors/main_actor.h"
-#include "ultima/ultima8/misc/direction.h"
+#include "ultima/ultima8/misc/direction_util.h"
 #include "ultima/ultima8/world/world.h"
-#include "ultima/ultima8/world/gravity_process.h"
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/usecode/uc_list.h"
 #include "ultima/ultima8/world/loop_script.h"
 #include "ultima/ultima8/world/current_map.h"
-#include "ultima/ultima8/graphics/shape_info.h"
 #include "ultima/ultima8/world/actors/animation_tracker.h"
 #include "ultima/ultima8/audio/audio_process.h"
-#include "ultima/ultima8/conf/setting_manager.h"
 #include "ultima/ultima8/world/actors/combat_process.h"
+#include "ultima/ultima8/world/actors/auto_firer_process.h"
 #include "ultima/ultima8/world/sprite_process.h"
 #include "ultima/ultima8/graphics/palette_fader_process.h"
 #include "ultima/ultima8/world/create_item_process.h"
 #include "ultima/ultima8/world/destroy_item_process.h"
 #include "ultima/ultima8/kernel/delay_process.h"
 #include "ultima/ultima8/world/get_object.h"
-
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -59,25 +50,30 @@ namespace Ultima8 {
 static const int watchactor = WATCHACTOR;
 #endif
 
-// p_dynamic_cast stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE(ActorAnimProcess, Process)
+DEFINE_RUNTIME_CLASSTYPE_CODE(ActorAnimProcess)
 
-ActorAnimProcess::ActorAnimProcess() : Process(), _tracker(0) {
-
+ActorAnimProcess::ActorAnimProcess() : Process(), _tracker(nullptr),
+	_dir(dir_north), _action(Animation::walk), _steps(0), _firstFrame(true),
+	_currentStep(0), _repeatCounter(0), _animAborted(false),
+	_attackedSomething(false), _interpolate(false) {
 }
 
-ActorAnimProcess::ActorAnimProcess(Actor *actor_, Animation::Sequence action_,
-                                   uint32 dir_, uint32 steps_) {
-	assert(actor_);
-	_itemNum = actor_->getObjId();
-	_dir = dir_;
-	_action = action_;
-	_steps = steps_;
+ActorAnimProcess::ActorAnimProcess(Actor *actor, Animation::Sequence action,
+								   Direction dir, uint32 steps) :
+		_dir(dir), _action(action), _steps(steps), _tracker(nullptr),
+		_firstFrame(true), _currentStep(0), _repeatCounter(0),
+		_animAborted(false), _attackedSomething(false), _interpolate(false)  {
+	assert(actor);
+	_itemNum = actor->getObjId();
 
-	_type = 0x00F0; // CONSTANT !
-	_firstFrame = true;
-	_tracker = 0;
-	_currentStep = 0;
+	_type = ACTOR_ANIM_PROC_TYPE;
+#ifdef WATCHACTOR
+	if (_itemNum == watchactor)
+		pout << "Animation [" << Kernel::get_instance()->getFrameNum()
+			 << "] ActorAnimProcess created (" << _itemNum << ","
+			 << _action << "," << _dir << ") steps " << _steps
+			 << Std::endl;
+#endif
 }
 
 bool ActorAnimProcess::init() {
@@ -85,30 +81,36 @@ bool ActorAnimProcess::init() {
 	_animAborted = false;
 	_attackedSomething = false;
 
+	_interpolate = Ultima8Engine::get_instance()->isInterpolationEnabled();
+
 	Actor *actor = getActor(_itemNum);
 	assert(actor);
 
-	if (_dir == 8)
+	if (_dir == dir_current)
 		_dir = actor->getDir();
 
-	if (_dir > 7) {
-		// invalid direction
-		return false;
-	}
-
-	if (!(actor->getFlags() & Item::FLG_FASTAREA)) {
+	if (!actor->hasFlags(Item::FLG_FASTAREA)) {
 		// not in the fast area? Can't play an animation then.
 		// (If we do, the actor will likely fall because the floor is gone.)
+
+#ifdef WATCHACTOR
+	if (_itemNum == watchactor)
+		pout << "Animation [" << Kernel::get_instance()->getFrameNum()
+			 << "] ActorAnimProcess " << getPid() << " init failed "
+			 << "(actor " << _itemNum << "not fast)" << Std::endl;
+#endif
+
 		return false;
 	}
 
-	if (actor->getActorFlags() & Actor::ACT_ANIMLOCK) {
+	if (actor->hasActorFlags(Actor::ACT_ANIMLOCK)) {
 		//! What do we do if actor was already animating?
 		//! don't do this animation or kill the previous one?
 		//! Or maybe wait until the previous one finishes?
 
 		perr << "ActorAnimProcess [" << getPid() << "]: ANIMLOCK set on actor "
-		     << _itemNum << Std::endl;
+		     << _itemNum << ", skipping anim (" << _action << "," << _dir << ")"
+			 << Std::endl;
 
 		// for now, just don't play this one.
 		return false;
@@ -117,7 +119,15 @@ bool ActorAnimProcess::init() {
 	_tracker = new AnimationTracker();
 	if (!_tracker->init(actor, _action, _dir)) {
 		delete _tracker;
-		_tracker = 0;
+		_tracker = nullptr;
+
+#ifdef WATCHACTOR
+	if (_itemNum == watchactor)
+		pout << "Animation [" << Kernel::get_instance()->getFrameNum()
+			 << "] ActorAnimProcess " << getPid() << " init failed "
+			 << "(tracker init failed)" << Std::endl;
+#endif
+
 		return false;
 	}
 
@@ -130,8 +140,9 @@ bool ActorAnimProcess::init() {
 #ifdef WATCHACTOR
 	if (_itemNum == watchactor)
 		pout << "Animation [" << Kernel::get_instance()->getFrameNum()
-		     << "] ActorAnimProcess " << getPid() << " created ("
-		     << _action << "," << _dir << ") _steps " << _steps << Std::endl;
+		     << "] ActorAnimProcess " << getPid() << " initalized ("
+			 << _itemNum << "," << _action << "," << _dir << ") steps "
+			 << _steps << Std::endl;
 #endif
 
 	return true;
@@ -157,7 +168,7 @@ void ActorAnimProcess::run() {
 
 	if (!_firstFrame)
 		_repeatCounter++;
-	if (_repeatCounter > _tracker->getAnimAction()->_frameRepeat)
+	if (_repeatCounter > _tracker->getAnimAction()->getFrameRepeat())
 		_repeatCounter = 0;
 
 	Actor *a = getActor(_itemNum);
@@ -169,7 +180,7 @@ void ActorAnimProcess::run() {
 
 	_firstFrame = false;
 
-	if (!(a->getFlags() & Item::FLG_FASTAREA)) {
+	if (!a->hasFlags(Item::FLG_FASTAREA)) {
 		// not in the fast area? Kill the animation then.
 		//! TODO: Decide if this is the right move.
 		//  Animation could do one of three things: pause, move
@@ -216,7 +227,7 @@ void ActorAnimProcess::run() {
 					if (_itemNum == watchactor) {
 						pout << "Animation ["
 						     << Kernel::get_instance()->getFrameNum()
-						     << "] falling" << Std::endl;
+						     << "] falling at end" << Std::endl;
 					}
 #endif
 					int32 dx, dy, dz;
@@ -228,10 +239,9 @@ void ActorAnimProcess::run() {
 				return;
 			}
 
-
 			if (_tracker->isBlocked() &&
-			        !(_tracker->getAnimAction()->_flags & AnimAction::AAF_UNSTOPPABLE)) {
-				// FIXME: For blocked large _steps we may still want to do
+				!_tracker->getAnimAction()->hasFlags(AnimAction::AAF_UNSTOPPABLE)) {
+				// FIXME: For blocked large steps we may still want to do
 				//        a partial move. (But how would that work with
 				//        repeated frames?)
 
@@ -248,7 +258,7 @@ void ActorAnimProcess::run() {
 					if (_itemNum == watchactor) {
 						pout << "Animation ["
 						     << Kernel::get_instance()->getFrameNum()
-						     << "] falling" << Std::endl;
+						     << "] falling from blocked" << Std::endl;
 					}
 #endif
 					// no inertia here because we just crashed into something
@@ -261,17 +271,23 @@ void ActorAnimProcess::run() {
 			}
 		}
 
-		AnimFrame *curframe = _tracker->getAnimFrame();
-		if (curframe && curframe->_sfx) {
-			AudioProcess *audioproc = AudioProcess::get_instance();
-			if (audioproc) audioproc->playSFX(curframe->_sfx, 0x60, _itemNum, 0);
-		}
+		const AnimFrame *curframe = _tracker->getAnimFrame();
+		if (curframe) {
+			if (curframe->_sfx) {
+				AudioProcess *audioproc = AudioProcess::get_instance();
+				if (audioproc) audioproc->playSFX(curframe->_sfx, 0x60, _itemNum, 0);
+			}
 
-		if (curframe && (curframe->_flags & AnimFrame::AFF_SPECIAL)) {
-			// Flag to trigger a special _action
-			// E.g.: play draw/sheathe SFX for avatar when weapon equipped,
-			// throw skull-fireball when ghost attacks, ...
-			doSpecial();
+			if (curframe->_flags & AnimFrame::AFF_SPECIAL) {
+				// Flag to trigger a special action
+				// E.g.: play draw/sheathe SFX for avatar when weapon equipped,
+				// throw skull-fireball when ghost attacks, ...
+				doSpecial();
+			} else if (curframe->_flags & AnimFrame::AFF_HURTY && GAME_IS_CRUSADER) {
+				a->tookHitCru();
+			} else if (curframe->is_cruattack() && GAME_IS_CRUSADER) {
+				doFireWeaponCru(a, curframe);
+			}
 		}
 
 
@@ -282,7 +298,7 @@ void ActorAnimProcess::run() {
 				_attackedSomething = true;
 				Item *hit_item = getItem(hit);
 				assert(hit_item);
-				hit_item->receiveHit(_itemNum, (_dir + 4) % 8, 0, 0);
+				hit_item->receiveHit(_itemNum, Direction_Invert(_dir), 0, 0);
 				doHitSpecial(hit_item);
 			}
 		}
@@ -290,22 +306,37 @@ void ActorAnimProcess::run() {
 
 	int32 x, y, z, x2, y2, z2;
 	a->getLocation(x, y, z);
-	_tracker->getInterpolatedPosition(x2, y2, z2, _repeatCounter);
-	if (x == x2 && y == y2 && z == z2) {
-		_tracker->getInterpolatedPosition(x, y, z, _repeatCounter + 1);
-		a->collideMove(x, y, z, false, true); // forced move
-		a->setFrame(_tracker->getFrame());
-	} else {
+
+	if (_interpolate) {
+		// Apply interpolated position on repeated frames
+		_tracker->getInterpolatedPosition(x2, y2, z2, _repeatCounter);
+		if (x == x2 && y == y2 && z == z2) {
+			_tracker->getInterpolatedPosition(x, y, z, _repeatCounter + 1);
+			a->collideMove(x, y, z, false, true); // forced move
+			a->setFrame(_tracker->getFrame());
 #ifdef WATCHACTOR
-		if (_itemNum == watchactor) {
-			pout << "Animation [" << Kernel::get_instance()->getFrameNum()
-			     << "] moved, so aborting this frame." << Std::endl;
+		} else {
+			if (_itemNum == watchactor) {
+				pout << "Animation [" << Kernel::get_instance()->getFrameNum()
+					 << "] moved, so aborting this frame." << Std::endl;
+			}
+#endif // WATCHACTOR
 		}
-#endif
+	} else {
+		// Just move the whole distance on frame 0 of the repeat.
+		if (_repeatCounter == 0) {
+			_tracker->getPosition(x2, y2, z2);
+			a->collideMove(x2, y2, z2, false, true); // forced move
+			a->setFrame(_tracker->getFrame());
+		} else {
+			x2 = x;
+			y2 = y;
+			z2 = z;
+		}
 	}
 
 	// Did we just leave the fast area?
-	if (!(a->getFlags() & Item::FLG_FASTAREA)) {
+	if (!a->hasFlags(Item::FLG_FASTAREA)) {
 #ifdef WATCHACTOR
 		if (_itemNum == watchactor)
 			pout << "Animation ["
@@ -320,10 +351,13 @@ void ActorAnimProcess::run() {
 #ifdef WATCHACTOR
 	if (_itemNum == watchactor) {
 		pout << "Animation [" << Kernel::get_instance()->getFrameNum()
-		     << "] showing frame (" << x << "," << y << "," << z << ")"
-		     << " shape (" << a->getShape() << "," << _tracker->getFrame()
-		     << ") sfx " << _tracker->getAnimFrame()->sfx
-		     << " rep " << _repeatCounter << " ";
+		     << "] showing frame (" << x << "," << y << "," << z << ")-("
+			 << x2 << "," << y2 << "," << z2 << ")"
+		     << " shp (" << a->getShape() << "," << _tracker->getFrame()
+		     << ") sfx " << _tracker->getAnimFrame()->_sfx
+		     << " rep " << _repeatCounter << ConsoleStream::hex
+			 << " flg " << _tracker->getAnimFrame()->_flags << " "
+			 << ConsoleStream::dec;
 
 		if (_tracker->isDone()) pout << "D";
 		if (_tracker->isBlocked()) pout << "B";
@@ -334,19 +368,26 @@ void ActorAnimProcess::run() {
 #endif
 
 
-	if (_repeatCounter == _tracker->getAnimAction()->_frameRepeat) {
+	if (_repeatCounter == _tracker->getAnimAction()->getFrameRepeat()) {
 		if (_tracker->isUnsupported()) {
-			_animAborted = true;
+			_animAborted = !_tracker->getAnimAction()->hasFlags(AnimAction::AAF_UNSTOPPABLE);
 
 #ifdef WATCHACTOR
 			if (_itemNum == watchactor) {
 				pout << "Animation [" << Kernel::get_instance()->getFrameNum()
-				     << "] falling" << Std::endl;
+				     << "] falling from repeat" << Std::endl;
 			}
 #endif
 
 			int32 dx, dy, dz;
 			_tracker->getSpeed(dx, dy, dz);
+			if (GAME_IS_CRUSADER) {
+				// HACK: Hurl people a bit less hard in crusader until
+				// the movement bugs are fixed to make them fall less..
+				dx /= 4;
+				dy /= 4;
+				dz /= 4;
+			}
 			a->hurl(dx, dy, dz, 2);
 
 			// Note: do not wait for the fall to finish: this breaks
@@ -360,6 +401,10 @@ void ActorAnimProcess::doSpecial() {
 	Actor *a = getActor(_itemNum);
 	assert(a);
 
+	// All this stuff is U8 specific.
+	if (!GAME_IS_U8)
+		return;
+
 	// play SFX when Avatar draws/sheathes weapon
 	if (_itemNum == 1 && (_action == Animation::readyWeapon ||
 	                      _action == Animation::unreadyWeapon) &&
@@ -372,7 +417,7 @@ void ActorAnimProcess::doSpecial() {
 
 	// ghosts
 	if (a->getShape() == 0x19b) {
-		Actor *hostile = 0;
+		Actor *hostile = nullptr;
 		if (_action == Animation::attack) {
 			// fireball on attack
 			unsigned int skullcount = a->countNearby(0x19d, 6 * 256);
@@ -383,8 +428,8 @@ void ActorAnimProcess::doSpecial() {
 			skull->setFlag(Item::FLG_FAST_ONLY);
 			int32 x, y, z;
 			a->getLocation(x, y, z);
-			int dirNum = a->getDir();
-			skull->move(x + 32 * x_fact[dirNum], y + 32 * y_fact[dirNum], z);
+			Direction dirNum = a->getDir();
+			skull->move(x + 32 * Direction_XFactor(dirNum), y + 32 * Direction_XFactor(dirNum), z);
 			hostile = skull;
 		} else if (a->getMapNum() != 54) { // Khumash-Gor doesn't summon ghouls
 			// otherwise, summon ghoul
@@ -404,12 +449,13 @@ void ActorAnimProcess::doSpecial() {
 				return;
 			}
 			ghoul->move(x, y, z);
-			ghoul->doAnim(Animation::standUp, 0);
+			ghoul->doAnim(Animation::standUp, dir_north);
 			hostile = ghoul;
 		}
 
 		if (hostile) {
-			hostile->setInCombat();
+			// Note: only happens in U8, so activity num is not important.
+			hostile->setInCombat(0);
 			CombatProcess *hostilecp = hostile->getCombatProcess();
 			CombatProcess *cp = a->getCombatProcess();
 			if (hostilecp && cp)
@@ -424,15 +470,13 @@ void ActorAnimProcess::doSpecial() {
 		Actor *av = getMainActor();
 		if (a->getRange(*av) < 96) {
 			a->setActorFlag(Actor::ACT_DEAD);
-			a->explode(); // explode if close to the avatar
+			a->explode(0, true); // explode if close to the avatar
 		}
 		return;
 	}
 
 	// play PC/NPC footsteps
-	SettingManager *settingman = SettingManager::get_instance();
-	bool playavfootsteps;
-	settingman->get("footsteps", playavfootsteps);
+	bool playavfootsteps = ConfMan.getBool("footsteps");
 	if (_itemNum != 1 || playavfootsteps) {
 		UCList itemlist(2);
 		LOOPSCRIPT(script, LS_TOKEN_TRUE);
@@ -489,12 +533,39 @@ void ActorAnimProcess::doSpecial() {
 
 }
 
+void ActorAnimProcess::doFireWeaponCru(Actor *a, const AnimFrame *f) {
+	assert(a);
+	assert(f);
+	if (!f->is_cruattack())
+		return;
+
+	const Item *wpn = getItem(a->getActiveWeapon());
+	if (!wpn)
+		return;
+	const ShapeInfo *wpninfo = wpn->getShapeInfo();
+	if (!wpninfo || !wpninfo->_weaponInfo)
+		return;
+
+	if (a->getObjId() == 1 && wpninfo->_weaponInfo->_damageType == 6) {
+		Process *auto_firer = new AutoFirerProcess();
+		Kernel::get_instance()->addProcess(auto_firer);
+	}
+
+	a->fireWeapon(f->cru_attackx(), f->cru_attacky(), f->cru_attackz(),
+				  a->getDir(), wpninfo->_weaponInfo->_damageType, true);
+
+	AudioProcess *audioproc = AudioProcess::get_instance();
+	if (audioproc)
+		audioproc->playSFX(wpninfo->_weaponInfo->_sound, 0x80, a->getObjId(), 0, false);
+}
+
+
 
 void ActorAnimProcess::doHitSpecial(Item *hit) {
 	Actor *a = getActor(_itemNum);
 	assert(a);
 
-	Actor *attacked = p_dynamic_cast<Actor *>(hit);
+	Actor *attacked = dynamic_cast<Actor *>(hit);
 
 	if (_itemNum == 1 && _action == Animation::attack) {
 		// some magic weapons have some special effects
@@ -516,7 +587,7 @@ void ActorAnimProcess::doHitSpecial(Item *hit) {
 			break;
 		case 0x330: { // Slayer
 			// if we killed somebody, thunder&lightning
-			if (attacked && (attacked->getActorFlags() & Actor::ACT_DEAD)) {
+			if (attacked && attacked->hasActorFlags(Actor::ACT_DEAD)) {
 				// calling intrinsic...
 				PaletteFaderProcess::I_lightningBolt(0, 0);
 				int sfx;
@@ -551,8 +622,8 @@ void ActorAnimProcess::doHitSpecial(Item *hit) {
 			Kernel *kernel = Kernel::get_instance();
 
 			int32 fx, fy, fz;
-			fx = x + 96 * x_fact[_dir];
-			fy = y + 96 * y_fact[_dir];
+			fx = x + 96 * Direction_XFactor(_dir);
+			fy = y + 96 * Direction_YFactor(_dir);
 			fz = z;
 
 			// CONSTANTS!! (lots of them)
@@ -594,21 +665,20 @@ void ActorAnimProcess::doHitSpecial(Item *hit) {
 
 }
 
-
-
 void ActorAnimProcess::terminate() {
 #ifdef WATCHACTOR
 	if (_itemNum == watchactor)
 		pout << "Animation ["
 		     << Kernel::get_instance()->getFrameNum()
-		     << "] ActorAnimProcess terminating"
+		     << "] ActorAnimProcess " << getPid() << " terminating"
 		     << Std::endl;
 #endif
+
 	Actor *a = getActor(_itemNum);
 	if (a) {
 		if (_tracker) { // if we were really animating...
 			a->clearActorFlag(Actor::ACT_ANIMLOCK);
-			if (_tracker->getAnimAction()->_flags & AnimAction::AAF_DESTROYACTOR) {
+			if (_tracker->getAnimAction()->hasFlags(AnimAction::AAF_DESTROYACTOR)) {
 				// destroy the actor
 #ifdef WATCHACTOR
 				if (_itemNum == watchactor)
@@ -635,44 +705,44 @@ void ActorAnimProcess::dumpInfo() const {
 	pout << "_action: " << _action << ", _dir: " << _dir << Std::endl;
 }
 
-void ActorAnimProcess::saveData(ODataSource *ods) {
-	Process::saveData(ods);
+void ActorAnimProcess::saveData(Common::WriteStream *ws) {
+	Process::saveData(ws);
 
 	uint8 ff = _firstFrame ? 1 : 0;
-	ods->write1(ff);
+	ws->writeByte(ff);
 	uint8 ab = _animAborted ? 1 : 0;
-	ods->write1(ab);
+	ws->writeByte(ab);
 	uint8 attacked = _attackedSomething ? 1 : 0;
-	ods->write1(attacked);
-	ods->write1(static_cast<uint8>(_dir));
-	ods->write2(static_cast<uint16>(_action));
-	ods->write2(static_cast<uint16>(_steps));
-	ods->write2(static_cast<uint16>(_repeatCounter));
-	ods->write2(static_cast<uint16>(_currentStep));
+	ws->writeByte(attacked);
+	ws->writeByte(static_cast<uint8>(Direction_ToUsecodeDir(_dir)));
+	ws->writeUint16LE(static_cast<uint16>(_action));
+	ws->writeUint16LE(static_cast<uint16>(_steps));
+	ws->writeUint16LE(static_cast<uint16>(_repeatCounter));
+	ws->writeUint16LE(static_cast<uint16>(_currentStep));
 
 	if (_tracker) {
-		ods->write1(1);
-		_tracker->save(ods);
+		ws->writeByte(1);
+		_tracker->save(ws);
 	} else
-		ods->write1(0);
+		ws->writeByte(0);
 }
 
-bool ActorAnimProcess::loadData(IDataSource *ids, uint32 version) {
-	if (!Process::loadData(ids, version)) return false;
+bool ActorAnimProcess::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Process::loadData(rs, version)) return false;
 
-	_firstFrame = (ids->read1() != 0);
-	_animAborted = (ids->read1() != 0);
-	_attackedSomething = (ids->read1() != 0);
-	_dir = ids->read1();
-	_action = static_cast<Animation::Sequence>(ids->read2());
-	_steps = ids->read2();
-	_repeatCounter = ids->read2();
-	_currentStep = ids->read2();
+	_firstFrame = (rs->readByte() != 0);
+	_animAborted = (rs->readByte() != 0);
+	_attackedSomething = (rs->readByte() != 0);
+	_dir = Direction_FromUsecodeDir(rs->readByte());
+	_action = static_cast<Animation::Sequence>(rs->readUint16LE());
+	_steps = rs->readUint16LE();
+	_repeatCounter = rs->readUint16LE();
+	_currentStep = rs->readUint16LE();
 
-	assert(_tracker == 0);
-	if (ids->read1() != 0) {
+	assert(_tracker == nullptr);
+	if (rs->readByte() != 0) {
 		_tracker = new AnimationTracker();
-		if (!_tracker->load(ids, version))
+		if (!_tracker->load(rs, version))
 			return false;
 	}
 

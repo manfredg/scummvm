@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,8 @@ enum kMusicMode {
 	kMusicModeDisabled = 0,
 	kMusicModeAccolade = 1,
 	kMusicModeMilesAudio = 2,
-	kMusicModeSimon1 = 3
+	kMusicModeSimon1 = 3,
+	kMusicModePC98 = 4
 };
 
 struct MusicInfo {
@@ -96,10 +96,10 @@ public:
 	MidiPlayer();
 	~MidiPlayer() override;
 
-	void loadSMF(Common::File *in, int song, bool sfx = false);
-	void loadMultipleSMF(Common::File *in, bool sfx = false);
-	void loadXMIDI(Common::File *in, bool sfx = false);
-	void loadS1D(Common::File *in, bool sfx = false);
+	void loadSMF(Common::SeekableReadStream *in, int song, bool sfx = false);
+	void loadMultipleSMF(Common::SeekableReadStream *in, bool sfx = false);
+	void loadXMIDI(Common::SeekableReadStream *in, bool sfx = false);
+	void loadS1D(Common::SeekableReadStream *in, bool sfx = false);
 
 	bool hasNativeMT32() const { return _nativeMT32; }
 	void setLoop(bool loop);
@@ -115,7 +115,7 @@ public:
 	void setVolume(int musicVol, int sfxVol);
 
 public:
-	int open(int gameType, bool isDemo);
+	int open(int gameType, Common::Platform platform, bool isDemo);
 
 	// MidiDriver_BASE interface implementation
 	void send(uint32 b) override;
@@ -124,7 +124,7 @@ public:
 private:
 	kMusicMode _musicMode;
 	MusicType musicType;
-	
+
 private:
 	Common::SeekableReadStream *simon2SetupExtractFile(const Common::String &requestedFileName);
 };

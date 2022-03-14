@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -101,19 +100,19 @@ void ScummEngine::setOwnerOf(int obj, int owner) {
 
 	// In Sam & Max this is necessary, or you won't get your stuff back
 	// from the Lost and Found tent after riding the Cone of Tragedy. But
-	// it probably applies to all V6+ games. See bugs #493153 and #907113.
+	// it probably applies to all V6+ games. See bugs #52 and #1507.
 	// FT disassembly is checked, behavior is correct. [sev]
 
 	int arg = (_game.version >= 6) ? obj : 0;
 
-	// WORKAROUND for bug #1917981: Game crash when finishing Indy3 demo.
+	// WORKAROUND for bug #3657: Game crash when finishing Indy3 demo.
 	// Script 94 tries to empty the inventory but does so in a bogus way.
 	// This causes it to try to remove object 0 from the inventory.
 	if (_game.id == GID_PASS && obj == 0 && vm.slot[_currentScript].number == 94)
 		return;
 
 	// WORKAROUND for bug #6802: assert() was triggered in freddi2.
- 	// Bug is in room 39. Problem is script 10, in the localvar2==78 case;
+	// Bug is in room 39. Problem is script 10, in the localvar2==78 case;
 	// this only sets the obj id if var198 is non-zero, but in the asserting
 	// case, it is obj 0. That means two setOwnerOf calls are made with obj 0.
 	// The correct setOwnerOf calls are made afterwards, so just ignoring this
@@ -126,7 +125,7 @@ void ScummEngine::setOwnerOf(int obj, int owner) {
 	if (owner == 0) {
 		clearOwnerOf(obj);
 
-		// FIXME: See bug #1535358 and many others. Essentially, the following
+		// FIXME: See bug #2771 and many others. Essentially, the following
 		// code, while matching disasm of various versions of the SCUMM engine,
 		// is total bullocks, and leads to odd crashes due to out-of-bounds
 		// array (read) access. Three "famous" crashes were caused by this:
@@ -203,7 +202,7 @@ void ScummEngine::clearOwnerOf(int obj) {
 						// FIXME FIXME FIXME: This is incomplete, as we do not touch flags, status... BUG
 						_res->_types[rtInventory][i]._address = _res->_types[rtInventory][i + 1]._address;
 						_res->_types[rtInventory][i]._size = _res->_types[rtInventory][i + 1]._size;
-						_res->_types[rtInventory][i + 1]._address = NULL;
+						_res->_types[rtInventory][i + 1]._address = nullptr;
 						_res->_types[rtInventory][i + 1]._size = 0;
 					}
 				}
@@ -456,7 +455,7 @@ void ScummEngine::getObjectXYPos(int object, int &x, int &y, int &dir) {
 		// Adjust x, y when no actor direction is set, but only perform this
 		// adjustment for V0 games (e.g. MM C64), otherwise certain scenes in
 		// newer games are affected as well (e.g. the interior of the Shuttle
-		// Bus scene in Zak V2, where no actor is present). Refer to bug #3526089.
+		// Bus scene in Zak V2, where no actor is present). Refer to bug #6034.
 		if (!od.actordir && _game.version == 0) {
 			x = od.x_pos + od.width / 2;
 			y = od.y_pos + od.height / 2;
@@ -481,8 +480,8 @@ int ScummEngine::getDist(int x, int y, int x2, int y2) {
 
 int ScummEngine::getObjActToObjActDist(int a, int b) {
 	int x, y, x2, y2;
-	Actor *acta = NULL;
-	Actor *actb = NULL;
+	Actor *acta = nullptr;
+	Actor *actb = nullptr;
 
 	if (objIsActor(a))
 		acta = derefActorSafe(objToActor(a), "getObjActToObjActDist");
@@ -502,7 +501,7 @@ int ScummEngine::getObjActToObjActDist(int a, int b) {
 	// Perform adjustXYToBeInBox() *only* if the first item is an
 	// actor and the second is an object. This used to not check
 	// whether the second item is a non-actor, which caused bug
-	// #853874).
+	// #1320).
 	if (acta && !actb) {
 		AdjustBoxResult r = acta->adjustXYToBeInBox(x2, y2);
 		x2 = r.x;
@@ -540,9 +539,15 @@ int ScummEngine::findObject(int x, int y) {
 						return _objs[i].obj_nr;
 				}
 #endif
-				if (_objs[i].x_pos <= x && _objs[i].width + _objs[i].x_pos > x &&
-				    _objs[i].y_pos <= y && _objs[i].height + _objs[i].y_pos > y)
-					return _objs[i].obj_nr;
+				if (_game.id == GID_CMI || _game.id == GID_DIG) {
+					if (_objs[i].x_pos <= x && _objs[i].width + _objs[i].x_pos >= x &&
+						_objs[i].y_pos <= y && _objs[i].height + _objs[i].y_pos >= y)
+						return _objs[i].obj_nr;
+				} else {
+					if (_objs[i].x_pos <= x && _objs[i].width + _objs[i].x_pos > x &&
+						_objs[i].y_pos <= y && _objs[i].height + _objs[i].y_pos > y)
+						return _objs[i].obj_nr;
+				}
 				break;
 			}
 		} while ((_objs[b].state & mask) == a);
@@ -769,7 +774,7 @@ void ScummEngine::resetRoomObjects() {
 		od = &_objs[findLocalObjectSlot()];
 
 		ptr = obcds.findNext(MKTAG('O','B','C','D'));
-		if (ptr == NULL)
+		if (ptr == nullptr)
 			error("Room %d missing object code block(s)", _roomResource);
 
 		od->OBCDoffset = ptr - rootptr;
@@ -795,7 +800,7 @@ void ScummEngine::resetRoomObjects() {
 	ResourceIterator obims(room, false);
 	for (i = 0; i < _numObjectsInRoom; i++) {
 		ptr = obims.findNext(MKTAG('O','B','I','M'));
-		if (ptr == NULL)
+		if (ptr == nullptr)
 			error("Room %d missing image blocks(s)", _roomResource);
 
 		obim_id = getObjectIdFromOBIM(ptr);
@@ -876,7 +881,7 @@ void ScummEngine_v4::resetRoomObjects() {
 		od = &_objs[findLocalObjectSlot()];
 
 		ptr = obcds.findNext(MKTAG('O','B','C','D'));
-		if (ptr == NULL)
+		if (ptr == nullptr)
 			error("Room %d missing object code block(s)", _roomResource);
 
 		od->OBCDoffset = ptr - room;
@@ -893,7 +898,7 @@ void ScummEngine_v4::resetRoomObjects() {
 		// In the PC Engine version of Loom, there aren't image blocks
 		// for all objects.
 		ptr = obims.findNext(MKTAG('O','B','I','M'));
-		if (ptr == NULL)
+		if (ptr == nullptr)
 			break;
 
 		obim_id = READ_LE_UINT16(ptr + 6);
@@ -983,12 +988,12 @@ void ScummEngine_v4::resetRoomObject(ObjectData *od, const byte *room, const byt
 }
 
 void ScummEngine::resetRoomObject(ObjectData *od, const byte *room, const byte *searchptr) {
-	const CodeHeader *cdhd = NULL;
-	const ImageHeader *imhd = NULL;
+	const CodeHeader *cdhd = nullptr;
+	const ImageHeader *imhd = nullptr;
 
 	assert(room);
 
-	if (searchptr == NULL) {
+	if (searchptr == nullptr) {
 		if (_game.version == 8) {
 			searchptr = getResourceAddress(rtRoomScripts, _roomResource);
 			assert(searchptr);
@@ -998,7 +1003,7 @@ void ScummEngine::resetRoomObject(ObjectData *od, const byte *room, const byte *
 	}
 
 	cdhd = (const CodeHeader *)findResourceData(MKTAG('C','D','H','D'), searchptr + od->OBCDoffset);
-	if (cdhd == NULL)
+	if (cdhd == nullptr)
 		error("Room %d missing CDHD blocks(s)", _roomResource);
 	if (od->OBIMoffset)
 		imhd = (const ImageHeader *)findResourceData(MKTAG('I','M','H','D'), room + od->OBIMoffset);
@@ -1181,8 +1186,8 @@ const byte *ScummEngine::getObjOrActorName(int obj) {
 	}
 
 	objptr = getOBCDFromObject(obj, true);
-	if (objptr == NULL)
-		return NULL;
+	if (objptr == nullptr)
+		return nullptr;
 
 	if (_game.features & GF_SMALL_HEADER) {
 		byte offset = 0;
@@ -1220,7 +1225,7 @@ void ScummEngine::setObjectName(int obj) {
 
 	for (i = 0; i < _numNewNames; i++) {
 		if (_newNames[i] == 0) {
-			loadPtrToResource(rtObjectName, i, NULL);
+			loadPtrToResource(rtObjectName, i, nullptr);
 			_newNames[i] = obj;
 			runInventoryScript(0);
 			return;
@@ -1255,7 +1260,7 @@ byte *ScummEngine::getOBCDFromObject(int obj, bool v0CheckInventory) {
 		_objectOwnerTable[obj] != OF_OWNER_ROOM)
 	{
 		if (_game.version == 0 && !v0CheckInventory)
-			return 0;
+			return nullptr;
 		for (i = 0; i < _numInventory; i++) {
 			if (_inventory[i] == obj)
 				return getResourceAddress(rtInventory, i);
@@ -1275,7 +1280,7 @@ byte *ScummEngine::getOBCDFromObject(int obj, bool v0CheckInventory) {
 			}
 		}
 	}
-	return 0;
+	return nullptr;
 }
 
 const byte *ScummEngine::getOBIMFromObjectData(const ObjectData &od) {
@@ -1324,15 +1329,15 @@ const byte *ScummEngine::getObjectImage(const byte *ptr, int state) {
 		// we use the offsets in the OFFS chunk,
 		ptr = findResource(MKTAG('I','M','A','G'), ptr);
 		if (!ptr)
-			return 0;
+			return nullptr;
 
 		ptr = findResource(MKTAG('W','R','A','P'), ptr);
 		if (!ptr)
-			return 0;
+			return nullptr;
 
 		ptr = findResource(MKTAG('O','F','F','S'), ptr);
 		if (!ptr)
-			return 0;
+			return nullptr;
 
 		// Get the address of the specified SMAP (corresponding to IMxx)
 		ptr += READ_LE_UINT32(ptr + 4 + 4*state);
@@ -1473,7 +1478,7 @@ void ScummEngine::findObjectInRoom(FindObjectInRoom *fo, byte findWhat, uint id,
 		ResourceIterator	obcds(searchptr, (_game.features & GF_SMALL_HEADER) != 0);
 		for (i = 0; i < numobj; i++) {
 			obcdptr = obcds.findNext(MKTAG('O','B','C','D'));
-			if (obcdptr == NULL)
+			if (obcdptr == nullptr)
 				error("findObjectInRoom: Not enough code blocks in room %d", room);
 			cdhd = (const CodeHeader *)findResourceData(MKTAG('C','D','H','D'), obcdptr);
 
@@ -1501,7 +1506,7 @@ void ScummEngine::findObjectInRoom(FindObjectInRoom *fo, byte findWhat, uint id,
 		ResourceIterator	obims(roomptr, (_game.features & GF_SMALL_HEADER) != 0);
 		for (i = 0; i < numobj; i++) {
 			obimptr = obims.findNext(MKTAG('O','B','I','M'));
-			if (obimptr == NULL)
+			if (obimptr == nullptr)
 				error("findObjectInRoom: Not enough image blocks in room %d", room);
 			obim_id = getObjectIdFromOBIM(obimptr);
 
@@ -1761,7 +1766,7 @@ void ScummEngine_v6::drawBlastObject(BlastObject *eo) {
 	bdd.scale_x = (byte)eo->scaleX;
 	bdd.scale_y = (byte)eo->scaleY;
 
-	bdd.maskPtr = NULL;
+	bdd.maskPtr = nullptr;
 	bdd.numStrips = _gdi->_numStrips;
 
 	if ((bdd.scale_x != 255) || (bdd.scale_y != 255)) {
@@ -1771,7 +1776,7 @@ void ScummEngine_v6::drawBlastObject(BlastObject *eo) {
 	}
 	bdd.shadowPalette = _shadowPalette;
 
-	bdd.actorPalette = 0;
+	bdd.actorPalette = nullptr;
 	bdd.mirror = false;
 
 	drawBomp(bdd);
@@ -1833,7 +1838,7 @@ int ScummEngine::findLocalObjectSlot() {
 int ScummEngine::findFlObjectSlot() {
 	int i;
 	for (i = 1; i < _numFlObject; i++) {
-		if (_res->_types[rtFlObject][i]._address == NULL)
+		if (_res->_types[rtFlObject][i]._address == nullptr)
 			return i;
 	}
 	error("findFlObjectSlot: Out of FLObject slots");

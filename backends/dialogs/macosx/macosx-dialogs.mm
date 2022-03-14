@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,8 +28,6 @@
 #include "backends/dialogs/macosx/macosx-dialogs.h"
 
 #include "common/config-manager.h"
-#include "common/system.h"
-#include "common/events.h"
 #include "common/algorithm.h"
 #include "common/translation.h"
 
@@ -41,6 +38,19 @@
 #include <Foundation/NSString.h>
 #include <Foundation/NSURL.h>
 #include <Foundation/NSAutoreleasePool.h>
+
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < 101400
+
+    #ifndef NSControlStateValueOff
+      #define NSControlStateValueOff NSOffState
+    #endif
+
+    #ifndef NSControlStateValueOn
+      #define NSControlStateValueOn NSOnState
+    #endif
+
+#define NSButtonTypeSwitch NSSwitchButton
+#endif
 
 
 @interface BrowserDialogPresenter : NSObject {
@@ -75,25 +85,18 @@
 	NSButton *showHiddenFilesButton = 0;
 	if ([panel respondsToSelector:@selector(setShowsHiddenFiles:)]) {
 		showHiddenFilesButton = [[NSButton alloc] init];
-		[showHiddenFilesButton setButtonType:NSSwitchButton];
+		[showHiddenFilesButton setButtonType:NSButtonTypeSwitch];
 
-#ifdef USE_TRANSLATION
-		CFStringRef encStr = CFStringCreateWithCString(NULL, TransMan.getCurrentCharset().c_str(), kCFStringEncodingASCII);
-		CFStringEncoding stringEncoding = CFStringConvertIANACharSetNameToEncoding(encStr);
-		CFRelease(encStr);
-#else
-		CFStringEncoding stringEncoding = kCFStringEncodingASCII;
-#endif
-		CFStringRef hiddenFilesString = CFStringCreateWithCString(0, _("Show hidden files"), stringEncoding);
+		CFStringRef hiddenFilesString = CFStringCreateWithCString(0, _("Show hidden files").encode().c_str(), kCFStringEncodingUTF8);
 		[showHiddenFilesButton setTitle:(NSString*)hiddenFilesString];
 		CFRelease(hiddenFilesString);
 
 		[showHiddenFilesButton sizeToFit];
 		if (ConfMan.getBool("gui_browser_show_hidden", Common::ConfigManager::kApplicationDomain)) {
-			[showHiddenFilesButton setState:NSOnState];
+			[showHiddenFilesButton setState:NSControlStateValueOn];
 			[panel setShowsHiddenFiles: YES];
 		} else {
-			[showHiddenFilesButton setState:NSOffState];
+			[showHiddenFilesButton setState:NSControlStateValueOff];
 			[panel setShowsHiddenFiles: NO];
 		}
 		[panel setAccessoryView:showHiddenFilesButton];
@@ -119,7 +122,7 @@
 }
 
 - (IBAction) showHiddenFiles : (id) sender {
-	if ([sender state] == NSOnState) {
+	if ([sender state] == NSControlStateValueOn) {
 		[_panel setShowsHiddenFiles: YES];
 		ConfMan.setBool("gui_browser_show_hidden", true, Common::ConfigManager::kApplicationDomain);
 	} else {
@@ -130,30 +133,17 @@
 
 @end
 
-Common::DialogManager::DialogResult MacOSXDialogManager::showFileBrowser(const char *title, Common::FSNode &choice, bool isDirBrowser) {
-
+Common::DialogManager::DialogResult MacOSXDialogManager::showFileBrowser(const Common::U32String &title, Common::FSNode &choice, bool isDirBrowser) {
 	DialogResult result = kDialogCancel;
 
 	// Get current encoding
-#ifdef USE_TRANSLATION
-	CFStringRef encStr = CFStringCreateWithCString(NULL, TransMan.getCurrentCharset().c_str(), kCFStringEncodingASCII);
-	CFStringEncoding stringEncoding = CFStringConvertIANACharSetNameToEncoding(encStr);
-	CFRelease(encStr);
-#else
-	CFStringEncoding stringEncoding = kCFStringEncodingASCII;
-#endif
+	CFStringEncoding stringEncoding = kCFStringEncodingUTF8;
 
 	// Convert labels to NSString
-	CFStringRef titleRef = CFStringCreateWithCString(0, title, stringEncoding);
-	CFStringRef chooseRef = CFStringCreateWithCString(0, _("Choose"), stringEncoding);
+	CFStringRef titleRef = CFStringCreateWithCString(0, title.encode().c_str(), stringEncoding);
+	CFStringRef chooseRef = CFStringCreateWithCString(0, _("Choose").encode().c_str(), stringEncoding);
 
-	// If in fullscreen mode, switch to windowed mode
-	bool wasFullscreen = g_system->getFeatureState(OSystem::kFeatureFullscreenMode);
-	if (wasFullscreen) {
-		g_system->beginGFXTransaction();
-		g_system->setFeatureState(OSystem::kFeatureFullscreenMode, false);
-		g_system->endGFXTransaction();
-	}
+	beginDialog();
 
 	// Temporarily show the real mouse
 	CGDisplayShowCursor(kCGDirectMainDisplay);
@@ -185,20 +175,7 @@ Common::DialogManager::DialogResult MacOSXDialogManager::showFileBrowser(const c
 	CFRelease(titleRef);
 	CFRelease(chooseRef);
 
-	// While the native macOS file browser is open, any input events (e.g. keypresses) are
-	// still received by the NSApplication. With SDL backend for example this results in the
-	// events beeing queued and processed after we return, thus dispatching events that were
-	// intended for the native file browser. For example: pressing Esc to cancel the native
-	// macOS file browser would cause the application to quit in addition to closing the
-	// file browser. To avoid this happening clear all pending events.
-	g_system->getEventManager()->getEventDispatcher()->clearEvents();
-
-	// If we were in fullscreen mode, switch back
-	if (wasFullscreen) {
-		g_system->beginGFXTransaction();
-		g_system->setFeatureState(OSystem::kFeatureFullscreenMode, true);
-		g_system->endGFXTransaction();
-	}
+	endDialog();
 
 	return result;
 }

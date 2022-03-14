@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,7 +47,7 @@ private:
 	// Info for sampling
 	uint32          _frameEvenOdd;  // which buffer is 'frame0'
 	int             _lVol, _rVol;   // 0-256
-	uint32          _pitchShift;    // 0x10000 = no shift
+	uint32          _pitchShift;    // AudioProcess::PITCH_SHIFT_NONE = no shift
 	int             _priority;      // anything.
 	bool            _paused;        // true/false
 private:
@@ -62,8 +61,10 @@ public:
 
 	void stop();
 
-	void playSample(AudioSample *sample, int loop, int priority, bool paused,
-		uint32 pitchShift, int lvol, int rvol);
+	void playSample(AudioSample *sample, int loop, int priority, bool paused, 
+		bool isSpeech, uint32 pitchShift, int lvol, int rvol);
+
+	void playMusicStream(Audio::AudioStream *stream);
 
 	bool isPlaying();
 
@@ -84,6 +85,8 @@ public:
 	void setVolume(int lvol, int rvol) {
 		_lVol = lvol;
 		_rVol = rvol;
+		_mixer->setChannelVolume(_soundHandle, (rvol + lvol) / 2);
+		_mixer->setChannelBalance(_soundHandle, (rvol - lvol) / 2);
 	}
 	void getVolume(int &lvol, int &rvol) const {
 		lvol = _lVol;

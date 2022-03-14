@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,11 @@ void SceneScriptHC04::InitializeScene() {
 	} else {
 		Setup_Scene_Information(-88.0f, 0.14f, -463.0f, 1013);
 	}
-	Music_Play(kMusicOneTime, 14, -90, 1, -1, 1, 2);
+	int loop = kMusicLoopRepeat;
+	if (_vm->_cutContent && Random_Query(0, 2) == 1) {
+		loop = kMusicLoopRepeatRandomStart;
+	}
+	Music_Play(kMusicOneTime, 14, -90, 1, -1, loop, 2);
 
 	Actor_Put_In_Set(kActorIsabella, kSetHC01_HC02_HC03_HC04);
 	Actor_Set_At_XYZ(kActorIsabella, -210.0f, 0.0f, -445.0f, 250);
@@ -119,7 +122,7 @@ bool SceneScriptHC04::ClickedOnItem(int itemId, bool a2) {
 bool SceneScriptHC04::ClickedOnExit(int exitId) {
 	if (exitId == 0) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -108.0f, 0.14f, -639.0f, 0, true, false, false)) {
-			Music_Stop(2);
+			Music_Stop(2u);
 			Game_Flag_Set(kFlagHC04toRC03);
 			Game_Flag_Reset(kFlagMcCoyInHawkersCircle);
 			Game_Flag_Set(kFlagMcCoyInRunciters);
@@ -153,7 +156,7 @@ void SceneScriptHC04::PlayerWalkedIn() {
 
 void SceneScriptHC04::PlayerWalkedOut() {
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 }
 
 void SceneScriptHC04::DialogueQueueFlushed(int a1) {

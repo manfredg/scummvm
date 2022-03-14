@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,32 +80,12 @@ void HandlerSequences::handle(Actor *actor) {
 	Sequence *sequence = sequencer->findSequence(_sequences[index]);
 
 	assert(sequence);
-	sequencer->authorSequence(sequence, 0);
 
-	execute(sequence);
+	authorSequence(sequencer, sequence);
 }
 
-void HandlerStartPage::execute(Sequence *sequence) {
-	sequence->allowSkipping();
-}
-
-void HandlerStartPage::toConsole() const {
-	debugC(6, kPinkDebugLoadingObjects, "HandlerStartPage:");
-
-	debugC(6, kPinkDebugLoadingObjects, "\tSideEffects:");
-	for (uint i = 0; i < _sideEffects.size(); ++i) {
-		_sideEffects[i]->toConsole();
-	}
-
-	debugC(6, kPinkDebugLoadingObjects, "\tConditions:");
-	for (uint i = 0; i < _conditions.size(); ++i) {
-		_conditions[i]->toConsole();
-	}
-
-	debugC(6, kPinkDebugLoadingObjects, "\tSequences:");
-	for (uint i = 0; i < _sequences.size(); ++i) {
-		debugC(6, kPinkDebugLoadingObjects, "\t\t%s", _sequences[i].c_str());
-	}
+void HandlerSequences::authorSequence(Sequencer *sequencer, Sequence *sequence) {
+	sequencer->authorSequence(sequence, false);
 }
 
 void HandlerLeftClick::toConsole() const {
@@ -150,6 +129,50 @@ void HandlerUseClick::toConsole() const {
 	for (uint i = 0; i < _sequences.size(); ++i) {
 		debugC(6, kPinkDebugLoadingObjects, "\t\t%s", _sequences[i].c_str());
 	}
+}
+
+void HandlerTimerActions::deserialize(Archive &archive) {
+	Handler::deserialize(archive);
+	_actions.deserialize(archive);
+}
+
+void HandlerTimerActions::toConsole() const {
+	debugC(6, kPinkDebugLoadingObjects, "HandlerTimerActions:");
+
+	debugC(6, kPinkDebugLoadingObjects, "\tSideEffects:");
+	for (uint i = 0; i < _sideEffects.size(); ++i) {
+		_sideEffects[i]->toConsole();
+	}
+
+	debugC(6, kPinkDebugLoadingObjects, "\tConditions:");
+	for (uint i = 0; i < _conditions.size(); ++i) {
+		_conditions[i]->toConsole();
+	}
+
+	debugC(6, kPinkDebugLoadingObjects, "\tActions:");
+	for (uint i = 0; i < _actions.size(); ++i) {
+		debugC(6, kPinkDebugLoadingObjects, "\t\t%s", _actions[i].c_str());
+	}
+}
+
+void HandlerTimerActions::handle(Actor *actor) {
+	Handler::handle(actor);
+	if (!actor->isPlaying() && !_actions.empty()) {
+		Common::RandomSource &rnd = actor->getPage()->getGame()->getRnd();
+		uint index = rnd.getRandomNumber(_actions.size() - 1);
+		Action *action = actor->findAction(_actions[index]);
+		assert(action);
+		actor->setAction(action);
+	}
+}
+
+void HandlerStartPage::authorSequence(Sequencer *sequencer, Sequence *sequence) {
+	HandlerSequences::authorSequence(sequencer, sequence);
+	sequence->allowSkipping();
+}
+
+void HandlerTimerSequences::authorSequence(Sequencer *sequencer, Sequence *sequence) {
+	sequencer->authorParallelSequence(sequence, false);
 }
 
 } // End of namespace Pink

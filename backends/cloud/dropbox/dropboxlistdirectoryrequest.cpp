@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "backends/cloud/dropbox/dropboxlistdirectoryrequest.h"
+#include "backends/cloud/dropbox/dropboxstorage.h"
+#include "backends/cloud/dropbox/dropboxtokenrefresher.h"
 #include "backends/cloud/iso8601.h"
 #include "backends/cloud/storage.h"
 #include "backends/networking/curl/connectionmanager.h"
@@ -35,9 +36,9 @@ namespace Dropbox {
 #define DROPBOX_API_LIST_FOLDER "https://api.dropboxapi.com/2/files/list_folder"
 #define DROPBOX_API_LIST_FOLDER_CONTINUE "https://api.dropboxapi.com/2/files/list_folder/continue"
 
-DropboxListDirectoryRequest::DropboxListDirectoryRequest(Common::String token, Common::String path, Storage::ListDirectoryCallback cb, Networking::ErrorCallback ecb, bool recursive):
+DropboxListDirectoryRequest::DropboxListDirectoryRequest(DropboxStorage *storage, Common::String path, Storage::ListDirectoryCallback cb, Networking::ErrorCallback ecb, bool recursive):
 	Networking::Request(nullptr, ecb), _requestedPath(path), _requestedRecursive(recursive), _listDirectoryCallback(cb),
-	_token(token), _workingRequest(nullptr), _ignoreCallback(false) {
+	_storage(storage), _workingRequest(nullptr), _ignoreCallback(false) {
 	start();
 }
 
@@ -57,8 +58,8 @@ void DropboxListDirectoryRequest::start() {
 
 	Networking::JsonCallback callback = new Common::Callback<DropboxListDirectoryRequest, Networking::JsonResponse>(this, &DropboxListDirectoryRequest::responseCallback);
 	Networking::ErrorCallback failureCallback = new Common::Callback<DropboxListDirectoryRequest, Networking::ErrorResponse>(this, &DropboxListDirectoryRequest::errorCallback);
-	Networking::CurlJsonRequest *request = new Networking::CurlJsonRequest(callback, failureCallback, DROPBOX_API_LIST_FOLDER);
-	request->addHeader("Authorization: Bearer " + _token);
+	Networking::CurlJsonRequest *request = new DropboxTokenRefresher(_storage, callback, failureCallback, DROPBOX_API_LIST_FOLDER);
+	request->addHeader("Authorization: Bearer " + _storage->accessToken());
 	request->addHeader("Content-Type: application/json");
 
 	Common::JSONObject jsonRequestParameters;
@@ -180,8 +181,8 @@ void DropboxListDirectoryRequest::responseCallback(Networking::JsonResponse resp
 
 		Networking::JsonCallback callback = new Common::Callback<DropboxListDirectoryRequest, Networking::JsonResponse>(this, &DropboxListDirectoryRequest::responseCallback);
 		Networking::ErrorCallback failureCallback = new Common::Callback<DropboxListDirectoryRequest, Networking::ErrorResponse>(this, &DropboxListDirectoryRequest::errorCallback);
-		Networking::CurlJsonRequest *request = new Networking::CurlJsonRequest(callback, failureCallback, DROPBOX_API_LIST_FOLDER_CONTINUE);
-		request->addHeader("Authorization: Bearer " + _token);
+		Networking::CurlJsonRequest *request = new DropboxTokenRefresher(_storage, callback, failureCallback, DROPBOX_API_LIST_FOLDER_CONTINUE);
+		request->addHeader("Authorization: Bearer " + _storage->accessToken());
 		request->addHeader("Content-Type: application/json");
 
 		Common::JSONObject jsonRequestParameters;

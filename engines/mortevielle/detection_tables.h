@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,11 +27,8 @@ static const MortevielleGameDescription MortevielleGameDescriptions[] = {
 		{
 			"mortevielle",
 			"",
-			{
-				{"menufr.mor", 0, "e413f36b9e14eef16130adc347a9391f", 144},
-				{"dxx.mor", 0, "949e68e829ecd5ad29e36a00347a9e7e", 207744},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("menufr.mor",	"e413f36b9e14eef16130adc347a9391f", 144,
+					   "dxx.mor",		"949e68e829ecd5ad29e36a00347a9e7e", 207744),
 			Common::FR_FRA,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
@@ -44,11 +40,8 @@ static const MortevielleGameDescription MortevielleGameDescriptions[] = {
 		{
 			"mortevielle",
 			"",
-			{
-				{"menual.mor", 0, "792aea282b07a1d74c4a4abeabc90c19", 144},
-				{"dxx.mor", 0, "949e68e829ecd5ad29e36a00347a9e7e", 207744},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("menual.mor",	"792aea282b07a1d74c4a4abeabc90c19", 144,
+					   "dxx.mor",		"949e68e829ecd5ad29e36a00347a9e7e", 207744),
 			Common::DE_DEU,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
@@ -61,11 +54,8 @@ static const MortevielleGameDescription MortevielleGameDescriptions[] = {
 //		{
 //			"mortevielle",
 //			"Improved Translation",
-//			{
-//				{"menual.mor", 0, "792aea282b07a1d74c4a4abeabc90c19", 144},
-//				{"dxx.mor", 0, "949e68e829ecd5ad29e36a00347a9e7e", 207744},
-//				AD_LISTEND
-//			},
+//			AD_ENTRY2s("menual.mor",	"792aea282b07a1d74c4a4abeabc90c19", 144,
+//					   "dxx.mor",		"949e68e829ecd5ad29e36a00347a9e7e", 207744),
 //			Common::DE_DEU,
 //			Common::kPlatformDOS,
 //			ADGF_NO_FLAGS,
@@ -80,12 +70,9 @@ static const MortevielleGameDescription MortevielleGameDescriptions[] = {
 	{
 		{
 			"mortevielle",
-				"",
-			{
-				{"menufr.mor", 0, "e413f36b9e14eef16130adc347a9391f", 144},
-				{"dxx.mor", 0, "949e68e829ecd5ad29e36a00347a9e7e", 207744},
-				AD_LISTEND
-			},
+			"",
+			AD_ENTRY2s("menufr.mor",	"e413f36b9e14eef16130adc347a9391f", 144,
+					   "dxx.mor",		"949e68e829ecd5ad29e36a00347a9e7e", 207744),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
@@ -97,12 +84,9 @@ static const MortevielleGameDescription MortevielleGameDescriptions[] = {
 	{
 		{
 			"mortevielle",
-				"",
-			{
-				{"menual.mor", 0, "792aea282b07a1d74c4a4abeabc90c19", 144},
-				{"dxx.mor", 0, "949e68e829ecd5ad29e36a00347a9e7e", 207744},
-				AD_LISTEND
-			},
+			"",
+			AD_ENTRY2s("menual.mor",	"792aea282b07a1d74c4a4abeabc90c19", 144,
+					   "dxx.mor",		"949e68e829ecd5ad29e36a00347a9e7e", 207744),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
@@ -115,11 +99,8 @@ static const MortevielleGameDescription MortevielleGameDescriptions[] = {
 		{
 			"mortevielle",
 			"",
-			{
-				{"menu.mor", 0, "3fef0a3f8fca99fdcb6dbca8cbcef46f", 160},
-				{"dxx.mor", 0, "949e68e829ecd5ad29e36a00347a9e7e", 207744},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("menu.mor",	"3fef0a3f8fca99fdcb6dbca8cbcef46f", 160,
+					   "dxx.mor",	"949e68e829ecd5ad29e36a00347a9e7e", 207744),
 			Common::FR_FRA,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "graphics/surface.h"
-
-#include "sludge/allfiles.h"
 #include "sludge/fileset.h"
 #include "sludge/floor.h"
 #include "sludge/graphics.h"
-#include "sludge/moreio.h"
 #include "sludge/newfatal.h"
 #include "sludge/people.h"
 #include "sludge/sludge.h"
@@ -145,6 +140,8 @@ bool FloorManager::setFloor(int fileNum) {
 	if (!g_sludge->_resMan->openFileFromNum(fileNum))
 		return false;
 
+	g_sludge->_resMan->dumpFile(fileNum, "floor%04d.flo.comp");
+
 	// Find out how many polygons there are and reserve memory
 
 	_currentFloor->originalNum = fileNum;
@@ -156,16 +153,13 @@ bool FloorManager::setFloor(int fileNum) {
 	// Read in each polygon
 
 	for (i = 0; i < _currentFloor->numPolygons; i++) {
-
 		// Find out how many vertex IDs there are and reserve memory
-
 		_currentFloor->polygon[i].numVertices = g_sludge->_resMan->getData()->readByte();
 		_currentFloor->polygon[i].vertexID = new int[_currentFloor->polygon[i].numVertices];
 		if (!checkNew(_currentFloor->polygon[i].vertexID))
 			return false;
 
 		// Read in each vertex ID
-
 		for (j = 0; j < _currentFloor->polygon[i].numVertices; j++) {
 			_currentFloor->polygon[i].vertexID[j] = g_sludge->_resMan->getData()->readUint16BE();
 		}
@@ -179,12 +173,13 @@ bool FloorManager::setFloor(int fileNum) {
 		return false;
 
 	for (j = 0; j < i; j++) {
-
 		_currentFloor->vertex[j].x = g_sludge->_resMan->getData()->readUint16BE();
 		_currentFloor->vertex[j].y = g_sludge->_resMan->getData()->readUint16BE();
 	}
 
 	g_sludge->_resMan->finishAccess();
+
+	dumpFloor(fileNum);
 
 	// Now build the movement martix
 
@@ -254,6 +249,29 @@ bool FloorManager::setFloor(int fileNum) {
 	setResourceForFatal(-1);
 
 	return true;
+}
+
+void FloorManager::dumpFloor(int fileNum) {
+	if (!g_sludge->_dumpScripts)
+		return;
+
+	Common::DumpFile dumpFile;
+	dumpFile.open(Common::String::format("dumps/floor%04d.flo", fileNum));
+
+	for (int i = 0; i < _currentFloor->numPolygons; i++) {
+		int nV = _currentFloor->polygon[i].numVertices;
+		if (nV > 1) {
+			int vert = _currentFloor->polygon[i].vertexID[0];
+			dumpFile.writeString(Common::String::format("* %d, %d", _currentFloor->vertex[vert].x, _currentFloor->vertex[vert].y));
+			for (int j = 1; j < nV; j++) {
+				vert = _currentFloor->polygon[i].vertexID[j];
+				dumpFile.writeString(Common::String::format("; %d, %d", _currentFloor->vertex[vert].x, _currentFloor->vertex[vert].y));
+			}
+			dumpFile.writeString("\n");
+		}
+	}
+
+	dumpFile.close();
 }
 
 void FloorManager::drawFloor() {

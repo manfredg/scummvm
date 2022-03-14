@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,21 +25,24 @@
 #include "common/system.h"
 #include "common/events.h"
 
+/**
+ * Subclass of OSystem that contains default implementations of functions that would
+ * cause circular dependencies if they were implemented in common/system.cpp
+ */
 class BaseBackend : public OSystem {
-protected:
-	virtual Common::EventSource *getDefaultEventSource() = 0;
 public:
-	virtual void initBackend();
+	void initBackend() override;
 
-	virtual void displayMessageOnOSD(const char *msg);
-	virtual void displayActivityIconOnOSD(const Graphics::Surface *icon) {}
-	virtual void fillScreen(uint32 col);
+	using OSystem::setScaler;
+	bool setScaler(const char *name, int factor) override final;
+	void displayMessageOnOSD(const Common::U32String &msg) override;
+	void displayActivityIconOnOSD(const Graphics::Surface *icon) override {}
+	void fillScreen(uint32 col) override;
 };
 
-class EventsBaseBackend : public BaseBackend, Common::EventSource {
-protected:
-	virtual Common::EventSource *getDefaultEventSource() { return this; }
+class EventsBaseBackend : virtual public BaseBackend, Common::EventSource {
 public:
+	virtual void initBackend();
 };
 
 

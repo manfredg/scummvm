@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -193,38 +192,38 @@ bool PspMutex::unlock() {
 
 // Release all threads waiting on the condition
 void PspCondition::releaseAll() {
-        _mutex.lock();
-        if (_waitingThreads > _signaledThreads) {	// we have signals to issue
-                int numWaiting = _waitingThreads - _signaledThreads;	// threads we haven't signaled
-                _signaledThreads = _waitingThreads;
+	_mutex.lock();
+	if (_waitingThreads > _signaledThreads) {	// we have signals to issue
+		int numWaiting = _waitingThreads - _signaledThreads;	// threads we haven't signaled
+		_signaledThreads = _waitingThreads;
 
-				_waitSem.give(numWaiting);
-                _mutex.unlock();
-                for (int i=0; i<numWaiting; i++)	// wait for threads to tell us they're awake
-					_doneSem.take();
-        } else {
-                _mutex.unlock();
-        }
+		_waitSem.give(numWaiting);
+		_mutex.unlock();
+		for (int i=0; i<numWaiting; i++)	// wait for threads to tell us they're awake
+			_doneSem.take();
+	} else {
+		_mutex.unlock();
+	}
 }
 
 // Mutex must be taken before entering wait
 void PspCondition::wait(PspMutex &externalMutex) {
-        _mutex.lock();
-        _waitingThreads++;
-        _mutex.unlock();
+	_mutex.lock();
+	_waitingThreads++;
+	_mutex.unlock();
 
-        externalMutex.unlock();	// must unlock external mutex
+	externalMutex.unlock();	// must unlock external mutex
 
-		_waitSem.take();	// sleep on the wait semaphore
+	_waitSem.take();	// sleep on the wait semaphore
 
-		// let the signaling thread know we're done
-		_mutex.lock();
-        if (_signaledThreads > 0 ) {
-                _doneSem.give();	// let the thread know
-                _signaledThreads--;
-        }
-        _waitingThreads--;
-        _mutex.unlock();
+	// let the signaling thread know we're done
+	_mutex.lock();
+	if (_signaledThreads > 0 ) {
+		_doneSem.give();	// let the thread know
+		_signaledThreads--;
+	}
+	_waitingThreads--;
+	_mutex.unlock();
 
-        externalMutex.lock();		// must lock external mutex here for continuation
+	externalMutex.lock();		// must lock external mutex here for continuation
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,8 +24,10 @@
 #include "common/file.h"
 #include "common/system.h"
 #include "common/textconsole.h"
+#include "common/util.h"
 
 #include "audio/fmopl.h"
+#include "audio/adlib_ms.h"
 
 namespace Audio {
 
@@ -114,8 +115,20 @@ uint16 milesAdLibVolumeSensitivityTable[] = {
 	82, 85, 88, 91, 94, 97, 100, 103, 106, 109, 112, 115, 118, 121, 124, 127
 };
 
+// MIDI panning to register volume table for dual OPL2
+// hardcoded, dumped from ADLIB.MDI
+uint8 milesAdLibPanningVolumeLookUpTable[] = {
+	0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30,
+	32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62,
+	64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 92, 94,
+	96, 98, 100, 102, 104, 106, 108, 110, 112, 114, 116, 118, 120, 122, 124, 127,
+	127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127,
+	127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127,
+	127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127,
+	127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127, 127
+};
 
-class MidiDriver_Miles_AdLib : public MidiDriver {
+class MidiDriver_Miles_AdLib : public MidiDriver_Multisource {
 public:
 	MidiDriver_Miles_AdLib(InstrumentEntry *instrumentTablePtr, uint16 instrumentTableCount);
 	virtual ~MidiDriver_Miles_AdLib();
@@ -124,27 +137,36 @@ public:
 	int open() override;
 	void close() override;
 	void send(uint32 b) override;
-	MidiChannel *allocateChannel() override { return NULL; }
-	MidiChannel *getPercussionChannel() override { return NULL; }
+	void send(int8 source, uint32 b) override;
+	void metaEvent(int8 source, byte type, byte *data, uint16 length) override;
+	MidiChannel *allocateChannel() override { return nullptr; }
+	MidiChannel *getPercussionChannel() override { return nullptr; }
 
 	bool isOpen() const override { return _isOpen; }
 	uint32 getBaseTempo() override { return 1000000 / OPL::OPL::kDefaultCallbackFrequency; }
 
-	void setVolume(byte volume);
-	virtual uint32 property(int prop, uint32 param) override;
+	void stopAllNotes(uint8 source, uint8 channel) override;
+	void applySourceVolume(uint8 source) override;
+	void deinitSource(uint8 source) override;
 
-	void setTimerCallback(void *timerParam, Common::TimerManager::TimerProc timerProc) override;
+	uint32 property(int prop, uint32 param) override;
+
+	void setVolume(byte volume);
 
 private:
-	bool _modeOPL3;
+	OPL::Config::OplType _oplType;
 	byte _modePhysicalFmVoicesCount;
 	byte _modeVirtualFmVoicesCount;
 	bool _modeStereo;
+
+	// the version of Miles AIL/MSS to emulate
+	MilesVersion _milesVersion;
 
 	// Structure to hold information about current status of MIDI Channels
 	struct MidiChannelEntry {
 		byte   currentPatchBank;
 		const  InstrumentEntry *currentInstrumentPtr;
+		byte   currentProgram;
 		uint16 currentPitchBender;
 		byte   currentPitchRange;
 		byte   currentVoiceProtection;
@@ -160,8 +182,9 @@ private:
 		byte   currentActiveVoicesCount;
 
 		MidiChannelEntry() : currentPatchBank(0),
-							currentInstrumentPtr(NULL),
-							currentPitchBender(MILES_PITCHBENDER_DEFAULT),
+							currentInstrumentPtr(nullptr),
+							currentProgram(0),
+							currentPitchBender(MIDI_PITCH_BEND_DEFAULT),
 							currentPitchRange(0),
 							currentVoiceProtection(0),
 							currentVolume(0), currentVolumeExpression(0),
@@ -192,7 +215,7 @@ private:
 
 		VirtualFmVoiceEntry(): inUse(false),
 								actualMidiChannel(0),
-								currentInstrumentPtr(NULL),
+								currentInstrumentPtr(nullptr),
 								isPhysical(false), physicalFmVoice(0),
 								currentPriority(0),
 								currentOriginalMidiNote(0),
@@ -217,13 +240,10 @@ private:
 	OPL::OPL *_opl;
 	int _masterVolume;
 
-	Common::TimerManager::TimerProc _adlibTimerProc;
-	void *_adlibTimerParam;
-
 	bool _isOpen;
 
 	// stores information about all MIDI channels (not the actual OPL FM voice channels!)
-	MidiChannelEntry _midiChannels[MILES_MIDI_CHANNEL_COUNT];
+	MidiChannelEntry _midiChannels[MIDI_CHANNEL_COUNT];
 
 	// stores information about all virtual OPL FM voices
 	VirtualFmVoiceEntry _virtualFmVoices[MILES_ADLIB_VIRTUAL_FMVOICES_COUNT_MAX];
@@ -238,14 +258,13 @@ private:
 	bool circularPhysicalAssignment;
 	byte circularPhysicalAssignmentFmVoice;
 
-	void onTimer();
-
 	void resetData();
 	void resetAdLib();
 	void resetAdLibOperatorRegisters(byte baseRegister, byte value);
 	void resetAdLibFMVoiceChannelRegisters(byte baseRegister, byte value);
 
 	void setRegister(int reg, int value);
+	void setRegisterStereo(uint8 reg, uint8 valueLeft, uint8 valueRight);
 
 	int16 searchFreeVirtualFmVoiceChannel();
 	int16 searchFreePhysicalFmVoiceChannel();
@@ -267,29 +286,31 @@ private:
 	const InstrumentEntry *searchInstrument(byte bankId, byte patchId);
 
 	void pitchBendChange(byte MIDIchannel, byte parameter1, byte parameter2);
+
+	void applyControllerDefaults(uint8 source);
 };
 
 MidiDriver_Miles_AdLib::MidiDriver_Miles_AdLib(InstrumentEntry *instrumentTablePtr, uint16 instrumentTableCount)
-	: _masterVolume(15), _opl(0),
-	  _adlibTimerProc(0), _adlibTimerParam(0), _isOpen(false) {
+	: _masterVolume(15), _opl(nullptr), _isOpen(false) {
 
 	_instrumentTablePtr = instrumentTablePtr;
 	_instrumentTableCount = instrumentTableCount;
 
 	// Set up for OPL3, we will downgrade in case we can't create OPL3 emulator
 	// regular AdLib (OPL2) card
-	_modeOPL3 = true;
+	_oplType = OPL::Config::kOpl3;
 	_modeVirtualFmVoicesCount = 20;
 	_modePhysicalFmVoicesCount = 18;
 	_modeStereo = true;
+
+	// Default to Miles v2
+	_milesVersion = MILES_VERSION_2;
 
 	// Older Miles Audio drivers did not do a circular assign for physical FM-voices
 	// Sherlock Holmes 2 used the circular assign
 	circularPhysicalAssignment = true;
 	// this way the first circular physical FM-voice search will start at FM-voice 0
 	circularPhysicalAssignmentFmVoice = MILES_ADLIB_PHYSICAL_FMVOICES_COUNT_MAX;
-
-	resetData();
 }
 
 MidiDriver_Miles_AdLib::~MidiDriver_Miles_AdLib() {
@@ -297,17 +318,18 @@ MidiDriver_Miles_AdLib::~MidiDriver_Miles_AdLib() {
 }
 
 int MidiDriver_Miles_AdLib::open() {
-	if (_modeOPL3) {
+	if (_oplType == OPL::Config::kOpl3) {
 		// Try to create OPL3 first
 		_opl = OPL::Config::create(OPL::Config::kOpl3);
 	}
 	if (!_opl) {
+		// not created yet, downgrade to dual OPL2
+		_oplType = OPL::Config::kDualOpl2;
+		_opl = OPL::Config::create(OPL::Config::kDualOpl2);
+	}
+	if (!_opl) {
 		// not created yet, downgrade to OPL2
-		_modeOPL3 = false;
-		_modeVirtualFmVoicesCount = 16;
-		_modePhysicalFmVoicesCount = 9;
-		_modeStereo = false;
-
+		_oplType = OPL::Config::kOpl2;
 		_opl = OPL::Config::create(OPL::Config::kOpl2);
 	}
 
@@ -316,10 +338,20 @@ int MidiDriver_Miles_AdLib::open() {
 		return -1;
 	}
 
+	if (_oplType != OPL::Config::kOpl3) {
+		_modeVirtualFmVoicesCount = 16;
+		_modePhysicalFmVoicesCount = 9;
+		_modeStereo = false;
+	}
+
 	_opl->init();
 
 	_isOpen = true;
 
+	resetData();
+	applyControllerDefaults(0xFF);
+
+	_timerRate = getBaseTempo();
 	_opl->start(new Common::Functor0Mem<void, MidiDriver_Miles_AdLib>(this, &MidiDriver_Miles_AdLib::onTimer));
 
 	resetAdLib();
@@ -337,51 +369,55 @@ void MidiDriver_Miles_AdLib::setVolume(byte volume) {
 	//renewNotes(-1, true);
 }
 
-void MidiDriver_Miles_AdLib::onTimer() {
-	if (_adlibTimerProc)
-		(*_adlibTimerProc)(_adlibTimerParam);
-}
-
 void MidiDriver_Miles_AdLib::resetData() {
-	memset(_midiChannels, 0, sizeof(_midiChannels));
-	memset(_virtualFmVoices, 0, sizeof(_virtualFmVoices));
-	memset(_physicalFmVoices, 0, sizeof(_physicalFmVoices));
+	ARRAYCLEAR(_midiChannels);
+	ARRAYCLEAR(_virtualFmVoices);
+	ARRAYCLEAR(_physicalFmVoices);
 
-	for (byte midiChannel = 0; midiChannel < MILES_MIDI_CHANNEL_COUNT; midiChannel++) {
+	for (byte midiChannel = 0; midiChannel < MIDI_CHANNEL_COUNT; midiChannel++) {
 		// defaults, were sent to driver during driver initialization
 		_midiChannels[midiChannel].currentVolume = 0x7F;
 		_midiChannels[midiChannel].currentPanning = 0x40; // center
 		_midiChannels[midiChannel].currentVolumeExpression = 127;
 
 		// Miles Audio 2: hardcoded pitch range as a global (not channel specific), set to 12
-		// Miles Audio 3: pitch range per MIDI channel
-		_midiChannels[midiChannel].currentPitchBender = MILES_PITCHBENDER_DEFAULT;
-		_midiChannels[midiChannel].currentPitchRange = 12;
+		// Miles Audio 3: pitch range per MIDI channel; default 2 semitones
+		_midiChannels[midiChannel].currentPitchBender = MIDI_PITCH_BEND_DEFAULT;
+		_midiChannels[midiChannel].currentPitchRange = _milesVersion == MILES_VERSION_3 ? 2 : 12;
 	}
 
 }
 
 void MidiDriver_Miles_AdLib::resetAdLib() {
-	if (_modeOPL3) {
+	if (_oplType == OPL::Config::kOpl3) {
 		setRegister(0x105, 1); // enable OPL3
 		setRegister(0x104, 0); // activate 18 2-operator FM-voices
 	}
 
-	setRegister(0x01, 0x20); // enable waveform control on both operators
-	setRegister(0x04, 0xE0); // Timer control
+	// enable waveform control on both operators
+	setRegister(0x01, _oplType == OPL::Config::kOpl3 ? 0 : 0x20);
+	if (_oplType == OPL::Config::kOpl3)
+		setRegister(0x101, 0);
+	// Timer control
+	setRegister(0x02, 0);
+	setRegister(0x03, 0);
+	setRegister(0x04, 0x60);
+	setRegister(0x04, 0x80);
 
-	setRegister(0x08, 0); // select FM music mode
-	setRegister(0xBD, 0); // disable Rhythm
+	// Set note select and disable CSM mode
+	setRegister(0x08, 0);
+	// disable Rhythm; set vibrato and modulation depth to 1
+	setRegister(0xBD, 0xC0);
 
 	// reset FM voice instrument data
-	resetAdLibOperatorRegisters(0x20, 0);
-	resetAdLibOperatorRegisters(0x60, 0);
-	resetAdLibOperatorRegisters(0x80, 0);
+	resetAdLibOperatorRegisters(0x20, 1);
+	resetAdLibOperatorRegisters(0x40, 0x3F);
+	resetAdLibOperatorRegisters(0x60, 0xFF);
+	resetAdLibOperatorRegisters(0x80, 0x0F);
 	resetAdLibFMVoiceChannelRegisters(0xA0, 0);
 	resetAdLibFMVoiceChannelRegisters(0xB0, 0);
 	resetAdLibFMVoiceChannelRegisters(0xC0, 0);
 	resetAdLibOperatorRegisters(0xE0, 0);
-	resetAdLibOperatorRegisters(0x40, 0x3F);
 }
 
 void MidiDriver_Miles_AdLib::resetAdLibOperatorRegisters(byte baseRegister, byte value) {
@@ -436,9 +472,54 @@ void MidiDriver_Miles_AdLib::send(uint32 b) {
 	}
 }
 
-void MidiDriver_Miles_AdLib::setTimerCallback(void *timerParam, Common::TimerManager::TimerProc timerProc) {
-	_adlibTimerProc = timerProc;
-	_adlibTimerParam = timerParam;
+void MidiDriver_Miles_AdLib::send(int8 source, uint32 b) {
+	// TODO Implement proper multisource support.
+	if (source == -1 || source == 0)
+		send(b);
+}
+
+void MidiDriver_Miles_AdLib::stopAllNotes(uint8 source, uint8 channel) {
+	if (!(source == 0 || source == 0xFF))
+		return;
+
+	for (int i = 0; i < _modeVirtualFmVoicesCount; i++) {
+		if (_virtualFmVoices[i].inUse && (channel == 0xFF || _virtualFmVoices[i].actualMidiChannel == channel)) {
+			releaseFmVoice(i);
+		}
+	}
+}
+
+uint32 MidiDriver_Miles_AdLib::property(int prop, uint32 param) {
+	switch (prop) {
+	case PROP_MILES_VERSION:
+		if (param == 0xFFFF)
+			return _milesVersion;
+
+		switch (param) {
+		case MILES_VERSION_3:
+			_milesVersion = MILES_VERSION_3;
+			break;
+		case MILES_VERSION_2:
+		default:
+			_milesVersion = MILES_VERSION_2;
+		}
+
+		break;
+	default:
+		return MidiDriver_Multisource::property(prop, param);
+	}
+	return 0;
+}
+
+void MidiDriver_Miles_AdLib::applySourceVolume(uint8 source) {
+	if (!(source == 0 || source == 0xFF))
+		return;
+
+	for (int i = 0; i < _modeVirtualFmVoicesCount; i++) {
+		if (_virtualFmVoices[i].inUse) {
+			updatePhysicalFmVoice(i, true, kMilesAdLibUpdateFlags_Reg_40);
+		}
+	}
 }
 
 int16 MidiDriver_Miles_AdLib::searchFreeVirtualFmVoiceChannel() {
@@ -474,7 +555,7 @@ int16 MidiDriver_Miles_AdLib::searchFreePhysicalFmVoiceChannel() {
 }
 
 void MidiDriver_Miles_AdLib::noteOn(byte midiChannel, byte note, byte velocity) {
-	const InstrumentEntry *instrumentPtr = NULL;
+	const InstrumentEntry *instrumentPtr = nullptr;
 
 	if (velocity == 0) {
 		noteOff(midiChannel, note);
@@ -575,7 +656,7 @@ void MidiDriver_Miles_AdLib::prioritySort() {
 	uint16 virtualFmVoicesCount = 0;
 	byte   midiChannel = 0;
 
-	memset(&virtualPriorities, 0, sizeof(virtualPriorities));
+	ARRAYCLEAR(virtualPriorities);
 
 	//warning("prioritysort");
 
@@ -720,6 +801,8 @@ void MidiDriver_Miles_AdLib::updatePhysicalFmVoice(byte virtualFmVoice, bool key
 	uint16 channelReg = milesAdLibChannelRegister[physicalFmVoice];
 
 	uint16 compositeVolume = 0;
+	uint8 leftVolume = 0;
+	uint8 rightVolume = 0;
 
 	if (registerUpdateFlags & kMilesAdLibUpdateFlags_Reg_40) {
 		// Calculate new volume
@@ -735,6 +818,33 @@ void MidiDriver_Miles_AdLib::updatePhysicalFmVoice(byte virtualFmVoice, bool key
 		compositeVolume = compositeVolume >> 8; // get upmost 8 bits
 		if (compositeVolume)
 			compositeVolume++; // round up in case result wasn't 0
+
+		// Scale by source volume.
+		compositeVolume = compositeVolume * _sources[0].volume / _sources[0].neutralVolume;
+		if (_userVolumeScaling) {
+			if (_userMute) {
+				compositeVolume = 0;
+			} else {
+				// Scale by user volume.
+				uint16 userVolume = (_sources[0].type == SOURCE_TYPE_SFX ? _userSfxVolume : _userMusicVolume); // Treat SOURCE_TYPE_UNDEFINED as music
+				compositeVolume = (compositeVolume * userVolume) >> 8;
+			}
+		}
+		// Source volume scaling might clip volume, so reduce to maximum.
+		compositeVolume = MIN(compositeVolume, (uint16)0x7F);
+
+		if (_oplType == OPL::Config::kDualOpl2) {
+			// For dual OPL2, Miles pans the notes by playing the same note on
+			// the left and right OPL2 chips at different volume levels.
+			// Calculate the volume for each chip based on the panning value.
+			leftVolume = (milesAdLibPanningVolumeLookUpTable[_midiChannels[midiChannel].currentPanning] * compositeVolume) >> 7;
+			if (leftVolume)
+				leftVolume++; // round up in case result wasn't 0
+			uint8 invertedPanning = 0 - (_midiChannels[midiChannel].currentPanning - 127);
+			rightVolume = (milesAdLibPanningVolumeLookUpTable[invertedPanning] * compositeVolume) >> 7;
+			if (rightVolume)
+				rightVolume++; // round up in case result wasn't 0
+		}
 	}
 
 	if (registerUpdateFlags & kMilesAdLibUpdateFlags_Reg_20) {
@@ -759,22 +869,52 @@ void MidiDriver_Miles_AdLib::updatePhysicalFmVoice(byte virtualFmVoice, bool key
 		uint16 volumeOp1 = (~reg40op1) & 0x3F;
 		uint16 volumeOp2 = (~reg40op2) & 0x3F;
 
-		if (instrumentPtr->regC0 & 1) {
-			// operator 2 enabled
-			// scale volume factor
-			volumeOp1 = (volumeOp1 * compositeVolume) / 127;
-			// 2nd operator always scaled
+		if (_oplType != OPL::Config::kDualOpl2) {
+			if (instrumentPtr->regC0 & 1) {
+				// operator 2 enabled
+				// scale volume factor
+				volumeOp1 = (volumeOp1 * compositeVolume) / 127;
+				// 2nd operator always scaled
+			}
+
+			volumeOp2 = (volumeOp2 * compositeVolume) / 127;
+
+			volumeOp1 = (~volumeOp1) & 0x3F; // negate it, so we get the proper value for the register
+			volumeOp2 = (~volumeOp2) & 0x3F; // ditto
+			reg40op1  = (reg40op1 & 0xC0) | volumeOp1; // keep "scaling level" and merge in our volume
+			reg40op2  = (reg40op2 & 0xC0) | volumeOp2;
+
+			setRegister(0x40 + op1Reg, reg40op1);
+			setRegister(0x40 + op2Reg, reg40op2);
+		} else {
+			// For dual OPL2, separate register values are calculated for the
+			// left and right OPL2 chip.
+			uint8 volumeLeftOp1 = volumeOp1;
+			uint8 volumeRightOp1 = volumeOp1;
+
+			if (instrumentPtr->regC0 & 1) {
+				// operator 2 enabled
+				// scale volume factor
+				volumeLeftOp1 = (volumeLeftOp1 * leftVolume) / 127;
+				volumeRightOp1 = (volumeRightOp1 * rightVolume) / 127;
+				// 2nd operator always scaled
+			}
+
+			uint8 volumeLeftOp2 = (volumeOp2 * leftVolume) / 127;
+			uint8 volumeRightOp2 = (volumeOp2 * rightVolume) / 127;
+
+			volumeLeftOp1 = (~volumeLeftOp1) & 0x3F; // negate it, so we get the proper value for the register
+			volumeRightOp1 = (~volumeRightOp1) & 0x3F;
+			volumeLeftOp2 = (~volumeLeftOp2) & 0x3F; // ditto
+			volumeRightOp2 = (~volumeRightOp2) & 0x3F;
+			uint8 reg40op1left = (reg40op1 & 0xC0) | volumeLeftOp1; // keep "scaling level" and merge in our volume
+			uint8 reg40op1right = (reg40op1 & 0xC0) | volumeRightOp1;
+			uint8 reg40op2left = (reg40op2 & 0xC0) | volumeLeftOp2;
+			uint8 reg40op2right = (reg40op2 & 0xC0) | volumeRightOp2;
+
+			setRegisterStereo(0x40 + op1Reg, reg40op1left, reg40op1right);
+			setRegisterStereo(0x40 + op2Reg, reg40op2left, reg40op2right);
 		}
-
-		volumeOp2 = (volumeOp2 * compositeVolume) / 127;
-
-		volumeOp1 = (~volumeOp1) & 0x3F; // negate it, so we get the proper value for the register
-		volumeOp2 = (~volumeOp2) & 0x3F; // ditto
-		reg40op1  = (reg40op1 & 0xC0) | volumeOp1; // keep "scaling level" and merge in our volume
-		reg40op2  = (reg40op2 & 0xC0) | volumeOp2;
-
-		setRegister(0x40 + op1Reg, reg40op1);
-		setRegister(0x40 + op2Reg, reg40op2);
 	}
 
 	if (registerUpdateFlags & kMilesAdLibUpdateFlags_Reg_60) {
@@ -804,7 +944,7 @@ void MidiDriver_Miles_AdLib::updatePhysicalFmVoice(byte virtualFmVoice, bool key
 		// Feedback / Algorithm
 		byte regC0 = instrumentPtr->regC0;
 
-		if (_modeOPL3) {
+		if (_oplType == OPL::Config::kOpl3) {
 			// Panning for OPL3
 			byte panning = _midiChannels[midiChannel].currentPanning;
 
@@ -923,22 +1063,22 @@ void MidiDriver_Miles_AdLib::controlChange(byte midiChannel, byte controllerNumb
 		// It seems that this can get ignored, because we don't cache timbres at all
 		break;
 
-	case MILES_CONTROLLER_MODULATION:
+	case MIDI_CONTROLLER_MODULATION:
 		_midiChannels[midiChannel].currentModulation = controllerValue;
 		registerUpdateFlags = kMilesAdLibUpdateFlags_Reg_20;
 		break;
 
-	case MILES_CONTROLLER_VOLUME:
+	case MIDI_CONTROLLER_VOLUME:
 		_midiChannels[midiChannel].currentVolume = controllerValue;
 		registerUpdateFlags = kMilesAdLibUpdateFlags_Reg_40;
 		break;
 
-	case MILES_CONTROLLER_EXPRESSION:
+	case MIDI_CONTROLLER_EXPRESSION:
 		_midiChannels[midiChannel].currentVolumeExpression = controllerValue;
 		registerUpdateFlags = kMilesAdLibUpdateFlags_Reg_40;
 		break;
 
-	case MILES_CONTROLLER_PANNING:
+	case MIDI_CONTROLLER_PANNING:
 		_midiChannels[midiChannel].currentPanning = controllerValue;
 		if (_modeStereo) {
 			// Update register only in case we are in stereo mode
@@ -946,7 +1086,7 @@ void MidiDriver_Miles_AdLib::controlChange(byte midiChannel, byte controllerNumb
 		}
 		break;
 
-	case MILES_CONTROLLER_SUSTAIN:
+	case MIDI_CONTROLLER_SUSTAIN:
 		_midiChannels[midiChannel].currentSustain = controllerValue;
 		if (controllerValue < 64) {
 			releaseSustain(midiChannel);
@@ -954,20 +1094,27 @@ void MidiDriver_Miles_AdLib::controlChange(byte midiChannel, byte controllerNumb
 		break;
 
 	case MILES_CONTROLLER_PITCH_RANGE:
+		// Note that this is in fact the MIDI data entry MSB controller. To use
+		// this to set pitch bend range, the pitch bend range RPN should first
+		// be selected using the RPN MSB and LSB controllers.
+		// MSS does not support the RPN controllers and assumes that any use of
+		// the data entry MSB controller is to set the pitch bend range.
+
 		// Miles Audio 3 feature
-		_midiChannels[midiChannel].currentPitchRange = controllerValue;
+		if (_milesVersion == MILES_VERSION_3)
+			_midiChannels[midiChannel].currentPitchRange = controllerValue;
 		break;
 
-	case MILES_CONTROLLER_RESET_ALL:
+	case MIDI_CONTROLLER_RESET_ALL_CONTROLLERS:
 		_midiChannels[midiChannel].currentSustain = 0;
 		releaseSustain(midiChannel);
 		_midiChannels[midiChannel].currentModulation = 0;
 		_midiChannels[midiChannel].currentVolumeExpression = 127;
-		_midiChannels[midiChannel].currentPitchBender = MILES_PITCHBENDER_DEFAULT;
+		_midiChannels[midiChannel].currentPitchBender = MIDI_PITCH_BEND_DEFAULT;
 		registerUpdateFlags = kMilesAdLibUpdateFlags_Reg_20 | kMilesAdLibUpdateFlags_Reg_40 | kMilesAdLibUpdateFlags_Reg_A0;
 		break;
 
-	case MILES_CONTROLLER_ALL_NOTES_OFF:
+	case MIDI_CONTROLLER_ALL_NOTES_OFF:
 		for (byte virtualFmVoice = 0; virtualFmVoice < _modeVirtualFmVoicesCount; virtualFmVoice++) {
 			if (_virtualFmVoices[virtualFmVoice].inUse) {
 				// used
@@ -998,7 +1145,7 @@ void MidiDriver_Miles_AdLib::controlChange(byte midiChannel, byte controllerNumb
 }
 
 void MidiDriver_Miles_AdLib::programChange(byte midiChannel, byte patchId) {
-	const InstrumentEntry *instrumentPtr = NULL;
+	const InstrumentEntry *instrumentPtr = nullptr;
 	byte patchBank = _midiChannels[midiChannel].currentPatchBank;
 
 	//warning("patch channel %d, patch %x, bank %x", midiChannel, patchId, patchBank);
@@ -1012,6 +1159,7 @@ void MidiDriver_Miles_AdLib::programChange(byte midiChannel, byte patchId) {
 
 	// and remember it in that case for the current MIDI-channel
 	_midiChannels[midiChannel].currentInstrumentPtr = instrumentPtr;
+	_midiChannels[midiChannel].currentProgram = patchId;
 }
 
 const InstrumentEntry *MidiDriver_Miles_AdLib::searchInstrument(byte bankId, byte patchId) {
@@ -1024,7 +1172,7 @@ const InstrumentEntry *MidiDriver_Miles_AdLib::searchInstrument(byte bankId, byt
 		instrumentPtr++;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void MidiDriver_Miles_AdLib::pitchBendChange(byte midiChannel, byte parameter1, byte parameter2) {
@@ -1046,23 +1194,80 @@ void MidiDriver_Miles_AdLib::pitchBendChange(byte midiChannel, byte parameter1, 
 	}
 }
 
+void MidiDriver_Miles_AdLib::metaEvent(int8 source, byte type, byte *data, uint16 length) {
+	if (type == MIDI_META_END_OF_TRACK && source >= 0)
+		// Stop hanging notes and release resources used by this source.
+		deinitSource(source);
+}
+
+void MidiDriver_Miles_AdLib::deinitSource(uint8 source) {
+	if (!(source == 0 || source == 0xFF))
+		return;
+
+	// Turn off sustained notes.
+	for (int i = 0; i < MIDI_CHANNEL_COUNT; i++) {
+		controlChange(i, MIDI_CONTROLLER_SUSTAIN, 0);
+	}
+
+	// Stop fades and turn off non-sustained notes.
+	MidiDriver_Multisource::deinitSource(source);
+
+	applyControllerDefaults(source);
+}
+
+void MidiDriver_Miles_AdLib::applyControllerDefaults(uint8 source) {
+	if (!(source == 0 || source == 0xFF))
+		return;
+
+	for (int i = 0; i < MIDI_CHANNEL_COUNT; i++) {
+		if (_controllerDefaults.program >= 0) {
+			_midiChannels[i].currentProgram = _controllerDefaults.program;
+		}
+		if (_controllerDefaults.pitchBend >= 0) {
+			_midiChannels[i].currentPitchBender = _controllerDefaults.pitchBend;
+		}
+		if (_controllerDefaults.modulation >= 0) {
+			_midiChannels[i].currentModulation = _controllerDefaults.modulation;
+		}
+		if (_controllerDefaults.volume >= 0) {
+			_midiChannels[i].currentVolume = _controllerDefaults.volume;
+		}
+		if (_controllerDefaults.panning >= 0) {
+			_midiChannels[i].currentPanning = _controllerDefaults.panning;
+		}
+		if (_controllerDefaults.expression >= 0) {
+			_midiChannels[i].currentVolumeExpression = _controllerDefaults.expression;
+		}
+		if (_controllerDefaults.pitchBendSensitivity >= 0) {
+			_midiChannels[i].currentPitchRange = _controllerDefaults.pitchBendSensitivity;
+		}
+		// Controller defaults not supported by this driver:
+		// instrument bank, drumkit, channel pressure, RPN.
+		// Sustain is turned of by deinitSource.
+	}
+}
+
 void MidiDriver_Miles_AdLib::setRegister(int reg, int value) {
-	if (!(reg & 0x100)) {
+	if (!(reg & 0x100) || _oplType == OPL::Config::kDualOpl2) {
 		_opl->write(0x220, reg);
 		_opl->write(0x221, value);
 		//warning("OPL write %x %x (%d)", reg, value, value);
-	} else {
+	}
+	if ((reg & 0x100) || _oplType == OPL::Config::kDualOpl2) {
 		_opl->write(0x222, reg & 0xFF);
 		_opl->write(0x223, value);
 		//warning("OPL3 write %x %x (%d)", reg & 0xFF, value, value);
 	}
 }
 
-uint32 MidiDriver_Miles_AdLib::property(int prop, uint32 param) {
-	return 0;
+void MidiDriver_Miles_AdLib::setRegisterStereo(uint8 reg, uint8 valueLeft, uint8 valueRight) {
+	_opl->write(0x220, reg);
+	_opl->write(0x221, valueLeft);
+	_opl->write(0x222, reg);
+	_opl->write(0x223, valueRight);
 }
 
-MidiDriver *MidiDriver_Miles_AdLib_create(const Common::String &filenameAdLib, const Common::String &filenameOPL3, Common::SeekableReadStream *streamAdLib, Common::SeekableReadStream *streamOPL3) {
+MidiDriver_Multisource *MidiDriver_Miles_AdLib_create(const Common::String &filenameAdLib, const Common::String &filenameOPL3, Common::SeekableReadStream *streamAdLib, Common::SeekableReadStream *streamOPL3) {
 	// Load adlib instrument data from file SAMPLE.AD (OPL3: SAMPLE.OPL)
 	Common::String              timbreFilename;
 	Common::SeekableReadStream *timbreStream = nullptr;

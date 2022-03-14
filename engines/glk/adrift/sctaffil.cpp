@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -83,9 +82,9 @@ typedef sc_taf_s sc_taf_t;
 
 /* Microsoft Visual Basic PRNG magic numbers, initial and current state. */
 static const sc_int PRNG_CST1 = 0x43fd43fd,
-                    PRNG_CST2 = 0x00c39ec3,
-                    PRNG_CST3 = 0x00ffffff,
-                    PRNG_INITIAL_STATE = 0x00a09e86;
+					PRNG_CST2 = 0x00c39ec3,
+					PRNG_CST3 = 0x00ffffff,
+					PRNG_INITIAL_STATE = 0x00a09e86;
 static sc_int taf_random_state = 0x00a09e86;
 
 /*
@@ -134,7 +133,7 @@ static sc_tafref_t taf_create_empty(void) {
 	memset(taf->header, 0, sizeof(taf->header));
 	taf->version = TAF_VERSION_NONE;
 	taf->total_in_bytes = 0;
-	taf->slabs = NULL;
+	taf->slabs = nullptr;
 	taf->slab_count = 0;
 	taf->slabs_allocated = 0;
 	taf->is_unterminated = FALSE;
@@ -435,7 +434,7 @@ static sc_bool taf_read_raw(sc_tafref_t taf, sc_read_callbackref_t callback,
 
 		totalBytes = bytesLeft + bytesRead;
 		bytesWritten = taf_append_buffer(taf, buffer, totalBytes);
-		
+
 		bytesLeft = totalBytes - bytesWritten;
 		if (bytesLeft)
 			Common::copy(buffer + bytesWritten, buffer + totalBytes, buffer);
@@ -476,7 +475,7 @@ static sc_tafref_t taf_create_from_callback(sc_read_callbackref_t callback,
 		if (in_bytes != VERSION_HEADER_SIZE) {
 			sc_error("taf_create: not enough data for standard TAF header\n");
 			taf_destroy(taf);
-			return NULL;
+			return nullptr;
 		}
 
 		/* Handle different TAF versions */
@@ -484,7 +483,7 @@ static sc_tafref_t taf_create_from_callback(sc_read_callbackref_t callback,
 
 		if (version == TAF_VERSION_500 || version == TAF_VERSION_390 ||
 				version == TAF_VERSION_380) {
-			taf->version = TAF_VERSION_500;
+			taf->version = version;
 
 		} else if (version == TAF_VERSION_400) {
 			/* Read in the version 4.0 header extension. */
@@ -495,14 +494,14 @@ static sc_tafref_t taf_create_from_callback(sc_read_callbackref_t callback,
 				sc_error("taf_create:"
 				         " not enough data for extended TAF header\n");
 				taf_destroy(taf);
-				return NULL;
+				return nullptr;
 			}
 
 			taf->version = TAF_VERSION_400;
 
 		} else {
 			taf_destroy(taf);
-			return NULL;
+			return nullptr;
 		}
 	} else {
 		/* Saved games are always considered to be for ScummVM, version 5.0. */
@@ -537,7 +536,7 @@ static sc_tafref_t taf_create_from_callback(sc_read_callbackref_t callback,
 	}
 	if (!status) {
 		taf_destroy(taf);
-		return NULL;
+		return nullptr;
 	}
 
 	/* Return successfully. */
@@ -606,7 +605,7 @@ const sc_char *taf_next_line(sc_tafref_t taf) {
 	}
 
 	/* No more lines, so return NULL. */
-	return NULL;
+	return nullptr;
 }
 
 
@@ -699,7 +698,7 @@ void taf_debug_dump(sc_tafref_t taf) {
 	sc_trace("taf->slabs = \n");
 	for (index_ = 0; index_ < taf->slab_count; index_++) {
 		sc_trace("%3ld : %p, %ld bytes\n", index_,
-		         taf->slabs[index_].data, taf->slabs[index_].size);
+		         (void *)taf->slabs[index_].data, taf->slabs[index_].size);
 	}
 
 	sc_trace("taf->slab_count = %ld\n", taf->slab_count);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,25 +25,25 @@
 
 // Sound effects for "playSoundEffectIndex" function
 enum SoundEffects {
-	SND_TRICORDER = 4,
-	SND_DOOR1 = 5,
-	SND_PHASSHOT = 6,
-	SND_07 = 7,
-	SND_TRANSDEM = 8,
-	SND_TRANSMAT = 9,
-	SND_TRANSENE = 0x0a,
-	SND_BLANK_0b = 0x0b,
-	SND_0c = 0x0c,
-	SND_SELECTION = 0x10,
-	SND_BLANK_14 = 0x14,
-	SND_BLANK_16 = 0x16,
-	SND_HAILING = 0x22,
-	SND_PHASSHOT_2 = 0x24,
-	SND_PHOTSHOT = 0x25,
-	SND_HITSHIEL = 0x26,
-	SND_27 = 0x27,
-	SND_REDALERT = 0x28,
-	SND_WARP = 0x29
+	// Sounds 0 - 3 are blank
+	kSfxTricorder = 4,
+	kSfxDoor = 5,
+	kSfxPhaser = 6,
+	kSfxButton = 7,
+	kSfxTransporterDematerialize = 8,
+	kSfxTransporterMaterialize = 9,
+	kSfxTransporterEnergize = 10,
+	// Sounds 11 - 15 are blank
+	kSfxSelection = 16,
+	// Sounds 17 - 33 are blank
+	kSfxHailing = 34,
+	// Sound 35 is blank
+	kSfxPhaser2 = 36,
+	kSfxPhotonTorpedoes = 37,
+	kSfxShieldHit = 38,
+	kSfxUnk = 39,
+	kSfxRedAlert = 40,
+	kSfxWarp = 41
 };
 
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 
 #include "sci/sci.h"
 #include "sci/event.h"
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/util.h"
 #include "sci/engine/features.h"
 #include "sci/graphics/palette32.h"
@@ -386,7 +385,7 @@ static const uint8 gammaTables[GfxPalette32::numGammaTables][256] = {
 	_cycleMap(),
 
 	// Gamma correction
-	_gammaLevel(-1),
+	_gammaLevel(g_sci->_features->useMacGammaLevel() ? 2 : -1),
 	_gammaChanged(false) {
 
 	for (int i = 0, len = ARRAYSIZE(_fadeTable); i < len; ++i) {
@@ -436,6 +435,14 @@ int16 GfxPalette32::matchColor(const uint8 r, const uint8 g, const uint8 b) {
 	}
 
 	return bestIndex;
+}
+
+uint8 GfxPalette32::getPlatformBlack() const {
+	return (g_sci->getPlatform() == Common::kPlatformMacintosh) ? 255 : 0;
+}
+
+uint8 GfxPalette32::getPlatformWhite() const {
+	return (g_sci->getPlatform() == Common::kPlatformMacintosh) ? 0 : 255;
 }
 
 void GfxPalette32::submit(const Palette &palette) {
@@ -499,9 +506,13 @@ void GfxPalette32::updateHardware() {
 	// to the backend. This makes those high pixels render black, which seems to
 	// match what would happen in the original interpreter, and saves us from
 	// having to clutter up the engine with a bunch of palette shifting garbage.
+	//
+	// This workaround also handles Mac games, as they use 236 for black to avoid
+	//  conflicting with the operating system's palette which uses 0 for white.
 	int maxIndex = ARRAYSIZE(_currentPalette.colors) - 2;
 	if (g_sci->getGameId() == GID_HOYLE5 ||
-		(g_sci->getGameId() == GID_GK2 && g_sci->isDemo())) {
+		(g_sci->getGameId() == GID_GK2 && g_sci->isDemo()) ||
+		g_sci->getPlatform() == Common::kPlatformMacintosh) {
 		maxIndex = 235;
 	}
 
@@ -531,16 +542,10 @@ void GfxPalette32::updateHardware() {
 	memset(bpal + (maxIndex + 1) * 3, 0, (255 - maxIndex - 1) * 3);
 #endif
 
-	if (g_sci->getPlatform() == Common::kPlatformMacintosh) {
-		bpal[255 * 3    ] = 0;
-		bpal[255 * 3 + 1] = 0;
-		bpal[255 * 3 + 2] = 0;
-	} else {
-		// The last color must always be white
-		bpal[255 * 3    ] = 255;
-		bpal[255 * 3 + 1] = 255;
-		bpal[255 * 3 + 2] = 255;
-	}
+	// The last color must always be white
+	bpal[255 * 3    ] = 255;
+	bpal[255 * 3 + 1] = 255;
+	bpal[255 * 3 + 2] = 255;
 
 	// If the system is in a high color mode, which can happen during video
 	// playback, attempting to send the palette to OSystem is illegal and will

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,8 +59,8 @@ void CmdText::displayTemp(InkColor color, Verb v) {
 }
 
 void CmdText::displayTemp(InkColor color, const char *name, bool outlined) {
-	char temp[MAX_COMMAND_LEN];
-	snprintf(temp, MAX_COMMAND_LEN, "%s %s", _command, name);
+	char temp[MAX_COMMAND_LEN + 2];
+	snprintf(temp, MAX_COMMAND_LEN + 1, "%s %s", _command, name);
 	display(color, temp, outlined);
 }
 
@@ -85,9 +84,9 @@ public:
 	CmdTextHebrew(uint8 y, QueenEngine *vm) : CmdText(y, vm) {}
 
 	void displayTemp(InkColor color, const char *name, bool outlined) override {
-		char temp[MAX_COMMAND_LEN];
+		char temp[MAX_COMMAND_LEN + 2];
 
-		snprintf(temp, MAX_COMMAND_LEN, "%s %s", name, _command);
+		snprintf(temp, MAX_COMMAND_LEN + 1, "%s %s", name, _command);
 		display(color, temp, outlined);
 	}
 
@@ -116,12 +115,12 @@ public:
 	CmdTextGreek(uint8 y, QueenEngine *vm) : CmdText(y, vm) {}
 
 	void displayTemp(InkColor color, const char *name, bool outlined) override {
-		char temp[MAX_COMMAND_LEN];
+		char temp[MAX_COMMAND_LEN + 2];
 		// don't show a space after the goto and give commands in the Greek version
 		if (_command[1] != (char)-34 && !(_command[1] == (char)-2 && strlen(_command) > 5))
-			snprintf(temp, MAX_COMMAND_LEN, "%s %s", _command, name);
+			snprintf(temp, MAX_COMMAND_LEN + 1, "%s %s", _command, name);
 		else
-			snprintf(temp, MAX_COMMAND_LEN, "%s%s", _command, name);
+			snprintf(temp, MAX_COMMAND_LEN + 1, "%s%s", _command, name);
 		display(color, temp, outlined);
 	}
 
@@ -137,7 +136,7 @@ CmdText *CmdText::makeCmdTextInstance(uint8 y, QueenEngine *vm) {
 	switch (vm->resource()->getLanguage()) {
 	case Common::HE_ISR:
 		return new CmdTextHebrew(y, vm);
-	case Common::GR_GRE:
+	case Common::EL_GRC:
 		return new CmdTextGreek(y, vm);
 	default:
 		return new CmdText(y, vm);
@@ -154,7 +153,7 @@ void CmdState::init() {
 }
 
 Command::Command(QueenEngine *vm)
-	: _cmdList(NULL), _cmdArea(NULL), _cmdObject(NULL), _cmdInventory(NULL), _cmdGameState(NULL), _vm(vm) {
+	: _cmdList(nullptr), _cmdArea(nullptr), _cmdObject(nullptr), _cmdInventory(nullptr), _cmdGameState(nullptr), _vm(vm) {
 	_cmdText = CmdText::makeCmdTextInstance(CmdText::COMMAND_Y_POS, vm);
 }
 
@@ -183,7 +182,7 @@ void Command::executeCurrentAction() {
 	if (_mouseKey == Input::MOUSE_RBUTTON && _state.subject[0] > 0) {
 
 		ObjectData *od = _vm->logic()->objectData(_state.subject[0]);
-		if (od == NULL || od->name <= 0) {
+		if (od == nullptr || od->name <= 0) {
 			cleanupCurrentAction();
 			return;
 		}
@@ -236,7 +235,7 @@ void Command::executeCurrentAction() {
 
 		comId = matchingCmds[i - 1];
 
-		// WORKAROUND bug #1497280: This command is triggered in room 56 (the
+		// WORKAROUND bug #2636: This command is triggered in room 56 (the
 		// room with two waterfalls in the maze part of the game) if the user
 		// tries to walk through the left waterfall (object 423).
 		//
@@ -363,7 +362,7 @@ void Command::readCommandsFrom(byte *&ptr) {
 		for (i = 1; i <= _numCmdObject; i++) {
 			_cmdObject[i].readFromBE(ptr);
 
-			// WORKAROUND bug #1858081: Fix an off by one error in the object
+			// WORKAROUND bug #3536: Fix an off by one error in the object
 			// command 175. Object 309 should be copied to 308 (disabled).
 			//
 			// _objectData[307].name = -195
@@ -400,7 +399,7 @@ void Command::readCommandsFrom(byte *&ptr) {
 }
 
 ObjectData *Command::findObjectData(uint16 objRoomNum) const {
-	ObjectData *od = NULL;
+	ObjectData *od = nullptr;
 	if (objRoomNum != 0) {
 		objRoomNum += _vm->logic()->currentRoomData();
 		od = _vm->logic()->objectData(objRoomNum);
@@ -409,7 +408,7 @@ ObjectData *Command::findObjectData(uint16 objRoomNum) const {
 }
 
 ItemData *Command::findItemData(Verb invNum) const {
-	ItemData *id = NULL;
+	ItemData *id = nullptr;
 	uint16 itNum = _vm->logic()->findInventoryItem(invNum - VERB_INV_FIRST);
 	if (itNum != 0) {
 		id = _vm->logic()->itemData(itNum);
@@ -542,7 +541,7 @@ int16 Command::makeJoeWalkTo(int16 x, int16 y, int16 objNum, Verb v, bool mustWa
 			// because this is an exit object, see if there is
 			// a walk off point and set (x,y) accordingly
 			WalkOffData *wod = _vm->logic()->walkOffPointForObject(objNum);
-			if (wod != NULL) {
+			if (wod != nullptr) {
 				x = wod->x;
 				y = wod->y;
 			}
@@ -634,7 +633,7 @@ void Command::grabSelectedObject(int16 objNum, uint16 objState, uint16 objName) 
 
 void Command::grabSelectedItem() {
 	ItemData *id = findItemData(_state.verb);
-	if (id == NULL || id->name <= 0) {
+	if (id == nullptr || id->name <= 0) {
 		return;
 	}
 
@@ -690,7 +689,7 @@ void Command::grabSelectedItem() {
 
 void Command::grabSelectedNoun() {
 	ObjectData *od = findObjectData(_state.noun);
-	if (od == NULL || od->name <= 0) {
+	if (od == nullptr || od->name <= 0) {
 		// selected a turned off object, so just walk
 		clear(true);
 		_state.noun = 0;
@@ -1274,7 +1273,7 @@ void Command::lookForCurrentObject(int16 cx, int16 cy) {
 	}
 
 	ObjectData *od = findObjectData(_state.noun);
-	if (od == NULL || od->name <= 0) {
+	if (od == nullptr || od->name <= 0) {
 		_state.oldNoun = _state.noun;
 		_vm->display()->clearTexts(CmdText::COMMAND_Y_POS, CmdText::COMMAND_Y_POS);
 		if (_state.action != VERB_NONE) {
@@ -1307,7 +1306,7 @@ void Command::lookForCurrentIcon(int16 cx, int16 cy) {
 
 		if (isVerbInv(_state.verb)) {
 			ItemData *id = findItemData(_state.verb);
-			if (id != NULL && id->name > 0) {
+			if (id != nullptr && id->name > 0) {
 				if (_state.action == VERB_NONE) {
 					Verb v = State::findDefaultVerb(id->state);
 					_cmdText->setVerb((v == VERB_NONE) ? VERB_LOOK_AT : v);

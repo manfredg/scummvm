@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 #include "common/endian.h"
 
 namespace Kyra {
-EMCInterpreter::EMCInterpreter(KyraEngine_v1 *vm) : _vm(vm), _scriptData(0), _filename(0) {
+EMCInterpreter::EMCInterpreter(KyraEngine_v1 *vm) : _vm(vm), _scriptData(nullptr), _filename(nullptr) {
 #define OPCODE(x) { &EMCInterpreter::x, #x }
 	static const OpcodeEntry opcodes[] = {
 		// 0x00
@@ -70,6 +69,7 @@ bool EMCInterpreter::callback(Common::IFFChunk &chunk) {
 
 	case MKTAG('O','R','D','R'):
 		_scriptData->ordr = new uint16[chunk._size >> 1];
+		_scriptData->ordrSize = chunk._size;
 		assert(_scriptData->ordr);
 		if (chunk._stream->read(_scriptData->ordr, chunk._size) != chunk._size)
 			error("Couldn't read ORDR chunk from file '%s'", _filename);
@@ -80,6 +80,7 @@ bool EMCInterpreter::callback(Common::IFFChunk &chunk) {
 
 	case MKTAG('D','A','T','A'):
 		_scriptData->data = new uint16[chunk._size >> 1];
+		_scriptData->dataSize = chunk._size;
 		assert(_scriptData->data);
 		if (chunk._stream->read(_scriptData->data, chunk._size) != chunk._size)
 			error("Couldn't read DATA chunk from file '%s'", _filename);
@@ -126,8 +127,8 @@ bool EMCInterpreter::load(const char *filename, EMCData *scriptData, const Commo
 
 	Common::strlcpy(_scriptData->filename, filename, 13);
 
-	_scriptData = 0;
-	_filename = 0;
+	_scriptData = nullptr;
+	_filename = nullptr;
 
 	return true;
 }
@@ -140,13 +141,13 @@ void EMCInterpreter::unload(EMCData *data) {
 	delete[] data->ordr;
 	delete[] data->data;
 
-	data->text = 0;
-	data->ordr = data->data = 0;
+	data->text = nullptr;
+	data->ordr = data->data = nullptr;
 }
 
 void EMCInterpreter::init(EMCState *scriptStat, const EMCData *data) {
 	scriptStat->dataPtr = data;
-	scriptStat->ip = 0;
+	scriptStat->ip = nullptr;
 	scriptStat->stack[EMCState::kStackLastEntry] = 0;
 	scriptStat->bp = EMCState::kStackSize+1;
 	scriptStat->sp = EMCState::kStackLastEntry;
@@ -154,6 +155,9 @@ void EMCInterpreter::init(EMCState *scriptStat, const EMCData *data) {
 
 bool EMCInterpreter::start(EMCState *script, int function) {
 	if (!script->dataPtr)
+		return false;
+
+	if (function >= (int) script->dataPtr->ordrSize / 2 || function < 0)
 		return false;
 
 	uint16 functionOffset = script->dataPtr->ordr[function];
@@ -166,6 +170,8 @@ bool EMCInterpreter::start(EMCState *script, int function) {
 		else
 			script->ip = &script->dataPtr->data[functionOffset];
 	} else {
+		if (functionOffset+1 >= (int) script->dataPtr->dataSize / 2)
+			return false;
 		script->ip = &script->dataPtr->data[functionOffset+1];
 	}
 
@@ -187,6 +193,10 @@ bool EMCInterpreter::run(EMCState *script) {
 	// Should be no Problem at all to cast to uint32 here, since that's the biggest ptrdiff the original
 	// would allow, of course that's not realistic to happen to be somewhere near the limit of uint32 anyway.
 	const uint32 instOffset = (uint32)((const byte *)script->ip - (const byte *)script->dataPtr->data);
+	if ((int32)instOffset < 0 || instOffset >= script->dataPtr->dataSize) {
+		error("Attempt to execute out of bounds: 0x%.08X out of 0x%.08X",
+		      instOffset, script->dataPtr->dataSize);
+	}
 	int16 code = *script->ip++;
 	int16 opcode = (code >> 8) & 0x1F;
 
@@ -208,7 +218,7 @@ bool EMCInterpreter::run(EMCState *script) {
 		(this->*(_opcodes[opcode].proc))(script);
 	}
 
-	return (script->ip != 0);
+	return (script->ip != nullptr);
 }
 
 #pragma mark -
@@ -236,7 +246,7 @@ void EMCInterpreter::op_pushRetOrPos(EMCState *script) {
 		break;
 
 	default:
-		script->ip = 0;
+		script->ip = nullptr;
 	}
 }
 
@@ -264,7 +274,7 @@ void EMCInterpreter::op_popRetOrPos(EMCState *script) {
 
 	case 1:
 		if (script->sp >= EMCState::kStackLastEntry) {
-			script->ip = 0;
+			script->ip = nullptr;
 		} else {
 			script->bp = script->stack[script->sp++];
 			script->ip = script->dataPtr->data + script->stack[script->sp++];
@@ -272,7 +282,7 @@ void EMCInterpreter::op_popRetOrPos(EMCState *script) {
 		break;
 
 	default:
-		script->ip = 0;
+		script->ip = nullptr;
 	}
 }
 
@@ -337,7 +347,7 @@ void EMCInterpreter::op_negate(EMCState *script) {
 
 	default:
 		warning("Unknown negation func: %d", _parameter);
-		script->ip = 0;
+		script->ip = nullptr;
 	}
 }
 
@@ -427,14 +437,14 @@ void EMCInterpreter::op_eval(EMCState *script) {
 	}
 
 	if (error)
-		script->ip = 0;
+		script->ip = nullptr;
 	else
 		script->stack[--script->sp] = ret;
 }
 
 void EMCInterpreter::op_setRetAndJmp(EMCState *script) {
 	if (script->sp >= EMCState::kStackLastEntry) {
-		script->ip = 0;
+		script->ip = nullptr;
 	} else {
 		script->retValue = script->stack[script->sp++];
 		uint16 temp = script->stack[script->sp++];

@@ -7,7 +7,7 @@
 #   Prologue information
 #------------------------------------------------------------------------------
 Name		: scummvm
-Version		: 2.2.0git
+Version		: 2.6.0git
 Release		: 1
 Summary		: Graphic adventure game interpreter
 Group		: Interpreters
@@ -86,13 +86,13 @@ fi
 #------------------------------------------------------------------------------
 %files
 %defattr(0644,root,root,0755)
-%doc AUTHORS README NEWS COPYING COPYING.LGPL COPYING.FREEFONT COPYING.OFL COPYING.BSD COPYRIGHT
+%doc AUTHORS README.md NEWS.md COPYING LICENSES/COPYING.BSD LICENSES/COPYING.LGPL LICENSES/COPYING.FREEFONT LICENSES/COPYING.OFL LICENSES/COPYING.ISC LICENSES/COPYING.LUA LICENSES/COPYING.MIT LICENSES/COPYING.TINYGL LICENSES/COPYING.GLAD COPYRIGHT
 %attr(0755,root,root)%{_bindir}/scummvm
 %{_datadir}/applications/*
 %{_datadir}/pixmaps/scummvm.xpm
 %{_datadir}/icons/hicolor/48x48/apps/scummvm.png
 %{_datadir}/icons/hicolor/scalable/apps/scummvm.svg
-%{_datadir}/appdata/scummvm.appdata.xml
+%{_datadir}/metainfo/scummvm.appdata.xml
 %{_datadir}/scummvm/*
 %{_mandir}/man6/scummvm.6*
 
@@ -100,6 +100,8 @@ fi
 #   Change Log
 #------------------------------------------------------------------------------
 %changelog
+* Mon Dec 27 2021 (2.6.0)
+  - synchronized documentation and license paths
 * Thu Nov 23 2017 (2.0.0)
   - remove own libmad since this is now in Fedora itself
 * Fri Jul 11 2014 (1.8.0)

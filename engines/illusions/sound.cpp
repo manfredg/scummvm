@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,9 +80,9 @@ bool MusicPlayer::isPlaying() {
 MidiPlayer::MidiPlayer()
 	: _isIdle(true), _isPlaying(false), _isCurrentlyPlaying(false), _isLooped(false),
 	_loopedMusicId(0), _queuedMusicId(0), _loadedMusicId(0),
-	_data(0), _dataSize(0) {
+	_data(nullptr), _dataSize(0) {
 
-	_data = 0;
+	_data = nullptr;
 	_dataSize = 0;
 	_isGM = false;
 
@@ -126,10 +125,10 @@ bool MidiPlayer::play(uint32 musicId) {
 
 	sysMidiStop();
 
-    _isLooped = isMusicLooping;
-    if (_isLooped) {
+	_isLooped = isMusicLooping;
+	if (_isLooped) {
 		_loopedMusicId = musicId;
-    } else {
+	} else {
 		_isPlaying = true;
 	}
 
@@ -186,7 +185,7 @@ void MidiPlayer::sysMidiPlay(uint32 musicId) {
 void MidiPlayer::sysMidiStop() {
 	Audio::MidiPlayer::stop();
 	delete[] _data;
-	_data = 0;
+	_data = nullptr;
 	_dataSize = 0;
 	_loadedMusicId = 0;
 }
@@ -300,7 +299,7 @@ bool VoicePlayer::isCued() {
 // Sound
 
 Sound::Sound(uint32 soundEffectId, uint32 soundGroupId, bool looping)
-	: _stream(0), _soundEffectId(soundEffectId), _soundGroupId(soundGroupId), _looping(looping) {
+	: _stream(nullptr), _soundEffectId(soundEffectId), _soundGroupId(soundGroupId), _looping(looping) {
 	load();
 }
 
@@ -322,7 +321,7 @@ void Sound::unload() {
 	debug(1, "Sound::unload() %08X", _soundEffectId);
 	stop();
 	delete _stream;
-	_stream = 0;
+	_stream = nullptr;
 }
 
 void Sound::play(int16 volume, int16 pan) {
@@ -480,7 +479,7 @@ Sound *SoundMan::getSound(uint32 soundEffectId) {
 		if ((*it)->_soundEffectId == soundEffectId)
 			return *it;
 	}
-	return 0;
+	return nullptr;
 }
 
 void SoundMan::updateMidi() {

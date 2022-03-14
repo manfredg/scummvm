@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -307,22 +306,27 @@ const byte mouseCursorMagnifyingGlass[] = {
 };
 
 const char *englishLanguageStrings[13] = {
-	"Pause", NULL, NULL, NULL, NULL, "Inventory", "Speak about...", "Player Menu", NULL,
+	"Pause", nullptr, nullptr, nullptr, nullptr, "Inventory", "Speak about...", "Player Menu", nullptr,
 	"Save", "Load", "Start Again", "Quit"
 };
 const char *frenchLanguageStrings[13] = {
-	"", NULL, NULL, NULL, NULL, "Inventaire", "Parler de...", "Menu Joueur", NULL,
+	"", nullptr, nullptr, nullptr, nullptr, "Inventaire", "Parler de...", "Menu Joueur", nullptr,
 	"Sauvegarde", "Chargement", "Recommencer le jeu", "Quitter"
 };
 // The original Amiga version does use "Speilermen\xFC" instead of "Spielermen\xFC", if we want to correct
 // this typo, we can easily do so.
 const char *germanLanguageStrings[13] = {
-	" ", NULL, NULL, NULL, NULL, "Inventar", "Sprechen ""\xFC""ber", "Speilermen\xFC", "Speicherlaufwerk",
+	" ", nullptr, nullptr, nullptr, nullptr, "Inventar", "Sprechen ""\xFC""ber", "Speilermen\xFC", "Speicherlaufwerk",
 	"Speichern", "Laden", "Neu beginnen", "Ende"
 };
 const char *italianLanguageStrings[13] = {
-	"Pausa", NULL, NULL, NULL, NULL, "Inventario", "Parla di...", "Menu giocatore", NULL,
+	"Pausa", nullptr, nullptr, nullptr, nullptr, "Inventario", "Parla di...", "Menu giocatore", nullptr,
 	"Salva", "Carica", "Ricomincia", "Esci"
+};
+
+const char *spanishLanguageStrings[13] = {
+	"Pausa", nullptr, nullptr, nullptr, nullptr, "Inventario", "Hablar de...", "Menu del jugador", nullptr,
+	"Salvar", "Cargar", "Recomenzar", "Salir"
 };
 
 } // End of namespace Cruise

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@ namespace AGT {
 
    This file contains several things:
    i) The code for each of the built-in verbs, all prefixed with 'v_'
-      (so, for example, the code for DROP is in v_drop()).
+	  (so, for example, the code for DROP is in v_drop()).
    ii) The main routine for checking and running player commands.
    iii) The main routine for doing intelligent disambiguation.
 
@@ -47,9 +46,8 @@ void v_look() {
 }
 
 
-static void v_go(int dir)
 /* 1=N, etc. */
-{
+static void v_go(int dir) {
 	int newloc, tmploc;
 	int i;
 	/*  rbool has_seen;*/
@@ -72,7 +70,7 @@ static void v_go(int dir)
 			return;
 		}
 		clear_stack();
-		(void)scan_metacommand(0, v0, 0, 0, 0, NULL);
+		(void)scan_metacommand(0, v0, 0, 0, 0, nullptr);
 		return;
 	}
 	if (newloc < first_room) {
@@ -104,7 +102,7 @@ static void v_go(int dir)
 			curr_creat_rec = &tmpcreat;
 			make_parserec(i + first_creat, &tmpcreat);
 			sysmsg(14, "$The_c$$c_name$ blocks $your$ way.");
-			curr_creat_rec = NULL;
+			curr_creat_rec = nullptr;
 			return;
 		}
 
@@ -114,18 +112,15 @@ static void v_go(int dir)
 		oldloc = tmploc; /* Can backtrack as long as not from special */
 	if (dir == 12 && special_ptr[loc].size > 0)
 		/* need to print special of NEW room */
-		runptr(loc, special_ptr, "INTERNAL ERROR: Invalid special ptr", 0, NULL, NULL);
+		runptr(loc, special_ptr, "INTERNAL ERROR: Invalid special ptr", 0, nullptr, nullptr);
 
 	if (tmploc == loc && dir == 12) /* SPECIAL that sends us nowhere */
 		do_look = 0;
 }
 
 
-
-
-static void v_noun(int vc, parse_rec *nounrec)
 /* PUSH, PULL, TURN, PLAY, CHANGE_LOCATIONS */
-{
+static void v_noun(int vc, parse_rec *nounrec) {
 	int dobj_;
 
 	dobj_ = p_obj(nounrec);
@@ -168,24 +163,23 @@ static void v_noun(int vc, parse_rec *nounrec)
 	if (vc == 0) /* Push */
 		runptr(dobj_ - first_noun, push_ptr,
 		       "$You$ $verb$ $the_n$$noun$ for a while, but nothing happens.",
-		       171, nounrec, NULL);
+		       171, nounrec, nullptr);
 	if (vc == 1) /* Pull */
 		runptr(dobj_ - first_noun, pull_ptr,
 		       "$You$ $verb$ $the_n$$noun$ a bit, but nothing happens.", 174,
-		       nounrec, NULL);
+		       nounrec, nullptr);
 	if (vc == 2) /* Turn */
 		runptr(dobj_ - first_noun, turn_ptr,
 		       "$You$ $verb$ $the_n$$noun$, but nothing happens.", 165,
-		       nounrec, NULL);
+		       nounrec, nullptr);
 	if (vc == 3) /* Play */
 		runptr(dobj_ - first_noun, play_ptr,
 		       "$You$ $verb$ $the_n$$noun$ for a bit, but nothing happens.", 177,
-		       nounrec, NULL);
+		       nounrec, nullptr);
 }
 
-static void v_talk(int vc, parse_rec *nounrec, parse_rec *objrec)
 /* vc==1 if ASK, 0 if TALK TO */
-{
+static void v_talk(int vc, parse_rec *nounrec, parse_rec *objrec) {
 	int dobj_, iobj_;
 
 	dobj_ = p_obj(nounrec);
@@ -259,10 +253,10 @@ static void v_read(parse_rec *nounrec) {
 	}
 	if (text_ptr[dobj_ - first_noun].size > 0)
 		runptr(dobj_ - first_noun, text_ptr,
-		       "INTERNAL ERROR: Invalid read pointer", 0, NULL, NULL);
+		       "INTERNAL ERROR: Invalid read pointer", 0, nullptr, nullptr);
 	else
 		runptr(dobj_ - first_noun, noun_ptr, "$You$ learn nothing new.",
-		       193, nounrec, NULL);
+		       193, nounrec, nullptr);
 }
 
 
@@ -287,18 +281,17 @@ static void v_eat(int vc, parse_rec *nounrec) {
 
 	if (noun[dobj_ - first_noun].movable) it_destroy(dobj_);
 	if (noun[dobj_ - first_noun].poisonous) {
-		sysmsgd(129, "Unfortunatly, $n_pro$ $n_was$ poisonous.", nounrec);
+		sysmsgd(129, "Unfortunately, $n_pro$ $n_was$ poisonous.", nounrec);
 		deadflag = 1;
 	}
 }
 
 
-static int can_wear(parse_rec *objrec)
 /* assumes objrec is in the noun range */
-{
+static int can_wear(parse_rec *objrec) {
 	static const char *errs[] = {
 		"$The_n$$noun$ $n_is$ far too heavy to wear.",
-		"$You're$ already loaded down with too much weight as it is."
+		"$You're$ already loaded down with too much weight as it is.",
 		"$The_n$$noun$ $n_is$ too big and bulky to wear.",
 		"$You're$ wearing too much to also wear $the_n$$noun$."
 	};
@@ -314,9 +307,8 @@ static int can_wear(parse_rec *objrec)
 }
 
 
-static int can_carry(parse_rec *objrec)
 /* assumes objrec is in the noun range */
-{
+static int can_carry(parse_rec *objrec) {
 	static const char *errs[] = {
 		"$The_n$$noun$ $n_is$ far too heavy to carry.",
 		"$You're$ already carrying too much weight as it is.",
@@ -405,8 +397,8 @@ static int v_remove(parse_rec *objrec) {
 			parse_rec tmp;
 			if (PURE_WEAR) drop_obj(i);
 			else it_move(i, 1);  /* Really need to check to make sure
-                   we haven't exceeded weight requirement
-                 here */
+				   we haven't exceeded weight requirement
+				 here */
 			make_parserec(i, &tmp);
 			sysmsgd(9, "$You$ take off $the_n$$noun$.", &tmp);
 		}
@@ -494,9 +486,8 @@ static void v_wear(parse_rec *objrec) {
 	it_move(obj, 1000);
 }
 
-static int do_lock(uchar l_or_u, parse_rec *nounrec, parse_rec *objrec)
 /* l_or_u: 0=lock, 1=unlock */
-{
+static int do_lock(uchar l_or_u, parse_rec *nounrec, parse_rec *objrec) {
 	int dnoun;
 	int dobj_, iobj_;
 	word dobj_word;
@@ -563,9 +554,8 @@ static int do_lock(uchar l_or_u, parse_rec *nounrec, parse_rec *objrec)
 	return 1;
 }
 
-static void v_lock(uchar l_or_u, parse_rec *nounrec, parse_rec *objrec)
 /* First argument indicates lock or unlock-- 0=lock, 1=unlock */
-{
+static void v_lock(uchar l_or_u, parse_rec *nounrec, parse_rec *objrec) {
 	if (!do_lock(l_or_u, nounrec, objrec)) return;
 	/* Need to fix these messages: */
 	alt_sysmsg((l_or_u ? 112 : 122),
@@ -573,9 +563,8 @@ static void v_lock(uchar l_or_u, parse_rec *nounrec, parse_rec *objrec)
 	           nounrec, objrec);
 }
 
-static void v_open(parse_rec *nounrec, parse_rec *objrec)
 /* OPEN ... WITH ... */
-{
+static void v_open(parse_rec *nounrec, parse_rec *objrec) {
 	int dnoun;
 	int dobj_, iobj_;
 
@@ -695,9 +684,8 @@ static void v_turn(word prep_, parse_rec *nounrec) {
 
 
 
-static void v_attack(uchar missile, parse_rec *targrec, parse_rec *weprec)
 /* Missile=1 if actually firing a weapon. */
-{
+static void v_attack(uchar missile, parse_rec *targrec, parse_rec *weprec) {
 	int targ, wep;
 	targ = targrec->obj;
 	wep = weprec->obj;
@@ -740,10 +728,10 @@ static void v_attack(uchar missile, parse_rec *targrec, parse_rec *weprec)
 
 	if (targ == 0) {
 		if (!missile) {
-			alt_sysmsg(206, "Attack what???", NULL, weprec);
+			alt_sysmsg(206, "Attack what???", nullptr, weprec);
 			return;
 		} else {
-			alt_sysmsg(188, "$You$ fire a shot into the air.", NULL, weprec);
+			alt_sysmsg(188, "$You$ fire a shot into the air.", nullptr, weprec);
 			return;
 		}
 	}
@@ -773,13 +761,13 @@ static void v_attack(uchar missile, parse_rec *targrec, parse_rec *weprec)
 		if (!missile) {
 			int msgnum;
 			if (creature[targ - first_creat].hostile) {
-				alt_sysmsg(50, NULL, weprec, targrec); /* Preliminary message */
+				alt_sysmsg(50, nullptr, weprec, targrec); /* Preliminary message */
 				msgnum = 51;
 			} else msgnum = 54;
 			if (noun[wep - first_noun].drinkable) { /* i.e. a liquid */
 				alt_sysmsg(msgnum + 1, "$You$ splash $the_o$$object$ with "
 				           "$the_n$$noun$, but the liquid quickly evaporates "
-				           "without noticable effect.", weprec, targrec);
+				           "without noticeable effect.", weprec, targrec);
 				it_destroy(wep);
 			} else {
 				alt_sysmsg(msgnum,
@@ -807,7 +795,7 @@ static void v_attack(uchar missile, parse_rec *targrec, parse_rec *weprec)
 /* child_proc is true if v_put is being called by v_put, and so
    shouldn't print success messages */
 static rbool v_put(parse_rec *nounrec, word prep_,
-                   parse_rec *objrec, rbool child_proc) {
+				   parse_rec *objrec, rbool child_proc) {
 	rbool in_prep;
 	int dobj_, iobj_;
 
@@ -894,9 +882,8 @@ static rbool v_put(parse_rec *nounrec, word prep_,
 }
 
 
-static void v_throw(parse_rec *nounrec, word prep_, parse_rec *objrec)
 /* at, to, in, into, across, inside */
-{
+static void v_throw(parse_rec *nounrec, word prep_, parse_rec *objrec) {
 	int dobj_, iobj_;
 	dobj_ = p_obj(nounrec);
 	iobj_ = p_obj(objrec);
@@ -982,15 +969,15 @@ void v_inventory(void) {
 static void v_quit(void) {
 	sysmsg(145, "Are you sure you want to quit?");
 	if (yesno("")) {
-		sysmsg(146, NULL);
+		sysmsg(146, nullptr);
 		quitflag = 1;
 	}
 }
 
 const char dirname[12][10] = {"north", "south", "east", "west",
-                              "northeast", "northwest", "southeast", "southwest",
-                              "up", "down", "in", "out"
-                             };
+							  "northeast", "northwest", "southeast", "southwest",
+							  "up", "down", "in", "out"
+							 };
 
 void v_listexit(void) {
 	int i, j, k;
@@ -1079,10 +1066,9 @@ static int checkgram(int vb_, int dobj_, word prep_, int iobj_, rbool redir_flag
 }
 
 
-static rbool verify_scope(int vb_, parse_rec *nounrec,
-                          word prep_, parse_rec *objrec)
 /* This checks to make sure that all of the objects are present */
-{
+static rbool verify_scope(int vb_, parse_rec *nounrec,
+						  word prep_, parse_rec *objrec) {
 	int msgnum;
 	int dobj_, iobj_;
 	dobj_ = nounrec->obj;
@@ -1166,7 +1152,7 @@ rbool metacommand_cycle(int save_vb, int *p_redir_flag) {
 	supress_debug = !debug_any;
 	clear_stack();
 	if ((PURE_METAVERB || !was_metaverb)
-	        && 2 == scan_metacommand(0, 0, 0, 0, 0, NULL))
+	        && 2 == scan_metacommand(0, 0, 0, 0, 0, nullptr))
 		return 1;
 
 	supress_debug = 0;
@@ -1178,7 +1164,7 @@ rbool metacommand_cycle(int save_vb, int *p_redir_flag) {
 	if (actor != 0 && aver < AGX00) {
 		if (DEBUG_AGT_CMD)
 			debugout("*** Scanning: ANYBODY metacommands ****\n");
-		if (2 == scan_metacommand(2, vb, dobj, prep, iobj, NULL))
+		if (2 == scan_metacommand(2, vb, dobj, prep, iobj, nullptr))
 			return 1;
 	}
 
@@ -1196,10 +1182,9 @@ rbool metacommand_cycle(int save_vb, int *p_redir_flag) {
 
 
 
-void exec_verb(void)
 /* Execute both meta-commands and more normal commands */
 /* May need tweaking for AGAIN and UNDO */
-{
+void exec_verb(void) {
 	int objswap;  /* 1=if iobj has been moved to dobj */
 	/* (Done for metacommands when there is an iobj but no dobj) */
 	rbool turndone;
@@ -1307,7 +1292,7 @@ void exec_verb(void)
 
 			case 50:
 				runptr(loc, help_ptr, "Sorry, you're on your own here.",
-				       2, NULL, NULL);
+				       2, nullptr, nullptr);
 				break;   /* HELP */
 			case 32:
 				v_inventory();
@@ -1415,7 +1400,7 @@ void exec_verb(void)
 				break;
 			case (OLD_VERB+1):
 				cmd_saveable = 0; /* RESTART */
-				if (restart_state == NULL)
+				if (restart_state == nullptr)
 					writeln("Sorry, too little memory to support RESTART.");
 				else {
 					doing_restore = 2;
@@ -1461,7 +1446,7 @@ void exec_verb(void)
 				replay(0);
 				break;
 			case (OLD_VERB+12): /* MENU */
-				if (verbmenu == NULL) {
+				if (verbmenu == nullptr) {
 					writeln("Sorry, but menus are not supported by this game.");
 					menu_mode = 0;
 					break;
@@ -1515,7 +1500,7 @@ void exec_verb(void)
 		supress_debug = !debug_any;
 		clear_stack();
 		if ((PURE_METAVERB || !was_metaverb) &&
-		        2 == scan_metacommand(0, 57, 0, 0, 0, NULL))
+		        2 == scan_metacommand(0, 57, 0, 0, 0, nullptr))
 			turndone = 1;
 		supress_debug = 0;
 	}
@@ -1536,15 +1521,15 @@ void exec_verb(void)
 /* If obj==0, then we are doing a noun search, otherwise we are doing
   an object search */
 /* Return the disambiguation score;
-     0 if the object doesn't trigger anything
-     1000 if it runs an action token or built in verb.
-     Other values may be returned if an ErrMessage token is encountered.
-     500 is the cutoff for ALL expansion.
+	 0 if the object doesn't trigger anything
+	 1000 if it runs an action token or built in verb.
+	 Other values may be returned if an ErrMessage token is encountered.
+	 500 is the cutoff for ALL expansion.
   */
 
 
 int objcheck_cycle(rbool *success, parse_rec *act, int verbid,
-                   parse_rec *dorec, word prep_, parse_rec *iorec) {
+				   parse_rec *dorec, word prep_, parse_rec *iorec) {
 	int result;
 
 	actor = act->obj;
@@ -1552,8 +1537,8 @@ int objcheck_cycle(rbool *success, parse_rec *act, int verbid,
 	/* The xobj_rec don't really matter */
 	dobj = dorec->obj;
 	dobj_rec = copy_parserec(dorec);
-	if (iorec == NULL) {
-		iobj_rec = make_parserec(0, NULL);
+	if (iorec == nullptr) {
+		iobj_rec = make_parserec(0, nullptr);
 		iobj = 0;
 	} else {
 		iobj = iorec->obj;
@@ -1564,7 +1549,7 @@ int objcheck_cycle(rbool *success, parse_rec *act, int verbid,
 	*success = 1;
 	supress_debug = !debug_disambig;
 	if (actor != 0 && aver < AGX00) {
-		result = scan_metacommand(2, verbid, dobj, prep_, iobj, NULL);
+		result = scan_metacommand(2, verbid, dobj, prep_, iobj, nullptr);
 		if (result == 2) {
 			free_all_parserec();
 			return disambig_score;
@@ -1575,7 +1560,7 @@ int objcheck_cycle(rbool *success, parse_rec *act, int verbid,
 		}
 	}
 	clear_stack();
-	result = scan_metacommand(actor, verbid, dobj, prep_, iobj, NULL);
+	result = scan_metacommand(actor, verbid, dobj, prep_, iobj, nullptr);
 	supress_debug = 0;
 	switch (result) {
 	case -2:
@@ -1584,7 +1569,7 @@ int objcheck_cycle(rbool *success, parse_rec *act, int verbid,
 	case 0:
 	case 1:
 		break;  /* Nothing matched, but we still need to check
-              built-in verbs */
+			  built-in verbs */
 	case 2:
 		free_all_parserec();
 		return disambig_score; /* End of turn, no match */
@@ -1599,11 +1584,11 @@ int objcheck_cycle(rbool *success, parse_rec *act, int verbid,
 
 
 int check_obj(parse_rec *act, int verbid,
-              parse_rec *dorec, word prep_, parse_rec *iorec) {
+			  parse_rec *dorec, word prep_, parse_rec *iorec) {
 	int result;
 	rbool success;
 
-	if (iorec == NULL)
+	if (iorec == nullptr)
 		do_disambig = 1; /* Disambiguating dobj */
 	else
 		do_disambig = 2; /* Disambiguating iobj */

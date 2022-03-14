@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 namespace Gob {
 
 MUSPlayer::MUSPlayer() : AdLib(60),
-	_songData(0), _songDataSize(0), _playPos(0), _songID(0) {
+	_songData(nullptr), _songDataSize(0), _playPos(nullptr), _songID(0) {
 
 }
 
@@ -220,7 +219,7 @@ bool MUSPlayer::readString(Common::SeekableReadStream &stream, Common::String &s
 bool MUSPlayer::readSNDHeader(Common::SeekableReadStream &snd, int &timbreCount, int &timbrePos) {
 	// Sanity check
 	if (snd.size() <= 6) {
-		warning("MUSPlayer::readSNDHeader(): File too small (%d)", snd.size());
+		warning("MUSPlayer::readSNDHeader(): File too small (%d)", (int)snd.size());
 		return false;
 	}
 
@@ -363,10 +362,10 @@ void MUSPlayer::unloadSND() {
 void MUSPlayer::unloadMUS() {
 	delete[] _songData;
 
-	_songData     = 0;
+	_songData     = nullptr;
 	_songDataSize = 0;
 
-	_playPos = 0;
+	_playPos = nullptr;
 }
 
 uint32 MUSPlayer::getSongID() const {

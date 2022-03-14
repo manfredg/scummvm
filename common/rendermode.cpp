@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,6 +43,8 @@ const RenderModeDescription g_renderModes[] = {
 	{ "2gs", "Apple IIgs", kRenderApple2GS },
 	{ "atari", "Atari ST", kRenderAtariST },
 	{ "macintosh", "Macintosh", kRenderMacintosh },
+	// I18N: Macintosh black-and-white
+	{ "macintoshbw", _s("Macintosh b/w"), kRenderMacintoshBW },
 	{nullptr, nullptr, kRenderDefault}
 };
 
@@ -56,18 +57,19 @@ struct RenderGUIOMapping {
 // could be used to indicate "any" mode when passed to renderMode2GUIO (if
 // we wanted to merge allRenderModesGUIOs back into)
 static const RenderGUIOMapping s_renderGUIOMapping[] = {
-	{ kRenderHercG,     GUIO_RENDERHERCGREEN },
-	{ kRenderHercA,     GUIO_RENDERHERCAMBER },
-	{ kRenderCGA,       GUIO_RENDERCGA },
-	{ kRenderEGA,       GUIO_RENDEREGA },
-	{ kRenderVGA,       GUIO_RENDERVGA },
-	{ kRenderAmiga,     GUIO_RENDERAMIGA },
-	{ kRenderFMTowns,   GUIO_RENDERFMTOWNS },
-	{ kRenderPC9821,    GUIO_RENDERPC9821 },
-	{ kRenderPC9801,    GUIO_RENDERPC9801 },
-	{ kRenderApple2GS,  GUIO_RENDERAPPLE2GS },
-	{ kRenderAtariST,   GUIO_RENDERATARIST },
-	{ kRenderMacintosh, GUIO_RENDERMACINTOSH }
+	{ kRenderHercG,			GUIO_RENDERHERCGREEN },
+	{ kRenderHercA,			GUIO_RENDERHERCAMBER },
+	{ kRenderCGA,		    GUIO_RENDERCGA },
+	{ kRenderEGA,		    GUIO_RENDEREGA },
+	{ kRenderVGA,			GUIO_RENDERVGA },
+	{ kRenderAmiga,			GUIO_RENDERAMIGA },
+	{ kRenderFMTowns,		GUIO_RENDERFMTOWNS },
+	{ kRenderPC9821,		GUIO_RENDERPC9821 },
+	{ kRenderPC9801,		GUIO_RENDERPC9801 },
+	{ kRenderApple2GS,		GUIO_RENDERAPPLE2GS },
+	{ kRenderAtariST,		GUIO_RENDERATARIST },
+	{ kRenderMacintosh,		GUIO_RENDERMACINTOSH },
+	{ kRenderMacintoshBW,	GUIO_RENDERMACINTOSHBW }
 };
 
 DECLARE_TRANSLATION_ADDITIONAL_CONTEXT("Hercules Green", "lowres")

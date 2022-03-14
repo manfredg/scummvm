@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,6 +36,8 @@
 #include "dreamweb/sound.h"
 #include "dreamweb/dreamweb.h"
 
+#include "common/text-to-speech.h"
+
 namespace DreamWeb {
 
 DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gameDesc) :
@@ -46,13 +47,13 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 	_roomDesc(kNumRoomTexts), _freeDesc(kNumFreeTexts),
 	_personText(kNumPersonTexts) {
 
-	DebugMan.addDebugChannel(kDebugAnimation, "Animation", "Animation Debug Flag");
-	DebugMan.addDebugChannel(kDebugSaveLoad, "SaveLoad", "Track Save/Load Function");
-
-	_sound = 0;
+	_vSyncPrevTick = 0;
+	_sound = nullptr;
 	_speed = 1;
 	_turbo = false;
 	_oldMouseState = 0;
+
+	_ttsMan = g_system->getTextToSpeechManager();
 
 	_datafilePrefix = "DREAMWEB.";
 	_speechDirName = "SPEECH";
@@ -79,8 +80,8 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 
 	_speechLoaded = false;
 
-	_backdropBlocks = 0;
-	_reelList = 0;
+	_backdropBlocks = nullptr;
+	_reelList = nullptr;
 
 	_oldSubject._type = 0;
 	_oldSubject._index = 0;
@@ -247,7 +248,7 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 	for (uint i = 0; i < kNumReelRoutines+1; i++)
 		memset(&_reelRoutines[i], 0, sizeof(ReelRoutine));
 
-	_personData = 0;
+	_personData = nullptr;
 
 	for (uint i = 0; i < 16; i++)
 		memset(&_openInvList[i], 0, sizeof(ObjectRef));
@@ -261,33 +262,35 @@ DreamWebEngine::DreamWebEngine(OSystem *syst, const DreamWebGameDescription *gam
 	for (uint i = 0; i < kNumChanges; i++)
 		memset(&_listOfChanges[i], 0, sizeof(Change));
 
-	_currentCharset = 0;
+	_currentCharset = nullptr;
 
 	for (uint i = 0; i < 36; i++)
 		memset(&_pathData[i], 0, sizeof(RoomPaths));
 }
 
 DreamWebEngine::~DreamWebEngine() {
-	DebugMan.clearAllDebugChannels();
 	delete _sound;
 }
 
-void DreamWebEngine::waitForVSync() {
-	const uint32 previousTicks = _system->getMillis();
-	// Originally, this was an interval for a thread that was
-	// called every 1000000 / 70 nanoseconds. It has been
-	// adjusted to be a delay instead.
-	const uint32 delay = 800 / 70 / _speed;
+void DreamWebEngine::pauseEngineIntern(bool pause) {
+	Engine::pauseEngineIntern(pause);
+	if (!pause)
+		_vSyncPrevTick = _system->getMillis();
+}
 
+void DreamWebEngine::waitForVSync() {
 	if (isPaused())
 		return;
 
 	processEvents();
 
-	while (!_turbo && _system->getMillis() - previousTicks < delay) {
-		processEvents(false);
-		_system->delayMillis(10);
+	if (!_turbo) {
+		const uint32 delay =  1000 / 70 / _speed;
+		uint32 elapsed = _system->getMillis() - _vSyncPrevTick;
+		if (elapsed < delay)
+			_system->delayMillis(delay - elapsed);
 	}
+	_vSyncPrevTick = _system->getMillis();
 
 	doShake();
 	doFade();
@@ -312,7 +315,7 @@ void DreamWebEngine::processEvents(bool processSoundEvents) {
 	int softKey;
 	while (_eventMan->pollEvent(event)) {
 		switch(event.type) {
-		case Common::EVENT_RTL:
+		case Common::EVENT_RETURN_TO_LAUNCHER:
 			quit();
 			break;
 		case Common::EVENT_KEYDOWN:
@@ -320,7 +323,7 @@ void DreamWebEngine::processEvents(bool processSoundEvents) {
 				switch (event.kbd.keycode) {
 
 				case Common::KEYCODE_f:
-					setSpeed(_speed != 20? 20: 1);
+					setSpeed(_speed != 4? 4: 1);
 					break;
 
 				case Common::KEYCODE_g:
@@ -391,6 +394,22 @@ void DreamWebEngine::processEvents(bool processSoundEvents) {
 }
 
 Common::Error DreamWebEngine::run() {
+	if (_ttsMan != nullptr) {
+		Common::String languageString = Common::getLanguageCode(getLanguage());
+		_ttsMan->setLanguage(languageString);
+		switch (getLanguage()) {
+		case Common::RU_RUS:
+			_textEncoding = Common::kDos866;
+			break;
+		case Common::CS_CZE:
+			_textEncoding = Common::kWindows1250;
+			break;
+		default:
+			_textEncoding = Common::kDos850;
+			break;
+		}
+	}
+
 	syncSoundSettings();
 	setDebugger(new DreamWebConsole(this));
 	_sound = new DreamWebSound(this);
@@ -399,6 +418,7 @@ Common::Error DreamWebEngine::run() {
 	_brightPalette = ConfMan.getBool("bright_palette");
 	_copyProtection = ConfMan.getBool("copy_protection");
 
+	_vSyncPrevTick = _system->getMillis();
 	dreamweb();
 	dreamwebFinalize();
 	_quitRequested = false;

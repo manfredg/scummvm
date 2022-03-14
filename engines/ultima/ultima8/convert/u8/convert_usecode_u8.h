@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,50 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef ULTIMA8_CONVERT_U8_CONVERTUSECODEU8_H
 #define ULTIMA8_CONVERT_U8_CONVERTUSECODEU8_H
 
-#ifndef INCLUDE_CONVERTUSECODEU8_WITHOUT_BRINGING_IN_FOLD
-#include "ultima/ultima8/convert/convert.h"
-#else
-
-namespace Ultima {
-namespace Ultima8 {
-
-class ConvertUsecode {
-public:
-	virtual ~ConvertUsecode() { }	
-	class TempOp;
-	class Node;
-	typedef int DebugSymbol;
-	struct UsecodeHeader
-	{
-		uint32 _maxOffset;
-	};
-	uint32 read4(IDataSource *) { return 0; }
-	uint32 _curOffset;
-
-	virtual const char* const *intrinsics()=0;
-	virtual const char* const *event_names()=0;
-	virtual void readheader(IDataSource *ucfile, UsecodeHeader &uch, uint32 &curOffset)=0;
-	virtual void readevents(IDataSource *ucfile, const UsecodeHeader &uch)=0;
-	virtual void readOp(TempOp &op, IDataSource *ucfile, uint32 &dbg_symbol_offset, Std::vector<DebugSymbol> &debugSymbols, bool &done)=0;
-	virtual Node *readOp(IDataSource *ucfile, uint32 &dbg_symbol_offset, Std::vector<DebugSymbol> &debugSymbols, bool &done)=0;
-	void readOpGeneric(TempOp &, IDataSource *, uint32 &, Std::vector<DebugSymbol> &,
-		bool &, const bool ) { }
-	Node *readOpGeneric(IDataSource *, uint32 &, Std::vector<DebugSymbol> &,
-		bool &, const bool ) { return 0; }
-};
-
-} // End of namespace Ultima8
-} // End of namespace Ultima
-
-#endif
+#include "ultima/ultima8/convert/convert_usecode.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -67,28 +31,7 @@ class ConvertUsecodeU8 : public ConvertUsecode {
 public:
 	const char* const *intrinsics() override  { return _intrinsics;  };
 	const char* const *event_names() override { return _event_names; };
-	void readheader(IDataSource *ucfile, UsecodeHeader &uch, uint32 &curOffset_) override;
-	void readevents(IDataSource *ucfile, const UsecodeHeader &/*uch*/) override
-	{
-#ifndef INCLUDE_CONVERTUSECODEU8_WITHOUT_BRINGING_IN_FOLD
-		EventMap.clear();
-		for (uint32 i=0; i<32; ++i)
-		{
-			uint32 offset = read4(ucfile);
-			EventMap[offset] = i;
-#ifdef DISASM_DEBUG
-			pout << "Event " << i << ": " << Std::hex << Std::setw(4) << offset << Std::dec << endl;
-#endif
-		}
-#endif
-	}
 
-	void readOp(TempOp &op, IDataSource *ucfile, uint32 &dbg_symbol_offset, Std::vector<DebugSymbol> &debugSymbols, bool &done) override
-	{ readOpGeneric(op, ucfile, dbg_symbol_offset, debugSymbols, done, false); };
-	Node *readOp(IDataSource *ucfile, uint32 &dbg_symbol_offset, Std::vector<DebugSymbol> &debugSymbols, bool &done) override
-	{ return readOpGeneric(ucfile, dbg_symbol_offset, debugSymbols, done, false); };
-
-	
 private:
 	static const char* const _intrinsics[];
 	static const char* const _event_names[];
@@ -153,8 +96,8 @@ const char* const ConvertUsecodeU8::_intrinsics[] = {
 	"Item::legal_create(uword, uword, WorldPoint*)",
 	"Item::legal_create(uword, uword, uword, word)",
 	"Item::push()",
-	"Item::pop(uword, uword, ubyte)",
-	"Item::pop(uword)",
+	"Item::popToCoords(uword, uword, ubyte)",
+	"Item::popToContainer(uword)",
 	"Item::pop()",
 	"Item::popToEnd(uword)",
 	"Item::destroy()",
@@ -408,22 +351,6 @@ const char * const ConvertUsecodeU8::_event_names[] = {
 	"func1F",						// 0x1F
 	0
 };
-
-void ConvertUsecodeU8::readheader(IDataSource *ucfile, UsecodeHeader &uch, uint32 &curOffset_) {
-	#ifdef DISASM_DEBUG
-	perr << Std::setfill('0') << Std::hex;
-	perr << "unknown1: " << Std::setw(4) << read4(ucfile) << endl; // unknown
-	uch.maxOffset = read4(ucfile) - 0x0C; // file size
-	perr << "maxoffset: " << Std::setw(4) << maxOffset << endl;
-	perr << "unknown2: " << Std::setw(4) << read4(ucfile) << endl; // unknown
-	curOffset_ = 0;
-	#else
-	read4(ucfile); // unknown
-	uch._maxOffset = read4(ucfile) - 0x0C; // file size
-	read4(ucfile); // unknown
-	curOffset_ = 0;
-	#endif
-}
 
 } // End of namespace Ultima8
 } // End of namespace Ultima

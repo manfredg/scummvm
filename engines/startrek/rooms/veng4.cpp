@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -96,10 +95,74 @@ extern const RoomAction veng4ActionList[] = {
 
 	// ENHANCEMENT (let object count for the "look" action, not just the hotspot)
 	{ {ACTION_LOOK, OBJECT_LEFT_READINGS, 0, 0}, &Room::veng4LookAtLeftBedReadings },
+	{ {ACTION_LIST_END, 0, 0, 0}, nullptr }
 };
 
-extern const int veng4NumActions = ARRAYSIZE(veng4ActionList);
+enum veng4TextIds {
+	TX_SPEAKER_KIRK, TX_SPEAKER_MCCOY, TX_SPEAKER_SPOCK, TX_SPEAKER_KIJE, TX_SPEAKER_BRITTANY_MARATA,
+	TX_VEN4_001, TX_VEN4_002, TX_VEN4_003, TX_VEN4_004, TX_VEN4_005,
+	TX_VEN4_006, TX_VEN4_007, TX_VEN4_008, TX_VEN4_009, TX_VEN4_010,
+	TX_VEN4_011, TX_VEN4_012, TX_VEN4_013, TX_VEN4_014, TX_VEN4_015,
+	TX_VEN4_016, TX_VEN4_017, TX_VEN4_019, TX_VEN4_020, TX_VEN4_021,
+	TX_VEN4_022, TX_VEN4N000, TX_VEN4N001, TX_VEN4N002, TX_VEN4N003,
+	TX_VEN4N004, TX_VEN4N005, TX_VEN4N006, TX_VEN4N007, TX_VEN4N008,
+	TX_VEN4N009, TX_VEN4N010, TX_VEN4N011, TX_VEN4N012, TX_VEN4N013,
+	TX_VEN4N014, TX_VEN4N015, TX_VEN4N016, TX_VEN4N017
+};
 
+// TODO: Finish floppy offsets
+extern const RoomTextOffsets veng4TextOffsets[] = {
+	{ TX_SPEAKER_KIRK, 4347, 0, 0, 0 },
+	{ TX_SPEAKER_MCCOY, 4358, 0, 0, 0 },
+	{ TX_SPEAKER_SPOCK, 4368, 0, 0, 0 },
+	{ TX_SPEAKER_KIJE, 4378, 0, 0, 0 },
+	{ TX_SPEAKER_BRITTANY_MARATA, 4390, 0, 0, 0 },
+	{ TX_VEN4_001, 4583, 0, 0, 0 },
+	{ TX_VEN4_002, 5485, 0, 0, 0 },
+	{ TX_VEN4_003, 6238, 0, 0, 0 },
+	{ TX_VEN4_004, 6005, 0, 0, 0 },
+	{ TX_VEN4_005, 4882, 0, 0, 0 },
+	{ TX_VEN4_006, 6124, 0, 0, 0 },
+	{ TX_VEN4_007, 4431, 0, 0, 0 },
+	{ TX_VEN4_008,  703, 0, 0, 0 },
+	{ TX_VEN4_009, 6387, 0, 0, 0 },
+	{ TX_VEN4_010, 1261, 0, 0, 0 },
+	{ TX_VEN4_011, 4486, 0, 0, 0 },
+	{ TX_VEN4_012, 6333, 0, 0, 0 },
+	{ TX_VEN4_013, 6482, 0, 0, 0 },
+	{ TX_VEN4_014, 5009, 0, 0, 0 },
+	{ TX_VEN4_015, 5636, 0, 0, 0 },
+	{ TX_VEN4_016, 6287, 0, 0, 0 },
+	{ TX_VEN4_017, 5576, 0, 0, 0 },
+	{ TX_VEN4_019, 5964, 0, 0, 0 },
+	{ TX_VEN4_020, 6043, 0, 0, 0 },
+	{ TX_VEN4_021, 6166, 0, 0, 0 },
+	{ TX_VEN4_022, 5894, 0, 0, 0 },
+	{ TX_VEN4N000, 4725, 0, 0, 0 },
+	{ TX_VEN4N001, 4831, 0, 0, 0 },
+	{ TX_VEN4N002, 4661, 0, 0, 0 },
+	{ TX_VEN4N003, 4779, 0, 0, 0 },
+	{ TX_VEN4N004, 1640, 0, 0, 0 },
+	{ TX_VEN4N005, 1498, 0, 0, 0 },
+	{ TX_VEN4N006, 5280, 0, 0, 0 },
+	{ TX_VEN4N007, 5074, 0, 0, 0 },
+	{ TX_VEN4N008, 5417, 0, 0, 0 },
+	{ TX_VEN4N009, 2090, 0, 0, 0 },
+	{ TX_VEN4N010, 3531, 0, 0, 0 },
+	//{ TX_VEN4N010, 2019, 0, 0, 0 },	// ignore duplicate line
+	{ TX_VEN4N011, 2185, 0, 0, 0 },
+	{ TX_VEN4N012, 1926, 0, 0, 0 },
+	{ TX_VEN4N013, 5352, 0, 0, 0 },
+	{ TX_VEN4N014, 5192, 0, 0, 0 },
+	{ TX_VEN4N015, 2408, 0, 0, 0 },
+	{ TX_VEN4N016, 2628, 0, 0, 0 },
+	{ TX_VEN4N017, 1768, 0, 0, 0 },
+	{          -1,    0, 0, 0, 0 }
+};
+
+extern const RoomText veng4Texts[] = {
+	  { -1, Common::UNK_LANG, "" }
+};
 
 #define DOOR_X 0x13f
 #define DOOR_Y 0xab
@@ -136,27 +199,27 @@ void Room::veng4Tick1() {
 }
 
 void Room::veng4TalkToKirk() {
-	showText(TX_SPEAKER_KIRK, 2, true);
+	showText(TX_SPEAKER_KIRK, TX_VEN4_002);
 }
 
 void Room::veng4TalkToMccoy() {
-	showText(TX_SPEAKER_MCCOY, 15, true);
+	showText(TX_SPEAKER_MCCOY, TX_VEN4_015);
 }
 
 void Room::veng4TalkToSpock() {
-	showText(TX_SPEAKER_SPOCK, 17, true);
+	showText(TX_SPEAKER_SPOCK, TX_VEN4_017);
 }
 
 void Room::veng4TalkToRedshirt() {
-	showText(TX_SPEAKER_KIJE, 22, true);
+	showText(TX_SPEAKER_KIJE, TX_VEN4_022);
 }
 
 void Room::veng4UseMccoyOnDeadGuy() {
-	showText(TX_SPEAKER_MCCOY, 7, true);
+	showText(TX_SPEAKER_MCCOY, TX_VEN4_007);
 }
 
 void Room::veng4UseHypoOnBrittany() {
-	showText(TX_SPEAKER_MCCOY, 8, true);
+	showText(TX_SPEAKER_MCCOY, TX_VEN4_008);
 }
 
 void Room::veng4UseMedkitOnBrittany() {
@@ -171,13 +234,13 @@ void Room::veng4UseMTricorderOnBrittany() {
 
 void Room::veng4UseMccoyOnBrittany() {
 	if (_awayMission->veng.brittanyDead)
-		showText(TX_SPEAKER_MCCOY, 13, true);
+		showText(TX_SPEAKER_MCCOY, TX_VEN4_013);
 	else if (_awayMission->veng.usedMedkitOnBrittany)
-		showText(TX_SPEAKER_MCCOY,  9, true);
+		showText(TX_SPEAKER_MCCOY, TX_VEN4_009);
 	else {
 		if (!_awayMission->veng.lookedAtBrittany) {
 			_awayMission->veng.lookedAtBrittany = true;
-			showText(TX_SPEAKER_KIRK,  5, true);
+			showText(TX_SPEAKER_KIRK, TX_VEN4_005);
 		}
 		_awayMission->crewDirectionsAfterWalk[OBJECT_MCCOY] = DIR_E;
 		walkCrewmanC(OBJECT_MCCOY, 0x3c, 0xa0, &Room::veng4MccoyReachedBrittany);
@@ -187,7 +250,7 @@ void Room::veng4UseMccoyOnBrittany() {
 void Room::veng4MccoyReachedBrittany() {
 	if (!_roomVar.veng.usingMedkitOnBrittany) {
 		loadActorAnimC(OBJECT_MCCOY, "mscane", -1, -1, &Room::veng4MccoyScannedBrittany);
-		playSoundEffectIndex(SND_TRICORDER);
+		playSoundEffectIndex(kSfxTricorder);
 	} else {
 		loadActorAnimC(OBJECT_MCCOY, "museme", -1, -1, &Room::veng4UsedMedkitOnBrittany);
 	}
@@ -198,12 +261,12 @@ void Room::veng4UsedMedkitOnBrittany() {
 	_awayMission->veng.getPointsForHealingBrittany = true;
 	_awayMission->veng.usedMedkitOnBrittany = true;
 	_awayMission->veng.kirkShouldSuggestReestablishingPower = true;
-	showText(TX_SPEAKER_MCCOY, 9, true);
+	showText(TX_SPEAKER_MCCOY, TX_VEN4_009);
 }
 
 void Room::veng4MccoyScannedBrittany() {
-	showText(TX_SPEAKER_MCCOY, 11, true);
-	showText(TX_SPEAKER_KIRK,   1, true);
+	showText(TX_SPEAKER_MCCOY, TX_VEN4_011);
+	showText(TX_SPEAKER_KIRK,  TX_VEN4_001);
 
 	_roomVar.veng.usingMedkitOnBrittany = true;
 	veng4UseMccoyOnBrittany();
@@ -211,20 +274,20 @@ void Room::veng4MccoyScannedBrittany() {
 
 void Room::veng4TalkToBrittany() {
 	if (_awayMission->veng.talkedToBrittany)
-		showText(TX_SPEAKER_MCCOY, 12, true);
+		showText(TX_SPEAKER_MCCOY, TX_VEN4_012);
 	else if (!_awayMission->veng.usedMedkitOnBrittany)
-		showText(TX_SPEAKER_MCCOY, 10, true);
+		showText(TX_SPEAKER_MCCOY, TX_VEN4_010);
 	else {
 		_awayMission->veng.talkedToBrittany = true;
-		showText(TX_SPEAKER_BRITTANY_MARATA, 19, true);
-		showText(TX_SPEAKER_KIRK,             4, true);
-		showText(TX_SPEAKER_BRITTANY_MARATA, 20, true);
-		showText(TX_SPEAKER_KIRK,             6, true);
-		showText(TX_SPEAKER_BRITTANY_MARATA, 21, true);
-		showText(TX_SPEAKER_KIRK,             3, true);
+		showText(TX_SPEAKER_BRITTANY_MARATA, TX_VEN4_019);
+		showText(TX_SPEAKER_KIRK,            TX_VEN4_004);
+		showText(TX_SPEAKER_BRITTANY_MARATA, TX_VEN4_020);
+		showText(TX_SPEAKER_KIRK,            TX_VEN4_006);
+		showText(TX_SPEAKER_BRITTANY_MARATA, TX_VEN4_021);
+		showText(TX_SPEAKER_KIRK,            TX_VEN4_003);
 
 		loadActorAnim2(OBJECT_BRITTANY, "s9r1bm", BRITTANY_X, BRITTANY_Y);
-		showText(TX_SPEAKER_MCCOY, 16, true);
+		showText(TX_SPEAKER_MCCOY, TX_VEN4_016);
 		loadActorAnim2(OBJECT_LEFT_READINGS, "s7r4m1", LEFT_READINGS_X, LEFT_READINGS_Y);
 		loadActorAnim2(OBJECT_BRITTANY, "s7r4bd", BRITTANY_X, BRITTANY_Y);
 		_awayMission->veng.brittanyDead = true;
@@ -234,31 +297,31 @@ void Room::veng4TalkToBrittany() {
 }
 
 void Room::veng4LookAtDeadGuy() {
-	showDescription(14, true);
+	showDescription(TX_VEN4N014);
 }
 
 void Room::veng4LookAtRightBedReadings() {
-	showDescription(13, true);
+	showDescription(TX_VEN4N013);
 }
 
 void Room::veng4LookAtDoorHotspot() {
-	showDescription(8, true);
+	showDescription(TX_VEN4N008);
 }
 
 void Room::veng4LookAtKirk() {
-	showDescription(2, true);
+	showDescription(TX_VEN4N002);
 }
 
 void Room::veng4LookAtSpock() {
-	showText(TX_SPEAKER_SPOCK, 3, true);
+	showText(TX_SPEAKER_SPOCK, TX_VEN4N003);
 }
 
 void Room::veng4LookAtMccoy() {
-	showText(TX_SPEAKER_MCCOY, 0, true);
+	showText(TX_SPEAKER_MCCOY, TX_VEN4N000);
 }
 
 void Room::veng4LookAtRedshirt() {
-	showText(TX_SPEAKER_KIJE, 1, true);
+	showText(TX_SPEAKER_KIJE, TX_VEN4N001);
 }
 
 void Room::veng4LookAtLeftBed() {
@@ -266,45 +329,45 @@ void Room::veng4LookAtLeftBed() {
 		// ENHANCEMENT: Original game showed a string with no corresponding audio ("This
 		// bed contains the body of a recently deceaced crewman." Yes that's a typo.)
 		// Instead, show some appropriate voiced text.
-		showDescription(17, true);
+		showDescription(TX_VEN4N017);
 	} else
-		showDescription( 7, true);
+		showDescription(TX_VEN4N007);
 }
 
 void Room::veng4LookAtLeftBedReadings() {
 	if (!_awayMission->veng.brittanyDead)
-		showDescription( 6, true);
+		showDescription(TX_VEN4N006);
 	else
-		showDescription( 5, true);
+		showDescription(TX_VEN4N005);
 }
 
 void Room::veng4LookAtBrittany() {
 	if (_awayMission->veng.brittanyDead)
-		showDescription(17, true);
+		showDescription(TX_VEN4N017);
 	else if (!_awayMission->veng.lookedAtBrittany) {
 		_awayMission->veng.lookedAtBrittany = true;
-		showText(TX_SPEAKER_KIRK,   5, true);
-		showText(TX_SPEAKER_MCCOY, 14, true);
+		showText(TX_SPEAKER_KIRK,  TX_VEN4_005);
+		showText(TX_SPEAKER_MCCOY, TX_VEN4_014);
 	} else if (_awayMission->veng.talkedToBrittany)
-		showDescription(17, true);
+		showDescription(TX_VEN4N017);
 	else
-		showDescription( 4, true);
+		showDescription(TX_VEN4N004);
 }
 
 void Room::veng4LookAtDrill() {
-	showDescription(12, true);
+	showDescription(TX_VEN4N012);
 }
 
 void Room::veng4LookAtHypoOnTable() {
-	showDescription(10, true);
+	showDescription(TX_VEN4N010);
 }
 
 void Room::veng4LookAtDoorObject() {
-	showDescription( 9, true);
+	showDescription(TX_VEN4N009);
 }
 
 void Room::veng4LookAnywhere() {
-	showDescription(11, true);
+	showDescription(TX_VEN4N011);
 }
 
 void Room::veng4GetHypo() {
@@ -320,7 +383,7 @@ void Room::veng4PickedUpHypo() {
 	giveItem(OBJECT_IHYPO);
 	_awayMission->veng.tookHypoFromSickbay = true;
 	loadActorStandAnim(OBJECT_HYPO);
-	showDescription(15, true);
+	showDescription(TX_VEN4N015);
 	walkCrewman(OBJECT_KIRK, 0xcd, 0xc2);
 	_awayMission->disableInput = false;
 }
@@ -338,14 +401,14 @@ void Room::veng4PickedUpDrill() {
 	giveItem(OBJECT_IDRILL);
 	_awayMission->veng.tookDrillFromSickbay = true;
 	loadActorStandAnim(OBJECT_DRILL);
-	showDescription(16, true);
+	showDescription(TX_VEN4N016);
 	walkCrewman(OBJECT_KIRK, 0xcd, 0xc2);
 	_awayMission->disableInput = false;
 }
 
 void Room::veng4TouchedHotspot0() { // Trigger door opening
 	if (_roomVar.veng.walkingToDoor) {
-		playSoundEffectIndex(SND_DOOR1);
+		playSoundEffectIndex(kSfxDoor);
 		loadActorAnim(OBJECT_DOOR, "s9r1do", DOOR_X, DOOR_Y);
 	}
 }

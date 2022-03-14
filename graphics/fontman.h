@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,15 @@
 
 
 namespace Graphics {
+
+/**
+ * @defgroup graphics_fontman Font manager
+ * @ingroup graphics
+ *
+ * @brief FontManager class used for managing fonts.
+ *
+ * @{
+ */
 
 class Font;
 class BdfFont;
@@ -96,15 +104,6 @@ public:
 	 */
 	const Font *getFontByUsage(FontUsage usage) const;
 
-	/**
-	 * Get the localized font for the current TranslationManager charset from the
-	 * non localized font name
-	 *
-	 * @param filename the non-localized font file name.
-	 * @return The localized font file name.
-	 */
-	Common::String genLocalizedFontFilename(const Common::String &filename) const;
-
 	//const Font *getFontBySize(int size???) const;
 
 private:
@@ -117,10 +116,14 @@ private:
 	Common::String _localizedFontName;
 };
 
-
+/** @} */
 } // End of namespace Graphics
+
+/** @addtogroup graphics_fontman
+ *  @{
+ */
 
 /** Shortcut for accessing the font manager. */
 #define FontMan		(Graphics::FontManager::instance())
-
+ /** @} */
 #endif

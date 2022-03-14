@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,11 +39,11 @@ const byte *AGOSEngine::dumpOpcode(const byte *p) {
 		opcode = READ_BE_UINT16(p);
 		p += 2;
 		if (opcode == 10000)
-			return NULL;
+			return nullptr;
 	} else {
 		opcode = *p++;
 		if (opcode == 255)
-			return NULL;
+			return nullptr;
 	}
 
 	if (getGameType() == GType_PP) {
@@ -67,7 +66,7 @@ const byte *AGOSEngine::dumpOpcode(const byte *p) {
 		st = s = elvira1_opcodeNameTable[opcode];
 	}
 
-	if (s == NULL) {
+	if (s == nullptr) {
 		error("dumpOpcode: INVALID OPCODE %d", opcode);
 	}
 
@@ -79,7 +78,7 @@ const byte *AGOSEngine::dumpOpcode(const byte *p) {
 		switch (*s++) {
 		case 'x':
 			debugN("\n");
-			return NULL;
+			return nullptr;
 		case '|':
 			debugN("\n");
 			return p;
@@ -177,7 +176,7 @@ void AGOSEngine::dumpSubroutineLine(SubroutineLine *sl, Subroutine *sub) {
 
 	for (;;) {
 		p = dumpOpcode(p);
-		if (p == NULL)
+		if (p == nullptr)
 			break;
 	}
 }
@@ -203,7 +202,7 @@ void AGOSEngine::dumpSubroutines() {
 void AGOSEngine::dumpAllSubroutines() {
 	for (int i = 0; i < 65536; i++) {
 		Subroutine *sub = getSubroutineByID(i);
-		if (sub != NULL) {
+		if (sub != nullptr) {
 			dumpSubroutine(sub);
 		}
 	}
@@ -243,7 +242,7 @@ void AGOSEngine::dumpVideoScript(const byte *src, bool singeOpcode) {
 			strn = str = pn_videoOpcodeNameTable[opcode];
 		}
 
-		if (strn == NULL) {
+		if (strn == nullptr) {
 			error("dumpVideoScript: Invalid Opcode %d", opcode);
 		}
 
@@ -335,7 +334,7 @@ void AGOSEngine::dumpAllVgaScriptFiles() {
 		loadZone(z, false);
 
 		VgaPointersEntry *vpe = &_vgaBufferPointers[zoneNum];
-		if (vpe->vgaFile1 != NULL) {
+		if (vpe->vgaFile1 != nullptr) {
 			_curVgaFile1 = vpe->vgaFile1;
 			dumpVgaFile(_curVgaFile1);
 		}
@@ -499,7 +498,7 @@ void AGOSEngine::dumpBitmap(const char *filename, const byte *offs, uint16 w, ui
 	state.width = w / 16;
 
 	if (getFeatures() & GF_PLANAR) {
-		state.srcPtr = convertImage(&state, (getGameType() == GType_PN || (flags & 0x80) != 0));
+		state.srcPtr = convertAmigaImage(&state, (getGameType() == GType_PN || (flags & 0x80) != 0));
 		flags &= ~0x80;
 	}
 
@@ -646,7 +645,7 @@ void AGOSEngine::dumpVgaBitmaps(uint16 zoneNum) {
 
 	uint16 zone = (getGameType() == GType_PN) ? 0 : zoneNum;
 	VgaPointersEntry *vpe = &_vgaBufferPointers[zone];
-	if (vpe->vgaFile1 == NULL || vpe->vgaFile2 == NULL)
+	if (vpe->vgaFile1 == nullptr || vpe->vgaFile2 == nullptr)
 		return;
 
 	const byte *vga1 = vpe->vgaFile1;

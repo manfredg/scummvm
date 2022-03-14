@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/debug.h"
 #include "common/endian.h"
+#include "common/memstream.h"
 #include "common/textconsole.h"
 
 #include "cine/cine.h"
@@ -71,6 +71,7 @@ static Common::String fixVolCnfFileName(const uint8 *src, uint len) {
 	char tmp[14];
 	memcpy(tmp, src, len);
 	tmp[len] = 0;
+	Common::String result;
 
 	if (len == 11) {
 		// Filenames of length 11 have no separation of the extension and the basename
@@ -93,14 +94,15 @@ static Common::String fixVolCnfFileName(const uint8 *src, uint len) {
 		tmp[8] = 0; // Force separation of extension and basename
 		Common::String basename(tmp);
 		if (extension.empty()) {
-			return basename;
+			result = basename;
 		} else {
-			return basename + "." + extension;
+			result = basename + "." + extension;
 		}
 	} else {
 		// Filenames of length 13 are okay as they are, no need for conversion
-		return Common::String(tmp);
+		result = Common::String(tmp);
 	}
+	return result;
 }
 
 void CineEngine::readVolCnf() {
@@ -127,14 +129,19 @@ void CineEngine::readVolCnf() {
 		error("Error while unpacking 'vol.cnf' data");
 	}
 	delete[] packedBuf;
+	Common::Array<VolumeResource> volumeResourceFiles;
 	uint8 *p = buf;
-	int resourceFilesCount = READ_BE_UINT16(p); p += 2;
-	int entrySize = READ_BE_UINT16(p); p += 2;
+	int resourceFilesCount = READ_BE_INT16(p); p += 2;
+	int entrySize = READ_BE_INT16(p); p += 2;
 	for (int i = 0; i < resourceFilesCount; ++i) {
-		char volumeResourceFile[9];
-		memcpy(volumeResourceFile, p, 8);
-		volumeResourceFile[8] = 0;
-		_volumeResourceFiles.push_back(volumeResourceFile);
+		Common::MemoryReadStream readS(p, 0x14);
+		VolumeResource res;
+		readS.read(res.name, sizeof(res.name));
+		res.name[sizeof(res.name) - 1] = 0;
+		res.pNamesList = readS.readUint32BE();
+		res.diskNum = readS.readSint16BE();
+		res.sizeOfNamesList = readS.readUint32BE();
+		volumeResourceFiles.push_back(res);
 		p += entrySize;
 	}
 
@@ -170,11 +177,15 @@ void CineEngine::readVolCnf() {
 
 	p = buf + 4 + resourceFilesCount * entrySize;
 	for (int i = 0; i < resourceFilesCount; ++i) {
+		const VolumeResource& volRes = volumeResourceFiles[i];
 		int count = READ_BE_UINT32(p) / fileNameLength; p += 4;
 		while (count--) {
 			Common::String volumeEntryName = fixVolCnfFileName(p, fileNameLength);
-			_volumeEntriesMap.setVal(volumeEntryName, _volumeResourceFiles[i].c_str());
-			debugC(5, kCineDebugPart, "Added volume entry name '%s' resource file '%s'", volumeEntryName.c_str(), _volumeResourceFiles[i].c_str());
+			if (!_volumeEntriesMap.contains(volumeEntryName)) {
+				_volumeEntriesMap.setVal(volumeEntryName, Common::Array<VolumeResource>());
+			}
+			_volumeEntriesMap.find(volumeEntryName)->_value.push_back(volRes);
+			debugC(5, kCineDebugPart, "Added volume entry name '%s', disk number %d, resource file '%s'", volumeEntryName.c_str(), volRes.diskNum, volRes.name);
 			p += fileNameLength;
 		}
 	}
@@ -183,21 +194,46 @@ void CineEngine::readVolCnf() {
 }
 
 int16 findFileInBundle(const char *fileName) {
+	// HACK: Fix underwater background palette by reading it from correct file
+	if (hacksEnabled && g_cine->getGameType() == Cine::GType_OS &&
+		scumm_stricmp(currentPrcName, "SOUSMAR2.PRC") == 0 &&
+		g_cine->_volumeEntriesMap.contains(fileName)) {
+		Common::Array<VolumeResource> volRes = g_cine->_volumeEntriesMap.find(fileName)->_value;
+		if (volRes.size() == 2 && scumm_stricmp(volRes[0].name, "rsc12") == 0 &&
+			scumm_stricmp(volRes[1].name, "rsc08") == 0 &&
+			(scumm_stricmp(fileName, "39.PI1") == 0 ||
+			scumm_stricmp(fileName, "SP39_11.SET") == 0 ||
+			scumm_stricmp(fileName, "SP39_12.SET") == 0)) {
+			debugC(5, kCineDebugPart, "Reading underwater background and fish from file rsc12 for the original (broken) palette.");
+			loadPart("rsc08");
+		}
+	}
+
 	if (g_cine->getGameType() == Cine::GType_OS) {
-		// look first in currently loaded resource file
 		for (uint i = 0; i < g_cine->_partBuffer.size(); i++) {
 			if (!scumm_stricmp(fileName, g_cine->_partBuffer[i].partName)) {
 				return i;
 			}
 		}
-		// not found, open the required resource file
-		StringPtrHashMap::const_iterator it = g_cine->_volumeEntriesMap.find(fileName);
+
+		StringToVolumeResourceArrayHashMap::const_iterator it = g_cine->_volumeEntriesMap.find(fileName);
 		if (it == g_cine->_volumeEntriesMap.end()) {
 			warning("Unable to find part file for filename '%s'", fileName);
 			return -1;
 		}
-		const char *part = (*it)._value;
-		loadPart(part);
+
+		// Prefer current disk's resource file
+		Common::Array<VolumeResource> volRes = it->_value;
+		VolumeResource match = volRes[0];
+		for (uint i = 0; i < volRes.size(); i++) {
+			if (volRes[i].diskNum == currentDisk) {
+				match = volRes[i];
+				break;
+			}
+		}
+
+		checkDataDisk(match.diskNum);
+		loadPart(match.name);
 	}
 	for (uint i = 0; i < g_cine->_partBuffer.size(); i++) {
 		if (!scumm_stricmp(fileName, g_cine->_partBuffer[i].partName)) {
@@ -231,16 +267,25 @@ byte *readBundleFile(int16 foundFileIdx, uint32 *size) {
 	}
 
 	// Set the size variable if a pointer to it has been given
-	if (size != NULL) {
+	if (size != nullptr) {
 		*size = g_cine->_partBuffer[foundFileIdx].unpackedSize;
 	}
 
 	return dataPtr;
 }
 
-byte *readBundleSoundFile(const char *entryName, uint32 *size) {
+byte *readBundleSoundFileOS(const char *entryName, uint32 *size) {
+	int16 index = findFileInBundle(entryName);
+	if (index == -1) {
+		return nullptr;
+	}
+
+	return readBundleFile(index, size);
+}
+
+byte *readBundleSoundFileFW(const char *entryName, uint32 *size) {
 	int16 index;
-	byte *data = 0;
+	byte *data = nullptr;
 	char previousPartName[15] = "";
 
 	if (g_cine->getGameType() == Cine::GType_FW) {
@@ -258,6 +303,14 @@ byte *readBundleSoundFile(const char *entryName, uint32 *size) {
 		loadPart(previousPartName);
 	}
 	return data;
+}
+
+byte *readBundleSoundFile(const char *entryName, uint32 *size) {
+	if (g_cine->getGameType() == Cine::GType_FW) {
+		return readBundleSoundFileFW(entryName, size);
+	} else {
+		return readBundleSoundFileOS(entryName, size);
+	}
 }
 
 /** Rotate byte value to the left by n bits */
@@ -292,7 +345,10 @@ byte *readFile(const char *filename, bool crypted) {
 	return dataPtr;
 }
 
-void checkDataDisk(int16 param) {
+void checkDataDisk(int16 diskNum) {
+	if (diskNum != -1) {
+		currentDisk = diskNum;
+	}
 }
 
 void dumpBundle(const char *fileName) {

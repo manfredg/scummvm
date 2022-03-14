@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,11 +59,11 @@ int32 getLineHeight(int16 charCount, const FontEntry *fontPtr, const uint8 *font
 int32 getTextLineCount(int32 rightBorder_X, int32 wordSpacingWidth, const FontEntry *fontData,
 					   const char *textString);
 void renderWord(uint8 *fontPtr_Data, uint8 *outBufferPtr,
-                int32 drawPosPixel_X, int32 heightOff, int32 height, int32 param4,
-                int32 stringRenderBufferSize, int32 width, int32 charWidth);
+				int32 drawPosPixel_X, int32 heightOff, int32 height, int32 param4,
+				int32 stringRenderBufferSize, int32 width, int32 charWidth);
 gfxEntryStruct *renderText(int inRightBorder_X, const char *string);
 void drawString(int32 x, int32 y, const char *string, uint8 * buffer, uint8 fontColor,
-                int32 inRightBorder_X);
+				int32 inRightBorder_X);
 void freeGfx(gfxEntryStruct *pGfx);
 
 } // End of namespace Cruise

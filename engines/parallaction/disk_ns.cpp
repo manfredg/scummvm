@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -74,10 +73,10 @@ public:
 	NSArchive(Common::SeekableReadStream *stream, Common::Platform platform, uint32 features);
 	~NSArchive() override;
 
-	Common::SeekableReadStream *createReadStreamForMember(const Common::String &name) const override;
-	bool hasFile(const Common::String &name) const override;
+	Common::SeekableReadStream *createReadStreamForMember(const Common::Path &path) const override;
+	bool hasFile(const Common::Path &path) const override;
 	int listMembers(Common::ArchiveMemberList &list) const override;
-	const Common::ArchiveMemberPtr getMember(const Common::String &name) const override;
+	const Common::ArchiveMemberPtr getMember(const Common::Path &path) const override;
 };
 
 
@@ -123,14 +122,15 @@ uint32 NSArchive::lookup(const char *name) const {
 	return i;
 }
 
-Common::SeekableReadStream *NSArchive::createReadStreamForMember(const Common::String &name) const {
+Common::SeekableReadStream *NSArchive::createReadStreamForMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	debugC(3, kDebugDisk, "NSArchive::createReadStreamForMember(%s)", name.c_str());
 
 	if (name.empty())
-		return 0;
+		return nullptr;
 
 	uint32 index = lookup(name.c_str());
-	if (index == _numFiles) return 0;
+	if (index == _numFiles) return nullptr;
 
 	debugC(9, kDebugDisk, "NSArchive::createReadStreamForMember: '%s' found in slot %i", name.c_str(), index);
 
@@ -139,7 +139,8 @@ Common::SeekableReadStream *NSArchive::createReadStreamForMember(const Common::S
 	return new Common::SeekableSubReadStream(_stream, offset, endOffset, DisposeAfterUse::NO);
 }
 
-bool NSArchive::hasFile(const Common::String &name) const {
+bool NSArchive::hasFile(const Common::Path &path) const {
+	Common::String name = path.toString();
 	if (name.empty())
 		return false;
 	return lookup(name.c_str()) != _numFiles;
@@ -152,10 +153,11 @@ int NSArchive::listMembers(Common::ArchiveMemberList &list) const {
 	return _numFiles;
 }
 
-const Common::ArchiveMemberPtr NSArchive::getMember(const Common::String &name) const {
+const Common::ArchiveMemberPtr NSArchive::getMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	uint32 index = lookup(name.c_str());
 
-	const char *item = 0;
+	const char *item = nullptr;
 	if (index < _numFiles) {
 		item = _archiveDir[index];
 	}
@@ -238,7 +240,7 @@ void Disk_ns::setLanguage(uint16 language) {
 #pragma mark -
 
 
-DosDisk_ns::DosDisk_ns(Parallaction* vm) : Disk_ns(vm), _gfx(NULL) {
+DosDisk_ns::DosDisk_ns(Parallaction* vm) : Disk_ns(vm), _gfx(nullptr) {
 
 }
 
@@ -300,9 +302,8 @@ Cnv *Disk_ns::makeCnv(Common::SeekableReadStream *stream) {
 	assert((width & 7) == 0);
 	uint16 height = stream->readByte();
 	uint32 decsize = numFrames * width * height;
-	byte *data = new byte[decsize];
+	byte *data = new byte[decsize]();
 	assert(data);
-	memset(data, 0, decsize);
 
 	decodeCnv(data, numFrames, width, height, stream);
 
@@ -501,7 +502,7 @@ void DosDisk_ns::loadScenery(BackgroundInfo& info, const char *name, const char 
 	// load bitmap
 	loadBackground(info, filename);
 
-	if (mask == 0) {
+	if (mask == nullptr) {
 		return;
 	}
 
@@ -535,7 +536,7 @@ Common::SeekableReadStream* DosDisk_ns::loadMusic(const char* name) {
 
 
 Common::SeekableReadStream* DosDisk_ns::loadSound(const char* name) {
-	return 0;
+	return nullptr;
 }
 
 
@@ -620,7 +621,7 @@ private:
 			else {
 				PP_READ_BITS(offbits, offset);
 			}
-			if (&out[offset] >= dest_end) return 0; /* match_overflow */
+			if (&out[offset] > dest_end) return 0; /* match_overflow */
 			while (todo--) { x = out[offset]; PP_BYTE_OUT(x); }
 		}
 
@@ -688,11 +689,11 @@ public:
 		if (_dispose) delete _stream;
 	}
 
-	int32 size() const override {
+	int64 size() const override {
 		return _stream->size();
 	}
 
-	int32 pos() const override {
+	int64 pos() const override {
 		return _stream->pos();
 	}
 
@@ -700,7 +701,7 @@ public:
 		return _stream->eos();
 	}
 
-	bool seek(int32 offs, int whence = SEEK_SET) override {
+	bool seek(int64 offs, int whence = SEEK_SET) override {
 		return _stream->seek(offs, whence);
 	}
 
@@ -803,7 +804,7 @@ void AmigaDisk_ns::patchFrame(byte *dst, byte *dlta, uint16 bytesPerPlane, uint1
 void AmigaDisk_ns::unpackBitmap(byte *dst, byte *src, uint16 numFrames, uint16 bytesPerPlane, uint16 height) {
 
 	byte *baseFrame = src;
-	byte *tempBuffer = 0;
+	byte *tempBuffer = nullptr;
 
 	uint16 planeSize = bytesPerPlane * height;
 
@@ -812,7 +813,7 @@ void AmigaDisk_ns::unpackBitmap(byte *dst, byte *src, uint16 numFrames, uint16 b
 
 			uint size = READ_BE_UINT32(src + 4);
 
-			if (tempBuffer == 0)
+			if (tempBuffer == nullptr)
 				tempBuffer = (byte *)malloc(planeSize * NUM_PLANES);
 
 			memcpy(tempBuffer, baseFrame, planeSize * NUM_PLANES);
@@ -883,7 +884,7 @@ Common::SeekableReadStream *AmigaDisk_ns::tryOpenFile(const char* name) {
 		return ret;
 	}
 
-	return 0;
+	return nullptr;
 }
 
 
@@ -1010,7 +1011,7 @@ void AmigaDisk_ns::loadScenery(BackgroundInfo& info, const char* background, con
 
 	loadBackground(info, filename);
 
-	if (mask == 0) {
+	if (mask == nullptr) {
 		loadMask_internal(info, background);
 		loadPath_internal(info, background);
 	} else {

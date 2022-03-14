@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -119,7 +118,7 @@ private:
 
 	void drawFrame(const Common::Rect &rect, const int16 size, const uint8 color, const bool doScaling);
 
-	void drawChar(const char charIndex);
+	void drawChar(const uint16 charIndex);
 	void drawText(const uint index, uint length);
 
 	/**
@@ -246,7 +245,7 @@ public:
 	/**
 	 * Gets the width of a character.
 	 */
-	uint16 getCharWidth(const char charIndex, const bool doScaling) const;
+	uint16 getCharWidth(const uint16 charIndex, const bool doScaling) const;
 
 	/**
 	 * Retrieves the width and height of a block of text.
@@ -282,6 +281,9 @@ public:
 	 * line. Originally FontMgr::DrawOneLine and FontMgr::UpOneLine.
 	 */
 	void scrollLine(const Common::String &textLine, int numLines, uint8 color, TextAlign align, GuiResourceId fontId, ScrollDirection dir);
+
+	bool SwitchToFont1001OnKorean(const char *text);
+
 };
 
 } // End of namespace Sci

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -891,10 +890,10 @@ bool RMCharacter::findPath(short source, short destination) {
 	bool error = false;
 	RMBoxLoc *cur;
 
-	g_system->lockMutex(_csMove);
+	_csMove.lock();
 
 	if (source == -1 || destination == -1) {
-		g_system->unlockMutex(_csMove);
+		_csMove.unlock();
 		return 0;
 	}
 
@@ -973,7 +972,7 @@ bool RMCharacter::findPath(short source, short destination) {
 		_pathLength++;
 	}
 
-	g_system->unlockMutex(_csMove);
+	_csMove.unlock();
 
 	return !error;
 }
@@ -1327,7 +1326,7 @@ void RMCharacter::doFrame(CORO_PARAM, RMGfxTargetBuffer *bigBuf, int loc) {
 	_bEndOfPath = false;
 	_bDrawNow = (_curLocation == loc);
 
-	g_system->lockMutex(_csMove);
+	_csMove.lock();
 
 	// If we're walking..
 	if (_status != STAND) {
@@ -1422,7 +1421,7 @@ void RMCharacter::doFrame(CORO_PARAM, RMGfxTargetBuffer *bigBuf, int loc) {
 		}
 	}
 
-	g_system->unlockMutex(_csMove);
+	_csMove.unlock();
 
 	// Invoke the DoFrame of the item
 	RMItem::doFrame(bigBuf);
@@ -1616,7 +1615,6 @@ void RMCharacter::removeThis(CORO_PARAM, bool &result) {
 }
 
 RMCharacter::RMCharacter() {
-	_csMove = g_system->createMutex();
 	_hEndOfPath = CoroScheduler.createEvent(false, false);
 	_minPath = 0;
 	_curSpeed = 3;
@@ -1644,7 +1642,6 @@ RMCharacter::RMCharacter() {
 }
 
 RMCharacter::~RMCharacter() {
-	g_system->deleteMutex(_csMove);
 	CoroScheduler.closeEvent(_hEndOfPath);
 }
 

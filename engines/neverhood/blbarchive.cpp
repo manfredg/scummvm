@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,7 +47,7 @@ uint32 SafeMutexedSeekableSubReadStream::read(void *dataPtr, uint32 dataSize) {
 	return Common::SafeSeekableSubReadStream::read(dataPtr, dataSize);
 }
 
-BlbArchive::BlbArchive() : _extData(NULL) {
+BlbArchive::BlbArchive() : _extData(nullptr) {
 }
 
 BlbArchive::~BlbArchive() {
@@ -91,7 +90,7 @@ void BlbArchive::open(const Common::String &filename) {
 		BlbArchiveEntry &entry = _entries[i];
 		entry.type = _fd.readByte();
 		entry.comprType = _fd.readByte();
-		entry.extData = NULL;
+		entry.extData = nullptr;
 		extDataOffsets[i] = _fd.readUint16LE();
 		entry.timeStamp = _fd.readUint32LE();
 		entry.offset = _fd.readUint32LE();
@@ -107,7 +106,7 @@ void BlbArchive::open(const Common::String &filename) {
 		_extData = new byte[header.extDataSize];
 		_fd.read(_extData, header.extDataSize);
 		for (uint i = 0; i < header.fileCount; i++)
-			_entries[i].extData = extDataOffsets[i] > 0 ? _extData + extDataOffsets[i] - 1 : NULL;
+			_entries[i].extData = extDataOffsets[i] > 0 ? _extData + extDataOffsets[i] - 1 : nullptr;
 	}
 
 	delete[] extDataOffsets;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "graphics/thumbnail.h"
 #include "graphics/scaler.h"
-#include "graphics/colormasks.h"
+#include "graphics/pixelformat.h"
 #include "common/endian.h"
 #include "common/algorithm.h"
 #include "common/system.h"
@@ -183,14 +182,14 @@ bool loadThumbnail(Common::SeekableReadStream &in, Graphics::Surface *&thumbnail
 		switch (header.format.bytesPerPixel) {
 		case 2: {
 			uint16 *pixels = (uint16 *)thumbnail->getBasePtr(0, y);
-			for (uint x = 0; x < thumbnail->w; ++x) {
+			for (int x = 0; x < thumbnail->w; ++x) {
 				*pixels++ = in.readUint16BE();
 			}
 			} break;
 
 		case 4: {
 			uint32 *pixels = (uint32 *)thumbnail->getBasePtr(0, y);
-			for (uint x = 0; x < thumbnail->w; ++x) {
+			for (int x = 0; x < thumbnail->w; ++x) {
 				*pixels++ = in.readUint32BE();
 			}
 			} break;
@@ -247,18 +246,18 @@ bool saveThumbnail(Common::WriteStream &out, const Graphics::Surface &thumb) {
 	out.writeByte(thumb.format.aShift);
 
 	// Serialize the pixel data
-	for (uint y = 0; y < thumb.h; ++y) {
+	for (int y = 0; y < thumb.h; ++y) {
 		switch (thumb.format.bytesPerPixel) {
 		case 2: {
 			const uint16 *pixels = (const uint16 *)thumb.getBasePtr(0, y);
-			for (uint x = 0; x < thumb.w; ++x) {
+			for (int x = 0; x < thumb.w; ++x) {
 				out.writeUint16BE(*pixels++);
 			}
 			} break;
 
 		case 4: {
 			const uint32 *pixels = (const uint32 *)thumb.getBasePtr(0, y);
-			for (uint x = 0; x < thumb.w; ++x) {
+			for (int x = 0; x < thumb.w; ++x) {
 				out.writeUint32BE(*pixels++);
 			}
 			} break;
@@ -280,7 +279,7 @@ int *scaleLine(int size, int srcSize) {
 	int scale = 100 * size / srcSize;
 	assert(scale > 0);
 	int *v = new int[size];
-	Common::fill(v, &v[size], 0);
+	Common::fill(v, &v[size - 1], 0);
 
 	int distCtr = 0;
 	int *destP = v;

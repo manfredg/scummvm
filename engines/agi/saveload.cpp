@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -85,11 +84,20 @@ int AgiEngine::saveGame(const Common::String &fileName, const Common::String &de
 
 	out->writeUint32BE(AGIflag);
 
+	const char *descriptionStringC;
+	Common::U32String hebDesc;
+	if (_game._vm->getLanguage() != Common::HE_ISR) {
+		descriptionStringC = descriptionString.c_str();
+	} else {
+		hebDesc = descriptionString.substr(0, SAVEDGAME_DESCRIPTION_LEN / 2 - 3).decode(Common::kWindows1255);
+		descriptionStringC = hebDesc.encode(Common::kUtf8).c_str();
+	}
+
 	// Write description of saved game, limited to SAVEDGAME_DESCRIPTION_LEN characters + terminating NUL
 	char description[SAVEDGAME_DESCRIPTION_LEN + 1];
 
 	memset(description, 0, sizeof(description));
-	strncpy(description, descriptionString.c_str(), SAVEDGAME_DESCRIPTION_LEN);
+	Common::strlcpy(description, descriptionStringC, SAVEDGAME_DESCRIPTION_LEN);
 	assert(SAVEDGAME_DESCRIPTION_LEN + 1 == 31); // safety
 	out->write(description, 31);
 
@@ -123,7 +131,7 @@ int AgiEngine::saveGame(const Common::String &fileName, const Common::String &de
 	debugC(5, kDebugLevelMain | kDebugLevelSavegame, "Writing game id (%s, %s)", gameIDstring, _game.id);
 
 	const char *tmp = getGameMD5();
-	// As reported in bug report #2849084 "AGI: Crash when saving fallback-matched game"
+	// As reported in bug report #4582 "AGI: Crash when saving fallback-matched game"
 	// getGameMD5 will return NULL for fallback matched games. Since there is also no
 	// filename available we can not compute any MD5 here either. Thus we will just set
 	// the MD5 sum in the savegame to all zero, when getGameMD5 returns NULL.
@@ -147,7 +155,7 @@ int AgiEngine::saveGame(const Common::String &fileName, const Common::String &de
 	for (i = 0; i < MAX_VARS; i++)
 		out->writeByte(_game.vars[i]);
 
-	out->writeSint16BE((int8)_game.horizon);
+	out->writeSint16BE((int16)_game.horizon);
 	out->writeSint16BE((int16)_text->statusRow_Get());
 	out->writeSint16BE((int16)_text->promptRow_Get());
 	out->writeSint16BE((int16)_text->getWindowRowMin());
@@ -540,7 +548,7 @@ int AgiEngine::loadGame(const Common::String &fileName, bool checkId) {
 
 	// Those are not serialized
 	for (i = 0; i < MAX_CONTROLLERS; i++) {
-		_game.controllerOccured[i] = false;
+		_game.controllerOccurred[i] = false;
 	}
 
 	if (saveVersion >= 7) {
@@ -744,8 +752,7 @@ int AgiEngine::loadGame(const Common::String &fileName, bool checkId) {
 	// copy everything over (we should probably only copy over the remaining parts of the screen w/o play screen
 	_gfx->copyDisplayToScreen();
 
-	// Sync volume settings from ScummVM system settings, so that VM volume variable is overwritten
-	setVolumeViaSystemSetting();
+	applyVolumeToMixer();
 
 	return errOK;
 }
@@ -789,7 +796,7 @@ int AgiEngine::doSave(int slot, const Common::String &desc) {
 	debugC(8, kDebugLevelMain | kDebugLevelResources, "file is [%s]", fileName.c_str());
 
 	// Make sure all graphics was blitted to screen. This fixes bug
-	// #2960567: "AGI: Ego partly erased in Load/Save thumbnails"
+	// #4790: "AGI: Ego partly erased in Load/Save thumbnails"
 	_gfx->updateScreen();
 //	_gfx->doUpdate();
 
@@ -927,6 +934,10 @@ bool AgiEngine::getSavegameInformation(int16 slotId, Common::String &saveDescrip
 		saveDescription += saveGameDescription;
 		saveIsValid = true;
 
+		if (_game._vm->getLanguage() == Common::HE_ISR) {
+			saveDescription = saveDescription.decode(Common::kUtf8).encode(Common::kWindows1255);
+		}
+
 		delete in;
 		return true;
 	}
@@ -964,7 +975,7 @@ bool AgiEngine::loadGameDialog() {
 // If we fail, return false, so that the regular saved game dialog is called
 // Original AGI was limited to 12 saves, we are effectively limited to 100 saves at the moment.
 //
-// btw. this also means that entering an existant name in Mixed Up Mother Goose will effectively overwrite
+// btw. this also means that entering an existent name in Mixed Up Mother Goose will effectively overwrite
 // that saved game. This is also what original AGI did.
 bool AgiEngine::saveGameAutomatic() {
 	int16 automaticSaveGameSlotId = 0;
@@ -1005,7 +1016,7 @@ bool AgiEngine::saveGameDialog() {
 
 
 void AgiEngine::recordImageStackCall(uint8 type, int16 p1, int16 p2, int16 p3,
-                                     int16 p4, int16 p5, int16 p6, int16 p7) {
+									 int16 p4, int16 p5, int16 p6, int16 p7) {
 	ImageStackElement pnew;
 
 	pnew.type = type;
@@ -1022,7 +1033,7 @@ void AgiEngine::recordImageStackCall(uint8 type, int16 p1, int16 p2, int16 p3,
 }
 
 void AgiEngine::replayImageStackCall(uint8 type, int16 p1, int16 p2, int16 p3,
-                                     int16 p4, int16 p5, int16 p6, int16 p7) {
+									 int16 p4, int16 p5, int16 p6, int16 p7) {
 	switch (type) {
 	case ADD_PIC:
 		debugC(8, kDebugLevelMain, "--- decoding picture %d ---", p1);

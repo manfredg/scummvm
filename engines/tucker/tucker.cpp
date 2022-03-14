@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,7 +78,7 @@ TuckerEngine::~TuckerEngine() {
 
 bool TuckerEngine::hasFeature(EngineFeature f) const {
 	switch (f) {
-	case kSupportsRTL:
+	case kSupportsReturnToLauncher:
 	case kSupportsLoadingDuringRuntime:
 	case kSupportsSavingDuringRuntime:
 		return true;
@@ -1316,7 +1315,7 @@ void TuckerEngine::updateData3() {
 				a->_drawFlag = false;
 			}
 			if (_location == kLocationStoreRoom && i == 0) {
-				// workaround bug #2872385: update fish animation sequence for correct
+				// workaround bug #4642: update fish animation sequence for correct
 				// position in aquarium.
 				if (a->_animInitCounter == 505 && a->_animCurrentCounter == 513) {
 					a->_animCurrentCounter = 525;
@@ -3485,7 +3484,7 @@ int TuckerEngine::executeTableInstruction() {
 		//   Fixed: 61dw buw,148,125,wsm,buw,148,132,wsm,mof,pan,01,wat,050[...]
 		//                                               ^^^^^^^^^^
 		// To work around the issue in the problematic versions we inject these two
-		// instructions after the first occurence of the 'wsm' instruction (which
+		// instructions after the first occurrence of the 'wsm' instruction (which
 		// proves good enough).
 		if (_location == kLocationStoreRoom && _nextAction == 61) {
 			setCursorState(kCursorStateDisabledHidden);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,7 @@ TextBufferWindow::TextBufferWindow(Windows *windows, uint rock) : TextWindow(win
 		_lastSeen(0), _scrollPos(0), _scrollMax(0), _scrollBack(SCROLLBACK), _width(-1), _height(-1),
 		_inBuf(nullptr), _lineTerminators(nullptr), _echoLineInput(true), _ladjw(0), _radjw(0),
 		_ladjn(0), _radjn(0), _numChars(0), _chars(nullptr), _attrs(nullptr), _spaced(0), _dashed(0),
-		_copyBuf(0), _copyPos(0) {
+		_copyBuf(nullptr), _copyPos(0) {
 	_type = wintype_TextBuffer;
 	_history.resize(HISTORYLEN);
 
@@ -50,9 +49,15 @@ TextBufferWindow::TextBufferWindow(Windows *windows, uint rock) : TextWindow(win
 	_attrs = _lines[0]._attrs;
 
 	Common::copy(&g_conf->_tStyles[0], &g_conf->_tStyles[style_NUMSTYLES], _styles);
+
+	if (g_conf->_speak)
+		gli_initialize_tts();
 }
 
 TextBufferWindow::~TextBufferWindow() {
+	if (g_conf->_speak)
+		gli_free_tts();
+
 	if (_inBuf) {
 		if (g_vm->gli_unregister_arr)
 			(*g_vm->gli_unregister_arr)(_inBuf, _inMax, "&+#!Cn", _inArrayRock);
@@ -269,12 +274,12 @@ bool TextBufferWindow::putPicture(Picture *pic, uint align, uint linkval) {
 	return true;
 }
 
-uint TextBufferWindow::drawPicture(uint image, uint align, uint scaled, uint width, uint height) {
+uint TextBufferWindow::drawPicture(const Common::String &name, uint align, uint scaled, uint width, uint height) {
 	Picture *pic;
 	uint hyperlink;
 	int error;
 
-	pic = g_vm->_pictures->load(image);
+	pic = g_vm->_pictures->load(name);
 
 	if (!pic)
 		return false;
@@ -735,7 +740,7 @@ void TextBufferWindow::cancelLineEvent(Event *ev) {
 	int len;
 	void *inbuf;
 	int inmax;
-	int unicode = _lineRequestUni;
+	bool unicode = _lineRequestUni;
 	Event dummyEv;
 
 	if (!ev)
@@ -815,6 +820,8 @@ void TextBufferWindow::redraw() {
 	bool selBuf;
 	int tx, tsc, tsw, lsc, rsc;
 	Screen &screen = *g_vm->_screen;
+
+	gli_tts_flush();
 
 	Window::redraw();
 
@@ -1296,7 +1303,7 @@ void TextBufferWindow::acceptReadLine(uint32 arg) {
 		if (_historyPos < 0)
 			_historyPos += HISTORYLEN;
 		s = _history[_historyPos];
-		putTextUni(s.c_str(), s.size(), _inFence, _numChars - _inFence);
+		putTextUni(s.u32_str(), s.size(), _inFence, _numChars - _inFence);
 		break;
 
 	case keycode_Down:
@@ -1306,7 +1313,7 @@ void TextBufferWindow::acceptReadLine(uint32 arg) {
 		if (_historyPos >= HISTORYLEN)
 			_historyPos -= HISTORYLEN;
 		s = _history[_historyPos];
-		putTextUni(s.c_str(), s.size(), _inFence, _numChars - _inFence);
+		putTextUni(s.u32_str(), s.size(), _inFence, _numChars - _inFence);
 		break;
 
 	// Cursor movement keys, during line input.
@@ -1391,7 +1398,7 @@ void TextBufferWindow::acceptLine(uint32 keycode) {
 	Common::U32String s, o;
 	int inmax;
 	gidispatch_rock_t inarrayrock;
-	int unicode = _lineRequestUni;
+	bool unicode = _lineRequestUni;
 
 	if (!_inBuf)
 		return;
@@ -1566,7 +1573,7 @@ void TextBufferWindow::scrollOneLine(bool forced) {
 	_lines[0]._rPic = nullptr;
 	_lines[0]._lHyper = 0;
 	_lines[0]._rHyper = 0;
-	
+
 	Common::fill(_chars, _chars + TBLINELEN, ' ');
 	Attributes *a = _attrs;
 	for (int i = 0; i < TBLINELEN; ++i, ++a)
@@ -1592,14 +1599,14 @@ void TextBufferWindow::scrollResize() {
 		_lines[i]._repaint = false;
 		_lines[i]._lm = 0;
 		_lines[i]._rm = 0;
-		_lines[i]._lPic = 0;
-		_lines[i]._rPic = 0;
+		_lines[i]._lPic = nullptr;
+		_lines[i]._rPic = nullptr;
 		_lines[i]._lHyper = 0;
 		_lines[i]._rHyper = 0;
 		_lines[i]._len = 0;
 		_lines[i]._newLine = 0;
-		memset(_lines[i]._chars, ' ', sizeof _lines[i]._chars);
-		memset(_lines[i]._attrs, 0, sizeof _lines[i]._attrs);
+		*(_lines[i]._chars) = 0;
+		_lines[i]._attrs->clear();
 	}
 
 	_scrollBack += SCROLLBACK;

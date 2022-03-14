@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,6 +56,8 @@
 #include "common/str.h"
 #include "common/keyboard.h"
 #include "common/debug.h"
+
+#include "graphics/scaler.h"
 
 namespace BladeRunner {
 
@@ -586,7 +587,14 @@ void KIA::playPhotograph(int photographId) {
 }
 
 void KIA::playImage(const Graphics::Surface &image) {
-	_playerImage.copyFrom(image);
+	if (image.w != 80) {
+		Graphics::Surface *tmp = image.scale(80, 60);
+		_playerImage.copyFrom(*tmp);
+		tmp->free();
+		delete tmp;
+	} else {
+		_playerImage.copyFrom(image);
+	}
 	_playerImage.convertToInPlace(screenPixelFormat());
 }
 
@@ -719,7 +727,7 @@ void KIA::loopEnded(void *callbackData, int frame, int loopId) {
 }
 
 void KIA::init() {
-	_thumbnail = _vm->generateThumbnail();
+	createThumbnailFromScreen(&_thumbnail);
 
 	if (!_vm->openArchive("MODE.MIX")) {
 		return;
@@ -1422,6 +1430,8 @@ void KIA::playObjectDescription() {
 	case kModelAnimationDektorasCard:
 		playActorDialogue(kActorMcCoy, 8835);
 		break;
+	case kModelAnimationLetter:
+		// fall through
 	case kModelAnimationGrigoriansNote:
 		playActorDialogue(kActorMcCoy, 8840);
 		break;

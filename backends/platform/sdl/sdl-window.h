@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 
 #include "backends/platform/sdl/sdl-sys.h"
 
+#include "common/rect.h"
 #include "common/str.h"
 
 class SdlWindow {
@@ -45,10 +45,20 @@ public:
 	void setWindowCaption(const Common::String &caption);
 
 	/**
-	 * Toggle mouse grab state. This decides whether the cursor can leave the
-	 * window or not.
+	 * Grab or ungrab the mouse cursor. This decides whether the cursor can leave
+	 * the window or not.
 	 */
-	void toggleMouseGrab();
+	void grabMouse(bool grab);
+
+	/**
+	 * Specify the area of the window to confine the mouse cursor.
+	 */
+	void setMouseRect(const Common::Rect &rect);
+
+	/**
+	 * Lock or unlock the mouse cursor within the window.
+	 */
+	bool lockMouse(bool lock);
 
 	/**
 	 * Check whether the application has mouse focus.
@@ -76,6 +86,28 @@ public:
 	 */
 	bool getSDLWMInformation(SDL_SysWMinfo *info) const;
 
+	/*
+	 * Retrieve the current desktop resolution.
+	 */
+	Common::Rect getDesktopResolution();
+
+	/*
+	 * Get the scaling between the SDL Window size and the SDL
+	 * drawable area size. On some system, when HiDPI support is
+	 * enabled, those two sizes are different.
+	 *
+	 * To convert from window coordinate to drawable area coordinate,
+	 * multiple the coordinate by this scaling factor. To convert
+	 * from drawable area coordinate to window coordinate, divide the
+	 * coordinate by this scaling factor.
+	 */
+	float getSdlDpiScalingFactor() const;
+
+	/**
+	 * Returns the scaling mode based on the display DPI
+	 */
+	virtual float getDpiScalingFactor() const;
+
 	bool mouseIsGrabbed() const {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 		if (_window) {
@@ -85,8 +117,21 @@ public:
 		return _inputGrabState;
 	}
 
+	bool mouseIsLocked() const {
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+		return SDL_GetRelativeMouseMode() == SDL_TRUE;
+#else
+		return _inputLockState;
+#endif
+	}
+
 private:
-	bool _inputGrabState;
+	Common::Rect _desktopRes;
+	bool _inputGrabState, _inputLockState;
+	SDL_Rect grabRect;
+
+protected:
+	void getDisplayDpi(float *dpi, float *defaultDpi) const;
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 public:
@@ -94,6 +139,11 @@ public:
 	 * @return The window ScummVM has setup with SDL.
 	 */
 	SDL_Window *getSDLWindow() const { return _window; }
+
+	/**
+	 * @return The display containing the ScummVM window.
+	 */
+	int getDisplayIndex() const;
 
 	/**
 	 * Creates or updates the SDL window.

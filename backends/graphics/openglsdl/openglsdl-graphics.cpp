@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,15 +31,15 @@
 #include "common/translation.h"
 #endif
 
-OpenGLSdlGraphicsManager::OpenGLSdlGraphicsManager(uint desktopWidth, uint desktopHeight, SdlEventSource *eventSource, SdlWindow *window)
-    : SdlGraphicsManager(eventSource, window), _lastRequestedHeight(0),
+OpenGLSdlGraphicsManager::OpenGLSdlGraphicsManager(SdlEventSource *eventSource, SdlWindow *window)
+	: SdlGraphicsManager(eventSource, window), _lastRequestedHeight(0),
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-      _glContext(),
+	  _glContext(),
 #else
-      _lastVideoModeLoad(0),
+	  _lastVideoModeLoad(0),
 #endif
-      _graphicsScale(2), _ignoreLoadVideoMode(false), _gotResize(false), _wantsFullScreen(false), _ignoreResizeEvents(0),
-      _desiredFullscreenWidth(0), _desiredFullscreenHeight(0) {
+	  _graphicsScale(2), _ignoreLoadVideoMode(false), _gotResize(false), _wantsFullScreen(false), _ignoreResizeEvents(0),
+	  _desiredFullscreenWidth(0), _desiredFullscreenHeight(0) {
 	// Setup OpenGL attributes for SDL
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
@@ -139,16 +138,12 @@ OpenGLSdlGraphicsManager::OpenGLSdlGraphicsManager(uint desktopWidth, uint deskt
 #endif
 
 	// Retrieve a list of working fullscreen modes
+	Common::Rect desktopRes = _window->getDesktopResolution();
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	const int numModes = SDL_GetNumDisplayModes(0);
-	for (int i = 0; i < numModes; ++i) {
-		SDL_DisplayMode mode;
-		if (SDL_GetDisplayMode(0, i, &mode)) {
-			continue;
-		}
-
-		_fullscreenVideoModes.push_back(VideoMode(mode.w, mode.h));
-	}
+	// With SDL2 we use the SDL_WINDOW_FULLSCREEN_DESKTOP flag.
+	// Thus SDL always use the desktop resolution and it is useless to try to use something else.
+	// Do nothing here as adding the desktop resolution to _fullscreenVideoModes is done as a fallback.
+	_fullscreenVideoModes.push_back(VideoMode(desktopRes.width(), desktopRes.height()));
 #else
 	const SDL_Rect *const *availableModes = SDL_ListModes(NULL, SDL_OPENGL | SDL_FULLSCREEN);
 	// TODO: NULL means that there are no fullscreen modes supported. We
@@ -177,8 +172,8 @@ OpenGLSdlGraphicsManager::OpenGLSdlGraphicsManager(uint desktopWidth, uint deskt
 
 	// In case SDL is fine with every mode we will force the desktop mode.
 	// TODO? We could also try to add some default resolutions here.
-	if (_fullscreenVideoModes.empty() && desktopWidth && desktopHeight) {
-		_fullscreenVideoModes.push_back(VideoMode(desktopWidth, desktopHeight));
+	if (_fullscreenVideoModes.empty() && !desktopRes.isEmpty()) {
+		_fullscreenVideoModes.push_back(VideoMode(desktopRes.width(), desktopRes.height()));
 	}
 
 	// Get information about display sizes from the previous runs.
@@ -187,8 +182,8 @@ OpenGLSdlGraphicsManager::OpenGLSdlGraphicsManager(uint desktopWidth, uint deskt
 		_desiredFullscreenHeight = ConfMan.getInt("last_fullscreen_mode_height", Common::ConfigManager::kApplicationDomain);
 	} else {
 		// Use the desktop resolutions when no previous default has been setup.
-		_desiredFullscreenWidth  = desktopWidth;
-		_desiredFullscreenHeight = desktopHeight;
+		_desiredFullscreenWidth  = desktopRes.width();
+		_desiredFullscreenHeight = desktopRes.height();
 	}
 }
 
@@ -199,26 +194,14 @@ OpenGLSdlGraphicsManager::~OpenGLSdlGraphicsManager() {
 #endif
 }
 
-void OpenGLSdlGraphicsManager::activateManager() {
-	SdlGraphicsManager::activateManager();
-
-	// Register the graphics manager as a event observer
-	g_system->getEventManager()->getEventDispatcher()->registerObserver(this, 10, false);
-}
-
-void OpenGLSdlGraphicsManager::deactivateManager() {
-	// Unregister the event observer
-	if (g_system->getEventManager()->getEventDispatcher()) {
-		g_system->getEventManager()->getEventDispatcher()->unregisterObserver(this);
-	}
-
-	SdlGraphicsManager::deactivateManager();
-}
-
 bool OpenGLSdlGraphicsManager::hasFeature(OSystem::Feature f) const {
 	switch (f) {
 	case OSystem::kFeatureFullscreenMode:
 	case OSystem::kFeatureIconifyWindow:
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	case OSystem::kFeatureFullscreenToggleKeepsContext:
+	case OSystem::kFeatureVSync:
+#endif
 		return true;
 
 	default:
@@ -248,8 +231,8 @@ bool OpenGLSdlGraphicsManager::getFeatureState(OSystem::Feature f) const {
 	switch (f) {
 	case OSystem::kFeatureFullscreenMode:
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-		if (_window) {
-			return (SDL_GetWindowFlags(_window->getSDLWindow()) & SDL_WINDOW_FULLSCREEN) != 0;
+		if (_window && _window->getSDLWindow()) {
+			return (SDL_GetWindowFlags(_window->getSDLWindow()) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
 		} else {
 			return _wantsFullScreen;
 		}
@@ -260,10 +243,18 @@ bool OpenGLSdlGraphicsManager::getFeatureState(OSystem::Feature f) const {
 			return _wantsFullScreen;
 		}
 #endif
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	case OSystem::kFeatureVSync:
+		return SDL_GL_GetSwapInterval() != 0;
+#endif
 
 	default:
 		return OpenGLGraphicsManager::getFeatureState(f);
 	}
+}
+
+float OpenGLSdlGraphicsManager::getHiDPIScreenFactor() const {
+	return _window->getDpiScalingFactor();
 }
 
 void OpenGLSdlGraphicsManager::initSize(uint w, uint h, const Graphics::PixelFormat *format) {
@@ -294,8 +285,8 @@ void OpenGLSdlGraphicsManager::notifyVideoExpose() {
 
 void OpenGLSdlGraphicsManager::notifyResize(const int width, const int height) {
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	// We sometime get outdated resize events from SDL2. So check that the size we get
-	// is the actual current window size. If not ignore the resize.
+	// We sometime get inaccurate resize events from SDL2. So use the real drawable size
+	// we get from SDL2 and ignore the event data.
 	// The issue for example occurs when switching from fullscreen to windowed mode or
 	// when switching between different fullscreen resolutions because SDL_DestroyWindow
 	// for a fullscreen window that doesn't have the SDL_WINDOW_FULLSCREEN_DESKTOP flag
@@ -303,10 +294,30 @@ void OpenGLSdlGraphicsManager::notifyResize(const int width, const int height) {
 	// event is processed after recreating the window at the new resolution.
 	int currentWidth, currentHeight;
 	getWindowSizeFromSdl(&currentWidth, &currentHeight);
-	if (width != currentWidth || height != currentHeight)
-		return;
-	// TODO: Implement high DPI support
-	handleResize(width, height, 90, 90);
+	float dpiScale = _window->getSdlDpiScalingFactor();
+	debug(3, "req: %d x %d  cur: %d x %d, scale: %f", width, height, currentWidth, currentHeight, dpiScale);
+
+	handleResize(currentWidth, currentHeight);
+
+	// Remember window size in windowed mode
+	if (!_wantsFullScreen) {
+		currentWidth = (int)(currentWidth / dpiScale + 0.5f);
+		currentHeight = (int)(currentHeight / dpiScale + 0.5f);
+
+		// Check if the ScummVM window is maximized and store the current
+		// window dimensions.
+		if (SDL_GetWindowFlags(_window->getSDLWindow()) & SDL_WINDOW_MAXIMIZED) {
+			ConfMan.setInt("window_maximized_width", currentWidth, Common::ConfigManager::kApplicationDomain);
+			ConfMan.setInt("window_maximized_height", currentHeight, Common::ConfigManager::kApplicationDomain);
+			ConfMan.setBool("window_maximized", true, Common::ConfigManager::kApplicationDomain);
+		} else {
+			ConfMan.setInt("last_window_width", currentWidth, Common::ConfigManager::kApplicationDomain);
+			ConfMan.setInt("last_window_height", currentHeight, Common::ConfigManager::kApplicationDomain);
+			ConfMan.setBool("window_maximized", false, Common::ConfigManager::kApplicationDomain);
+		}
+		ConfMan.flushToDisk();
+	}
+
 #else
 	if (!_ignoreResizeEvents && _hwScreen && !(_hwScreen->flags & SDL_FULLSCREEN)) {
 		// We save that we handled a resize event here. We need to know this
@@ -337,11 +348,72 @@ bool OpenGLSdlGraphicsManager::loadVideoMode(uint requestedWidth, uint requested
 	_lastRequestedWidth  = requestedWidth;
 	_lastRequestedHeight = requestedHeight;
 
-	// Apply the currently saved scale setting.
-	requestedWidth  *= _graphicsScale;
-	requestedHeight *= _graphicsScale;
+	// Fetch current desktop resolution and determining max. width and height
+	Common::Rect desktopRes = _window->getDesktopResolution();
 
-	// Set up the mode.
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	bool isMaximized = ConfMan.getBool("window_maximized", Common::ConfigManager::kApplicationDomain);
+	if (!_wantsFullScreen) {
+		if (isMaximized && ConfMan.hasKey("window_maximized_width", Common::ConfigManager::kApplicationDomain) && ConfMan.hasKey("window_maximized_height", Common::ConfigManager::kApplicationDomain)) {
+			// Set the window size to the values stored when the window was maximized
+			// for the last time.
+			requestedWidth  = ConfMan.getInt("window_maximized_width", Common::ConfigManager::kApplicationDomain);
+			requestedHeight = ConfMan.getInt("window_maximized_height", Common::ConfigManager::kApplicationDomain);
+
+		} else if (!isMaximized && ConfMan.hasKey("last_window_width", Common::ConfigManager::kApplicationDomain) && ConfMan.hasKey("last_window_height", Common::ConfigManager::kApplicationDomain)) {
+			// Load previously stored window dimensions.
+			requestedWidth  = ConfMan.getInt("last_window_width", Common::ConfigManager::kApplicationDomain);
+			requestedHeight = ConfMan.getInt("last_window_height", Common::ConfigManager::kApplicationDomain);
+
+		} else {
+			// Set the basic window size based on the desktop resolution
+			// since we have no values stored, e.g. on first launch.
+			requestedWidth  = MAX<uint>(desktopRes.width() / 2, 640);
+			requestedHeight = requestedWidth * 3 / 4;
+
+			// Save current window dimensions
+			ConfMan.setInt("last_window_width", requestedWidth, Common::ConfigManager::kApplicationDomain);
+			ConfMan.setInt("last_window_height", requestedHeight, Common::ConfigManager::kApplicationDomain);
+			ConfMan.flushToDisk();
+		}
+	}
+
+#else
+		// Set the basic window size based on the desktop resolution
+		// since we cannot reliably determine the current window state
+		// on SDL1.
+		requestedWidth  = MAX<uint>(desktopRes.width() / 2, 640);
+		requestedHeight = requestedWidth * 3 / 4;
+
+#endif
+
+	// In order to prevent any unnecessary downscaling (e.g. when launching
+	// a game in 800x600 while having a smaller screen size stored in the configuration file),
+	// we override the window dimensions with the "real" resolution request made by the engine.
+	if ((requestedWidth < _lastRequestedWidth  * _graphicsScale || requestedHeight < _lastRequestedHeight * _graphicsScale) && ConfMan.getActiveDomain()) {
+		requestedWidth  = _lastRequestedWidth  * _graphicsScale;
+		requestedHeight = _lastRequestedHeight * _graphicsScale;
+	}
+
+	// Set allowed dimensions
+	uint maxAllowedWidth   = desktopRes.width();
+	uint maxAllowedHeight  = desktopRes.height();
+	float ratio = (float)requestedWidth / (float)requestedHeight;
+
+	// Check if we request a larger window than physically possible,
+	// e.g. by starting with additional launcher parameters forcing
+	// specific (openGL) scaler modes that could exceed the desktop/screen size
+	if (requestedWidth  > maxAllowedWidth) {
+		requestedWidth  = maxAllowedWidth;
+		requestedHeight = requestedWidth / ratio;
+	}
+
+	if (requestedHeight > maxAllowedHeight) {
+		requestedHeight = maxAllowedHeight;
+		requestedWidth  = requestedHeight * ratio;
+	}
+
+	// Set up the mode
 	return setupMode(requestedWidth, requestedHeight);
 }
 
@@ -358,9 +430,9 @@ void *OpenGLSdlGraphicsManager::getProcAddress(const char *name) const {
 	return SDL_GL_GetProcAddress(name);
 }
 
-void OpenGLSdlGraphicsManager::handleResizeImpl(const int width, const int height, const int xdpi, const int ydpi) {
-	OpenGLGraphicsManager::handleResizeImpl(width, height, xdpi, ydpi);
-	SdlGraphicsManager::handleResizeImpl(width, height, xdpi, ydpi);
+void OpenGLSdlGraphicsManager::handleResizeImpl(const int width, const int height) {
+	OpenGLGraphicsManager::handleResizeImpl(width, height);
+	SdlGraphicsManager::handleResizeImpl(width, height);
 }
 
 bool OpenGLSdlGraphicsManager::saveScreenshot(const Common::String &filename) const {
@@ -427,7 +499,8 @@ bool OpenGLSdlGraphicsManager::setupMode(uint width, uint height) {
 		_glContext = nullptr;
 	}
 
-	uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+	uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
+
 	if (_wantsFullScreen) {
 		// On Linux/X11, when toggling to fullscreen, the window manager saves
 		// the window size to be able to restore it when going back to windowed mode.
@@ -444,7 +517,11 @@ bool OpenGLSdlGraphicsManager::setupMode(uint width, uint height) {
 		width  = _desiredFullscreenWidth;
 		height = _desiredFullscreenHeight;
 
-		flags |= SDL_WINDOW_FULLSCREEN;
+		flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+	}
+
+	if (!_wantsFullScreen && ConfMan.getBool("window_maximized", Common::ConfigManager::kApplicationDomain)) {
+		flags |= SDL_WINDOW_MAXIMIZED;
 	}
 
 	// Request a OpenGL (ES) context we can use.
@@ -452,6 +529,11 @@ bool OpenGLSdlGraphicsManager::setupMode(uint width, uint height) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, _glContextMajor);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, _glContextMinor);
 
+#ifdef NINTENDO_SWITCH
+	// Switch quirk: Switch seems to need this flag, otherwise the screen
+	// is zoomed when switching from Normal graphics mode to OpenGL
+	flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+#endif
 	if (!createOrUpdateWindow(width, height, flags)) {
 		return false;
 	}
@@ -461,11 +543,35 @@ bool OpenGLSdlGraphicsManager::setupMode(uint width, uint height) {
 		return false;
 	}
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	_vsync = ConfMan.getBool("vsync");
+	if (SDL_GL_SetSwapInterval(_vsync ? 1 : 0)) {
+		warning("Unable to %s VSync: %s", _vsync ? "enable" : "disable", SDL_GetError());
+	}
+#endif
+
 	notifyContextCreate(rgba8888, rgba8888);
 	int actualWidth, actualHeight;
 	getWindowSizeFromSdl(&actualWidth, &actualHeight);
-	// TODO: Implement high DPI support
-	handleResize(actualWidth, actualHeight, 90, 90);
+
+	handleResize(actualWidth, actualHeight);
+
+#ifdef WIN32
+	// WORKAROUND: Prevent (nearly) offscreen positioning of the ScummVM window by forcefully
+	// trigger a re-positioning event to center the window.
+	if (!_wantsFullScreen && !(SDL_GetWindowFlags(_window->getSDLWindow()) & SDL_WINDOW_MAXIMIZED)) {
+
+		// Read the current window position
+		int _xWindowPos;
+		SDL_GetWindowPosition(_window->getSDLWindow(), &_xWindowPos, nullptr);
+
+		// Relocate the window to the center of the screen in case we try to draw
+		// outside the window area. In this case, _xWindowPos always returns 0.
+		if (_xWindowPos == 0) {
+			SDL_SetWindowPosition(_window->getSDLWindow(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+		}
+	}
+#endif
 	return true;
 #else
 	// WORKAROUND: Working around infamous SDL bugs when switching
@@ -512,7 +618,7 @@ bool OpenGLSdlGraphicsManager::setupMode(uint width, uint height) {
 
 	if (_hwScreen) {
 		notifyContextCreate(rgba8888, rgba8888);
-		handleResize(_hwScreen->w, _hwScreen->h, 90, 90);
+		handleResize(_hwScreen->w, _hwScreen->h);
 	}
 
 	// Ignore resize events (from SDL) for a few frames, if this isn't
@@ -539,8 +645,8 @@ bool OpenGLSdlGraphicsManager::notifyEvent(const Common::Event &event) {
 			// In case we are in fullscreen we will choose the previous
 			// or next mode.
 
-			// In case no modes are available we do nothing.
-			if (_fullscreenVideoModes.empty()) {
+			// In case no modes are available or we only have one mode we do nothing.
+			if (_fullscreenVideoModes.size() < 2) {
 				return true;
 			}
 
@@ -579,7 +685,15 @@ bool OpenGLSdlGraphicsManager::notifyEvent(const Common::Event &event) {
 			// window. Then we apply the direction change.
 			int windowWidth = 0, windowHeight = 0;
 			getWindowSizeFromSdl(&windowWidth, &windowHeight);
-			_graphicsScale = MAX<int>(windowWidth / _lastRequestedWidth, windowHeight / _lastRequestedHeight);
+
+			float dpiScale = _window->getSdlDpiScalingFactor();
+			windowWidth = (int)(windowWidth / dpiScale + 0.5f);
+			windowHeight = (int)(windowHeight / dpiScale + 0.5f);
+
+			if (direction > 0)
+				_graphicsScale = MAX<int>(windowWidth / _lastRequestedWidth, windowHeight / _lastRequestedHeight);
+			else
+				_graphicsScale = 1 + MIN<int>((windowWidth - 1) / _lastRequestedWidth, (windowHeight - 1) / _lastRequestedHeight);
 			_graphicsScale = MAX<int>(_graphicsScale + direction, 1);
 
 			// Since we overwrite a user resize here we reset its
@@ -588,6 +702,9 @@ bool OpenGLSdlGraphicsManager::notifyEvent(const Common::Event &event) {
 			_gotResize = false;
 
 			// Try to setup the mode.
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+			unlockWindowSize();
+#endif
 			if (!setupMode(_lastRequestedWidth * _graphicsScale, _lastRequestedHeight * _graphicsScale)) {
 				warning("OpenGLSdlGraphicsManager::notifyEvent: Window resize failed ('%s')", SDL_GetError());
 				g_system->quit();
@@ -597,8 +714,8 @@ bool OpenGLSdlGraphicsManager::notifyEvent(const Common::Event &event) {
 #ifdef USE_OSD
 		int windowWidth = 0, windowHeight = 0;
 		getWindowSizeFromSdl(&windowWidth, &windowHeight);
-		const Common::String osdMsg = Common::String::format(_("Resolution: %dx%d"), windowWidth, windowHeight);
-		displayMessageOnOSD(osdMsg.c_str());
+		const Common::U32String osdMsg = Common::U32String::format(_("Resolution: %dx%d"), windowWidth, windowHeight);
+		displayMessageOnOSD(osdMsg);
 #endif
 
 		return true;
@@ -673,11 +790,11 @@ bool OpenGLSdlGraphicsManager::notifyEvent(const Common::Event &event) {
 		endGFXTransaction();
 
 #ifdef USE_OSD
-		Common::String message = Common::String::format("%s: %s",
-			_("Stretch mode"),
-			_(stretchModes[index].description)
-			);
-		displayMessageOnOSD(message.c_str());
+		Common::U32String message = Common::U32String::format("%S: %S",
+			_("Stretch mode").c_str(),
+			_(stretchModes[index].description).c_str()
+		);
+		displayMessageOnOSD(message);
 #endif
 
 		return true;

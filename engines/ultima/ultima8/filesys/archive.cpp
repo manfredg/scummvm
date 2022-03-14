@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,24 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/filesys/archive.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/archive_file.h"
-#include "ultima/ultima8/filesys/named_archive_file.h"
 #include "ultima/ultima8/filesys/flex_file.h"
 #include "ultima/ultima8/filesys/u8_save_file.h"
 
 namespace Ultima {
 namespace Ultima8 {
-
-DEFINE_RUNTIME_CLASSTYPE_CODE(NamedArchiveFile, ArchiveFile)
-DEFINE_RUNTIME_CLASSTYPE_CODE_BASE_CLASS(Archive)
 
 Archive::Archive() {
 	_count = 0;
@@ -45,14 +38,12 @@ Archive::~Archive() {
 }
 
 
-Archive::Archive(ArchiveFile *af) {
-	_count = 0;
+Archive::Archive(ArchiveFile *af) : _count(0) {
 	addSource(af);
 }
 
-Archive::Archive(IDataSource *ids) {
-	_count = 0;
-	addSource(ids);
+Archive::Archive(Common::SeekableReadStream *rs) : _count(0) {
+	addSource(rs);
 }
 
 bool Archive::addSource(ArchiveFile *af) {
@@ -64,15 +55,15 @@ bool Archive::addSource(ArchiveFile *af) {
 	return true;
 }
 
-bool Archive::addSource(IDataSource *ids) {
-	ArchiveFile *s = 0;
+bool Archive::addSource(Common::SeekableReadStream *rs) {
+	ArchiveFile *s = nullptr;
 
-	if (!ids) return false;
+	if (!rs) return false;
 
-	if (FlexFile::isFlexFile(ids)) {
-		s = new FlexFile(ids);
-	} else if (U8SaveFile::isU8SaveFile(ids)) {
-		s = new U8SaveFile(ids);
+	if (FlexFile::isFlexFile(rs)) {
+		s = new FlexFile(rs);
+	} else if (U8SaveFile::isU8SaveFile(rs)) {
+		s = new U8SaveFile(rs);
 	}
 
 	if (!s) return false;
@@ -96,7 +87,8 @@ void Archive::uncache() {
 
 uint8 *Archive::getRawObject(uint32 index, uint32 *sizep) {
 	ArchiveFile *f = findArchiveFile(index);
-	if (!f) return 0;
+	if (!f)
+		return nullptr;
 
 	return f->getObject(index, sizep);
 }
@@ -115,7 +107,7 @@ ArchiveFile *Archive::findArchiveFile(uint32 index) const {
 			return _sources[n - i];
 	}
 
-	return 0;
+	return nullptr;
 }
 
 } // End of namespace Ultima8

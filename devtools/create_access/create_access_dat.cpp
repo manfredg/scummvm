@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 // Disable symbol overrides so that we can use system headers.
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
-
-// HACK to allow building with the SDL backend on MinGW
-// see bug #1800764 "TOOLS: MinGW tools building broken"
-#ifdef main
-#undef main
-#endif // main
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +45,7 @@
  * 4 bytes - File offset for the data for the game
  */
 
-File outputFile;
+File *outputFile;
 
 void writeHeader(int numExecutables);
 void writeAmazonCommonData();
@@ -73,7 +66,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Create the new data file for output
-	outputFile.open(argv[1], kFileWriteMode);
+	outputFile = new File;
+	outputFile->open(argv[1], kFileWriteMode);
 	writeHeader(argc - 2 + NUM_COMMON_ENTRIES);
 
 	// Write out entries containing common data for the games
@@ -81,82 +75,83 @@ int main(int argc, char *argv[]) {
 	writeMartianCommonData(argc, argv);
 
 	// Iterate through processing each specified executable
-	outputFile.seek(0, SEEK_END);
+	outputFile->seek(0, SEEK_END);
 	for (int idx = 2; idx < argc; ++idx) {
 		if (!processExecutable(idx - 2 + NUM_COMMON_ENTRIES, argv[idx]))
 			break;
 	}
 
 	// Close the output file
-	outputFile.close();
+	outputFile->close();
+	delete outputFile;
 }
 
 void writeHeader(int numExecutables) {
 	// Write out magic string
 	const char *MAGIC_STR = "SVMA";
-	outputFile.write(MAGIC_STR, 4);
+	outputFile->write(MAGIC_STR, 4);
 
 	// Write out version number
-	outputFile.writeWord(VERSION_NUMBER);
+	outputFile->writeWord(VERSION_NUMBER);
 
 	// Write out the number of entries the data file will contain
-	outputFile.writeWord(numExecutables);
+	outputFile->writeWord(numExecutables);
 
 	// Write out padding for index entries that will be written
-	outputFile.writeByte(0, 8 * numExecutables);
+	outputFile->writeByte(0, 8 * numExecutables);
 }
 
 void writeAmazonCommonData() {
 	// Write out the header entry
-	outputFile.seek(8);
-	outputFile.writeByte(1);    // Amazon
-	outputFile.writeByte(2);    // Common data
-	outputFile.writeByte(0);
-	outputFile.writeByte(0);
-	outputFile.writeLong(outputFile.size());
+	outputFile->seek(8);
+	outputFile->writeByte(1);    // Amazon
+	outputFile->writeByte(2);    // Common data
+	outputFile->writeByte(0);
+	outputFile->writeByte(0);
+	outputFile->writeLong(outputFile->size());
 
 	// Write out cursor list
-	outputFile.seek(0, SEEK_END);
-	outputFile.writeWord(AMAZON_NUM_CURSORS);
+	outputFile->seek(0, SEEK_END);
+	outputFile->writeWord(AMAZON_NUM_CURSORS);
 
 	for (uint idx = 0; idx < AMAZON_NUM_CURSORS; ++idx) {
-		outputFile.writeWord(Amazon::CURSOR_SIZES[idx]);
-		outputFile.write(Amazon::CURSORS[idx], Amazon::CURSOR_SIZES[idx]);
+		outputFile->writeWord(Amazon::CURSOR_SIZES[idx]);
+		outputFile->write(Amazon::CURSORS[idx], Amazon::CURSOR_SIZES[idx]);
 	}
 
 	// Write out font data
-	outputFile.writeWord(Amazon::FONT2_INDEX_SIZE);
+	outputFile->writeWord(Amazon::FONT2_INDEX_SIZE);
 	for (uint idx = 0; idx < Amazon::FONT2_INDEX_SIZE; ++idx)
-		outputFile.writeWord(Amazon::FONT2_INDEX[idx]);
+		outputFile->writeWord(Amazon::FONT2_INDEX[idx]);
 
-	outputFile.writeWord(Amazon::FONT2_DATA_SIZE);
-	outputFile.write(Amazon::FONT2_DATA, Amazon::FONT2_DATA_SIZE);
+	outputFile->writeWord(Amazon::FONT2_DATA_SIZE);
+	outputFile->write(Amazon::FONT2_DATA, Amazon::FONT2_DATA_SIZE);
 
-	outputFile.writeWord(Amazon::FONT6x6_INDEX_SIZE);
+	outputFile->writeWord(Amazon::FONT6x6_INDEX_SIZE);
 	for (uint idx = 0; idx < Amazon::FONT6x6_INDEX_SIZE; ++idx)
-		outputFile.writeWord(Amazon::FONT6x6_INDEX[idx]);
+		outputFile->writeWord(Amazon::FONT6x6_INDEX[idx]);
 
-	outputFile.writeWord(Amazon::FONT6x6_DATA_SIZE);
-	outputFile.write(Amazon::FONT2_DATA, Amazon::FONT6x6_DATA_SIZE);
+	outputFile->writeWord(Amazon::FONT6x6_DATA_SIZE);
+	outputFile->write(Amazon::FONT2_DATA, Amazon::FONT6x6_DATA_SIZE);
 }
 
 
 void writeMartianCommonData(int argc, char *argv[]) {
 	// Write out the header entry
-	outputFile.seek(16);
-	outputFile.writeByte(2);    // Martian
-	outputFile.writeByte(2);    // Common data
-	outputFile.writeByte(0);
-	outputFile.writeByte(0);
-	outputFile.writeLong(outputFile.size());
+	outputFile->seek(16);
+	outputFile->writeByte(2);    // Martian
+	outputFile->writeByte(2);    // Common data
+	outputFile->writeByte(0);
+	outputFile->writeByte(0);
+	outputFile->writeLong(outputFile->size());
 
 	// Write out cursor list
-	outputFile.seek(0, SEEK_END);
-	outputFile.writeWord(MARTIAN_NUM_CURSORS);
+	outputFile->seek(0, SEEK_END);
+	outputFile->writeWord(MARTIAN_NUM_CURSORS);
 
 	for (uint idx = 0; idx < MARTIAN_NUM_CURSORS; ++idx) {
-		outputFile.writeWord(Martian::CURSOR_SIZES[idx]);
-		outputFile.write(Martian::CURSORS[idx], Martian::CURSOR_SIZES[idx]);
+		outputFile->writeWord(Martian::CURSOR_SIZES[idx]);
+		outputFile->write(Martian::CURSORS[idx], Martian::CURSOR_SIZES[idx]);
 	}
 
 	// Check for the presence of a Martian Memorandum executable
@@ -181,12 +176,12 @@ void writeMartianCommonData(int argc, char *argv[]) {
 
 			for (int fontNum = 0; fontNum < 2; ++fontNum) {
 				// Write out sizes
-				outputFile.writeWord(FONT_COUNT);
-				outputFile.writeWord(FONT_DATA_SIZE[fontNum]);
+				outputFile->writeWord(FONT_COUNT);
+				outputFile->writeWord(FONT_DATA_SIZE[fontNum]);
 
 				// Write out character widths
 				exeFile.seek(DATA_SEGMENT + FONT_WIDTHS[fontNum]);
-				outputFile.write(exeFile, FONT_COUNT);
+				outputFile->write(exeFile, FONT_COUNT);
 
 				// Write out character offsets
 				uint offsets[FONT_COUNT];
@@ -198,12 +193,12 @@ void writeMartianCommonData(int argc, char *argv[]) {
 					offsets[i] -= dataOffset;
 					assert(offsets[i] < FONT_DATA_SIZE[fontNum]);
 
-					outputFile.writeWord(offsets[i]);
+					outputFile->writeWord(offsets[i]);
 				}
 
 				// Write out character data
 				exeFile.seek(DATA_SEGMENT + dataOffset);
-				outputFile.write(exeFile, FONT_DATA_SIZE[fontNum]);
+				outputFile->write(exeFile, FONT_DATA_SIZE[fontNum]);
 			}
 
 			return;
@@ -211,10 +206,10 @@ void writeMartianCommonData(int argc, char *argv[]) {
 	}
 
 	// No executable found, so store 0 size fonts
-	outputFile.writeWord(0);
-	outputFile.writeWord(0);
-	outputFile.writeWord(0);
-	outputFile.writeWord(0);
+	outputFile->writeWord(0);
+	outputFile->writeWord(0);
+	outputFile->writeWord(0);
+	outputFile->writeWord(0);
 }
 
 bool processExecutable(int exeIdx, const char *name) {
@@ -231,7 +226,7 @@ bool processExecutable(int exeIdx, const char *name) {
 	const char *const *itemNames;
 	const int *comboTable;
 	byte gameId = 0, discType = 0, demoType = 0;
-	byte language = Common::EN_ANY;
+	byte language = 5; //old Common::EN_ANY;
 
 	// Open up the file for access
 	File exeFile;
@@ -258,6 +253,28 @@ bool processExecutable(int exeIdx, const char *name) {
 		roomsStart = dataSegmentOffset + 0x35a8;
 		roomsEnd = dataSegmentOffset + 0x4234;
 		travelPosOffset = dataSegmentOffset + 0x5ff7;
+		numRooms = 64;
+		roomDescs = &Amazon::ROOM_DESCR[0];
+		deathScreens = Amazon::DEATH_SCREENS_ENG;
+		deathText = &Amazon::DEATH_TEXT_ENG[0];
+		numDeaths = sizeof(Amazon::DEATH_SCREENS_ENG);
+		numItems = 85;
+		itemNames = &Amazon::INVENTORY_NAMES_ENG[0];
+		comboTable = &Amazon::COMBO_TABLE[0][0];
+		break;
+
+	case 12012:
+		// Amazon Spanish floppy
+		language = 23; //old Common::ES_ESP;
+		gameId = 1;
+		dataSegmentOffset = 0xC8C0;
+		filenamesOffset = dataSegmentOffset + 0x3628 + 0x128;
+		numFilenames = 100;
+		charsStart = dataSegmentOffset + 0x4234 + 0x128;
+		charsEnd = dataSegmentOffset + 0x49c6 + 0x128;
+		roomsStart = dataSegmentOffset + 0x35a8 + 0x128;
+		roomsEnd = dataSegmentOffset + 0x4234 + 0x128;
+		travelPosOffset = dataSegmentOffset + 0x5ff7 + 0x128 + 0x2b;
 		numRooms = 64;
 		roomDescs = &Amazon::ROOM_DESCR[0];
 		deathScreens = Amazon::DEATH_SCREENS_ENG;
@@ -347,23 +364,23 @@ bool processExecutable(int exeIdx, const char *name) {
 	}
 
 	// Write out header entry
-	uint outputOffset = outputFile.size();
-	outputFile.seek(8 + exeIdx * 8);
-	outputFile.writeByte(gameId);
-	outputFile.writeByte(discType);
-	outputFile.writeByte(demoType);
-	outputFile.writeByte(language);
-	outputFile.writeLong(outputOffset);
-	outputFile.seek(0, SEEK_END);
+	uint outputOffset = outputFile->size();
+	outputFile->seek(8 + exeIdx * 8);
+	outputFile->writeByte(gameId);
+	outputFile->writeByte(discType);
+	outputFile->writeByte(demoType);
+	outputFile->writeByte(language);
+	outputFile->writeLong(outputOffset);
+	outputFile->seek(0, SEEK_END);
 
 	// Write out list of AP filenames
-	outputFile.writeWord(numFilenames);
+	outputFile->writeWord(numFilenames);
 	for (uint idx = 0; idx < numFilenames; ++idx) {
 		exeFile.seek(filenamesOffset + idx * 2);
 		uint nameOffset = exeFile.readWord();
 
 		exeFile.seek(dataSegmentOffset + nameOffset);
-		outputFile.writeString(exeFile);
+		outputFile->writeString(exeFile);
 	}
 
 	// Write out the character list
@@ -375,11 +392,11 @@ bool processExecutable(int exeIdx, const char *name) {
 	while (exeFile.pos() < (dataSegmentOffset + charOffsets[0]))
 		charOffsets.push_back(exeFile.readWord());
 
-	outputFile.writeWord(charOffsets.size());
+	outputFile->writeWord(charOffsets.size());
 	charOffsets.push_back(charsEnd);
 	for (uint idx = 0; idx < charOffsets.size() - 1; ++idx) {
 		if (charOffsets[idx] == 0) {
-			outputFile.writeWord(0);
+			outputFile->writeWord(0);
 		} else {
 			uint nextOffset = 0xffff;
 			for (uint idx2 = 0; idx2 < charOffsets.size(); ++idx2) {
@@ -389,8 +406,8 @@ bool processExecutable(int exeIdx, const char *name) {
 			uint size = nextOffset - charOffsets[idx];
 
 			exeFile.seek(dataSegmentOffset + charOffsets[idx]);
-			outputFile.writeWord(size);
-			outputFile.write(exeFile, size);
+			outputFile->writeWord(size);
+			outputFile->write(exeFile, size);
 		}
 	}
 
@@ -410,7 +427,7 @@ bool processExecutable(int exeIdx, const char *name) {
 		travelPos.push_back(Common::Point(xp, yp));
 	}
 
-	outputFile.writeWord(numRooms);
+	outputFile->writeWord(numRooms);
 	for (uint idx = 0; idx < numRooms; ++idx) {
 		uint dataSize = 0;
 
@@ -426,60 +443,60 @@ bool processExecutable(int exeIdx, const char *name) {
 		}
 
 		// Write out the room description (used only by the debugger)
-		outputFile.writeString(roomDescs[idx]);
+		outputFile->writeString(roomDescs[idx]);
 
 		// Write out travel position
-		outputFile.writeWord((uint16)travelPos[idx].x);
-		outputFile.writeWord((uint16)travelPos[idx].y);
+		outputFile->writeWord((uint16)travelPos[idx].x);
+		outputFile->writeWord((uint16)travelPos[idx].y);
 
 		// Write out the data for the room
-		outputFile.writeWord(dataSize);
+		outputFile->writeWord(dataSize);
 		if (dataSize > 0)
-			outputFile.write(exeFile, dataSize);
+			outputFile->write(exeFile, dataSize);
 	}
 
 	// Write out the deaths list
-	outputFile.writeWord(numDeaths);
+	outputFile->writeWord(numDeaths);
 	for (uint idx = 0; idx < numDeaths; ++idx) {
 		// Write out the screen number and text
-		outputFile.writeByte(deathScreens[idx]);
-		outputFile.writeString(deathText[idx]);
+		outputFile->writeByte(deathScreens[idx]);
+		outputFile->writeString(deathText[idx]);
 	}
 
 	// Write out inventory data
-	outputFile.writeWord(numItems);
+	outputFile->writeWord(numItems);
 	for (uint idx = 0; idx < numItems; ++idx) {
-		outputFile.writeString(itemNames[idx]);
+		outputFile->writeString(itemNames[idx]);
 
 		if (comboTable == nullptr) {
 			for (uint cIdx = 0; cIdx < 4; ++cIdx)
-				outputFile.writeWord(0);
+				outputFile->writeWord(0);
 		} else {
 			for (uint cIdx = 0; cIdx < 4; ++cIdx, ++comboTable)
-				outputFile.writeWord((uint16)*comboTable);
+				outputFile->writeWord((uint16)*comboTable);
 		}
 	}
 
 	// Write out game specific strings and other data
 	if (gameId == 1) {
 		// Write out miscellaneous strings
-		outputFile.writeString(Amazon::NO_HELP_MESSAGE_ENG);
-		outputFile.writeString(Amazon::NO_HINTS_MESSAGE_ENG);
-		outputFile.writeString(Amazon::RIVER_HIT1_ENG);
-		outputFile.writeString(Amazon::RIVER_HIT2_ENG);
-		outputFile.writeString(Amazon::BAR_MESSAGE_ENG);
+		outputFile->writeString(Amazon::NO_HELP_MESSAGE_ENG);
+		outputFile->writeString(Amazon::NO_HINTS_MESSAGE_ENG);
+		outputFile->writeString(Amazon::RIVER_HIT1_ENG);
+		outputFile->writeString(Amazon::RIVER_HIT2_ENG);
+		outputFile->writeString(Amazon::BAR_MESSAGE_ENG);
 
 		for (int idx = 0; idx < 3; ++idx)
-			outputFile.writeString(Amazon::HELPLVLTXT_ENG[idx]);
+			outputFile->writeString(Amazon::HELPLVLTXT_ENG[idx]);
 		for (int idx = 0; idx < 9; ++idx)
-			outputFile.writeString(Amazon::IQLABELS_ENG[idx]);
+			outputFile->writeString(Amazon::IQLABELS_ENG[idx]);
 
-		outputFile.writeString(Amazon::CANT_GET_THERE_ENG);
+		outputFile->writeString(Amazon::CANT_GET_THERE_ENG);
 	}
 
 	// Do final padding to the next paragraph boundary
-	if ((outputFile.size() % 16) != 0)
-		outputFile.writeByte(0, 16 - (outputFile.size() % 16));
+	if ((outputFile->size() % 16) != 0)
+		outputFile->writeByte(0, 16 - (outputFile->size() % 16));
 
 	// Close the executable and signal that it was processed successfully
 	exeFile.close();

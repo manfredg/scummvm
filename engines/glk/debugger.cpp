@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -118,11 +117,11 @@ void Debugger::saveRawPicture(const RawDecoder &rd, Common::WriteStream &ws) {
 	Graphics::PixelFormat format(4, 8, 8, 8, 8, 24, 16, 8, 0);
 	Graphics::ManagedSurface destSurface(surface->w, surface->h, format);
 
-	for (uint y = 0; y < surface->h; ++y) {
+	for (int y = 0; y < surface->h; ++y) {
 		const byte *srcP = (const byte *)surface->getBasePtr(0, y);
 		uint32 *destP = (uint32 *)destSurface.getBasePtr(0, y);
 
-		for (uint x = 0; x < surface->w; ++x, ++srcP, ++destP) {
+		for (int x = 0; x < surface->w; ++x, ++srcP, ++destP) {
 			if ((int)*srcP == transColor || (int)*srcP < palStart) {
 				*destP = format.ARGBToColor(0, 0, 0, 0);
 			} else {

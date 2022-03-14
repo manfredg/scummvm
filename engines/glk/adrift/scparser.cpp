@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -77,7 +76,7 @@ static const sc_uip_token_entry_t UIP_TOKENS[] = {
 	{"%object%", 8, TOK_OBJECT_REFERENCE},
 	{"%number%", 8, TOK_NUMBER_REFERENCE},
 	{"%text%", 6, TOK_TEXT_REFERENCE},
-	{NULL, 0, TOK_NONE}
+	{nullptr, 0, TOK_NONE}
 };
 
 
@@ -86,12 +85,12 @@ static const sc_uip_token_entry_t UIP_TOKENS[] = {
  * For improved performance, we'll set it to indicate a static buffer if
  * short enough, otherwise it's allocated.
  */
-static const sc_char *uip_pattern = NULL;
+static const sc_char *uip_pattern = nullptr;
 static sc_int uip_index = 0;
 static const sc_char *uip_token_value;
 enum { UIP_ALLOCATION_AVOIDANCE_SIZE = 128 };
 static sc_char uip_static_temporary[UIP_ALLOCATION_AVOIDANCE_SIZE];
-static sc_char *uip_temporary = NULL;
+static sc_char *uip_temporary = nullptr;
 
 
 /*
@@ -134,8 +133,8 @@ static void uip_tokenize_end(void) {
 	/* Deallocate temporary if required, and clear pattern and index. */
 	if (uip_temporary != uip_static_temporary)
 		sc_free(uip_temporary);
-	uip_temporary = NULL;
-	uip_pattern = NULL;
+	uip_temporary = nullptr;
+	uip_pattern = nullptr;
 	uip_index = 0;
 }
 
@@ -152,7 +151,7 @@ static sc_uip_tok_t uip_next_token(void) {
 
 	/* Get next character, return EOS if at pattern end. */
 	if (uip_pattern[uip_index] == NUL) {
-		uip_token_value = NULL;
+		uip_token_value = nullptr;
 		return TOK_EOS;
 	}
 
@@ -162,7 +161,7 @@ static sc_uip_tok_t uip_next_token(void) {
 		while (sc_isspace(uip_pattern[uip_index])
 		        && uip_pattern[uip_index] != NUL)
 			uip_index++;
-		uip_token_value = NULL;
+		uip_token_value = nullptr;
 		return TOK_WHITESPACE;
 	}
 
@@ -174,7 +173,7 @@ static sc_uip_tok_t uip_next_token(void) {
 	if (entry->name) {
 		/* Advance over string, and return token. */
 		uip_index += entry->length;
-		uip_token_value = NULL;
+		uip_token_value = nullptr;
 		return entry->token;
 	}
 
@@ -249,7 +248,7 @@ typedef sc_ptnode_t *sc_ptnoderef_t;
 static sc_uip_tok_t uip_parse_lookahead = TOK_NONE;
 
 /* Parse tree for cleanup, and forward declaration of pattern list parser. */
-static sc_ptnoderef_t uip_parse_tree = NULL;
+static sc_ptnoderef_t uip_parse_tree = nullptr;
 
 /*
  * Pool of statically allocated nodes, for faster allocations.  Nodes are
@@ -421,10 +420,10 @@ static sc_ptnoderef_t uip_new_node(sc_pttype_t type) {
 	}
 
 	/* Fill in the remaining fields and return the new node. */
-	node->left_child = NULL;
-	node->right_sibling = NULL;
+	node->left_child = nullptr;
+	node->right_sibling = nullptr;
 	node->type = type;
-	node->word = NULL;
+	node->word = nullptr;
 
 	return node;
 }
@@ -492,7 +491,7 @@ static void uip_parse_alternatives(CONTEXT, sc_ptnoderef_t node) {
  * Parse a single pattern element.
  */
 static sc_ptnoderef_t uip_parse_element(CONTEXT) {
-	sc_ptnoderef_t node = NULL;
+	sc_ptnoderef_t node = nullptr;
 	sc_uip_tok_t token;
 
 	/* Handle pattern element based on lookahead token. */
@@ -746,9 +745,9 @@ static void uip_debug_dump(void) {
 
 
 /* String matching variables. */
-static const sc_char *uip_string = NULL;
+static const sc_char *uip_string = nullptr;
 static sc_int uip_posn = 0;
-static sc_gameref_t uip_game = NULL;
+static sc_gameref_t uip_game = nullptr;
 
 /*
  * uip_match_start()
@@ -767,9 +766,9 @@ static void uip_match_start(const sc_char *string, sc_gameref_t game) {
 
 static void uip_match_end(void) {
 	/* Clear match target string, and variable set. */
-	uip_string = NULL;
+	uip_string = nullptr;
 	uip_posn = 0;
-	uip_game = NULL;
+	uip_game = nullptr;
 }
 
 
@@ -1594,7 +1593,7 @@ static sc_char *uip_free_cleansed_string(sc_char *string, const sc_char *buffer)
 		sc_free(string);
 
 	/* Always returns NULL, for the syntactic convenience of the caller. */
-	return NULL;
+	return nullptr;
 }
 
 
@@ -1637,7 +1636,7 @@ sc_bool uip_match(const sc_char *pattern, const sc_char *string, sc_gameref_t ga
 		// Parse error -- clean up and fail
 		uip_tokenize_end();
 		uip_destroy_tree(uip_parse_tree);
-		uip_parse_tree = NULL;
+		uip_parse_tree = nullptr;
 		cleansed = uip_free_cleansed_string(cleansed, buffer);
 		return FALSE;
 	} else {
@@ -1660,7 +1659,7 @@ sc_bool uip_match(const sc_char *pattern, const sc_char *string, sc_gameref_t ga
 	uip_match_end();
 	cleansed = uip_free_cleansed_string(cleansed, buffer);
 	uip_destroy_tree(uip_parse_tree);
-	uip_parse_tree = NULL;
+	uip_parse_tree = nullptr;
 
 	/* Return result of matching. */
 	if (uip_trace)
@@ -1688,7 +1687,7 @@ sc_char *uip_replace_pronouns(sc_gameref_t game, const sc_char *string) {
 
 	/* Begin with a NULL buffer for lazy allocation. */
 	buffer_allocation = 0;
-	buffer = NULL;
+	buffer = nullptr;
 
 	/* Search for pronouns until no more string remains. */
 	current = string + strspn(string, WHITESPACE);
@@ -1699,7 +1698,7 @@ sc_char *uip_replace_pronouns(sc_gameref_t game, const sc_char *string) {
 
 		/* Initially, no object or NPC, no names, and a zero extent. */
 		object = npc = -1;
-		prefix = name = NULL;
+		prefix = name = nullptr;
 		extent = 0;
 
 		/*
@@ -1749,7 +1748,7 @@ sc_char *uip_replace_pronouns(sc_gameref_t game, const sc_char *string) {
 		 */
 		if (prefix && name && extent > 0) {
 			sc_char *position;
-			sc_int prefix_length, name_length, length, final;
+			sc_int prefix_length, name_length, length, final_length;
 
 			/*
 			 * If not yet allocated, allocate a buffer now, and copy the input
@@ -1778,15 +1777,15 @@ sc_char *uip_replace_pronouns(sc_gameref_t game, const sc_char *string) {
 				buffer_allocation += length - extent;
 				buffer = (sc_char *)sc_realloc(buffer, buffer_allocation);
 				current = buffer + offset;
-				final = length;
+				final_length = length;
 			} else
-				final = extent;
+				final_length = extent;
 
 			/* Insert the replacement strings into the buffer. */
 			position = buffer + (current - buffer);
 			memmove(position + length,
 			        position + extent,
-			        buffer_allocation - (current - buffer) - final);
+			        buffer_allocation - (current - buffer) - final_length);
 			memcpy(position, prefix, prefix_length);
 			position[prefix_length] = ' ';
 			memcpy(position + prefix_length + 1, name, name_length);

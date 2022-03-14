@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,8 +45,8 @@ Inter::Inter(GobEngine *vm) : _vm(vm), _varStack(600) {
 		_animPalDir[i] = 0;
 	}
 
-	_breakFromLevel = 0;
-	_nestLevel = 0;
+	_breakFromLevel = nullptr;
+	_nestLevel = nullptr;
 
 	_soundEndTimeKey = 0;
 	_soundStopVal = 0;
@@ -55,7 +54,7 @@ Inter::Inter(GobEngine *vm) : _vm(vm), _varStack(600) {
 	_lastBusyWait = 0;
 	_noBusyWait = false;
 
-	_variables = 0;
+	_variables = nullptr;
 }
 
 Inter::~Inter() {
@@ -92,7 +91,7 @@ void Inter::executeOpcodeGob(int i, OpGobParams &params) {
 	debugC(1, kDebugGobOp, "opcodeGoblin %d [0x%X] (%s)",
 			i, i, getDescOpcodeGob(i));
 
-	OpcodeEntry<OpcodeGob> *op = 0;
+	OpcodeEntry<OpcodeGob> *op = nullptr;
 
 	if (_opcodesGob.contains(i))
 		op = &_opcodesGob.getVal(i);
@@ -363,7 +362,7 @@ void Inter::delocateVars() {
 		_vm->_game->deletedVars(_variables);
 
 	delete _variables;
-	_variables = 0;
+	_variables = nullptr;
 }
 
 void Inter::storeValue(uint16 index, uint16 type, uint32 value) {
@@ -386,7 +385,7 @@ void Inter::storeValue(uint16 index, uint16 type, uint32 value) {
 
 void Inter::storeValue(uint32 value) {
 	uint16 type;
-	uint16 index = _vm->_game->_script->readVarIndex(0, &type);
+	uint16 index = _vm->_game->_script->readVarIndex(nullptr, &type);
 
 	storeValue(index, type, value);
 }
@@ -431,7 +430,7 @@ void Inter::storeString(uint16 index, uint16 type, const char *value) {
 
 void Inter::storeString(const char *value) {
 	uint16 type;
-	uint16 varIndex = _vm->_game->_script->readVarIndex(0, &type);
+	uint16 varIndex = _vm->_game->_script->readVarIndex(nullptr, &type);
 
 	storeString(varIndex, type, value);
 }

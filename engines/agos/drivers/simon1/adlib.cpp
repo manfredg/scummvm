@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,13 +35,13 @@ enum {
 };
 
 MidiDriver_Simon1_AdLib::Voice::Voice()
-    : channel(kChannelUnused), note(0), instrTotalLevel(0), instrScalingLevel(0), frequency(0) {
+	: channel(kChannelUnused), note(0), instrTotalLevel(0), instrScalingLevel(0), frequency(0) {
 }
 
 MidiDriver_Simon1_AdLib::MidiDriver_Simon1_AdLib(const byte *instrumentData)
-    : _isOpen(false), _opl(nullptr), _timerProc(nullptr), _timerParam(nullptr),
-      _melodyVoices(0), _amvdrBits(0), _rhythmEnabled(false), _voices(), _midiPrograms(),
-      _instruments(instrumentData) {
+	: _isOpen(false), _opl(nullptr), _timerProc(nullptr), _timerParam(nullptr),
+	  _melodyVoices(0), _amvdrBits(0), _rhythmEnabled(false), _voices(), _midiPrograms(),
+	  _instruments(instrumentData) {
 }
 
 MidiDriver_Simon1_AdLib::~MidiDriver_Simon1_AdLib() {

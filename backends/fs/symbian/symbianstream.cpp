@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@
 
 #define KInputBufferLength 128
 
-// Symbian libc file functionality in order to provide shared file handles
+// Symbian libc file functionality in order to provide shared file handles.
 class TSymbianFileEntry {
 public:
 	RFile _fileHandle;
@@ -70,22 +69,22 @@ TSymbianFileEntry*	CreateSymbianFileEntry(const char* name, const char* mode) {
 
 		switch (mode[0]) {
 		case 'a':
-			if (fileEntry->_fileHandle.Open(static_cast<OSystem_SDL_Symbian *>(g_system)->FsSession(), tempFileName, fileMode) != KErrNone) {
-				if (fileEntry->_fileHandle.Create(static_cast<OSystem_SDL_Symbian *>(g_system)->FsSession(), tempFileName, fileMode) != KErrNone) {
+			if (fileEntry->_fileHandle.Open(FsSession(), tempFileName, fileMode) != KErrNone) {
+				if (fileEntry->_fileHandle.Create(FsSession(), tempFileName, fileMode) != KErrNone) {
 					delete fileEntry;
 					fileEntry = NULL;
 				}
 			}
 			break;
 		case 'r':
-			if (fileEntry->_fileHandle.Open(static_cast<OSystem_SDL_Symbian *>(g_system)->FsSession(), tempFileName, fileMode) != KErrNone) {
+			if (fileEntry->_fileHandle.Open(FsSession(), tempFileName, fileMode) != KErrNone) {
 				delete fileEntry;
 				fileEntry = NULL;
 			}
 			break;
 
 		case 'w':
-			if (fileEntry->_fileHandle.Replace(static_cast<OSystem_SDL_Symbian *>(g_system)->FsSession(), tempFileName, fileMode) != KErrNone) {
+			if (fileEntry->_fileHandle.Replace(FsSession(), tempFileName, fileMode) != KErrNone) {
 				delete fileEntry;
 				fileEntry = NULL;
 			}
@@ -100,7 +99,7 @@ size_t ReadData(const void* ptr, size_t size, size_t numItems, TSymbianFileEntry
 	TUint32 totsize = size*numItems;
 	TPtr8 pointer ( (unsigned char*) ptr, totsize);
 
-	// Nothing cached and we want to load at least KInputBufferLength bytes
+	// Nothing cached and we want to load at least KInputBufferLength bytes.
 	if (totsize >= KInputBufferLength) {
 		TUint32 totLength = 0;
 		if (entry->_inputPos != KErrNotFound) {
@@ -118,7 +117,7 @@ size_t ReadData(const void* ptr, size_t size, size_t numItems, TSymbianFileEntry
 		pointer.Set((unsigned char*) ptr, totLength, totsize);
 
 	} else {
-		// Nothing in buffer
+		// Nothing in buffer.
 		if (entry->_inputPos == KErrNotFound) {
 			TPtr8 cacheBuffer( (unsigned char*) entry->_inputBuffer, KInputBufferLength);
 			entry->_lastError = entry->_fileHandle.Read(cacheBuffer);
@@ -189,7 +188,7 @@ bool SymbianStdioStream::eos() const {
 	return entry->_eofReached != 0;
 }
 
-int32 SymbianStdioStream::pos() const {
+int64 SymbianStdioStream::pos() const {
 	TInt pos = 0;
 	TSymbianFileEntry* entry = ((TSymbianFileEntry *)(_handle));
 
@@ -201,7 +200,7 @@ int32 SymbianStdioStream::pos() const {
 	return pos;
 }
 
-int32 SymbianStdioStream::size() const {
+int64 SymbianStdioStream::size() const {
 
 	TInt length = 0;
 	((TSymbianFileEntry *)(_handle))->_fileHandle.Size(length);
@@ -209,7 +208,7 @@ int32 SymbianStdioStream::size() const {
 	return length;
 }
 
-bool SymbianStdioStream::seek(int32 offs, int whence) {
+bool SymbianStdioStream::seek(int64 offs, int whence) {
 	assert(_handle);
 
 	TSeek seekMode = ESeekStart;
@@ -236,7 +235,7 @@ bool SymbianStdioStream::seek(int32 offs, int whence) {
 	entry->_eofReached = EFalse;
 	entry->_fileHandle.Seek(seekMode, pos);
 
-	return true;	// FIXME: Probably should return a value based on what _fileHandle.Seek returns
+	return true;	// FIXME: Probably should return a value based on what _fileHandle.Seek returns.
 }
 
 uint32 SymbianStdioStream::read(void *ptr, uint32 len) {

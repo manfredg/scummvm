@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,10 +33,7 @@
 #include "sherlock/tattoo/tattoo_talk.h"
 #include "sherlock/tattoo/tattoo_user_interface.h"
 #include "common/config-manager.h"
-
-#ifdef USE_TTS
 #include "common/text-to-speech.h"
-#endif
 
 namespace Sherlock {
 
@@ -278,13 +274,13 @@ void Talk::talkTo(const Common::String filename) {
 			break;
 
 		case FILES_MODE:
-			ui.banishWindow(true);
+			ui.banishWindow();
 			ui._windowBounds.top = CONTROLS_Y1;
 			abortFlag = true;
 			break;
 
 		case SETUP_MODE:
-			ui.banishWindow(true);
+			ui.banishWindow();
 			ui._windowBounds.top = CONTROLS_Y1;
 			ui._temp = ui._oldTemp = ui._lookHelp = ui._invLookFlag = false;
 			ui._menuMode = STD_MODE;
@@ -345,7 +341,8 @@ void Talk::talkTo(const Common::String filename) {
 
 		// Handle replies until there's no further linked file,
 		// or the link file isn't a reply first cnversation
-		while (!_vm->shouldQuit()) {
+		bool done = false;
+		while (!done && !_vm->shouldQuit()) {
 			clearSequences();
 			_scriptSelect = select;
 			_speaker = _talkTo;
@@ -356,14 +353,14 @@ void Talk::talkTo(const Common::String filename) {
 
 			// Make a copy of the statement (in case the script frees the statement list), and then execute it
 			Statement statement = _statements[select];
- 
-                        #ifdef USE_TTS
+
 			if (_talkTo == -1 && ConfMan.getBool("tts_narrator")) {
-                            Common::TextToSpeechManager *_ttsMan = g_system->getTextToSpeechManager();
-                            _ttsMan->stop();
-                            _ttsMan->say(_statements[select]._reply.c_str());
-	                }
-                        #endif
+				Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+				if (ttsMan != nullptr) {
+					ttsMan->stop();
+					ttsMan->say(_statements[select]._reply.c_str());
+				}
+			}
 
 			doScript(_statements[select]._reply);
 
@@ -410,12 +407,16 @@ void Talk::talkTo(const Common::String filename) {
 				// If the new conversion is a reply first, then we don't need
 				// to display any choices, since the reply needs to be shown
 				if (!newStatement._statement.hasPrefix("*") && !newStatement._statement.hasPrefix("^")) {
+					clearSequences();
+					pushSequence(_talkTo);
+					people.setListenSequence(_talkTo, 129);
 					_talkIndex = select;
+					ui._selector = ui._oldSelector = -1;
 					showTalk();
 
 					// Break out of loop now that we're waiting for player input
 					events.setCursor(ARROW);
-					break;
+					done = true;
 				} else {
 					// Add the statement into the journal and talk history
 					if (_talkTo != -1 && !_talkHistory[_converseNum][select])
@@ -432,16 +433,16 @@ void Talk::talkTo(const Common::String filename) {
 
 				if (IS_SERRATED_SCALPEL) {
 					if (!ui._lookScriptFlag) {
-						ui.drawInterface(2);
+						ui.banishWindow();
 						ui._menuMode = STD_MODE;
 						ui._windowBounds.top = CONTROLS_Y1;
 					}
 				} else {
 					ui._menuMode = static_cast<Tattoo::TattooScene *>(_vm->_scene)->_labTableScene ? LAB_MODE : STD_MODE;
+					ui.banishWindow();
 				}
 
-				ui.banishWindow();
-				break;
+				done = true;
 			}
 		}
 	}
@@ -552,6 +553,7 @@ void Talk::initTalk(int objNum) {
 				}
 			} else {
 				_talkIndex = select;
+				ui._selector = ui._oldSelector = -1;
 				showTalk();
 
 				// Break out of loop now that we're waiting for player input

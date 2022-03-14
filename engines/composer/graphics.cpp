@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/scummsys.h"
@@ -44,9 +43,9 @@ bool Sprite::contains(const Common::Point &pos) const {
 }
 
 enum {
-	kAnimOpEvent = 1, 
-	kAnimOpPlayWave = 2, 
-	kAnimOpPlayAnim = 3, 
+	kAnimOpEvent = 1,
+	kAnimOpPlayWave = 2,
+	kAnimOpPlayAnim = 3,
 	kAnimOpDrawSprite = 4
 };
 
@@ -84,8 +83,8 @@ void Animation::seekToCurrPos() {
 }
 
 void ComposerEngine::loadAnimation(Animation *&anim, uint16 animId, int16 x, int16 y, int16 eventParam, int32 size) {
-	Common::SeekableReadStream *stream = NULL;
-	Pipe *newPipe = NULL;
+	Common::SeekableReadStream *stream = nullptr;
+	Pipe *newPipe = nullptr;
 
 	// First, check the existing pipes.
 	for (Common::List<Pipe *>::iterator j = _pipes.begin(); j != _pipes.end(); j++) {
@@ -98,7 +97,7 @@ void ComposerEngine::loadAnimation(Animation *&anim, uint16 animId, int16 x, int
 		// When loading from savegame, make sure we have the correct stream
 		if ((!size) || (stream->size() >= size))
 			break;
-		stream = NULL;
+		stream = nullptr;
 	}
 
 	// If we didn't find it, try the libraries.
@@ -117,7 +116,7 @@ void ComposerEngine::loadAnimation(Animation *&anim, uint16 animId, int16 x, int
 			// When loading from savegame, make sure we have the correct stream
 			if ((!size) || (stream->size() >= size))
 				break;
-			stream = NULL;
+			stream = nullptr;
 		}
 
 		uint32 type = j->_archive->getResourceFlags(ID_ANIM, animId);
@@ -149,9 +148,9 @@ void ComposerEngine::playAnimation(uint16 animId, int16 x, int16 y, int16 eventP
 		stopAnimation(*i);
 	}
 
-	Animation *anim = NULL;
+	Animation *anim = nullptr;
 	loadAnimation(anim, animId, x, y, eventParam);
-	if (anim != NULL) {
+	if (anim != nullptr) {
 		_anims.push_back(anim);
 		runEvent(kEventAnimStarted, animId, eventParam, 0);
 	}
@@ -174,7 +173,7 @@ void ComposerEngine::stopAnimation(Animation *anim, bool localOnly, bool pipesOn
 			} else if (entry.op == kAnimOpPlayWave) {
 				if (_currSoundPriority >= entry.priority) {
 					_mixer->stopAll();
-					_audioStream = NULL;
+					_audioStream = nullptr;
 				}
 			}
 		} else {
@@ -204,10 +203,10 @@ void ComposerEngine::playWaveForAnim(uint16 id, uint16 priority, bool bufferingO
 			return;
 		if (_currSoundPriority > priority) {
 			_mixer->stopAll();
-			_audioStream = NULL;
+			_audioStream = nullptr;
 		}
 	}
-	Common::SeekableReadStream *stream = NULL;
+	Common::SeekableReadStream *stream = nullptr;
 	bool fromPipe = true;
 	if (!bufferingOnly && hasResource(ID_WAVE, id)) {
 		stream = getResource(ID_WAVE, id);
@@ -476,7 +475,7 @@ Sprite *ComposerEngine::addSprite(uint16 id, uint16 animId, uint16 zorder, const
 		sprite._id = id;
 		if (!initSprite(sprite)) {
 			debug(1, "ignoring addSprite on invalid sprite %d", id);
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -521,7 +520,7 @@ const Sprite *ComposerEngine::getSpriteAtPos(const Common::Point &pos) {
 			return &(*i);
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void ComposerEngine::dirtySprite(const Sprite &sprite) {
@@ -576,7 +575,7 @@ void ComposerEngine::loadCTBL(uint16 id, uint fadePercent) {
 	debug(1, "CTBL: %d entries", numEntries);
 
 	if ((numEntries > 256) || (stream->size() < 2 + (numEntries * 3)))
-		error("CTBL %d was invalid (%d entries, size %d)", id, numEntries, stream->size());
+		error("CTBL %d was invalid (%d entries, size %d)", id, numEntries, (int)stream->size());
 
 	byte buffer[256 * 3];
 	stream->read(buffer, numEntries * 3);
@@ -680,7 +679,7 @@ void ComposerEngine::decompressBitmap(uint16 type, Common::SeekableReadStream *s
 	case kBitmapUncompressed:
 		if (stream->size() - (uint)stream->pos() != size)
 			error("kBitmapUncompressed stream had %d bytes left, supposed to be %d",
-				stream->size() - (uint)stream->pos(), size);
+				(int)(stream->size() - stream->pos()), size);
 		if (size != outSize)
 			error("kBitmapUncompressed size %d doesn't match required size %d",
 				size, outSize);
@@ -797,7 +796,7 @@ Common::SeekableReadStream *ComposerEngine::getStreamForSprite(uint16 id) {
 	}
 	if (hasResource(ID_BMAP, id))
 		return getResource(ID_BMAP, id);
-	return NULL;
+	return nullptr;
 }
 
 bool ComposerEngine::initSprite(Sprite &sprite) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,25 +29,25 @@
 #include "common/system.h"
 #include "common/translation.h"
 
+#include "engines/dialogs.h"
+
 #include "graphics/palette.h"
 #include "graphics/scaler.h"
 #include "graphics/managed_surface.h"
 #include "graphics/thumbnail.h"
 
-const char *MetaEngine::getSavegameFile(int saveGameIdx, const char *target) const {
-	static char buffer[200];
-
-	snprintf(buffer, sizeof(buffer), "%s.s%02d", target == nullptr ? getEngineId() : target, saveGameIdx);
-
-	return buffer;
-}
-
-const char *MetaEngine::getSavegamePattern(const char *target) const {
-	static char buffer[200];
-
-	snprintf(buffer, sizeof(buffer), "%s.s##", target == nullptr ? getEngineId() : target);
-
-	return buffer;
+Common::String MetaEngine::getSavegameFile(int saveGameIdx, const char *target) const {
+	if (!target)
+		target = getEngineId();
+	if (saveGameIdx == kSavegameFilePattern) {
+		// Pattern requested
+		const char *pattern = hasFeature(kSimpleSavesNames) ? "%s.###" : "%s.s##";
+		return Common::String::format(pattern, target);
+	} else {
+		// Specific filename requested
+		const char *pattern = hasFeature(kSimpleSavesNames) ? "%s.%03d" : "%s.s%02d";
+		return Common::String::format(pattern, target, saveGameIdx);
+	}
 }
 
 Common::KeymapArray MetaEngine::initKeymaps(const char *target) const {
@@ -58,18 +57,18 @@ Common::KeymapArray MetaEngine::initKeymaps(const char *target) const {
 
 	Action *act;
 
-	act = new Action("LCLK", _("Left Click"));
+	act = new Action(kStandardActionLeftClick, _("Left Click"));
 	act->setLeftClickEvent();
 	act->addDefaultInputMapping("MOUSE_LEFT");
 	act->addDefaultInputMapping("JOY_A");
 	engineKeyMap->addAction(act);
 
-	act = new Action("MCLK", _("Middle Click"));
+	act = new Action(kStandardActionMiddleClick, _("Middle Click"));
 	act->addDefaultInputMapping("MOUSE_MIDDLE");
 	act->setMiddleClickEvent();
 	engineKeyMap->addAction(act);
 
-	act = new Action("RCLK", _("Right Click"));
+	act = new Action(kStandardActionRightClick, _("Right Click"));
 	act->setRightClickEvent();
 	act->addDefaultInputMapping("MOUSE_RIGHT");
 	act->addDefaultInputMapping("JOY_B");
@@ -95,6 +94,7 @@ Common::KeymapArray MetaEngine::initKeymaps(const char *target) const {
 	act = new Action("SKLI", _("Skip line"));
 	act->setKeyEvent(KeyState(KEYCODE_PERIOD, '.'));
 	act->addDefaultInputMapping("PERIOD");
+	act->addDefaultInputMapping("JOY_X");
 	engineKeyMap->addAction(act);
 
 	act = new Action("PIND", _("Predictive input dialog"));
@@ -129,6 +129,34 @@ Common::KeymapArray MetaEngine::initKeymaps(const char *target) const {
 	return Keymap::arrayOf(engineKeyMap);
 }
 
+const Common::AchievementsInfo MetaEngine::getAchievementsInfo(const Common::String &target) const {
+	const Common::AchievementDescriptionList* achievementDescriptionList = getAchievementDescriptionList();
+	if (achievementDescriptionList == nullptr) {
+		return Common::AchievementsInfo();
+	}
+
+	Common::String gameId = ConfMan.get("gameid", target);
+
+	Common::AchievementsPlatform platform = Common::UNK_ACHIEVEMENTS;
+	Common::String extra = ConfMan.get("extra", target);
+	if (extra.contains("GOG")) {
+		platform = Common::GALAXY_ACHIEVEMENTS;
+	} else if (extra.contains("Steam")) {
+		platform = Common::STEAM_ACHIEVEMENTS;
+	}
+
+	// "(gameId, platform) -> result" search
+	Common::AchievementsInfo result;
+	for (const Common::AchievementDescriptionList *i = achievementDescriptionList; i->gameId; i++) {
+		if (i->gameId == gameId && i->platform == platform) {
+			result.platform = i->platform;
+			result.appId = i->appId;
+			break;
+		}
+	}
+	return result;
+}
+
 bool MetaEngine::hasFeature(MetaEngineFeature f) const {
 	return
 		(f == kSupportsListSaves) ||
@@ -138,14 +166,22 @@ bool MetaEngine::hasFeature(MetaEngineFeature f) const {
 		(f == kSavesSupportCreationDate) ||
 		(f == kSavesSupportPlayTime) ||
 		(f == kSupportsLoadingDuringStartup) ||
+		(f == kSimpleSavesNames) ||
 		(f == kSavesUseExtendedFormat);
 }
 
 void MetaEngine::appendExtendedSave(Common::OutSaveFile *saveFile, uint32 playtime,
 		Common::String desc, bool isAutosave) {
+	appendExtendedSaveToStream(saveFile, playtime, desc, isAutosave);
+
+	saveFile->finalize();
+}
+
+void MetaEngine::appendExtendedSaveToStream(Common::WriteStream *saveFile, uint32 playtime,
+		Common::String desc, bool isAutosave, uint32 posoffset) {
 	ExtendedSavegameHeader header;
 
-	uint headerPos = saveFile->pos();
+	uint headerPos = saveFile->pos() + posoffset;
 
 	strcpy(header.id, "SVMCR");
 	header.version = EXTENDED_SAVE_VERSION;
@@ -166,21 +202,26 @@ void MetaEngine::appendExtendedSave(Common::OutSaveFile *saveFile, uint32 playti
 	saveFile->writeString(desc);
 	saveFile->writeByte(isAutosave);
 
-	saveScreenThumbnail(saveFile);
-
-	saveFile->writeUint32LE(headerPos);	// Store where the header starts
-
-	saveFile->finalize();
-}
-
-void MetaEngine::saveScreenThumbnail(Common::OutSaveFile *saveFile) {
-	// Create a thumbnail surface from the screen
-	Graphics::Surface thumb;
-	::createThumbnailFromScreen(&thumb);
-
 	// Write out the thumbnail
+	Graphics::Surface thumb;
+	getSavegameThumbnail(thumb);
 	Graphics::saveThumbnail(*saveFile, thumb);
 	thumb.free();
+
+	saveFile->writeUint32LE(headerPos);	// Store where the header starts
+}
+
+bool MetaEngine::copySaveFileToFreeSlot(const char *target, int slot)
+{
+	const int emptySlot = findEmptySaveSlot(target);
+	if (emptySlot == -1)
+		return false;
+	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
+	return saveFileMan->copySavefile(getSavegameFile(slot, target), getSavegameFile(emptySlot, target));
+}
+
+void MetaEngine::getSavegameThumbnail(Graphics::Surface &thumb) {
+	::createThumbnailFromScreen(&thumb);
 }
 
 void MetaEngine::parseSavegameHeader(ExtendedSavegameHeader *header, SaveStateDescriptor *desc) {
@@ -261,9 +302,23 @@ WARN_UNUSED_RESULT bool MetaEngine::readSavegameHeader(Common::InSaveFile *in, E
 }
 
 
-///////////////////////////////////////
+//////////////////////////////////////////////
 // MetaEngine default implementations
-///////////////////////////////////////
+//////////////////////////////////////////////
+
+int MetaEngine::findEmptySaveSlot(const char *target) {
+	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
+	const int maxSaveSlot = getMaximumSaveSlot();
+	const int autosaveSlot = getAutosaveSlot();
+	for (int slot = 0; slot <= maxSaveSlot; ++slot) {
+		if (slot == autosaveSlot)
+			continue;
+		const Common::String filename = getSavegameFile(slot, target);
+		if (!saveFileMan->exists(filename))
+			return slot;
+	}
+	return -1;
+}
 
 SaveStateList MetaEngine::listSaves(const char *target) const {
 	if (!hasFeature(kSavesUseExtendedFormat))
@@ -271,31 +326,22 @@ SaveStateList MetaEngine::listSaves(const char *target) const {
 
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Common::StringArray filenames;
-	Common::String pattern(getSavegamePattern(target));
+	Common::String pattern(getSavegameFilePattern(target));
 
 	filenames = saveFileMan->listSavefiles(pattern);
 
 	SaveStateList saveList;
 	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
-		// Obtain the last 2 digits of the filename, since they correspond to the save slot
-		int slotNum = atoi(file->c_str() + file->size() - 2);
+		// Obtain the last 2/3 digits of the filename, since they correspond to the save slot
+		const char *slotStr = file->c_str() + file->size() - 2;
+		const char *prev = slotStr - 1;
+		if (*prev >= '0' && *prev <= '9')
+			slotStr = prev;
+		int slotNum = atoi(slotStr);
 
 		if (slotNum >= 0 && slotNum <= getMaximumSaveSlot()) {
-			Common::ScopedPtr<Common::InSaveFile> in(saveFileMan->openForLoading(*file));
-			if (in) {
-				ExtendedSavegameHeader header;
-				if (!readSavegameHeader(in.get(), &header)) {
-					continue;
-				}
-
-				SaveStateDescriptor desc;
-
-				parseSavegameHeader(&header, &desc);
-
-				desc.setSaveSlot(slotNum);
-				if (slotNum == getAutosaveSlot())
-					desc.setWriteProtectedFlag(true);
-
+			SaveStateDescriptor desc = querySaveMetaInfos(target, slotNum);
+			if (desc.getSaveSlot() != -1) {
 				saveList.push_back(desc);
 			}
 		}
@@ -314,27 +360,39 @@ SaveStateList MetaEngine::listSaves(const char *target, bool saveMode) const {
 
 	// Check to see if an autosave is present
 	for (SaveStateList::iterator it = saveList.begin(); it != saveList.end(); ++it) {
-		int slot = it->getSaveSlot();
-		if (slot == autosaveSlot) {
-			// It has an autosave
-			it->setWriteProtectedFlag(true);
+		// It has an autosave
+		if (it->isAutosave())
 			return saveList;
-		}
 	}
 
-	// No autosave yet. We want to add a dummy one in so that it can be marked as'
+	// No autosave yet. We want to add a dummy one in so that it can be marked as
 	// write protected, and thus be prevented from being saved in
-	SaveStateDescriptor desc;
-	desc.setDescription(_("Autosave"));
-	desc.setSaveSlot(autosaveSlot);
-	desc.setWriteProtectedFlag(true);
-
+	SaveStateDescriptor desc(this, autosaveSlot, _("Autosave"));
 	saveList.push_back(desc);
 	Common::sort(saveList.begin(), saveList.end(), SaveStateDescriptorSlotComparator());
 
 	return saveList;
 }
 
+void MetaEngineDetection::registerDefaultSettings(const Common::String &) const {
+	// Note that as we don't pass the target to getExtraGuiOptions
+	//  we get all the options, even those not relevant for the current
+	//  game. This is necessary because some engines unconditionally
+	//  access the configuration.
+	const ExtraGuiOptions engineOptions = getExtraGuiOptions("");
+	for (uint i = 0; i < engineOptions.size(); i++) {
+		ConfMan.registerDefault(engineOptions[i].configOption, engineOptions[i].defaultState);
+	}
+}
+
+GUI::OptionsContainerWidget *MetaEngineDetection::buildEngineOptionsWidgetStatic(GUI::GuiObject *boss, const Common::String &name, const Common::String &target) const {
+	const ExtraGuiOptions engineOptions = getExtraGuiOptions(target);
+	if (engineOptions.empty()) {
+		return nullptr;
+	}
+
+	return new GUI::ExtraGuiOptionsWidget(boss, name, target, engineOptions);
+}
 
 void MetaEngine::removeSaveState(const char *target, int slot) const {
 	if (!hasFeature(kSavesUseExtendedFormat))
@@ -357,16 +415,9 @@ SaveStateDescriptor MetaEngine::querySaveMetaInfos(const char *target, int slot)
 		}
 
 		// Create the return descriptor
-		SaveStateDescriptor desc;
-
+		SaveStateDescriptor desc(this, slot, Common::U32String());
 		parseSavegameHeader(&header, &desc);
-
-		desc.setSaveSlot(slot);
 		desc.setThumbnail(header.thumbnail);
-		desc.setAutosave(header.isAutosave);
-		if (slot == getAutosaveSlot())
-			desc.setWriteProtectedFlag(true);
-
 		return desc;
 	}
 

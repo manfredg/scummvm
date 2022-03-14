@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,21 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/endian.h"
 #include "common/memstream.h"
 #include "common/textconsole.h"
+#include "graphics/fonts/amigafont.h"
 
 #include "parallaction/parallaction.h"
 
 namespace Parallaction {
 
-
-extern byte amigaTopazFont[];
 
 class BraFont : public Font {
 
@@ -47,11 +45,11 @@ protected:
 	const byte	*_charMap;
 
 	byte mapChar(byte c) {
-		return (_charMap == 0) ? c : _charMap[c];
+		return (_charMap == nullptr) ? c : _charMap[c];
 	}
 
 public:
-	BraFont(Common::ReadStream &stream, const byte *charMap = 0) {
+	BraFont(Common::ReadStream &stream, const byte *charMap = nullptr) {
 		_charMap = charMap;
 
 		_numGlyphs = stream.readByte();
@@ -70,7 +68,7 @@ public:
 		_data = (byte *)malloc(size);
 		stream.read(_data, size);
 
-		_cp = 0;
+		_cp = nullptr;
 		_bufPitch = 0;
 	}
 
@@ -122,13 +120,13 @@ public:
 
 	}
 
-	void drawString(byte* buffer, uint32 pitch, const char *s) override {
-		if (s == NULL)
+	void drawString(Graphics::Surface *src, int x, int y, const char *s) override {
+		if (src == nullptr)
 			return;
 
-		_bufPitch = pitch;
+		_bufPitch = src->pitch;
 
-		_cp = buffer;
+		_cp = (byte *)src->getBasePtr(x, y);
 		while (*s) {
 			byte c = mapChar(*s);
 			_cp += drawChar(c);
@@ -304,7 +302,7 @@ protected:
 	}
 
 public:
-	DosFont(Cnv *cnv) : _data(cnv), _pitch(cnv->_width), _cp(NULL), _bufPitch(0) {
+	DosFont(Cnv *cnv) : _data(cnv), _pitch(cnv->_width), _cp(nullptr), _bufPitch(0) {
 	}
 
 	~DosFont() override {
@@ -327,13 +325,13 @@ public:
 		return len;
 	}
 
-	void drawString(byte* buffer, uint32 pitch, const char *s) override {
-		if (s == NULL)
+	void drawString(Graphics::Surface *src, int x, int y, const char *s) override {
+		if (src == nullptr)
 			return;
 
-		_bufPitch = pitch;
+		_bufPitch = src->pitch;
 
-		_cp = buffer;
+		_cp = (byte *)src->getBasePtr(x, y);
 		while (*s) {
 			byte c = mapChar(*s);
 			_cp += drawChar(c);
@@ -440,190 +438,32 @@ public:
 
 };
 
-
-
 class AmigaFont : public Font {
-
-#include "common/pack-start.h"
-	struct CharLoc {
-		uint16	_offset;
-		uint16	_length;
-	};
-
-	struct AmigaDiskFont {
-		uint16	_ySize;
-		byte	_style;
-		byte	_flags;
-		uint16	_xSize;
-		uint16	_baseline;
-		uint16	_boldSmear;
-		uint16	_accessors;	// unused
-		byte	_loChar;
-		byte	_hiChar;
-		uint32	_charData;
-		uint16	_modulo;
-		uint32	_charLoc;
-		uint32	_charSpace;
-		uint32	_charKern;
-	};
-#include "common/pack-end.h"
-
-	AmigaDiskFont	*_font;
-	uint32		_dataSize;
-	byte		*_data;
-	byte		*_charData;
-	CharLoc		*_charLoc;
-	uint16		*_charSpace;
-	uint16		*_charKern;
-
-	byte			*_cp;
-	uint32		_pitch;
-
-protected:
-	uint16 getSpacing(byte c);
-	void blitData(byte c);
-	uint16 getKerning(byte c);
-	uint16 getPixels(byte c);
-	uint16 getOffset(byte c);
-	uint16 width(byte c);
-	uint16 height() override;
-
-	byte	mapChar(byte c);
+	Graphics::AmigaFont *_font;
 
 public:
-	AmigaFont(Common::SeekableReadStream &stream);
-	~AmigaFont() override;
+	AmigaFont(Common::SeekableReadStream *stream = nullptr) {
+		_font = new Graphics::AmigaFont(stream);
+	}
+	~AmigaFont() override {
+		delete _font;
+	}
 
-	uint32 getStringWidth(const char *s) override;
-	void drawString(byte *buf, uint32 pitch, const char *s) override;
+	uint32 getStringWidth(const char *s) override {
+		return _font->getStringWidth(s);
+	}
+	void drawString(Graphics::Surface *src, int x, int y, const char *s) override {
+		_font->drawString(src, s, x, y, src->w, _color);
+	}
 
-
-
+protected:
+	uint16 height() override {
+		return _font->getFontHeight();
+	}
 };
 
-AmigaFont::AmigaFont(Common::SeekableReadStream &stream) {
-	stream.seek(32);	// skips dummy header
-
-	_dataSize = stream.size() - stream.pos();
-	_data = (byte *)malloc(_dataSize);
-	stream.read(_data, _dataSize);
-
-	_font = (AmigaDiskFont *)(_data + 78);
-	_font->_ySize = FROM_BE_16(_font->_ySize);
-	_font->_xSize = FROM_BE_16(_font->_xSize);
-	_font->_baseline = FROM_BE_16(_font->_baseline);
-	_font->_modulo = FROM_BE_16(_font->_modulo);
-
-	_charLoc = (CharLoc *)(_data + FROM_BE_32(_font->_charLoc));
-	_charData = _data + FROM_BE_32(_font->_charData);
-
-	_charSpace = 0;
-	_charKern = 0;
-
-	_cp = 0;
-	_pitch = 0;
-
-	if (_font->_charSpace != 0)
-		_charSpace = (uint16 *)(_data + FROM_BE_32(_font->_charSpace));
-	if (_font->_charKern != 0)
-		_charKern = (uint16 *)(_data + FROM_BE_32(_font->_charKern));
-
-}
-
-AmigaFont::~AmigaFont() {
-	free(_data);
-}
-
-uint16 AmigaFont::getSpacing(byte c) {
-	return (_charSpace == 0) ? _font->_xSize : FROM_BE_16(_charSpace[c]);
-}
-
-uint16 AmigaFont::getKerning(byte c) {
-	return (_charKern == 0) ? 0 : FROM_BE_16(_charKern[c]);
-}
-
-uint16 AmigaFont::getPixels(byte c) {
-	return FROM_BE_16(_charLoc[c]._length);
-}
-
-uint16 AmigaFont::getOffset(byte c) {
-	return FROM_BE_16(_charLoc[c]._offset);
-}
-
-void AmigaFont::blitData(byte c) {
-
-	int num = getPixels(c);
-	int bitOffset = getOffset(c);
-
-	byte *d = _cp;
-	byte *s = _charData;
-
-	for (int i = 0; i < _font->_ySize; i++) {
-
-		for (int j = bitOffset; j < bitOffset + num; j++) {
-			byte *b = s + (j >> 3);
-			byte bit = *b & (0x80 >> (j & 7));
-
-			if (bit)
-				*d = _color;
-
-			d++;
-		}
-
-		s += _font->_modulo;
-		d += _pitch - num;
-	}
-
-}
-
-uint16 AmigaFont::width(byte c) {
-//	debug("kern(%i) = %i, space(%i) = %i\t", c, getKerning(c), c, getSpacing(c));
-	return getKerning(c) + getSpacing(c);
-}
-
-uint16 AmigaFont::height() {
-	return _font->_ySize;
-}
-
-byte AmigaFont::mapChar(byte c) {
-
-	if (c < _font->_loChar || c > _font->_hiChar)
-		error("character '%c (%x)' not supported by font", c, c);
-
-	return c - _font->_loChar;
-}
-
-uint32 AmigaFont::getStringWidth(const char *s) {
-	uint32 len = 0;
-
-	while (*s) {
-		byte c = mapChar(*s);
-		len += width(c);
-		s++;
-	}
-
-	return len;
-}
-
-void AmigaFont::drawString(byte *buffer, uint32 pitch, const char *s) {
-
-	_cp = buffer;
-	_pitch = pitch;
-
-	byte c;
-
-	while (*s) {
-		c = mapChar(*s);
-		_cp += getKerning(c);
-		blitData(c);
-		_cp += getSpacing(c);
-		s++;
-	}
-
-}
-
 Font *DosDisk_ns::createFont(const char *name, Cnv* cnv) {
-	Font *f = 0;
+	Font *f = nullptr;
 
 	if (!scumm_stricmp(name, "comic"))
 		f = new DosDialogueFont(cnv);
@@ -641,7 +481,7 @@ Font *DosDisk_ns::createFont(const char *name, Cnv* cnv) {
 
 Font *AmigaDisk_ns::createFont(const char *name, Common::SeekableReadStream &stream) {
 	// TODO: implement AmigaLabelFont for labels
-	return new AmigaFont(stream);
+	return new AmigaFont(&stream);
 }
 
 Font *DosDisk_br::createFont(const char *name, Common::ReadStream &stream) {
@@ -663,7 +503,7 @@ Font *DosDisk_br::createFont(const char *name, Common::ReadStream &stream) {
 
 Font *AmigaDisk_br::createFont(const char *name, Common::SeekableReadStream &stream) {
 	// TODO: implement AmigaLabelFont for labels
-	return new AmigaFont(stream);
+	return new AmigaFont(&stream);
 }
 
 GfxObj* DosDisk_br::createInventoryObjects(Common::SeekableReadStream &stream) {
@@ -680,8 +520,7 @@ void Parallaction_ns::initFonts() {
 		_introFont = _disk->loadFont("slide");
 	} else {
 		_dialogueFont = _disk->loadFont("comic");
-		Common::MemoryReadStream stream(amigaTopazFont, 2600, DisposeAfterUse::NO);
-		_labelFont = new AmigaFont(stream);
+		_labelFont = new AmigaFont();
 		_menuFont = _disk->loadFont("slide");
 		_introFont = _disk->loadFont("intro");
 	}

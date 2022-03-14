@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,14 +28,14 @@
 
 namespace Kyra {
 
-KyraEngine_v2::KyraEngine_v2(OSystem *system, const GameFlags &flags, const EngineDesc &desc) : KyraEngine_v1(system, flags), _desc(desc) {
+KyraEngine_v2::KyraEngine_v2(OSystem *system, const GameFlags &flags, const EngineDesc &desc) : KyraEngine_v1(system, flags), _desc(desc), _langIntern(0), _numLang(flags.hasExtraLanguage ? 4 : 3) {
 	memset(&_sceneAnims, 0, sizeof(_sceneAnims));
 	memset(&_sceneAnimMovie, 0, sizeof(_sceneAnimMovie));
 
 	_lastProcessedSceneScript = 0;
 	_specialSceneScriptRunFlag = false;
 
-	_itemList = 0;
+	_itemList = nullptr;
 	_itemListSize = 0;
 
 	_characterShapeFile = -1;
@@ -48,7 +47,7 @@ KyraEngine_v2::KyraEngine_v2(OSystem *system, const GameFlags &flags, const Engi
 
 	Common::fill(_sceneSpecialScriptsTimer, ARRAYEND(_sceneSpecialScriptsTimer), 0);
 
-	_animObjects = 0;
+	_animObjects = nullptr;
 
 	_runFlag = true;
 	_showOutro = false;
@@ -56,18 +55,18 @@ KyraEngine_v2::KyraEngine_v2(OSystem *system, const GameFlags &flags, const Engi
 	_animNeedUpdate = false;
 
 	_animShapeCount = 0;
-	_animShapeFiledata = 0;
+	_animShapeFiledata = nullptr;
 
 	_vocHigh = -1;
 	_chatVocHigh = -1;
 	_chatVocLow = -1;
-	_chatText = 0;
+	_chatText = "";
 	_chatObject = -1;
 	_chatTextEnabled = false;
 
 	memset(_hiddenItems, -1, sizeof(_hiddenItems));
 
-	_screenBuffer = 0;
+	_screenBuffer = nullptr;
 
 	memset(&_mainCharacter, 0, sizeof(_mainCharacter));
 	memset(&_mainCharacter.inventory, -1, sizeof(_mainCharacter.inventory));
@@ -97,7 +96,14 @@ KyraEngine_v2::KyraEngine_v2(OSystem *system, const GameFlags &flags, const Engi
 		_lang = 2;
 		break;
 
+	case Common::ZH_TWN:
+		_langIntern = 1;
+		if (!_flags.hasExtraLanguage) // HOF Floppy uses ENG extensions...
+			break;
+		// fall through
+
 	case Common::JA_JPN:
+	case Common::ZH_CHN:
 		_lang = 3;
 		break;
 
@@ -150,7 +156,7 @@ void KyraEngine_v2::delay(uint32 amount, bool updateGame, bool isMainLoop) {
 	uint32 start = _system->getMillis();
 	do {
 		if (updateGame) {
-			if (_chatText)
+			if (!_chatText.empty())
 				updateWithText();
 			else
 				update();
@@ -191,7 +197,7 @@ void KyraEngine_v2::remShapeFromPool(int idx) {
 uint8 *KyraEngine_v2::getShapePtr(int shape) const {
 	ShapeMap::iterator iter = _gameShapes.find(shape);
 	if (iter == _gameShapes.end())
-		return 0;
+		return nullptr;
 	return iter->_value;
 }
 
@@ -227,7 +233,7 @@ void KyraEngine_v2::moveCharacter(int facing, int x, int y) {
 }
 
 void KyraEngine_v2::updateCharPosWithUpdate() {
-	updateCharPos(0, 0);
+	updateCharPos(nullptr, 0);
 	update();
 }
 

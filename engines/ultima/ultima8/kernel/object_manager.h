@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define ULTIMA8_KERNEL_OBJECTMANAGER_H
 
 #include "ultima/shared/std/containers.h"
+#include "ultima/ultima8/misc/common_types.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -31,10 +31,8 @@ namespace Ultima8 {
 class idMan;
 class Object;
 class Actor;
-class IDataSource;
-class ODataSource;
 
-typedef Object *(*ObjectLoadFunc)(IDataSource *, uint32);
+typedef Object *(*ObjectLoadFunc)(Common::ReadStream *rs, uint32);
 
 class ObjectManager {
 public:
@@ -64,17 +62,19 @@ public:
 	void objectStats();
 	void objectTypes();
 
-	void save(ODataSource *ods);
-	bool load(IDataSource *ids, uint32 version);
+	void save(Common::WriteStream *ws);
+	bool load(Common::ReadStream *rs, uint32 version);
 
-	Object *loadObject(IDataSource *ids, uint32 version);
-	Object *loadObject(IDataSource *ids, Std::string classname, uint32 version);
+	void saveObject(Common::WriteStream *ws, Object *obj) const;
+	Object *loadObject(Common::ReadStream *rs, uint32 version);
 
 	Std::vector<Object *> _objects;
 	idMan *_objIDs;
 	idMan *_actorIDs;
 
 private:
+	Object *loadObject(Common::ReadStream *rs, Std::string classname, uint32 version);
+
 	void setupLoaders();
 
 	void addObjectLoader(Std::string classname, ObjectLoadFunc func) {

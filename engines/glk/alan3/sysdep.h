@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,24 +42,6 @@ namespace Alan3 {
 
 #define GLK
 #define HAVE_GLK
-
-#undef isspace
-#define isspace Common::isSpace
-#undef isdigit
-#define isdigit Common::isDigit
-#undef isalpha
-#define isalpha Common::isAlpha
-#undef stricmp
-#define stricmp scumm_stricmp
-#undef strdup
-#define strdup scumm_strdup
-#undef strcasecmp
-#define strcasecmp scumm_stricmp
-#undef strncasecmp
-#define strncasecmp scumm_strnicmp
-#undef rand
-#define rand() g_vm->getRandomNumber(0x7fffffff)
-
 
 /*----------------------------------------------------------------------
 
@@ -120,15 +101,15 @@ extern int compareStrings(char str1[], char str2[]); /* Case-insensitive compare
 
 /* ISO string conversion functions */
 extern void toIso(char copy[],  /* OUT - Mapped string */
-                  char original[], /* IN - string to convert */
-                  int charset); /* IN - The current character set */
+				  char original[], /* IN - string to convert */
+				  int charset); /* IN - The current character set */
 
 extern void fromIso(char copy[], /* OUT - Mapped string */
-                    char original[]); /* IN - string to convert */
+					char original[]); /* IN - string to convert */
 
 extern void toNative(char copy[], /* OUT - Mapped string */
-                     char original[], /* IN - string to convert */
-                     int charset); /* IN - current character set */
+					 char original[], /* IN - string to convert */
+					 int charset); /* IN - current character set */
 
 extern char *baseNameStart(char *fullPathName);
 

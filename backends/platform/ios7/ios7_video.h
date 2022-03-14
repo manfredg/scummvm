@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,7 +34,6 @@
 #include "backends/platform/ios7/ios7_common.h"
 
 #include "common/list.h"
-#include "graphics/scaler.h"
 
 typedef struct {
 	GLfloat x, y;
@@ -49,6 +47,8 @@ typedef struct {
 	NSLock *_eventLock;
 	SoftKeyboard *_keyboardView;
 	BOOL _keyboardVisible;
+
+	UIBackgroundTaskIdentifier _backgroundSaveStateTask;
 
 	EAGLContext *_context;
 	GLuint _viewRenderbuffer;
@@ -90,15 +90,6 @@ typedef struct {
 
 	UITouch *_firstTouch;
 	UITouch *_secondTouch;
-
-#ifdef ENABLE_IOS7_SCALERS
-	uint8_t *_scalerMemorySrc;
-	uint8_t *_scalerMemoryDst;
-	size_t _scalerMemorySrcSize;
-	size_t _scalerMemoryDstSize;
-	int _scalerScale;
-	ScalerProc *_scaler;
-#endif
 }
 
 - (id)initWithFrame:(struct CGRect)frame;
@@ -128,8 +119,14 @@ typedef struct {
 - (BOOL)isKeyboardShown;
 
 - (void)applicationSuspend;
-
 - (void)applicationResume;
+
+- (void)saveApplicationState;
+- (void)clearApplicationState;
+- (void)restoreApplicationState;
+
+- (void) beginBackgroundSaveStateTask;
+- (void) endBackgroundSaveStateTask;
 
 - (bool)fetchEvent:(InternalEvent *)event;
 

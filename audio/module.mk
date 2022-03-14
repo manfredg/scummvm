@@ -2,26 +2,32 @@ MODULE := audio
 
 MODULE_OBJS := \
 	adlib.o \
+	adlib_ms.o \
 	audiostream.o \
 	fmopl.o \
 	mididrv.o \
+	mididrv_ms.o \
 	midiparser_qt.o \
 	midiparser_smf.o \
 	midiparser_xmidi.o \
 	midiparser.o \
 	midiplayer.o \
 	miles_adlib.o \
-	miles_mt32.o \
+	miles_midi.o \
 	mixer.o \
 	mpu401.o \
+	mt32gm.o \
 	musicplugin.o \
 	null.o \
+	rate.o \
 	timestamp.o \
 	decoders/3do.o \
 	decoders/aac.o \
 	decoders/adpcm.o \
 	decoders/aiff.o \
+	decoders/asf.o \
 	decoders/flac.o \
+	decoders/g711.o \
 	decoders/iff_sound.o \
 	decoders/mac_snd.o \
 	decoders/mp3.o \
@@ -31,7 +37,9 @@ MODULE_OBJS := \
 	decoders/voc.o \
 	decoders/vorbis.o \
 	decoders/wave.o \
+	decoders/wma.o \
 	decoders/xa.o \
+	decoders/xan_dpcm.o \
 	mods/infogrames.o \
 	mods/maxtrax.o \
 	mods/mod_xm_s3m.o \
@@ -47,6 +55,8 @@ MODULE_OBJS := \
 	softsynth/opl/dosbox.o \
 	softsynth/opl/mame.o \
 	softsynth/fmtowns_pc98/pc98_audio.o \
+	softsynth/fmtowns_pc98/pcm_common.o \
+	softsynth/fmtowns_pc98/sega_audio.o \
 	softsynth/fmtowns_pc98/towns_audio.o \
 	softsynth/fmtowns_pc98/towns_euphony.o \
 	softsynth/fmtowns_pc98/towns_pc98_driver.o \
@@ -58,7 +68,17 @@ MODULE_OBJS := \
 	softsynth/eas.o \
 	softsynth/pcspk.o \
 	softsynth/sid.o \
-	softsynth/wave6581.o
+	softsynth/wave6581.o \
+	soundfont/rawfile.o \
+	soundfont/rifffile.o \
+	soundfont/sf2file.o \
+	soundfont/synthfile.o \
+	soundfont/vgmcoll.o \
+	soundfont/vgminstrset.o \
+	soundfont/vgmitem.o \
+	soundfont/vgmsamp.o \
+	soundfont/vab/psxspu.o \
+	soundfont/vab/vab.o
 
 ifndef DISABLE_NUKED_OPL
 MODULE_OBJS += \
@@ -80,13 +100,9 @@ MODULE_OBJS += \
 	opl2lpt.o
 endif
 
-ifndef USE_ARM_SOUND_ASM
+ifdef USE_RETROWAVE
 MODULE_OBJS += \
-	rate.o
-else
-MODULE_OBJS += \
-	rate_arm.o \
-	rate_arm_asm.o
+	rwopl3.o
 endif
 
 # Include common rules

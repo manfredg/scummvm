@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 
 #include "audio/softsynth/fmtowns_pc98/pc98_audio.h"
 
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/sound/drivers/mididriver.h"
 
 /*	PC-98 sound driver for:
@@ -72,7 +71,7 @@ protected:
 		kChanNgEnable = 0x08,
 		kChanNgRestartEnv = 0x10,
 		kChanNgDecrease = 0x20,
-		kChanVbrMode = 0x40, 
+		kChanVbrMode = 0x40,
 		kChanVbrDecrease = 0x80
 	};
 
@@ -100,7 +99,7 @@ protected:
 	uint16 _vbrDecrStep;
 	uint8 _vbrModulationTimer;
 	uint16 _vbrFrequencyModifier;
-	uint8 _vbrCur;		
+	uint8 _vbrCur;
 	uint8 _flags;
 
 	const uint16 *_noteFrequency;
@@ -114,14 +113,14 @@ private:
 	virtual bool prepareFrequencyAndVolume(bool updateVolume);
 	virtual void sendSoundOnOff(bool soundOn) = 0;
 	virtual void sendFrequency() = 0;
-	virtual void sendVolume() = 0;	
+	virtual void sendVolume() = 0;
 
 	uint8 _velo;
 	uint8 _volume;
 	uint8 _program;
 	bool &_soundOn;
 
-	MidiPart_PC9801 **_parts;	
+	MidiPart_PC9801 **_parts;
 	PC98AudioCore *_pc98a;
 	const int _type;
 };
@@ -150,7 +149,7 @@ class SoundChannel_PC9801_FM2OP : public SoundChannel_PC9801 {
 public:
 	SoundChannel_PC9801_FM2OP(uint8 id, PC98AudioCore *pc98a, MidiPart_PC9801 **parts,  SciVersion version, SciSpan<const uint8> instrumentData, uint8 patchSize, bool &soundOn);
 	~SoundChannel_PC9801_FM2OP() override {}
-	
+
 	void processNoteEvent(uint8 note, bool soundOn) override;
 	void reset() override;
 
@@ -192,7 +191,7 @@ private:
 		kEnvSSG_decay = 0x01,
 		kEnvSSG_sustain = 0x02,
 		kEnvSSG_attack = 0x03,
-		kEnvSSG_keyOn = 0x10	
+		kEnvSSG_keyOn = 0x10
 	};
 
 	void programChange(uint8 program) override;
@@ -209,7 +208,7 @@ private:
 	uint8 _chanEnableMask2;
 	uint8 _currentLevel;
 	uint8 _ngPhaseStep;
-	uint8 _ngPhase;	
+	uint8 _ngPhase;
 	uint8 _ngEnvelopeTimer;
 	uint8 _ngSpeed;
 	uint8 _ssgEnvelopeTimer;
@@ -290,9 +289,9 @@ public:
 	void initTrack(SciSpan<const byte> &header);
 
 	void setTimerCallback(void *timer_param, Common::TimerManager::TimerProc timer_proc) override;
-	uint32 getBaseTempo() override;	
-	MidiChannel *allocateChannel() override { return 0; }
-	MidiChannel *getPercussionChannel() override { return 0; }
+	uint32 getBaseTempo() override;
+	MidiChannel *allocateChannel() override { return nullptr; }
+	MidiChannel *getPercussionChannel() override { return nullptr; }
 
 	void timerCallbackB() override;
 
@@ -621,7 +620,7 @@ void SoundChannel_PC9801_FM4OP::programChange(uint8 program) {
 	if (_version == SCI_VERSION_1_LATE) {
 		programChangeInit(data);
 		uint8 pos = 8;
-	
+
 		for (uint8 i = 0x40 + _regOffs; i < 0x50 + _regOffs; i += 4)
 			writeReg(_regPrt, i, 0xFF);
 		for (uint8 i = 0x30 + _regOffs; i < 0x40 + _regOffs; i += 4)
@@ -687,7 +686,7 @@ void SoundChannel_PC9801_FM4OP::sendVolume() {
 			} else {
 				r = 127 - ((127 - r) * vol / 128);
 			}
-		}		
+		}
 		writeReg(_regPrt, 0x40 + (i << 2) + _regOffs, r);
 	}
 }
@@ -729,7 +728,7 @@ void SoundChannel_PC9801_FM2OP::programChange(uint8 program) {
 
 	programChangeInit(data);
 	uint8 pos = 7;
-	
+
 	for (uint8 i = 0x42 + (_regOffs << 2); i < 0x52 + (_regOffs << 2); i += 8)
 		writeReg(_regPrt, i, 0xFF);
 	for (uint8 i = 0x32 + (_regOffs << 2); i < 0x42 + (_regOffs << 2); i += 8)
@@ -745,9 +744,9 @@ void SoundChannel_PC9801_FM2OP::programChange(uint8 program) {
 }
 
 bool SoundChannel_PC9801_FM2OP::prepareFrequencyAndVolume(bool updateVolume) {
-	if (recalculateFrequency(_note, _opFreqOffset[_operatorFrqIndex[0]], 0, &_frequencyCourse, &_frequencyNoteModifier) == -1)
+	if (recalculateFrequency(_note, _opFreqOffset[_operatorFrqIndex[0]], nullptr, &_frequencyCourse, &_frequencyNoteModifier) == -1)
 		return false;
-	if (recalculateFrequency(_note, _opFreqOffset[_operatorFrqIndex[1]], 0, &_frequencyCourse2, &_frequencyNoteModifier2) == -1)
+	if (recalculateFrequency(_note, _opFreqOffset[_operatorFrqIndex[1]], nullptr, &_frequencyCourse2, &_frequencyNoteModifier2) == -1)
 		return false;
 
 	sendFrequency();
@@ -854,7 +853,7 @@ SoundChannel_PC9801_SSG::SoundChannel_PC9801_SSG(uint8 id, PC98AudioCore *pc98a,
 	: SoundChannel_PC9801(pc98a, parts, version, 2, instrumentData, soundOn), _patchOffset(patchOffset), _patchSize(patchSize), _regOffs(id & 3),
 	_instrumentChanMask(0x3F), _ngPhaseStep(0),	_currentLevel(0), _ssgEnvelopeState(kEnvSSG_silent), _ngEnvelopeTimer(0),
 	_ngSpeed(0), _ngPhase(0), _ssgEnvelopeTimer(0), _ssgLevel(0), _ssgSpeed(0), _ccngEnabled(false) {
-	
+
 	static const uint16 courseV0[] = {
 		0xfcf, 0xef1, 0xe16, 0xd59, 0xc87, 0xbcd, 0xb27, 0xa93, 0x9ee, 0x96a, 0x8da, 0x865, 0x778, 0x70d, 0x6a6, 0x643,
 		0x5ec, 0x599, 0x545, 0x4f7, 0x4b5, 0x46d, 0x432, 0x3f4, 0x3c5, 0x386, 0x353, 0x325, 0x2f6, 0x2cc, 0x2a3, 0x27d,
@@ -984,7 +983,7 @@ void SoundChannel_PC9801_SSG::processSounds() {
 			vol = (uint8)CLIP<int16>(vol + (int8)((_selectedInstrument[20] & 0x0F) << 4), 0, 255);
 		}
 	}
-	
+
 	if (_ssgEnvelopeState == kEnvSSG_silent)
 		vol = 0;
 
@@ -1037,7 +1036,7 @@ void SoundChannel_PC9801_SSG::sendSoundOnOff(bool soundOn) {
 void SoundChannel_PC9801_SSG::sendVolume() {
 	uint8 v1 = getVolume();
 	uint16 r = 0;
-	
+
 	if (_version == SCI_VERSION_1_LATE) {
 		uint8 vol = v1 + (((v1 >> 1) + v1) >> 2);
 
@@ -1051,7 +1050,7 @@ void SoundChannel_PC9801_SSG::sendVolume() {
 			if (r & 0x100)
 				r = (r + vol) & 0xFF;
 		}
-		
+
 		r = (r + 15) >> 4;
 
 	} else {
@@ -1315,11 +1314,11 @@ void MidiPart_PC9801::assignFreeChannels() {
 	MidiDriver_PC9801::assignFreeChannels(freeChan);
 }
 
-MidiPart_PC9801 **MidiDriver_PC9801::_parts = 0;
+MidiPart_PC9801 **MidiDriver_PC9801::_parts = nullptr;
 
 MidiDriver_PC9801::MidiDriver_PC9801(Audio::Mixer *mixer, SciVersion version)
-	: _mixer(mixer), _version(version), _pc98a(0), _chan(0), _numChan(6), _internalVersion(0xFF), _ssgPatchOffset(0xFF), _patchSize(0),
-	_timerProc(0), _timerProcPara(0), _baseTempo(10080), _ready(false), _isOpen(false), _masterVolume(0x0f) ,_soundOn(true), _playID(0),
+	: _mixer(mixer), _version(version), _pc98a(nullptr), _chan(nullptr), _numChan(6), _internalVersion(0xFF), _ssgPatchOffset(0xFF), _patchSize(0),
+	_timerProc(nullptr), _timerProcPara(nullptr), _baseTempo(10080), _ready(false), _isOpen(false), _masterVolume(0x0f) ,_soundOn(true), _playID(0),
 	_polyphony(9), _channelMask1(0x10), _channelMask2(0x02) {
 }
 
@@ -1361,7 +1360,7 @@ int MidiDriver_PC9801::open() {
 	} else if (_patchSize == 60 && _ssgPatchOffset == 37)
 		_internalVersion = 2;
 	else if (_patchSize == 81 && _ssgPatchOffset == 58)
-		_internalVersion = 3;	
+		_internalVersion = 3;
 	else
 		return MERR_CANNOT_CONNECT;
 
@@ -1395,7 +1394,7 @@ int MidiDriver_PC9801::open() {
 		else if (channelConfig[config][i] == 2)
 			_chan[i] = new SoundChannel_PC9801_SSG(numSSG++, _pc98a, _parts, _version, *_instrumentData, _ssgPatchOffset, _patchSize, _soundOn);
 		else
-			_chan[i] = 0;
+			_chan[i] = nullptr;
 	}
 
 	for (int i = 0; i < 16; ++i)
@@ -1416,24 +1415,24 @@ void MidiDriver_PC9801::close() {
 	_isOpen = _ready = false;
 
 	delete _pc98a;
-	_pc98a = 0;
+	_pc98a = nullptr;
 
 	if (_parts) {
 		for (int i = 0; i < 16; ++i) {
 			delete _parts[i];
-			_parts[i] = 0;
+			_parts[i] = nullptr;
 		}
 		delete[] _parts;
-		_parts = 0;
+		_parts = nullptr;
 	}
 
 	if (_chan) {
 		for (int i = 0; i < _numChan; ++i) {
 			delete _chan[i];
-			_chan[i] = 0;
+			_chan[i] = nullptr;
 		}
 		delete[] _chan;
-		_chan = 0;
+		_chan = nullptr;
 	}
 
 	_instrumentData.clear();
@@ -1556,7 +1555,7 @@ void MidiDriver_PC9801::initTrack(SciSpan<const byte> &header) {
 
 	for (int i = 0; i < numChan; ++i) {
 		_parts[i]->controlChangeVolume(103);
-			
+
 		uint8 num = (_internalVersion == 1) ? (header.getInt8At(readPos) & 0x7F) : 1;
 		readPos++;
 		uint8 flags = header.getInt8At(readPos);
@@ -1659,7 +1658,7 @@ void MidiDriver_PC9801::reset() {
 		flag = 0x40;
 	}
 #endif
-	
+
 	_pc98a->writeReg(0, 0x27, 0x38);
 	_pc98a->writeReg(0, 0x27, 0x3a | flag);
 
@@ -1667,7 +1666,7 @@ void MidiDriver_PC9801::reset() {
 		return;
 
 	for (int i = 0; i < _numChan; ++i)
-		_chan[i]->reset();	
+		_chan[i]->reset();
 }
 
 MidiPlayer_PC9801::MidiPlayer_PC9801(SciVersion version) : MidiPlayer(version) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,12 +44,6 @@ PinkEngine::PinkEngine(OSystem *system, const ADGameDescription *desc)
 	_desc(desc), _bro(nullptr), _menu(nullptr), _actor(nullptr),
 	_module(nullptr), _director(nullptr), _pdaMgr(this) {
 
-	DebugMan.addDebugChannel(kPinkDebugGeneral, "general", "General issues");
-	DebugMan.addDebugChannel(kPinkDebugLoadingResources, "loading_resources", "Loading resources data");
-	DebugMan.addDebugChannel(kPinkDebugLoadingObjects, "loading_objects", "Serializing objects from Orb");
-	DebugMan.addDebugChannel(kPinkDebugScripts, "scripts", "Sequences");
-	DebugMan.addDebugChannel(kPinkDebugActions, "actions", "Actions");
-
 	const Common::FSNode gameDataDir(ConfMan.get("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "install");
 }
@@ -66,7 +59,6 @@ PinkEngine::~PinkEngine() {
 		delete _cursors[j];
 	}
 	delete _director;
-	DebugMan.clearAllDebugChannels();
 }
 
 Common::Error PinkEngine::init() {
@@ -80,7 +72,7 @@ Common::Error PinkEngine::init() {
 	}
 
 	setDebugger(new Console(this));
-	_director = new Director();
+	_director = new Director(this);
 
 	initMenu();
 
@@ -94,8 +86,16 @@ Common::Error PinkEngine::init() {
 		orbName = "HPP.ORB";
 	}
 
-	if (!_orb.open(orbName) || (_bro && !_bro->open(broName) && _orb.getTimestamp() == _bro->getTimestamp()))
+	if (!_orb.open(orbName))
 		return Common::kNoGameDataFoundError;
+	if (_bro) {
+		if (!_bro->open(broName))
+			return Common::kNoGameDataFoundError;
+		if (_orb.getTimestamp() != _bro->getTimestamp()) {
+			warning("ORB and BRO timestamp mismatch. %x != %x", _orb.getTimestamp(), _bro->getTimestamp());
+			//return Common::kNoGameDataFoundError;
+		}
+	}
 
 	if (!loadCursors())
 		return Common::kNoGameDataFoundError;
@@ -128,7 +128,7 @@ Common::Error Pink::PinkEngine::run() {
 
 			switch (event.type) {
 			case Common::EVENT_QUIT:
-			case Common::EVENT_RTL:
+			case Common::EVENT_RETURN_TO_LAUNCHER:
 				return Common::kNoError;
 			case Common::EVENT_MOUSEMOVE:
 				_actor->onMouseMove(event.mouse);
@@ -157,11 +157,6 @@ Common::Error Pink::PinkEngine::run() {
 	}
 
 	return Common::kNoError;
-}
-
-void PinkEngine::pauseEngine(void *engine, bool pause) {
-	PinkEngine *vm = (PinkEngine*)engine;
-	vm->pauseEngineIntern(pause);
 }
 
 void PinkEngine::load(Archive &archive) {
@@ -269,11 +264,8 @@ bool PinkEngine::loadCursors() {
 }
 
 void PinkEngine::setCursor(uint cursorIndex) {
-	Graphics::Cursor *cursor = _cursors[cursorIndex]->cursors[0].cursor;
-	_system->setCursorPalette(cursor->getPalette(), cursor->getPaletteStartIndex(), cursor->getPaletteCount());
-	_system->setMouseCursor(cursor->getSurface(), cursor->getWidth(), cursor->getHeight(),
-							cursor->getHotspotX(), cursor->getHotspotY(), cursor->getKeyColor());
-	_system->showMouse(true);
+	CursorMan.replaceCursor(_cursors[cursorIndex]->cursors[0].cursor);
+	CursorMan.showMouse(true);
 }
 
 bool PinkEngine::canLoadGameStateCurrently() {
@@ -286,9 +278,10 @@ bool PinkEngine::canSaveGameStateCurrently() {
 
 bool PinkEngine::hasFeature(Engine::EngineFeature f) const {
 	return
-		f == kSupportsRTL ||
+		f == kSupportsReturnToLauncher ||
 		f == kSupportsLoadingDuringRuntime ||
-		f == kSupportsSavingDuringRuntime;
+		f == kSupportsSavingDuringRuntime ||
+		f == kSupportsChangingOptionsDuringRuntime;
 }
 
 void PinkEngine::pauseEngineIntern(bool pause) {

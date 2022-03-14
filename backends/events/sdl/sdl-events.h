@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,9 +55,17 @@ public:
 	 */
 	void fakeWarpMouse(const int x, const int y);
 
+	/** Returns whether a joystick is currently connected */
+	bool isJoystickConnected() const;
+
+	/** Sets whether a game is currently running */
+	void setEngineRunning(bool value);
+
 protected:
 	/** Scroll lock state - since SDL doesn't track it */
 	bool _scrollLock;
+
+	bool _engineRunning;
 
 	int _mouseX;
 	int _mouseY;
@@ -131,8 +138,8 @@ protected:
 	virtual bool handleJoyHatMotion(SDL_Event &ev, Common::Event &event);
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	virtual bool handleJoystickAdded(const SDL_JoyDeviceEvent &event);
-	virtual bool handleJoystickRemoved(const SDL_JoyDeviceEvent &device);
+	virtual bool handleJoystickAdded(const SDL_JoyDeviceEvent &device, Common::Event &event);
+	virtual bool handleJoystickRemoved(const SDL_JoyDeviceEvent &device, Common::Event &event);
 	virtual int mapSDLControllerButtonToOSystem(Uint8 sdlButton);
 	virtual bool handleControllerButton(const SDL_Event &ev, Common::Event &event, bool buttonUp);
 	virtual bool handleControllerAxisMotion(const SDL_Event &ev, Common::Event &event);
@@ -143,8 +150,9 @@ protected:
 	/**
 	 * Assigns the mouse coords to the mouse event. Furthermore notify the
 	 * graphics manager about the position change.
+	 * The parameters relx and rely for relative mouse movement
 	 */
-	virtual bool processMouseEvent(Common::Event &event, int x, int y);
+	virtual bool processMouseEvent(Common::Event &event, int x, int y, int relx = 0, int rely = 0);
 
 	/**
 	 * Remaps key events. This allows platforms to configure

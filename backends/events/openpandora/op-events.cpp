@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -86,31 +85,23 @@ bool OPEventSource::handleMouseButtonDown(SDL_Event &ev, Common::Event &event) {
 }
 
 bool OPEventSource::handleMouseButtonUp(SDL_Event &ev, Common::Event &event) {
-	if (ev.button.button == SDL_BUTTON_LEFT) {
-		if (_buttonStateL == true) /* _buttonStateL = Left Trigger Held, force Right Click */
-			event.type = Common::EVENT_RBUTTONUP;
-		else if (_tapmodeLevel == TAPMODE_LEFT) /* TAPMODE_LEFT = Left Click Tap Mode */
-			event.type = Common::EVENT_LBUTTONUP;
-		else if (_tapmodeLevel == TAPMODE_RIGHT) /* TAPMODE_RIGHT = Right Click Tap Mode */
-			event.type = Common::EVENT_RBUTTONUP;
-		else if (_tapmodeLevel == TAPMODE_HOVER) /* TAPMODE_HOVER = Hover (No Click) Tap Mode */
-			event.type = Common::EVENT_MOUSEMOVE;
-		else if (_tapmodeLevel == TAPMODE_HOVER_DPAD) /* TAPMODE_HOVER_DPAD = Hover (DPad Clicks) Tap Mode */
-			event.type = Common::EVENT_MOUSEMOVE;
-		else
-			event.type = Common::EVENT_LBUTTONUP; /* For normal mice etc. */
-	} else if (ev.button.button == SDL_BUTTON_RIGHT)
+	if (ev.button.button != SDL_BUTTON_LEFT)
+		return SdlEventSource::handleMouseButtonUp(ev, event);
+
+	if (_buttonStateL == true) /* _buttonStateL = Left Trigger Held, force Right Click */
 		event.type = Common::EVENT_RBUTTONUP;
-#if defined(SDL_BUTTON_MIDDLE)
-	else if (ev.button.button == SDL_BUTTON_MIDDLE)
-		event.type = Common::EVENT_MBUTTONUP;
-#endif
+	else if (_tapmodeLevel == TAPMODE_LEFT) /* TAPMODE_LEFT = Left Click Tap Mode */
+		event.type = Common::EVENT_LBUTTONUP;
+	else if (_tapmodeLevel == TAPMODE_RIGHT) /* TAPMODE_RIGHT = Right Click Tap Mode */
+		event.type = Common::EVENT_RBUTTONUP;
+	else if (_tapmodeLevel == TAPMODE_HOVER) /* TAPMODE_HOVER = Hover (No Click) Tap Mode */
+		event.type = Common::EVENT_MOUSEMOVE;
+	else if (_tapmodeLevel == TAPMODE_HOVER_DPAD) /* TAPMODE_HOVER_DPAD = Hover (DPad Clicks) Tap Mode */
+		event.type = Common::EVENT_MOUSEMOVE;
 	else
-		return false;
+		event.type = Common::EVENT_LBUTTONUP; /* For normal mice etc. */
 
-	processMouseEvent(event, ev.button.x, ev.button.y);
-
-	return true;
+	return processMouseEvent(event, ev.button.x, ev.button.y);
 }
 
 /* On the OpenPandora by default the ABXY and L/R Trigger buttons are returned by SDL as

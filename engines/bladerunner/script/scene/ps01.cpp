@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -315,7 +314,7 @@ void SceneScriptPS01::PlayerWalkedIn() {
 void SceneScriptPS01::PlayerWalkedOut() {
 	Actor_Set_Invisible(kActorMcCoy, false);
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 
 	if (_vm->_cutContent) {
 		ADQ_Flush(); // for dispatcher queue cleanup
@@ -323,10 +322,13 @@ void SceneScriptPS01::PlayerWalkedOut() {
 
 	if (!Game_Flag_Query(kflagPS01toPS02)) {
 		if (Global_Variable_Query(kVariableChapter) == 1) {
-			Outtake_Play(kOuttakeTowards3, true, -1);
+			if (_vm->_cutContent && (Random_Query(1, 8) == 1)) {
+				Outtake_Play(kOuttakeFlyThrough, true, -1);
+			} else {
+				Outtake_Play(kOuttakeTowards3, true, -1);
+			}
 		}
-#if BLADERUNNER_ORIGINAL_BUGS
-#else
+#if !BLADERUNNER_ORIGINAL_BUGS
 		else {
 			// Acts 2, 3 - should still use a spinner fly-through transition
 			if (!Game_Flag_Query(kFlagMcCoyInTyrellBuilding)) {
@@ -335,7 +337,7 @@ void SceneScriptPS01::PlayerWalkedOut() {
 				Outtake_Play(kOuttakeTowards3, true, -1); // available in Acts 1, 2, 3
 			}
 		}
-#endif // BLADERUNNER_ORIGINAL_BUGS
+#endif // !BLADERUNNER_ORIGINAL_BUGS
 	}
 }
 

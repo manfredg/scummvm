@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,27 +31,21 @@
 namespace Ultima {
 namespace Ultima8 {
 
-MissileTracker::MissileTracker(Item *item, int32 sx, int32 sy, int32 sz,
-                               int32 tx, int32 ty, int32 tz,
-                               int32 speed, int32 gravity_) {
+MissileTracker::MissileTracker(const Item *item, int32 sx, int32 sy, int32 sz,
+							   int32 tx, int32 ty, int32 tz,
+							   int32 speed, int32 gravity) :
+		_destX(tx), _destY(ty), _destZ(tz), _gravity(gravity) {
 	_objId = item->getObjId();
-	_destX = tx;
-	_destY = ty;
-	_destZ = tz;
-	_gravity = gravity_;
 
 	init(sx, sy, sz, speed);
 }
 
-MissileTracker::MissileTracker(Item *item, int32 tx, int32 ty, int32 tz,
-                               int32 speed, int32 gravity_) {
+MissileTracker::MissileTracker(const Item *item, int32 tx, int32 ty, int32 tz,
+							   int32 speed, int32 gravity) :
+		  _destX(tx), _destY(ty), _destZ(tz), _gravity(gravity)  {
 	assert(item->getParent() == 0);
 
 	_objId = item->getObjId();
-	_destX = tx;
-	_destY = ty;
-	_destZ = tz;
-	_gravity = gravity_;
 
 	int32 x, y, z;
 	item->getLocation(x, y, z);
@@ -126,7 +119,7 @@ void MissileTracker::init(int32 x, int32 y, int32 z, int32 speed) {
 MissileTracker::~MissileTracker() {
 }
 
-bool MissileTracker::isPathClear() {
+bool MissileTracker::isPathClear() const {
 	int32 start[3];
 	int32 end[3];
 	int32 dims[3];
@@ -139,6 +132,11 @@ bool MissileTracker::isPathClear() {
 	World *world = World::get_instance();
 	CurrentMap *map = world->getCurrentMap();
 	Item *item = getItem(_objId);
+
+	if (!item) {
+		// Item disappeared? shouldn't happen, but call the path clear.
+		return true;
+	}
 
 	item->getFootpadWorld(dims[0], dims[1], dims[2]);
 	item->getLocation(start[0], start[1], start[2]);

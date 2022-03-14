@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,36 +15,43 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/world/actors/loiter_process.h"
 #include "ultima/ultima8/world/actors/actor.h"
 #include "ultima/ultima8/world/actors/pathfinder_process.h"
+#include "ultima/ultima8/world/actors/cru_pathfinder_process.h"
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/kernel/delay_process.h"
+#include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/world/get_object.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-// p_dynamic_cast stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE(LoiterProcess, Process)
+DEFINE_RUNTIME_CLASSTYPE_CODE(LoiterProcess)
 
-LoiterProcess::LoiterProcess() : Process() {
+LoiterProcess::LoiterProcess() : Process(), _count(0) {
 }
 
-LoiterProcess::LoiterProcess(Actor *actor, int32 c) {
+LoiterProcess::LoiterProcess(Actor *actor, int32 c) : _count(c) {
 	assert(actor);
 	_itemNum = actor->getObjId();
-	_count = c;
 
-	_type = 0x205; // CONSTANT!
+	if (GAME_IS_U8)
+		_type = 0x205; // CONSTANT!
+	else
+		_type = 599;
+
+	// Only loiter with one process at a time.
+	Process *previous = Kernel::get_instance()->findProcess(_itemNum, _type);
+	if (previous)
+		previous->terminate();
+	Process *prevpf = Kernel::get_instance()->findProcess(_itemNum, PathfinderProcess::PATHFINDER_PROC_TYPE);
+	if (prevpf)
+		prevpf->terminate();
 }
 
 void LoiterProcess::run() {
@@ -69,7 +76,12 @@ void LoiterProcess::run() {
 	x += 32 * ((getRandom() % 20) - 10);
 	y += 32 * ((getRandom() % 20) - 10);
 
-	PathfinderProcess *pfp = new PathfinderProcess(a, x, y, z);
+	Process *pfp;
+	if (GAME_IS_U8)
+		pfp = new PathfinderProcess(a, x, y, z);
+	else
+		pfp = new CruPathfinderProcess(a, x, y, z, 0xc, 0x80, false);
+
 	Kernel::get_instance()->addProcess(pfp);
 
 	bool hasidle1 = a->hasAnim(Animation::idle1);
@@ -88,7 +100,7 @@ void LoiterProcess::run() {
 			else
 				idleanim = Animation::idle2;
 		}
-		uint16 idlepid = a->doAnim(idleanim, 8);
+		uint16 idlepid = a->doAnim(idleanim, dir_current);
 		Process *idlep = Kernel::get_instance()->getProcess(idlepid);
 		idlep->waitFor(pfp);
 
@@ -104,17 +116,22 @@ void LoiterProcess::run() {
 	}
 }
 
-void LoiterProcess::saveData(ODataSource *ods) {
-	Process::saveData(ods);
-
-	ods->write4(_count);
+void LoiterProcess::dumpInfo() const {
+	Process::dumpInfo();
+	pout << "Frames left: " << _count;
 }
 
-bool LoiterProcess::loadData(IDataSource *ids, uint32 version) {
-	if (!Process::loadData(ids, version)) return false;
+void LoiterProcess::saveData(Common::WriteStream *ws) {
+	Process::saveData(ws);
+
+	ws->writeUint32LE(_count);
+}
+
+bool LoiterProcess::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Process::loadData(rs, version)) return false;
 
 	if (version >= 3)
-		_count = ids->read4();
+		_count = rs->readUint32LE();
 	else
 		_count = 0; // default to loitering indefinitely
 

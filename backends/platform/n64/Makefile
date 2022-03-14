@@ -44,7 +44,6 @@ RM = rm -f
 RM_REC = rm -rf
 
 VERBOSE_BUILD=1
-HAVE_GCC3=1
 USE_RGB_COLOR=0
 
 ENABLED=STATIC_PLUGIN
@@ -80,7 +79,7 @@ ROMFS.img:
 	genromfs -f ./ROMFS.img -d ./ROMFS -V romtest
 
 $(TARGET).elf: $(OBJS)
-	$(LD) -o $(TARGET).elf $(OBJS) $(LDFLAGS)
+	+$(LD) -o $(TARGET).elf $(OBJS) $(LDFLAGS)
 
 $(TARGET).bin : $(TARGET).elf
 	$(OBJCOPY) $(TARGET).elf $(TARGET).bin -O binary

@@ -182,7 +182,7 @@
 #define LUAI_FUNC	static
 #define LUAI_DATA	/* empty */
 
-#elif GCC_ATLEAST(3, 2) && defined(__ELF__) && !defined(__PLAYSTATION2__)
+#elif GCC_ATLEAST(3, 2) && defined(__ELF__)
 /*
 ** The PS2 gcc compiler doesn't like the visibility attribute, so
 ** we use the normal "extern" definitions in the block below
@@ -657,7 +657,7 @@ union luai_Cast { double l_d; long l_l; };
 ** also add -DLUA_USE_DLOPEN.)
 ** If you do not want any kind of dynamic library, undefine all these
 ** options.
-** By default, _WIN32 gets LUA_DL_DLL and MAC OS X gets LUA_DL_DYLD.
+** By default, _WIN32 gets LUA_DL_DLL and macOS gets LUA_DL_DYLD.
 */
 #if defined(LUA_USE_DLOPEN)
 #define LUA_DL_DLOPEN

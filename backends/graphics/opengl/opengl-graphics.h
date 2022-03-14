@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@
 
 #include "common/frac.h"
 #include "common/mutex.h"
+#include "common/ustr.h"
 
 #include "graphics/surface.h"
 
@@ -59,64 +59,72 @@ public:
 	virtual ~OpenGLGraphicsManager();
 
 	// GraphicsManager API
-	virtual bool hasFeature(OSystem::Feature f) const override;
-	virtual void setFeatureState(OSystem::Feature f, bool enable) override;
-	virtual bool getFeatureState(OSystem::Feature f) const override;
+	bool hasFeature(OSystem::Feature f) const override;
+	void setFeatureState(OSystem::Feature f, bool enable) override;
+	bool getFeatureState(OSystem::Feature f) const override;
 
-	virtual const OSystem::GraphicsMode *getSupportedGraphicsModes() const override;
-	virtual int getDefaultGraphicsMode() const override;
-	virtual bool setGraphicsMode(int mode) override;
-	virtual int getGraphicsMode() const override;
+	const OSystem::GraphicsMode *getSupportedGraphicsModes() const override;
+	int getDefaultGraphicsMode() const override;
+	bool setGraphicsMode(int mode, uint flags = OSystem::kGfxModeNoFlags) override;
+	int getGraphicsMode() const override;
 
 #ifdef USE_RGB_COLOR
-	virtual Graphics::PixelFormat getScreenFormat() const override;
-	virtual Common::List<Graphics::PixelFormat> getSupportedFormats() const override;
+	Graphics::PixelFormat getScreenFormat() const override;
+	Common::List<Graphics::PixelFormat> getSupportedFormats() const override;
 #endif
 
-	virtual const OSystem::GraphicsMode *getSupportedStretchModes() const override;
-	virtual int getDefaultStretchMode() const override;
-	virtual bool setStretchMode(int mode) override;
-	virtual int getStretchMode() const override;
+	const OSystem::GraphicsMode *getSupportedStretchModes() const override;
+	int getDefaultStretchMode() const override;
+	bool setStretchMode(int mode) override;
+	int getStretchMode() const override;
 
-	virtual void beginGFXTransaction() override;
-	virtual OSystem::TransactionError endGFXTransaction() override;
+#ifdef USE_SCALERS
+	uint getDefaultScaler() const override;
+	uint getDefaultScaleFactor() const override;
+	bool setScaler(uint mode, int factor) override;
+	uint getScaler() const override;
+	uint getScaleFactor() const override;
+#endif
 
-	virtual int getScreenChangeID() const override;
+	void beginGFXTransaction() override;
+	OSystem::TransactionError endGFXTransaction() override;
 
-	virtual void initSize(uint width, uint height, const Graphics::PixelFormat *format) override;
+	int getScreenChangeID() const override;
 
-	virtual int16 getWidth() const override;
-	virtual int16 getHeight() const override;
+	void initSize(uint width, uint height, const Graphics::PixelFormat *format) override;
 
-	virtual void copyRectToScreen(const void *buf, int pitch, int x, int y, int w, int h) override;
-	virtual void fillScreen(uint32 col) override;
+	int16 getWidth() const override;
+	int16 getHeight() const override;
 
-	virtual void updateScreen() override;
+	void copyRectToScreen(const void *buf, int pitch, int x, int y, int w, int h) override;
+	void fillScreen(uint32 col) override;
 
-	virtual Graphics::Surface *lockScreen() override;
-	virtual void unlockScreen() override;
+	void updateScreen() override;
 
-	virtual void setFocusRectangle(const Common::Rect& rect) override;
-	virtual void clearFocusRectangle() override;
+	Graphics::Surface *lockScreen() override;
+	void unlockScreen() override;
 
-	virtual int16 getOverlayWidth() const override;
-	virtual int16 getOverlayHeight() const override;
+	void setFocusRectangle(const Common::Rect& rect) override;
+	void clearFocusRectangle() override;
 
-	virtual Graphics::PixelFormat getOverlayFormat() const override;
+	int16 getOverlayWidth() const override;
+	int16 getOverlayHeight() const override;
 
-	virtual void copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h) override;
-	virtual void clearOverlay() override;
-	virtual void grabOverlay(void *buf, int pitch) const override;
+	Graphics::PixelFormat getOverlayFormat() const override;
 
-	virtual void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format) override;
-	virtual void setCursorPalette(const byte *colors, uint start, uint num) override;
+	void copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h) override;
+	void clearOverlay() override;
+	void grabOverlay(Graphics::Surface &surface) const override;
 
-	virtual void displayMessageOnOSD(const char *msg) override;
-	virtual void displayActivityIconOnOSD(const Graphics::Surface *icon) override;
+	void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale, const Graphics::PixelFormat *format) override;
+	void setCursorPalette(const byte *colors, uint start, uint num) override;
+
+	void displayMessageOnOSD(const Common::U32String &msg) override;
+	void displayActivityIconOnOSD(const Graphics::Surface *icon) override;
 
 	// PaletteManager interface
-	virtual void setPalette(const byte *colors, uint start, uint num) override;
-	virtual void grabPalette(byte *colors, uint start, uint num) const override;
+	void setPalette(const byte *colors, uint start, uint num) override;
+	void grabPalette(byte *colors, uint start, uint num) const override;
 
 protected:
 	/**
@@ -156,13 +164,14 @@ protected:
 	/**
 	 * Create a surface with the specified pixel format.
 	 *
-	 * @param format    The pixel format the Surface object should accept as
-	 *                  input.
-	 * @param wantAlpha For CLUT8 surfaces this marks whether an alpha
-	 *                  channel should be used.
+	 * @param format     The pixel format the Surface object should accept as
+	 *                   input.
+	 * @param wantAlpha  For CLUT8 surfaces this marks whether an alpha
+	 *                   channel should be used.
+	 * @param wantScaler Whether or not a software scaler should be used.
 	 * @return A pointer to the surface or nullptr on failure.
 	 */
-	Surface *createSurface(const Graphics::PixelFormat &format, bool wantAlpha = false);
+	Surface *createSurface(const Graphics::PixelFormat &format, bool wantAlpha = false, bool wantScaler = false);
 
 	void updateLinearFiltering();
 
@@ -174,7 +183,8 @@ protected:
 #ifdef USE_RGB_COLOR
 		    gameFormat(),
 #endif
-		    aspectRatioCorrection(false), graphicsMode(GFX_OPENGL), filtering(true), crtEmulation(false) {
+	    aspectRatioCorrection(false), graphicsMode(GFX_OPENGL), filtering(true), crtEmulation(false),
+		    scalerIndex(0), scaleFactor(1) {
 		}
 
 		bool valid;
@@ -187,6 +197,9 @@ protected:
 		int graphicsMode;
 		bool filtering;
 		bool crtEmulation;
+
+		uint scalerIndex;
+		int scaleFactor;
 
 		bool operator==(const VideoState &right) {
 			return gameWidth == right.gameWidth && gameHeight == right.gameHeight
@@ -239,6 +252,11 @@ private:
 	 */
 	int _stretchMode;
 
+	/**
+	 * Scaled version of _gameScreenShakeXOffset and _gameScreenShakeYOffset (as a Common::Point)
+	 */
+	Common::Point _shakeOffsetScaled;
+
 protected:
 	/**
 	 * Set up the requested video mode. This takes parameters which describe
@@ -268,6 +286,9 @@ protected:
 	 */
 	bool saveScreenshot(const Common::String &filename) const;
 
+	// Do not hide the argument-less saveScreenshot from the base class
+	using WindowedGraphicsManager::saveScreenshot;
+
 private:
 	//
 	// OpenGL utilities
@@ -279,11 +300,6 @@ private:
 	void initializeGLContext();
 
 	/**
-	 * Render back buffer.
-	 */
-	Backbuffer _backBuffer;
-
-	/**
 	 * OpenGL pipeline used for rendering.
 	 */
 	Pipeline *_pipeline;
@@ -293,7 +309,7 @@ private:
 	*/
 	Pipeline *_crtEmulationPipeline;
 
-protected:
+public:
 	/**
 	 * Query the address of an OpenGL function by name.
 	 *
@@ -307,6 +323,7 @@ protected:
 	 */
 	virtual void *getProcAddress(const char *name) const = 0;
 
+protected:
 	/**
 	 * Try to determine the internal parameters for a given pixel format.
 	 *
@@ -314,9 +331,10 @@ protected:
 	 */
 	bool getGLPixelFormat(const Graphics::PixelFormat &pixelFormat, GLenum &glIntFormat, GLenum &glFormat, GLenum &glType) const;
 
-	virtual bool gameNeedsAspectRatioCorrection() const override;
-	virtual void recalculateDisplayAreas() override;
-	virtual void handleResizeImpl(const int width, const int height, const int xdpi, const int ydpi) override;
+	bool gameNeedsAspectRatioCorrection() const override;
+	int getGameRenderScale() const override;
+	void recalculateDisplayAreas() override;
+	void handleResizeImpl(const int width, const int height) override;
 
 	/**
 	 * The default pixel format of the backend.
@@ -327,6 +345,11 @@ protected:
 	 * The default pixel format with an alpha channel.
 	 */
 	Graphics::PixelFormat _defaultFormatAlpha;
+
+	/**
+	 * Render back buffer.
+	 */
+	Backbuffer _backBuffer;
 
 	/**
 	 * The rendering surface for the virtual game screen.
@@ -423,6 +446,13 @@ protected:
 	 */
 	byte _cursorPalette[3 * 256];
 
+#ifdef USE_SCALERS
+	/**
+	 * The list of scaler plugins
+	 */
+	const PluginList &_scalerPlugins;
+#endif
+
 #ifdef USE_OSD
 	//
 	// OSD
@@ -445,7 +475,7 @@ private:
 	 * If this value is not empty, the OSD message will be set
 	 * to it on the next frame.
 	 */
-	Common::String _osdMessageNextData;
+	Common::U32String _osdMessageNextData;
 
 	/**
 	 * Set the OSD message surface with the value of the next OSD message.

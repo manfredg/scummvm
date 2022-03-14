@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,33 +38,33 @@
 namespace Gob {
 
 Mult::Mult(GobEngine *vm) : _vm(vm) {
-	_multData = 0;
+	_multData = nullptr;
 
 	_frame = 0;
 
 	_objCount = 0;
-	_objects = 0;
+	_objects = nullptr;
 
-	_renderData = 0;
-	_renderObjs = 0;
+	_renderData = nullptr;
+	_renderObjs = nullptr;
 
-	_orderArray = 0;
+	_orderArray = nullptr;
 
 	_index = 0;
 	_counter = 0;
 	_animDataAllocated = false;
 
 	for (int i = 0; i < 8; i++)
-		_multDatas[i] = 0;
+		_multDatas[i] = nullptr;
 
 	_doPalSubst = false;
 
-	_animArrayX = 0;
-	_animArrayY = 0;
-	_animArrayData = 0;
+	_animArrayX = nullptr;
+	_animArrayY = nullptr;
+	_animArrayData = nullptr;
 
 	_palKeyIndex = 0;
-	_oldPalette = 0;
+	_oldPalette = nullptr;
 	for (int i = 0; i < 256; i++) {
 		_palAnimPalette[i].red = 0;
 		_palAnimPalette[i].green = 0;
@@ -107,9 +106,9 @@ Mult::~Mult() {
 }
 
 void Mult::initAll() {
-	_objects = 0;
+	_objects = nullptr;
 	_animSurf.reset();
-	_renderData = 0;
+	_renderData = nullptr;
 
 	_vm->_scenery->init();
 }
@@ -137,10 +136,10 @@ void Mult::freeMult() {
 	delete[] _renderObjs;
 	delete[] _orderArray;
 
-	_objects = 0;
-	_renderData = 0;
-	_renderObjs = 0;
-	_orderArray = 0;
+	_objects = nullptr;
+	_renderData = nullptr;
+	_renderObjs = nullptr;
+	_orderArray = nullptr;
 
 	_animSurf.reset();
 	_vm->_draw->freeSprite(Draw::kAnimSurface);
@@ -152,7 +151,7 @@ void Mult::checkFreeMult() {
 }
 
 void Mult::zeroMultData() {
-	_multData = 0;
+	_multData = nullptr;
 }
 
 void Mult::playMult(int16 startFrame, int16 endFrame, char checkEscape,
@@ -226,13 +225,13 @@ void Mult::playMult(int16 startFrame, int16 endFrame, char checkEscape,
 			delete[] _animArrayData;
 			delete[] _orderArray;
 
-			_objects = 0;
-			_renderObjs = 0;
-			_renderData = 0;
-			_animArrayX = 0;
-			_animArrayY = 0;
-			_animArrayData = 0;
-			_orderArray = 0;
+			_objects = nullptr;
+			_renderObjs = nullptr;
+			_renderData = nullptr;
+			_animArrayX = nullptr;
+			_animArrayY = nullptr;
+			_animArrayData = nullptr;
+			_orderArray = nullptr;
 
 			_animSurf.reset();
 			_vm->_draw->freeSprite(Draw::kAnimSurface);

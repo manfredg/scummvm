@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -184,7 +183,7 @@ void CBaseStars::draw1(CSurfaceArea *surfaceArea, CCamera *camera, CStarCloseup 
 
 		tempY = vector._x * pose._row1._y + vector._y * pose._row2._y + vector._z * pose._row3._y + pose._vector._y;
 		tempX = vector._x * pose._row1._x + vector._y * pose._row2._x + vector._z * pose._row3._x + pose._vector._x;
-		total2 = tempY * tempY + tempX * tempX + tempZ * tempZ; 
+		total2 = tempY * tempY + tempX * tempX + tempZ * tempZ;
 
 		if (total2 < 1.0e12) {
 			closeup->draw(pose, vector, FVector(centroid._x, centroid._y, total2),

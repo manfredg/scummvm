@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,6 +39,11 @@ SwitchEventSource::SwitchEventSource() {
 	for (int port = 0; port < SCE_TOUCH_PORT_MAX_NUM; port++) {
 		for (int i = 0; i < MAX_NUM_FINGERS; i++) {
 			_finger[port][i].id = -1;
+			_finger[port][i].timeLastDown = 0;
+			_finger[port][i].lastX = 0;
+			_finger[port][i].lastY = 0;
+			_finger[port][i].lastDownX = 0;
+			_finger[port][i].lastDownY = 0;
 		}
 		_multiFingerDragging[port] = DRAG_NONE;
 	}
@@ -215,7 +219,7 @@ void SwitchEventSource::preprocessFingerMotion(SDL_Event *event) {
 	if (numFingersDown >= 1) {
 		int x = _mouseX;
 		int y = _mouseY;
-		int xMax = _graphicsManager->getWindowWidth()  - 1;
+		int xMax = _graphicsManager->getWindowWidth() - 1;
 		int yMax = _graphicsManager->getWindowHeight() - 1;
 
 		if (port == 0 && !ConfMan.getBool("touchpad_mouse_mode")) {
@@ -285,7 +289,7 @@ void SwitchEventSource::preprocessFingerMotion(SDL_Event *event) {
 					}
 				}
 				if (numFingersDownLong >= 2) {
-					// starting drag, so push mouse down at current location (back) 
+					// starting drag, so push mouse down at current location (back)
 					// or location of "oldest" finger (front)
 					int mouseDownX = _mouseX;
 					int mouseDownY = _mouseY;

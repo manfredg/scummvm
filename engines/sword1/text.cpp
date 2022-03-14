@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 
 #include "common/textconsole.h"
+#include "common/str.h"
+#include "common/unicode-bidi.h"
 
 #include "sword1/text.h"
 #include "sword1/resman.h"
@@ -99,9 +100,18 @@ void Text::makeTextSprite(uint8 slot, const uint8 *text, uint16 maxWidth, uint8 
 	memset(linePtr, NO_COL, sprSize);
 	for (lineCnt = 0; lineCnt < numLines; lineCnt++) {
 		uint8 *sprPtr = linePtr + (sprWidth - lines[lineCnt].width) / 2; // center the text
+		Common::String textString;
+		const uint8 *curTextLine = text;
+		if (SwordEngine::_systemVars.isLangRtl) {
+			Common::String textLogical = Common::String((const char *)text, (uint32)lines[lineCnt].length);
+			textString = Common::convertBiDiString(textLogical, Common::kWindows1255);
+			curTextLine = (const uint8 *)textString.c_str();
+		}
 		for (uint16 pos = 0; pos < lines[lineCnt].length; pos++)
-			sprPtr += copyChar(*text++, sprPtr, sprWidth, pen) - OVERLAP;
-		text++; // skip space at the end of the line
+			sprPtr += copyChar(*curTextLine++, sprPtr, sprWidth, pen) - OVERLAP;
+		curTextLine++; // skip space at the end of the line
+		text += lines[lineCnt].length + 1;
+
 		if (SwordEngine::isPsx()) //Chars are half height in psx version
 			linePtr += (_charHeight / 2) * sprWidth;
 		else

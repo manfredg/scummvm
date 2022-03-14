@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,23 +15,24 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/util.h"
 #include "common/stack.h"
+#include "common/unicode-bidi.h"
 #include "graphics/primitives.h"
 
 #include "sci/sci.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/selector.h"
 #include "sci/engine/state.h"
+#include "sci/engine/tts.h"
 #include "sci/graphics/cache.h"
 #include "sci/graphics/celobj32.h"
 #include "sci/graphics/compare.h"
-#include "sci/graphics/font.h"
+#include "sci/graphics/scifont.h"
 #include "sci/graphics/frameout.h"
 #include "sci/graphics/screen.h"
 #include "sci/graphics/text32.h"
@@ -55,6 +56,11 @@ GfxText32::GfxText32(SegManager *segMan, GfxCache *fonts) :
 void GfxText32::init() {
 	_xResolution = g_sci->_gfxFrameout->getScriptWidth();
 	_yResolution = g_sci->_gfxFrameout->getScriptHeight();
+	// GK1 Korean patched version uses doubled resolution for fonts
+	if (g_sci->getGameId() == GID_GK1 && g_sci->getLanguage() == Common::KO_KOR) {
+		_xResolution = _xResolution * 2;
+		_yResolution = _yResolution * 2;
+	}
 }
 
 reg_t GfxText32::createFontBitmap(int16 width, int16 height, const Common::Rect &rect, const Common::String &text, const uint8 foreColor, const uint8 backColor, const uint8 skipColor, const GuiResourceId fontId, const TextAlign alignment, const int16 borderColor, const bool dimmed, const bool doScaling, const bool gc) {
@@ -294,12 +300,12 @@ void GfxText32::drawFrame(const Common::Rect &rect, const int16 size, const uint
 	}
 }
 
-void GfxText32::drawChar(const char charIndex) {
+void GfxText32::drawChar(const uint16 charIndex) {
 	SciBitmap &bitmap = *_segMan->lookupBitmap(_bitmap);
 	byte *pixels = bitmap.getPixels();
 
-	_font->drawToBuffer((unsigned char)charIndex, _drawPosition.y, _drawPosition.x, _foreColor, _dimmed, pixels, _width, _height);
-	_drawPosition.x += _font->getCharWidth((unsigned char)charIndex);
+	_font->drawToBuffer(charIndex, _drawPosition.y, _drawPosition.x, _foreColor, _dimmed, pixels, _width, _height);
+	_drawPosition.x += _font->getCharWidth(charIndex);
 }
 
 int16 GfxText32::getScaledFontHeight() const {
@@ -307,8 +313,8 @@ int16 GfxText32::getScaledFontHeight() const {
 	return (_font->getHeight() * scriptHeight + _yResolution - 1) / _yResolution;
 }
 
-uint16 GfxText32::getCharWidth(const char charIndex, const bool doScaling) const {
-	uint16 width = _font->getCharWidth((unsigned char)charIndex);
+uint16 GfxText32::getCharWidth(const uint16 charIndex, const bool doScaling) const {
+	uint16 width = _font->getCharWidth(charIndex);
 	if (doScaling) {
 		width = scaleUpWidth(width);
 	}
@@ -319,6 +325,8 @@ void GfxText32::drawTextBox() {
 	if (_text.size() == 0) {
 		return;
 	}
+
+	g_sci->_tts->text(_text);
 
 	const char *text = _text.c_str();
 	const char *sourceText = text;
@@ -332,6 +340,10 @@ void GfxText32::drawTextBox() {
 		}
 	}
 
+	// Check for Korean text
+	if (g_sci->getLanguage() == Common::KO_KOR)
+		SwitchToFont1001OnKorean(text);
+
 	charIndex = 0;
 	uint nextCharIndex = 0;
 	while (*text != '\0') {
@@ -340,10 +352,18 @@ void GfxText32::drawTextBox() {
 		uint length = getLongest(&nextCharIndex, textRectWidth);
 		int16 textWidth = getTextWidth(charIndex, length);
 
-		if (_alignment == kTextAlignCenter) {
-			_drawPosition.x += (textRectWidth - textWidth) / 2;
-		} else if (_alignment == kTextAlignRight) {
-			_drawPosition.x += textRectWidth - textWidth;
+		if (!g_sci->isLanguageRTL()) {
+			if (_alignment == kTextAlignCenter) {
+				_drawPosition.x += (textRectWidth - textWidth) / 2;
+			} else if (_alignment == kTextAlignRight) {
+				_drawPosition.x += textRectWidth - textWidth;
+			}
+		} else {
+			if (_alignment == kTextAlignCenter) {
+				_drawPosition.x += (textRectWidth - textWidth) / 2;
+			} else if (_alignment == kTextAlignLeft) {
+				_drawPosition.x += textRectWidth - textWidth;
+			}
 		}
 
 		drawText(charIndex, length);
@@ -364,9 +384,23 @@ void GfxText32::drawText(const uint index, uint length) {
 	// This draw loop implementation is somewhat different than the
 	// implementation in SSCI, but is accurate. Primarily the changes revolve
 	// around eliminating some extra temporaries and fixing the logic to match.
-	const char *text = _text.c_str() + index;
+
+	Common::String textString;
+	const char *text;
+	if (!g_sci->isLanguageRTL()) {
+		text = _text.c_str() + index;
+	} else {
+		const char *textOrig = _text.c_str() + index;
+		Common::String textLogical = Common::String(textOrig, (uint32)length);
+		textString = Common::convertBiDiString(textLogical, g_sci->getLanguage());
+		text = textString.c_str();
+	}
+
 	while (length-- > 0) {
-		char currentChar = *text++;
+		uint16 currentChar = *(const byte *)text++;
+		if (_font->isDoubleByte(currentChar)) {
+			currentChar |= *text++ << 8;
+		}
 
 		if (currentChar == '|') {
 			const char controlChar = *text++;
@@ -475,8 +509,11 @@ uint GfxText32::getLongest(uint *charIndex, const int16 width) {
 
 	const char *text = _text.c_str() + *charIndex;
 
-	char currentChar;
-	while ((currentChar = *text++) != '\0') {
+	uint16 currentChar = 0;
+	while ((currentChar = *(const byte *)text++) != '\0') {
+		if (_font->isDoubleByte(currentChar)) {
+			currentChar |= (*text++) << 8;
+		}
 		// In SSCI, the font, color, and alignment were reset here to their
 		// initial values; this does not seem to be necessary and really
 		// complicates the font system, so we do not do it
@@ -548,6 +585,9 @@ uint GfxText32::getLongest(uint *charIndex, const int16 width) {
 		// In the middle of a line, keep processing
 		++*charIndex;
 		++testLength;
+		if (_font->isDoubleByte(currentChar)) {
+			++*charIndex;
+		}
 
 		// In SSCI, the font, color, and alignment were reset here to their
 		// initial values, but we do not need to do this because we do not cause
@@ -594,8 +634,11 @@ void GfxText32::getTextDimensions(const uint index, uint length, int16 &width, i
 
 	GfxFont *font = _font;
 
-	char currentChar = *text++;
+	uint16 currentChar = *(const byte *)text++;
 	while (length > 0 && currentChar != '\0') {
+		if (_font->isDoubleByte(currentChar)) {
+			currentChar |= (*text++) << 8;
+		}
 		// Control codes are in the format `|<code><value>|`
 		if (currentChar == '|') {
 			// SSCI changed the global state of the FontMgr here upon
@@ -679,6 +722,11 @@ Common::Rect GfxText32::getTextSize(const Common::String &text, int16 maxWidth, 
 		if (_text.size() > 0) {
 			const char *rawText = _text.c_str();
 			const char *sourceText = rawText;
+
+			// Check for Korean text
+			if (g_sci->getLanguage() == Common::KO_KOR)
+				SwitchToFont1001OnKorean(rawText);
+
 			uint charIndex = 0;
 			uint nextCharIndex = 0;
 			while (*rawText != '\0') {
@@ -827,5 +875,24 @@ void GfxText32::scrollLine(const Common::String &lineText, int numLines, uint8 c
 	drawText(0, lineText.size());
 }
 
+// Check for Korean strings, and use font 1001 to render them
+bool GfxText32::SwitchToFont1001OnKorean(const char *text) {
+	const byte *ptr = (const byte *)text;
+	// Check if the text contains at least one Korean character
+	while (*ptr) {
+		byte ch = *ptr++;
+		if (ch >= 0xB0 && ch <= 0xC8) {
+			ch = *ptr++;
+			if (!ch)
+				return false;
+
+			if (ch >= 0xA1 && ch <= 0xFE) {
+				setFont(1001);
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
 } // End of namespace Sci

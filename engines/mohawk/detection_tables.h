@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 namespace Mohawk {
 
 #define GUI_OPTIONS_MYST                   GUIO4(GUIO_NOASPECT, GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOMIDI)
-#define GUI_OPTIONS_MYST_ME                GUIO5(GUIO_NOASPECT, GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOMIDI, GAMEOPTION_PLAY_MYST_FLYBY)
-#define GUI_OPTIONS_MYST_ME_25TH           GUIO6(GUIO_NOASPECT, GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOMIDI, GAMEOPTION_PLAY_MYST_FLYBY, GAMEOPTION_25TH)
-#define GUI_OPTIONS_MYST_DEMO              GUIO4(GUIO_NOASPECT, GUIO_NOSUBTITLES, GUIO_NOMIDI, GUIO_NOLAUNCHLOAD)
+#define GUI_OPTIONS_MYST_ME                GUIO5(GUIO_NOASPECT, GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOMIDI, GAMEOPTION_ME)
+#define GUI_OPTIONS_MYST_ME_25TH           GUIO6(GUIO_NOASPECT, GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOMIDI, GAMEOPTION_ME, GAMEOPTION_25TH)
+#define GUI_OPTIONS_MYST_DEMO              GUIO5(GUIO_NOASPECT, GUIO_NOSUBTITLES, GUIO_NOMIDI, GUIO_NOLAUNCHLOAD, GAMEOPTION_DEMO)
 #define GUI_OPTIONS_MYST_MAKING_OF         GUIO5(GUIO_NOASPECT, GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOMIDI, GUIO_NOLAUNCHLOAD)
 
 #define GUI_OPTIONS_RIVEN                  GUIO4(GUIO_NOASPECT, GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOMIDI)
@@ -33,42 +32,6 @@ namespace Mohawk {
 #define GUI_OPTIONS_RIVEN_DEMO             GUIO6(GUIO_NOASPECT, GUIO_NOSUBTITLES, GUIO_NOSPEECH, GUIO_NOMIDI, GUIO_NOLAUNCHLOAD, GAMEOPTION_DEMO)
 
 static const MohawkGameDescription gameDescriptions[] = {
-	// Myst
-	// English Windows 3.11
-	// From clone2727
-	{
-		{
-			"myst",
-			"",
-			AD_ENTRY1("myst.dat", "ae3258c9c90128d274aa6a790b3ad181"),
-			Common::EN_ANY,
-			Common::kPlatformWindows,
-			ADGF_NO_FLAGS,
-			GUI_OPTIONS_MYST
-		},
-		GType_MYST,
-		0,
-		0,
-	},
-
-	// Myst
-	// English Windows 3.11, v1.0.1
-	// From lotharsm
-	{
-		{
-			"myst",
-			"",
-			AD_ENTRY1("myst.dat", "4beb3366ed3f3b9bfb6e81a14a43bdcc"),
-			Common::EN_ANY,
-			Common::kPlatformWindows,
-			ADGF_NO_FLAGS,
-			GUI_OPTIONS_MYST
-		},
-		GType_MYST,
-		0,
-		0,
-	},
-
 	// Myst
 	// English Windows 3.11, v1.0
 	// From vonLeheCreative, #9645
@@ -87,14 +50,68 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
+	// Myst
+	// English Windows 3.11, v1.0.1
+	// From lotharsm
+	{
+		{
+			"myst",
+			"",
+			AD_ENTRY1s("myst.dat", "4beb3366ed3f3b9bfb6e81a14a43bdcc", 66143659),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_MYST
+		},
+		GType_MYST,
+		0,
+		0,
+	},
+
+	// Myst
+	// English MPC/Windows 3.11, v1.1
+	// From clone2727
+	{
+		{
+			"myst",
+			"",
+			AD_ENTRY1s("myst.dat", "ae3258c9c90128d274aa6a790b3ad181", 66236882),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_MYST
+		},
+		GType_MYST,
+		0,
+		0,
+	},
+
 	// Myst Demo
-	// English Windows 3.11
+	// English Windows 3.11, v1.0
+	// From PC Format (UK) July, 1994
+	{
+		{
+			"myst",
+			"Demo",
+			AD_ENTRY1s("DEMO.DAT", "8ff8ae264f759ea4a79cc915757f17c4", 488921),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_DEMO | ADGF_NO_FLAGS,
+			GUI_OPTIONS_MYST_DEMO
+		},
+		GType_MYST,
+		GF_DEMO,
+		0,
+	},
+
+	// Myst Demo
+	// English Windows 3.11, v1.0.1
 	// From CD-ROM Today July, 1994
 	{
 		{
 			"myst",
 			"Demo",
-			AD_ENTRY1("DEMO.DAT", "c39303dd53fb5c4e7f3c23231c606cd0"),
+			AD_ENTRY1s("DEMO.DAT", "c39303dd53fb5c4e7f3c23231c606cd0", 488415),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO | ADGF_NO_FLAGS,
@@ -124,13 +141,13 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// Myst
-	// German Windows 3.11
+	// German Windows 3.11, v1.0.3GE
 	// From LordHoto
 	{
 		{
 			"myst",
 			"",
-			AD_ENTRY1("myst.dat", "e0937cca1ab125e48e30dc3cd5046ddf"),
+			AD_ENTRY1s("myst.dat", "e0937cca1ab125e48e30dc3cd5046ddf", 65610606),
 			Common::DE_DEU,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
@@ -160,13 +177,13 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// Myst
-	// Italian Windows ?
+	// Italian Windows 3.11, v1.1 IT
 	// From goodoldgeorg in bug #6895
 	{
 		{
 			"myst",
 			"",
-			AD_ENTRY1("myst.dat", "a5795ce1751fc42525e4f9a1859181d5"),
+			AD_ENTRY1s("myst.dat", "a5795ce1751fc42525e4f9a1859181d5", 66795223),
 			Common::IT_ITA,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
@@ -237,7 +254,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		{
 			"makingofmyst",
 			"",
-			AD_ENTRY1("making.dat", "f6387e8f0f7b8a3e42c95294315d6a0e"),
+			AD_ENTRY1s("making.dat", "f6387e8f0f7b8a3e42c95294315d6a0e", 8377),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
@@ -249,14 +266,14 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// Making of Myst
-	// Japanese Windows 3.11
+	// Japanese Windows 3.11, Italian Windows 3.11
 	// From clone2727
 	{
 		{
 			"makingofmyst",
 			"",
-			AD_ENTRY1("making.dat", "03ff62607e64419ab2b6ebf7b7bcdf63"),
-			Common::JA_JPN,
+			AD_ENTRY1s("making.dat", "03ff62607e64419ab2b6ebf7b7bcdf63", 4602),
+			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUI_OPTIONS_MYST_MAKING_OF
@@ -273,7 +290,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		{
 			"myst",
 			"Masterpiece Edition",
-			AD_ENTRY1("myst.dat", "c4cae9f143b5947262e6cb2397e1617e"),
+			AD_ENTRY1s("myst.dat", "c4cae9f143b5947262e6cb2397e1617e", 74070233),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
@@ -338,108 +355,46 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
+	// Myst Masterpiece Edition
+	// Spanish Fan Translation 3.02c
+	// Bugreport #11927
+	{
+		{
+			"myst",
+			"Masterpiece Edition",
+			AD_ENTRY1s("myst.dat", "7552dd490861dc7e6307e1ede80220fd", 76640997),
+			Common::ES_ESP,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_MYST_ME
+		},
+		GType_MYST,
+		GF_ME,
+		0,
+	},
+
 	// Myst Masterpiece Edition - 25th Anniversary
-	// English Windows - Created by the ScummVM team
+	// Repacked by the ScummVM team
 	{
 		{
 			"myst",
 			"Masterpiece Edition - 25th Anniversary",
 			{
 				{"myst.dat", 0, "c4cae9f143b5947262e6cb2397e1617e", -1},
+				{"myst_french.dat", 0, "7c8230be50ffcac588e7db8788ad7614", -1},
+				{"myst_german.dat", 0, "3952554439960b22a360e8e006dfed58", -1},
+				{"myst_polish.dat", 0, "9ca82ff26fcbfacf40e4164523a50854", -1},
+				{"myst_spanish.dat", 0, "822ed3c0de912c10b877dcd2cc078493", -1},
 				{"menu.dat", 0, "7dc23051084f79b1c2bccc84cdec0503", -1},
 				AD_LISTEND
 			},
-			Common::EN_ANY,
+			Common::UNK_LANG,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
 			GUI_OPTIONS_MYST_ME_25TH
 		},
 		GType_MYST,
 		GF_ME | GF_25TH,
-		0,
-	},
-
-	// Myst Masterpiece Edition - 25th Anniversary
-	// French Windows - Repacked by the ScummVM team
-	{
-		{
-			"myst",
-			"Masterpiece Edition - 25th Anniversary",
-			{
-				{"myst_french.dat", 0, "7c8230be50ffcac588e7db8788ad7614", -1},
-				{"menu.dat", 0, "7dc23051084f79b1c2bccc84cdec0503", -1},
-				AD_LISTEND
-			},
-			Common::FR_FRA,
-			Common::kPlatformWindows,
-			ADGF_NO_FLAGS,
-			GUI_OPTIONS_MYST_ME_25TH
-		},
-		GType_MYST,
-		GF_ME | GF_25TH | GF_LANGUAGE_FILES,
-		0,
-	},
-
-	// Myst Masterpiece Edition - 25th Anniversary
-	// German Windows - Repacked by the ScummVM team
-	{
-		{
-			"myst",
-			"Masterpiece Edition - 25th Anniversary",
-			{
-				{"myst_german.dat", 0, "3952554439960b22a360e8e006dfed58", -1},
-				{"menu.dat", 0, "7dc23051084f79b1c2bccc84cdec0503", -1},
-				AD_LISTEND
-			},
-			Common::DE_DEU,
-			Common::kPlatformWindows,
-			ADGF_NO_FLAGS,
-			GUI_OPTIONS_MYST_ME_25TH
-		},
-		GType_MYST,
-		GF_ME | GF_25TH | GF_LANGUAGE_FILES,
-		0,
-	},
-
-	// Myst Masterpiece Edition - 25th Anniversary
-	// Polish Windows - Repacked by the ScummVM team
-	{
-		{
-			"myst",
-			"Masterpiece Edition - 25th Anniversary",
-			{
-				{"myst_polish.dat", 0, "9ca82ff26fcbfacf40e4164523a50854", -1},
-				{"menu.dat", 0, "7dc23051084f79b1c2bccc84cdec0503", -1},
-				AD_LISTEND
-			},
-			Common::PL_POL,
-			Common::kPlatformWindows,
-			ADGF_NO_FLAGS,
-			GUI_OPTIONS_MYST_ME_25TH
-		},
-		GType_MYST,
-		GF_ME | GF_25TH | GF_LANGUAGE_FILES,
-		0,
-	},
-
-	// Myst Masterpiece Edition - 25th Anniversary
-	// Spanish Windows - Repacked by the ScummVM team
-	{
-		{
-			"myst",
-			"Masterpiece Edition - 25th Anniversary",
-			{
-				{"myst_spanish.dat", 0, "822ed3c0de912c10b877dcd2cc078493", -1},
-				{"menu.dat", 0, "7dc23051084f79b1c2bccc84cdec0503", -1},
-				AD_LISTEND
-			},
-			Common::ES_ESP,
-			Common::kPlatformWindows,
-			ADGF_NO_FLAGS,
-			GUI_OPTIONS_MYST_ME_25TH
-		},
-		GType_MYST,
-		GF_ME | GF_25TH | GF_LANGUAGE_FILES,
 		0,
 	},
 
@@ -567,7 +522,6 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-
 	// Riven: The Sequel to Myst
 	// Version 1.0J (5CD) - Japanese
 	// From sev
@@ -577,6 +531,24 @@ static const MohawkGameDescription gameDescriptions[] = {
 			"",
 			AD_ENTRY1s("a_Data.MHK", "3a2b4764979dc007a0e6ded64e4b7889", 10014314),
 			Common::JA_JPN,
+			Common::kPlatformWindows,
+			ADGF_DROPPLATFORM,
+			GUI_OPTIONS_RIVEN
+		},
+		GType_RIVEN,
+		0,
+		0,
+	},
+
+	// Riven: The Sequel to Myst
+	// Version 1.0 (5CD) - Brazilian
+	// from trembyle
+	{
+		{
+			"riven",
+			"",
+			AD_ENTRY1s("a_Data.MHK", "49fe3003d6da02b03c5c1f6028a7f719", 9892372),
+			Common::PT_BRA,
 			Common::kPlatformWindows,
 			ADGF_DROPPLATFORM,
 			GUI_OPTIONS_RIVEN
@@ -676,21 +648,23 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// Riven: The Sequel to Myst - 25th anniversary
-	// English - Created by the ScummVM team
+	// Created by the ScummVM team
 	{
 		{
 			"riven",
 			"25th Anniversary",
 			{
-				// The french datafile is included in the list because
-				// in the 25th anniversary edition, all the files sit in the same
-				// package. All the detection entries need to have the same amount
-				// of files to show in the detection results.
-				{ "a_data.mhk",        0, "08fcaa5d5a2a01d7a5a6960f497212fe", 10218888 },
-				{ "a_data_french.mhk", 0, "ad7547ed7159a97be98a005f62862f85", 7088579 },
+				{ "a_data.mhk",          0, "08fcaa5d5a2a01d7a5a6960f497212fe", 10218888 },
+				{ "a_data_french.mhk",   0, "ad7547ed7159a97be98a005f62862f85", 7088579  },
+				{ "a_data_german.mhk",   0, "5ebd301bd4bf6fd7667c4a46eebf6532", 7098655  },
+				{ "a_data_italian.mhk",  0, "9d53b178510ce90f10b32ad3ca967d38", 6677740  },
+				{ "a_data_japanese.mhk", 0, "bf43cf8af21fefc5a02881f7cfb68f52", 7237370  },
+				{ "a_data_polish.mhk",   0, "5c7cd4b1a1a4c63cc670485816b0b5ec", 14588293 },
+				{ "a_data_russian.mhk",  0, "76e12906637f5274bb6af8ab42871c25", 14349136 },
+				{ "a_data_spanish.mhk",  0, "6226a3e1748e64962971b2f6536ef283", 8133297  },
 				AD_LISTEND
 			},
-			Common::EN_ANY,
+			Common::UNK_LANG,
 			Common::kPlatformWindows,
 			ADGF_DROPPLATFORM,
 			GUI_OPTIONS_RIVEN_25TH
@@ -700,161 +674,14 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// Riven: The Sequel to Myst - 25th anniversary
-	// French - Created by the ScummVM team
-	{
-		{
-			"riven",
-			"25th Anniversary",
-			{
-				{ "a_data.mhk",        0, "08fcaa5d5a2a01d7a5a6960f497212fe", 10218888 },
-				{ "a_data_french.mhk", 0, "ad7547ed7159a97be98a005f62862f85", 7088579 },
-				AD_LISTEND
-			},
-			Common::FR_FRA,
-			Common::kPlatformWindows,
-			ADGF_DROPPLATFORM,
-			GUI_OPTIONS_RIVEN_25TH
-		},
-		GType_RIVEN,
-		GF_DVD | GF_25TH | GF_LANGUAGE_FILES,
-		0,
-	},
-
-	// Riven: The Sequel to Myst - 25th anniversary
-	// German - Created by the ScummVM team
-	{
-		{
-			"riven",
-			"25th Anniversary",
-			{
-				{ "a_data.mhk",        0, "08fcaa5d5a2a01d7a5a6960f497212fe", 10218888 },
-				{ "a_data_german.mhk", 0, "5ebd301bd4bf6fd7667c4a46eebf6532", 7098655 },
-				AD_LISTEND
-			},
-			Common::DE_DEU,
-			Common::kPlatformWindows,
-			ADGF_DROPPLATFORM,
-			GUI_OPTIONS_RIVEN_25TH
-		},
-		GType_RIVEN,
-		GF_DVD | GF_25TH | GF_LANGUAGE_FILES,
-		0,
-	},
-
-	// Riven: The Sequel to Myst - 25th anniversary
-	// Italian - Created by the ScummVM team
-	{
-		{
-			"riven",
-			"25th Anniversary",
-			{
-				{ "a_data.mhk",         0, "08fcaa5d5a2a01d7a5a6960f497212fe", 10218888 },
-				{ "a_data_italian.mhk", 0, "9d53b178510ce90f10b32ad3ca967d38", 6677740 },
-				AD_LISTEND
-			},
-			Common::IT_ITA,
-			Common::kPlatformWindows,
-			ADGF_DROPPLATFORM,
-			GUI_OPTIONS_RIVEN_25TH
-		},
-		GType_RIVEN,
-		GF_DVD | GF_25TH | GF_LANGUAGE_FILES,
-		0,
-	},
-
-	// Riven: The Sequel to Myst - 25th anniversary
-	// Japanese - Created by the ScummVM team
-	{
-		{
-			"riven",
-			"25th Anniversary",
-			{
-				{ "a_data.mhk",          0, "08fcaa5d5a2a01d7a5a6960f497212fe", 10218888 },
-				{ "a_data_japanese.mhk", 0, "bf43cf8af21fefc5a02881f7cfb68f52", 7237370 },
-				AD_LISTEND
-			},
-			Common::JA_JPN,
-			Common::kPlatformWindows,
-			ADGF_DROPPLATFORM,
-			GUI_OPTIONS_RIVEN_25TH
-		},
-		GType_RIVEN,
-		GF_DVD | GF_25TH | GF_LANGUAGE_FILES,
-		0,
-	},
-
-	// Riven: The Sequel to Myst - 25th anniversary
-	// Polish - Created by the ScummVM team
-	{
-		{
-			"riven",
-			"25th Anniversary",
-			{
-				{ "a_data.mhk",        0, "08fcaa5d5a2a01d7a5a6960f497212fe", 10218888 },
-				{ "a_data_polish.mhk", 0, "5c7cd4b1a1a4c63cc670485816b0b5ec", 14588293 },
-				AD_LISTEND
-			},
-			Common::PL_POL,
-			Common::kPlatformWindows,
-			ADGF_DROPPLATFORM,
-			GUI_OPTIONS_RIVEN_25TH
-		},
-		GType_RIVEN,
-		GF_DVD | GF_25TH | GF_LANGUAGE_FILES,
-		0,
-	},
-
-	// Riven: The Sequel to Myst - 25th anniversary
-	// Russian - Created by the ScummVM team
-	{
-		{
-			"riven",
-			"25th Anniversary",
-			{
-				{ "a_data.mhk",         0, "08fcaa5d5a2a01d7a5a6960f497212fe", 10218888 },
-				{ "a_data_russian.mhk", 0, "76e12906637f5274bb6af8ab42871c25", 14349136 },
-				AD_LISTEND
-			},
-			Common::RU_RUS,
-			Common::kPlatformWindows,
-			ADGF_DROPPLATFORM,
-			GUI_OPTIONS_RIVEN_25TH
-		},
-		GType_RIVEN,
-		GF_DVD | GF_25TH | GF_LANGUAGE_FILES,
-		0,
-	},
-
-	// Riven: The Sequel to Myst - 25th anniversary
-	// Spanish - Created by the ScummVM team
-	{
-		{
-			"riven",
-			"25th Anniversary",
-			{
-				{ "a_data.mhk",         0, "08fcaa5d5a2a01d7a5a6960f497212fe", 10218888 },
-				{ "a_data_spanish.mhk", 0, "6226a3e1748e64962971b2f6536ef283", 8133297 },
-				AD_LISTEND
-			},
-			Common::ES_ESP,
-			Common::kPlatformWindows,
-			ADGF_DROPPLATFORM,
-			GUI_OPTIONS_RIVEN_25TH
-		},
-		GType_RIVEN,
-		GF_DVD | GF_25TH | GF_LANGUAGE_FILES,
-		0,
-	},
-
 	// Riven: The Sequel to Myst
-	// Version ? (Demo, From "Prince of Persia Collector's Edition")
+	// Version 1.03 (Demo, From "Prince of Persia Collector's Edition")
 	// From Clone2727
 	{
 		{
 			"riven",
 			"Demo",
-			AD_ENTRY1("a_Data.MHK", "bae6b03bd8d6eb350d35fd13f0e3139f"),
+			AD_ENTRY1s("a_Data.MHK", "bae6b03bd8d6eb350d35fd13f0e3139f", 86703958),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			(ADGF_DEMO | ADGF_DROPPLATFORM),
@@ -949,7 +776,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"harryhh",
@@ -965,7 +792,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"harryhh",
@@ -981,7 +808,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"harryhh",
@@ -1014,8 +841,25 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"HARRY.EXE"
 	},
 
+	// English / Spanish demo
+	// from einstein95, bug #12849
+	{
+		{
+			"harryhh",
+			"Demo English/Spanish",
+			AD_ENTRY1s("HARRY.512", "a0c97d80ab8957f61be1a41fdd74386e", 709),
+			Common::UNK_LANG,
+			Common::kPlatformWindows,
+			ADGF_DEMO,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV1,
+		0,
+		"HARRY.EXE"
+	},
+
 	// part of "Super Living Books" compilation
-	// from rgemini, bug #3309343
+	// from rgemini, bug #5726
 	{
 		{
 			"harryhh",
@@ -1061,7 +905,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug #3309306
+	// From afholman in bug #5723
 	{
 		{
 			"lbsampler",
@@ -1138,6 +982,21 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
+	{ // Version 2.0, has lots of additional livingbooks_code
+		{
+			"greeneggs",
+			_s("Missing game code"), // Reason for being unsupported
+			AD_ENTRY1s("Outline", "bca2320b800f616118c2be239628a964", 3022),
+			Common::EN_ANY,
+			Common::kPlatformMacintosh,
+			ADGF_UNSUPPORTED,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV4,
+		0,
+		0
+	},
+
 	{
 		{
 			"greeneggs",
@@ -1203,6 +1062,21 @@ static const MohawkGameDescription gameDescriptions[] = {
 		{
 			"seussabc",
 			"Demo",
+			AD_ENTRY1("ABC.LB", "aef2c88f4dcc2c3a47ed8093f6e27bc9"),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_DEMO,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		GF_DEMO,
+		0
+	},
+
+	{
+		{
+			"seussabc",
+			"Demo",
 			AD_ENTRY1("BookOutline", "17d72660680ae32cd7c560d0cf04d2ef"),
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
@@ -1211,6 +1085,36 @@ static const MohawkGameDescription gameDescriptions[] = {
 		},
 		GType_LIVINGBOOKSV2,
 		GF_DEMO,
+		0
+	},
+
+	{ // Version 1.0, built on unsupported LivingBooks version
+		{
+			"seussps",
+			_s("Missing game code"), // Reason for being unsupported
+			AD_ENTRY1s("SEUSS_PS.CFG", "627afcfa170460f0e2b7ed4fa734361c", 1439),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_UNSUPPORTED,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2, // Most probably it is incorrect
+		0,
+		0
+	},
+
+	{ // Bugreport #11184, version 2.0
+		{
+			"seussps",
+			_s("Missing game code"), // Reason for being unsupported
+			AD_ENTRY1("SEUSS_PS.CFG", "a2fc5596e6f1511d17acbc687e27a4ac"),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_UNSUPPORTED,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2, // Most probably it is incorrect
+		0,
 		0
 	},
 
@@ -1230,7 +1134,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// part of "Super Living Books" compilation
-	// from rgemini, bug #3309343
+	// from rgemini, bug #5726
 	{
 		{
 			"tortoise",
@@ -1246,7 +1150,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"TORTOISE.EXE"
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"tortoise",
@@ -1262,7 +1166,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// From Torsten in bug#3422652
+	// From Torsten in bug#5876
 	{
 		{
 			"tortoise",
@@ -1278,7 +1182,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// Tortoise and the Hare Hebrew variant - From georgeqgreg on bug #3441928
+	// Tortoise and the Hare Hebrew variant - From georgeqgreg on bug #5904
 	{
 		{
 			"tortoise",
@@ -1294,7 +1198,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"tortoise",
@@ -1310,7 +1214,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// From Torsten in bug#3422652
+	// From Torsten in bug#5876
 	{
 		{
 			"tortoise",
@@ -1326,7 +1230,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"tortoise",
@@ -1342,7 +1246,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// From Torsten in bug#3422652
+	// From Torsten in bug#5876
 	{
 		{
 			"tortoise",
@@ -1356,6 +1260,38 @@ static const MohawkGameDescription gameDescriptions[] = {
 		GType_LIVINGBOOKSV2,
 		0,
 		0,
+	},
+
+	// Macintosh version. Bugreport #12828
+	{
+		{
+			"tortoise",
+			"",
+			AD_ENTRY1s("BookOutline", "f4c162ca66197eedc3b676372bca3929", 2038),
+			Common::EN_ANY,
+			Common::kPlatformMacintosh,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0
+	},
+
+	// From the Mac CD "La Tartaruga e la Lepre" (The Turtle and the Hare) [Italian, English]
+	{
+		{
+			"tortoise",
+			"",
+			AD_ENTRY1("BookOutline", "82d0b24a6400bec8e94cde021a4c876b"),
+			Common::IT_ITA,
+			Common::kPlatformMacintosh,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV3,
+		0,
+		"La Tartaruga e la Lepre"
 	},
 
 	{
@@ -1388,7 +1324,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"TORTOISE.EXE"
 	},
 
-	// From Scarlatti in bug #3275626
+	// From Scarlatti in bug #5636
 	{
 		{
 			"tortoise",
@@ -1435,7 +1371,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// part of "Super Living Books" compilation
-	// from rgemini, bug #3309343
+	// from rgemini, bug #5726
 	{
 		{
 			"arthur",
@@ -1451,7 +1387,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"ARTHUR.EXE"
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"arthur",
@@ -1467,7 +1403,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"Arthur's Teacher Trouble"
 	},
 
-	// From darthbo in bug#3301791
+	// From darthbo in bug#5699
 	{
 		{
 			"arthur",
@@ -1513,7 +1449,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"ARTHUR.EXE"
 	},
 
-	// From Scarlatti in bug #3275626
+	// From Scarlatti in bug #5636
 	{
 		{
 			"arthur",
@@ -1559,6 +1495,22 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"Living Books Player"
 	},
 
+	// English/Spanish demo. From einstein95, bugreport #12829
+	{
+		{
+			"arthur",
+			"Demo English/Spanish",
+			AD_ENTRY1s("Bookoutline", "3e6335865b4041be934d2e0c8ee75af2", 645),
+			Common::UNK_LANG,
+			Common::kPlatformMacintosh,
+			ADGF_DEMO,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV1,
+		GF_DEMO | GF_LB_10,
+		"Arthur's Teacher Trouble"
+	},
+
 	// Just Grandma and Me 2.0
 	// From pacifist
 	{
@@ -1594,7 +1546,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// Just Grandma and Me 2.0 Macintosh
-	// From aluff in bug #3461368
+	// From aluff in bug #5926
 	{
 		{
 			"grandma",
@@ -1644,7 +1596,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// Just Grandma and Me 1.1 Mac
-	// From eisnerguy1 in bug#3610725
+	// From eisnerguy1 in bug#6274
 	{
 		{
 			"grandma",
@@ -1660,7 +1612,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// from jjnryan in bug #3389857
+	// from jjnryan in bug #5827
 	{
 		{
 			"grandma",
@@ -1676,7 +1628,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"GRANDMA.EXE"
 	},
 
-	// From Torsten in bug#3422652
+	// From Torsten in bug#5876
 	{
 		{
 			"grandma",
@@ -1692,7 +1644,24 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// From Torsten in bug#3422652
+	// From einstein95 in bug#12830
+	// English/Japanese/Spanish demo
+	{
+		{
+			"grandma",
+			"Demo v1.12 English/Japanese/Spanish",
+			AD_ENTRY1s("BookOutline", "577c2c6be1b76c38d83446e303664708", 804),
+			Common::UNK_LANG,
+			Common::kPlatformMacintosh,
+			ADGF_DEMO,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// From Torsten in bug#5876
 	{
 		{
 			"grandma",
@@ -1708,7 +1677,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// From Torsten in bug#3422652
+	// From Torsten in bug#5876
 	{
 		{
 			"grandma",
@@ -1754,7 +1723,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"GRANDMA.EXE"
 	},
 
-	// From Scarlatti in bug #3275626
+	// From Scarlatti in bug #5636
 	{
 		{
 			"grandma",
@@ -1768,6 +1737,38 @@ static const MohawkGameDescription gameDescriptions[] = {
 		GType_LIVINGBOOKSV1,
 		GF_DEMO,
 		"GRANDMA.EXE"
+	},
+
+	// From ajshell1 in bug #11576
+	{
+		{
+			"grandma",
+			"Demo",
+			AD_ENTRY1s("GRANDMA.512", "1f2cb06795dddc20bedbd711fb57338e", 869),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_DEMO,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV1,
+		GF_DEMO,
+		"GRANDMA.EXE"
+	},
+
+	// From the Mac CD "La Tartaruga e la Lepre" (The Turtle and the Hare) [Italian, English]
+	{
+		{
+			"grandma",
+			"Demo v1.2",
+			AD_ENTRY1("BookOutline", "599fece5d71cdd19c9726c28dbf634d8"),
+			Common::IT_ITA,
+			Common::kPlatformMacintosh,
+			ADGF_DEMO,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV3,
+		GF_DEMO,
+		"Al mare con la Nonna"
 	},
 
 	{
@@ -1817,7 +1818,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"RUFF.EXE"
 	},
 
-	// From aluff in bug#3307785
+	// From aluff in bug#5715
 	{
 		{
 			"ruff",
@@ -1848,7 +1849,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"RUFF.EXE"
 	},
 
-	// From Scarlatti in bug #3275626
+	// From Scarlatti in bug #5636
 	{
 		{
 			"ruff",
@@ -1879,7 +1880,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"Living Books Player"
 	},
 
-	// From aluff in bug#3309981
+	// From aluff in bug#5731
 	{
 		{
 			"newkid",
@@ -1896,7 +1897,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// part of "Super Living Books" compilation
-	// from rgemini, bug #3309343
+	// from rgemini, bug #5726
 	{
 		{
 			"newkid",
@@ -1912,7 +1913,23 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"NEWKID.EXE"
 	},
 
-	// From aluff in bug#3309981
+	// Bugreport #11003
+	{
+		{
+			"newkid",
+			"",
+			AD_ENTRY1s("NEWKID.512", "5b643345af12a9ecee7b47768634d844", 3245),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV1,
+		0,
+		"NEWKID.EXE"
+	},
+
+	// From aluff in bug#5731
 	{
 		{
 			"newkid",
@@ -1958,12 +1975,28 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"NEWKID.EXE"
 	},
 
-	// From Scarlatti in bug #3275626
+	// From Scarlatti in bug #5636
 	{
 		{
 			"newkid",
 			"Demo v1.1",
 			AD_ENTRY1("NEWKID.512", "de576f3481f62e84eda03b4d2307492b"),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_DEMO,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV1,
+		GF_DEMO,
+		"NEWKID.EXE"
+	},
+
+	// From ajshell1 in bug #11577
+	{
+		{
+			"newkid",
+			"Demo",
+			AD_ENTRY1s("NEWKID.512", "876a9f31527f4b3bb38d79a2e1206d21", 563),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_DEMO,
@@ -1989,7 +2022,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"Living Books Player"
 	},
 
-	{
+	{ // November release
 		{
 			"arthurrace",
 			"",
@@ -2008,8 +2041,39 @@ static const MohawkGameDescription gameDescriptions[] = {
 	{
 		{
 			"arthurrace",
-			"",
+			"32-bit",
 			AD_ENTRY1("RACE32.LB", "292a05bc48c1dd9583821a4181a02ef2"),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_UNSTABLE,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV3,
+		0,
+		0
+	},
+
+	{ // December release, marked as 1.0. Bugreport #11458
+		{
+			"arthurrace",
+			"",
+			AD_ENTRY1s("RACE.LB", "4d4347a010802c1e34e30a3d899546a7", 3155),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_UNSTABLE,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV3,
+		0,
+		0
+	},
+
+	// 32-bit version of the previous entry
+	{
+		{
+			"arthurrace",
+			"32-bit",
+			AD_ENTRY1s("RACE32.LB", "badea47f88f0ee96dfc55c9120db5751", 3153),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
@@ -2035,7 +2099,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From zerep in bug #3287894
+	// From zerep in bug #5647
 	{
 		{
 			"arthurbday",
@@ -2067,7 +2131,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"BIRTHDAY.EXE"
 	},
 
-	// From aluff in bug#3309936
+	// From aluff in bug#5729
 	{
 		{
 			"arthurbday",
@@ -2100,7 +2164,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// From Torsten in bug#3422652
+	// From Torsten in bug#5876
 	{
 		{
 			"arthurbday",
@@ -2116,7 +2180,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// From Torsten in bug#3422652
+	// From Torsten in bug#5876
 	{
 		{
 			"arthurbday",
@@ -2132,7 +2196,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0,
 	},
 
-	// From Torsten in bug#3422652
+	// From Torsten in bug#5876
 	{
 		{
 			"arthurbday",
@@ -2149,7 +2213,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// Arthur Birthday (English) Version 2.0 Windows(R) August 8, 1997
-	// From jacecen in bug #3413119
+	// From jacecen in bug #5847
 	{
 		{
 			"arthurbday",
@@ -2166,7 +2230,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// Arthur Birthday (English) Version 2.0 Macintosh
-	// From aluff in bug #3461368
+	// From aluff in bug #5926
 	{
 		{
 			"arthurbday",
@@ -2197,7 +2261,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"BIRTHDAY.EXE"
 	},
 
-	// From Scarlatti in bug #3275626
+	// From Scarlatti in bug #5636
 	{
 		{
 			"arthurbday",
@@ -2258,7 +2322,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"Little Monster at School"
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"lilmonster",
@@ -2274,7 +2338,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"lilmonster",
@@ -2290,7 +2354,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"lilmonster",
@@ -2306,7 +2370,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"lilmonster",
@@ -2327,7 +2391,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		{
 			"lilmonster",
 			"",
-			AD_ENTRY1s("lmasf.lb", "fcb665df1713d0411a41515efb20bebc", 4136),
+			AD_ENTRY1s("lmasb.lb", "fcb665df1713d0411a41515efb20bebc", 4136),
 			Common::EN_ANY,
 			Common::kPlatformWindows,
 			ADGF_NO_FLAGS,
@@ -2338,7 +2402,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"lilmonster",
@@ -2354,7 +2418,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"lilmonster",
@@ -2370,7 +2434,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From Scarlatti in bug #3275626
+	// From Scarlatti in bug #5636
 	{
 		{
 			"lilmonster",
@@ -2471,6 +2535,24 @@ static const MohawkGameDescription gameDescriptions[] = {
 			"",
 			AD_ENTRY1("outline", "36225e0b4986a80135cfdd9643cc7030"),
 			Common::FR_FRA,
+			Common::kPlatformWindows,
+			ADGF_UNSTABLE,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV4,
+		0,
+		0
+	},
+
+	// Rugrats Adventure Game
+	// Spanish Windows
+	// Reported in #12389
+	{
+		{
+			"rugrats",
+			"",
+			AD_ENTRY1s("outline", "a8f4ec8e88b028c2452c1aa84b1a9c51", 6546),
+			Common::ES_ESP,
 			Common::kPlatformWindows,
 			ADGF_UNSTABLE,
 			GUIO1(GUIO_NOASPECT)
@@ -2605,7 +2687,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 	},
 
 	// The Berenstain Bears Get in a Fight (English and Spanish) Version 1.0 1995
-	// From jacecen in bug #3413119
+	// From jacecen in bug #5847
 	{
 		{
 			"bearfight",
@@ -2636,7 +2718,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		"Bears Get in a Fight"
 	},
 
-	// From bkennimer in bug #3284930
+	// From bkennimer in bug #5645
 	{
 		{
 			"beardark",
@@ -2652,7 +2734,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From bkennimer in bug #3284930
+	// From bkennimer in bug #5645
 	// 32-bit version of the previous entry
 	{
 		{
@@ -2669,7 +2751,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From bkennimer in bug #3284930
+	// From bkennimer in bug #5645
 	{
 		{
 			"beardark",
@@ -2685,7 +2767,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From aluff in bug #3461368
+	// From aluff in bug #5926
 	{
 		{
 			"beardark",
@@ -2765,7 +2847,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From aluff in bug#3306722
+	// From aluff in bug#5711
 	{
 		{
 			"stellaluna",
@@ -2781,7 +2863,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From aluff in bug#3306722
+	// From aluff in bug#5711
 	{
 		{
 			"stellaluna",
@@ -2814,7 +2896,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From aluff in bug#3309934
+	// From aluff in bug#5728
 	{
 		{
 			"sheila",
@@ -2830,7 +2912,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"sheila",
@@ -2846,7 +2928,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"sheila",
@@ -2862,7 +2944,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"sheila",
@@ -2878,7 +2960,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"sheila",
@@ -2894,7 +2976,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"sheila",
@@ -2910,7 +2992,7 @@ static const MohawkGameDescription gameDescriptions[] = {
 		0
 	},
 
-	// From afholman in bug#3309308
+	// From afholman in bug#5724
 	{
 		{
 			"sheila",
@@ -2942,6 +3024,70 @@ static const MohawkGameDescription gameDescriptions[] = {
 		GType_LIVINGBOOKSV4,
 		0,
 		0
+	},
+
+	// From sev
+	{
+		{
+			"create",
+			"",
+			AD_ENTRY1s("CREATE.LB", "8a94e13093dd3e2f58c220a1f265a7be", 1217),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// From sev
+	{
+		{
+			"create",
+			"Demo",
+			AD_ENTRY1s("CREATED.LB", "86165d80189815ada2abd67e55258486", 826),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_DEMO,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// From sev
+	{
+		{
+			"daniel",
+			"",
+			AD_ENTRY1s("DANIEL.LB", "cdea21d55f0ead70c7990d2f1cfbc160", 1300),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
+	},
+
+	// From sev
+	{
+		{
+			"daniel",
+			"Demo",
+			AD_ENTRY1s("DANIELD.LB", "4220631d9f677f694fa9d59a7c242dbe", 651),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_DEMO,
+			GUIO1(GUIO_NOASPECT)
+		},
+		GType_LIVINGBOOKSV2,
+		0,
+		0,
 	},
 
 	{ AD_TABLE_END_MARKER, 0, 0, 0 }

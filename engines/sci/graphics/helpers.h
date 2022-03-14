@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,9 @@
 #include "graphics/pixelformat.h"
 #include "graphics/surface.h"
 #endif
+#include "sci/detection.h"
 #include "sci/engine/vm_types.h"
+#include "sci/graphics/helpers_detection_enums.h" // for enum ViewType
 
 namespace Sci {
 
@@ -264,19 +265,35 @@ struct Palette {
 #endif
 };
 
+struct PaletteMod {
+	int8 r, g, b;
+};
+
+struct PicMod {
+	uint16 id;
+	byte multiplier;
+};
+
+struct ViewMod {
+	uint16 id;
+	int16 loop;
+	int16 cel;
+	byte multiplier;
+};
+
+struct SciFxMod {
+	SciGameId gameId;
+	const PaletteMod *paletteMods;
+	const int paletteModsSize;
+	const PicMod *picMods;
+	const int picModsSize;
+	const ViewMod *viewMods;
+	const int viewModsSize;
+};
+
 struct PalSchedule {
 	byte from;
 	uint32 schedule;
-};
-
-// Game view types, sorted by the number of colors
-enum ViewType {
-	kViewUnknown,   // uninitialized, or non-SCI
-	kViewEga,       // EGA SCI0/SCI1 and Amiga SCI0/SCI1 ECS 16 colors
-	kViewAmiga,     // Amiga SCI1 ECS 32 colors
-	kViewAmiga64,   // Amiga SCI1 AGA 64 colors (i.e. Longbow)
-	kViewVga,       // VGA SCI1 256 colors
-	kViewVga11      // VGA SCI1.1 and newer 256 colors
 };
 
 } // End of namespace Sci

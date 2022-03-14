@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,13 +31,14 @@
 #include "engines/wintermute/base/gfx/base_surface.h"
 #include "engines/wintermute/base/base_parser.h"
 #include "engines/wintermute/base/base_game.h"
+#include "engines/wintermute/base/base_engine.h"
 #include "engines/wintermute/base/base_file_manager.h"
 #include "engines/wintermute/utils/utils.h"
 #include "engines/wintermute/wintermute.h"
 #include "graphics/fonts/ttf.h"
 #include "graphics/fontman.h"
+#include "common/unicode-bidi.h"
 #include "common/unzip.h"
-#include <limits.h>
 
 namespace Wintermute {
 
@@ -121,7 +121,7 @@ int BaseFontTT::getTextWidth(const byte *text, int maxLength) {
 	}
 
 	if (maxLength >= 0 && textStr.size() > (uint32)maxLength) {
-		textStr = WideString(textStr.c_str(), (uint32)maxLength);
+		textStr = textStr.substr(0, (uint32)maxLength);
 	}
 	//text = text.substr(0, MaxLength); // TODO: Remove
 
@@ -167,14 +167,14 @@ void BaseFontTT::drawText(const byte *text, int x, int y, int width, TTextAlign 
 	}
 
 	if (maxLength >= 0 && textStr.size() > (uint32)maxLength) {
-		textStr = WideString(textStr.c_str(), (uint32)maxLength);
+		textStr = textStr.substr(0, (uint32)maxLength);
 	}
 	//text = text.substr(0, MaxLength); // TODO: Remove
 
 	BaseRenderer *renderer = _gameRef->_renderer;
 
 	// find cached surface, if exists
-	uint32 minUseTime = UINT_MAX;
+	uint32 minUseTime = INT_MAX_VALUE;
 	int minIndex = -1;
 	BaseSurface *surface = nullptr;
 	int textOffset = 0;
@@ -234,7 +234,7 @@ void BaseFontTT::drawText(const byte *text, int x, int y, int width, TTextAlign 
 				color = BYTETORGBA(RGBCOLGetR(color), RGBCOLGetG(color), RGBCOLGetB(color), RGBCOLGetA(renderer->_forceAlphaColor));
 				renderer->_forceAlphaColor = 0;
 			}
-			surface->displayTransOffset(x, y - textOffset, rc, color, Graphics::BLEND_NORMAL, false, false, _layers[i]->_offsetX, _layers[i]->_offsetY);
+			surface->displayTrans(x, y - textOffset, rc, color, Graphics::BLEND_NORMAL, false, false, _layers[i]->_offsetX, _layers[i]->_offsetY);
 
 			renderer->_forceAlphaColor = origForceAlpha;
 		}
@@ -276,7 +276,13 @@ BaseSurface *BaseFontTT::renderTextToTexture(const WideString &text, int width, 
 	Common::Array<WideString>::iterator it;
 	int heightOffset = 0;
 	for (it = lines.begin(); it != lines.end(); ++it) {
-		_font->drawString(surface, *it, 0, heightOffset, width, useColor, alignment);
+		WideString str;
+		if (_gameRef->_textRTL) {
+			str = Common::convertBiDiU32String(*it, Common::BIDI_PAR_RTL);
+		} else {
+			str = Common::convertBiDiU32String(*it, Common::BIDI_PAR_LTR);
+		}
+		_font->drawString(surface, str, 0, heightOffset, width, useColor, alignment);
 		heightOffset += (int)_lineHeight;
 	}
 
@@ -616,6 +622,11 @@ bool BaseFontTT::initFont() {
 		warning("BaseFontTT::InitFont - Couldn't load font: %s", _fontFile);
 	}
 	_lineHeight = _font->getFontHeight();
+#ifdef ENABLE_FOXTAIL
+	if (BaseEngine::instance().isFoxTail(FOXTAIL_1_2_896, FOXTAIL_LATEST_VERSION)) {
+		_lineHeight -= 1;
+	}
+#endif
 	return STATUS_OK;
 }
 

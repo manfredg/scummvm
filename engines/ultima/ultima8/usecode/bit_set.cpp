@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,26 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/usecode/bit_set.h"
 
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
-
 namespace Ultima {
 namespace Ultima8 {
 
-BitSet::BitSet() : _size(0), _bytes(0), _data(0) {
+BitSet::BitSet() : _size(0), _bytes(0), _data(nullptr) {
 }
 
 
-BitSet::BitSet(unsigned int size) {
-	_data = 0;
+BitSet::BitSet(unsigned int size) : _data(nullptr) {
 	setSize(size);
 }
 
@@ -46,7 +41,6 @@ void BitSet::setSize(unsigned int size) {
 	if (_data) delete[] _data;
 
 	_size = size;
-	_bytes = 0;
 	_bytes = _size / 8;
 	if (_size % 8 != 0) _bytes++;
 
@@ -55,7 +49,7 @@ void BitSet::setSize(unsigned int size) {
 		_data[i] = 0;
 }
 
-uint32 BitSet::getBits(unsigned int pos, unsigned int n) const {
+uint32 BitSet::getEntries(unsigned int pos, unsigned int n) const {
 	assert(n <= 32);
 	assert(pos + n <= _size);
 	if (n == 0) return 0;
@@ -86,7 +80,7 @@ uint32 BitSet::getBits(unsigned int pos, unsigned int n) const {
 	return ret;
 }
 
-void BitSet::setBits(unsigned int pos, unsigned int n, uint32 bits) {
+void BitSet::setEntries(unsigned int pos, unsigned int n, uint32 bits) {
 	assert(n <= 32);
 	assert(pos + n <= _size);
 	if (n == 0) return;
@@ -117,15 +111,21 @@ void BitSet::setBits(unsigned int pos, unsigned int n, uint32 bits) {
 	_data[lastbyte] |= (bits >> shift) & lastmask;
 }
 
-void BitSet::save(ODataSource *ods) {
-	ods->write4(_size);
-	ods->write(_data, _bytes);
+void BitSet::save(Common::WriteStream *ws) {
+	ws->writeUint32LE(_size);
+	ws->write(_data, _bytes);
 }
 
-bool BitSet::load(IDataSource *ids, uint32 version) {
-	uint32 s = ids->read4();
+bool BitSet::load(Common::ReadStream *rs, uint32 version) {
+	uint32 s = rs->readUint32LE();
+
+	if (s > 1024 * 1024) {
+		warning("Improbable globals size %d, corrupt save?", s);
+		return false;
+	}
+
 	setSize(s);
-	ids->read(_data, _bytes);
+	rs->read(_data, _bytes);
 
 	return true;
 }

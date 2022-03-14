@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,10 +46,10 @@ namespace Sword25 {
 class VectorImage;
 
 /**
-    @brief Pfadinformationen zu BS_VectorImageElement Objekten
+	@brief Pfadinformationen zu BS_VectorImageElement Objekten
 
-    Jedes BS_VectorImageElement besteht aus Kantenzügen, oder auch Pfaden. Jeder dieser Pfad hat Eigenschaften, die in Objekten diesen Typs
-    gespeichert werden.
+	Jedes BS_VectorImageElement besteht aus KantenzÃ¼gen, oder auch Pfaden. Jeder dieser Pfad hat Eigenschaften, die in Objekten diesen Typs
+	gespeichert werden.
 */
 
 class VectorPathInfo {
@@ -88,8 +87,8 @@ private:
 };
 
 /**
-    @brief Ein Element eines Vektorbild. Ein BS_VectorImage besteht aus diesen Elementen, die jeweils einen Teil der Graphik definieren.
-           Werden alle Elemente eines Vektorbildes übereinandergelegt, ergibt sich das komplette Bild.
+	@brief Ein Element eines Vektorbild. Ein BS_VectorImage besteht aus diesen Elementen, die jeweils einen Teil der Graphik definieren.
+		   Werden alle Elemente eines Vektorbildes Ã¼bereinandergelegt, ergibt sich das komplette Bild.
 */
 class VectorImageElement {
 	friend class VectorImage;
@@ -148,9 +147,9 @@ private:
 
 
 /**
-    @brief Eine Vektorgraphik
+	@brief Eine Vektorgraphik
 
-    Objekte dieser Klasse enthalten die Informationen eines SWF-Shapes.
+	Objekte dieser Klasse enthalten die Informationen eines SWF-Shapes.
 */
 
 class VectorImage : public Image {
@@ -177,9 +176,6 @@ public:
 	}
 	int getHeight() const override {
 		return _boundingBox.height();
-	}
-	GraphicEngine::COLOR_FORMATS getColorFormat() const override {
-		return GraphicEngine::CF_ARGB32;
 	}
 	bool fill(const Common::Rect *pFillRect = 0, uint color = BS_RGB(0, 0, 0)) override;
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,15 +44,14 @@ public:
 	virtual const OSystem::GraphicsMode *getSupportedGraphicsModes() const {
 		static const OSystem::GraphicsMode noGraphicsModes[] = {{"NONE", "Normal", 0}, {nullptr, nullptr, 0 }};
 		return noGraphicsModes;
-	};
+	}
 	virtual int getDefaultGraphicsMode() const { return 0; }
-	virtual bool setGraphicsMode(int mode) { return (mode == 0); }
-	virtual void resetGraphicsScale() {}
+	virtual bool setGraphicsMode(int mode, uint flags = OSystem::kGfxModeNoFlags) { return (mode == 0); }
 	virtual int getGraphicsMode() const { return 0; }
 	virtual const OSystem::GraphicsMode *getSupportedShaders() const {
 		static const OSystem::GraphicsMode no_shader[2] = {{"NONE", "Normal (no shader)", 0}, {0, 0, 0}};
 		return no_shader;
-	};
+	}
 	virtual int getDefaultShader() const { return 0; }
 	virtual bool setShader(int id) { return false; }
 	virtual int getShader() const { return 0; }
@@ -64,6 +62,11 @@ public:
 	virtual int getDefaultStretchMode() const { return 0; }
 	virtual bool setStretchMode(int mode) { return false; }
 	virtual int getStretchMode() const { return 0; }
+	virtual uint getDefaultScaler() const { return 0; }
+	virtual uint getDefaultScaleFactor() const { return 1; }
+	virtual bool setScaler(uint mode, int factor) { return false; }
+	virtual uint getScaler() const { return 0; }
+	virtual uint getScaleFactor() const { return 1; }
 
 #ifdef USE_RGB_COLOR
 	virtual Graphics::PixelFormat getScreenFormat() const = 0;
@@ -91,25 +94,30 @@ public:
 
 	virtual void showOverlay() = 0;
 	virtual void hideOverlay() = 0;
+	virtual bool isOverlayVisible() const = 0;
 	virtual Graphics::PixelFormat getOverlayFormat() const = 0;
 	virtual void clearOverlay() = 0;
-	virtual void grabOverlay(void *buf, int pitch) const = 0;
+	virtual void grabOverlay(Graphics::Surface &surface) const = 0;
 	virtual void copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h) = 0;
 	virtual int16 getOverlayHeight() const = 0;
 	virtual int16 getOverlayWidth() const = 0;
+	virtual float getHiDPIScreenFactor() const { return 1.0f; }
 
 	virtual bool showMouse(bool visible) = 0;
 	virtual void warpMouse(int x, int y) = 0;
 	virtual void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL) = 0;
 	virtual void setCursorPalette(const byte *colors, uint start, uint num) = 0;
 
-	virtual void displayMessageOnOSD(const char *msg) {}
+	virtual void displayMessageOnOSD(const Common::U32String &msg) {}
 	virtual void displayActivityIconOnOSD(const Graphics::Surface *icon) {}
 
 
 	// Graphics::PaletteManager interface
 	//virtual void setPalette(const byte *colors, uint start, uint num) = 0;
 	//virtual void grabPalette(byte *colors, uint start, uint num) const = 0;
+
+	virtual void saveScreenshot() {}
+	virtual bool lockMouse(bool lock) { return false; }
 };
 
 #endif

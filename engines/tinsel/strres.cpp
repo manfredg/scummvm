@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * String resource managment routines
  */
@@ -34,7 +33,7 @@
 
 namespace Tinsel {
 
-// FIXME: Avoid non-const global vars
+// These vars are reset upon engine destruction
 
 #ifdef DEBUG
 // Diagnostic number
@@ -42,7 +41,7 @@ int g_newestString;
 #endif
 
 // buffer for resource strings
-static uint8 *g_textBuffer = 0;
+static uint8 *g_textBuffer = nullptr;
 
 static struct {
 	bool		bPresent;
@@ -77,12 +76,18 @@ LANGUAGE g_textLanguage, g_sampleLanguage = TXT_ENGLISH;
 
 //----------------- FUNCTIONS --------------------------------
 
+void ResetVarsStrRes() {
+	g_textBuffer = nullptr;
+	g_bMultiByte = false;
+	g_textLanguage = g_sampleLanguage = TXT_ENGLISH;
+}
+
 /**
  * Called to load a resource file for a different language
  * @param newLang			The new language
  */
 void ChangeLanguage(LANGUAGE newLang) {
-	TinselFile f;
+	TinselFile f(TinselV1Mac || TinselV1Saturn);
 	uint32 textLen = 0;	// length of buffer
 
 	g_textLanguage = newLang;
@@ -137,8 +142,9 @@ void ChangeLanguage(LANGUAGE newLang) {
 
 		// close the file
 		f.close();
-	} else {	// the file must be compressed
-		error("Compression handling has been removed");
+	} else {
+		// the file must be compressed
+		error("Compression handling for text file has been removed");
 	}
 }
 

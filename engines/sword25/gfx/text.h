@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ public:
 	/**
 	    @brief Setzt den Font mit dem der Text dargestellt werden soll.
 	    @param Font der Dateiname der Fontdatei.
-	    @return Gibt false zurück, wenn der Font nicht gefunden wurde.
+	    @return Gibt false zurÃ¼ck, wenn der Font nicht gefunden wurde.
 	*/
 	bool setFont(const Common::String &font);
 
@@ -68,7 +67,7 @@ public:
 	/**
 	    @brief Legt fest, ob der Text automatisch umgebrochen werden soll.
 
-	    Wenn dieses Attribut auf true gesetzt ist, wird der Text umgebrochen, sofern er länger als GetAutoWrapThreshold() ist.
+	    Wenn dieses Attribut auf true gesetzt ist, wird der Text umgebrochen, sofern er lÃ¤nger als GetAutoWrapThreshold() ist.
 
 	    @param AutoWrap gibt an, ob der automatische Umbruch aktiviert oder deaktiviert werden soll.
 	    @remark Dieses Attribut wird mit dem Wert false initialisiert.
@@ -76,21 +75,21 @@ public:
 	void setAutoWrap(bool autoWrap);
 
 	/**
-	    @brief Legt die Längengrenze des Textes in Pixeln fest, ab der ein automatischer Zeilenumbruch vorgenommen wird.
+	    @brief Legt die LÃ¤ngengrenze des Textes in Pixeln fest, ab der ein automatischer Zeilenumbruch vorgenommen wird.
 	    @remark Dieses Attribut wird mit dem Wert 300 initialisiert.
 	    @remark Eine automatische Formatierung wird nur vorgenommen, wenn diese durch einen Aufruf von SetAutoWrap() aktiviert wurde.
 	*/
 	void setAutoWrapThreshold(uint32 autoWrapThreshold);
 
 	/**
-	    @brief Gibt den dargestellten Text zurück.
+	    @brief Gibt den dargestellten Text zurÃ¼ck.
 	*/
 	const Common::String &getText() {
 		return _text;
 	}
 
 	/**
-	    @brief Gibt den Namen das momentan benutzten Fonts zurück.
+	    @brief Gibt den Namen das momentan benutzten Fonts zurÃ¼ck.
 	*/
 	const Common::String &getFont() {
 		return _font;
@@ -103,30 +102,30 @@ public:
 	void setColor(uint32 modulationColor);
 
 	/**
-	    @brief Gibt den Alphawert des Textes zurück.
+	    @brief Gibt den Alphawert des Textes zurÃ¼ck.
 	    @return Der Alphawert des Textes (0 = keine Deckung, 255 = volle Deckung).
 	*/
 	int getAlpha() const {
-		return _modulationColor >> 24;
+		return _modulationColor >> BS_ASHIFT;
 	}
 
 	/**
-	    @brief Gibt die Farbe des Textes zurück.
+	    @brief Gibt die Farbe des Textes zurÃ¼ck.
 	    @return Eine 24-Bit RGB Farbe, die die Farbe des Textes angibt.
 	*/
 	int getColor() const {
-		return _modulationColor & 0x00ffffff;
+		return _modulationColor & BS_RGBMASK;
 	}
 
 	/**
-	    @brief Gibt zurück, ob die automatische Formatierung aktiviert ist.
+	    @brief Gibt zurÃ¼ck, ob die automatische Formatierung aktiviert ist.
 	*/
 	bool isAutoWrapActive() const {
 		return _autoWrap;
 	}
 
 	/**
-	    @brief Gibt die Längengrenze des Textes in Pixeln zurück, ab der eine automatische Formatierung vorgenommen wird.
+	    @brief Gibt die LÃ¤ngengrenze des Textes in Pixeln zurÃ¼ck, ab der eine automatische Formatierung vorgenommen wird.
 	*/
 	uint32 getAutoWrapThreshold() const {
 		return _autoWrapThreshold;

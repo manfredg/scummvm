@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,27 +15,33 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "base/plugins.h"
 
-#include "common/translation.h"
 #include "common/func.h"
 #include "common/debug.h"
+#include "common/debug-channels.h"
 #include "common/config-manager.h"
 
 #ifdef DYNAMIC_MODULES
 #include "common/fs.h"
 #endif
 
+#include "base/detection/detection.h"
+
+#include "engines/advancedDetector.h"
+
 // Plugin versioning
 
 int pluginTypeVersions[PLUGIN_TYPE_MAX] = {
+	PLUGIN_TYPE_ENGINE_DETECTION_VERSION,
 	PLUGIN_TYPE_ENGINE_VERSION,
 	PLUGIN_TYPE_MUSIC_VERSION,
+	PLUGIN_TYPE_DETECTION_VERSION,
+	PLUGIN_TYPE_SCALER_VERSION,
 };
 
 
@@ -49,22 +55,27 @@ const char *Plugin::getName() const {
 	return _pluginObject->getName();
 }
 
-class StaticPlugin : public Plugin {
-public:
-	StaticPlugin(PluginObject *pluginobject, PluginType type) {
-		assert(pluginobject);
-		assert(type < PLUGIN_TYPE_MAX);
-		_pluginObject = pluginobject;
-		_type = type;
+const char *Plugin::getEngineId() const {
+	if (_type == PLUGIN_TYPE_ENGINE_DETECTION) {
+		return _pluginObject->getEngineId();
 	}
 
-	~StaticPlugin() {
-		delete _pluginObject;
-	}
+	return nullptr;
+}
 
-	virtual bool loadPlugin()		{ return true; }
-	virtual void unloadPlugin()		{}
-};
+StaticPlugin::StaticPlugin(PluginObject *pluginobject, PluginType type) {
+	assert(pluginobject);
+	assert(type < PLUGIN_TYPE_MAX);
+	_pluginObject = pluginobject;
+	_type = type;
+}
+
+StaticPlugin::~StaticPlugin() {
+	delete _pluginObject;
+}
+
+bool StaticPlugin::loadPlugin()		{ return true; }
+void StaticPlugin::unloadPlugin()	{}
 
 class StaticPluginProvider : public PluginProvider {
 public:
@@ -74,7 +85,7 @@ public:
 	~StaticPluginProvider() {
 	}
 
-	virtual PluginList getPlugins() {
+	PluginList getPlugins() override {
 		PluginList pl;
 
 		#define LINK_PLUGIN(ID) \
@@ -87,6 +98,11 @@ public:
 
 		// Engine plugins
 		#include "engines/plugins_table.h"
+
+		#ifdef DETECTION_STATIC
+		// Engine-detection plugins are included if we don't use uncached plugins.
+		#include "engines/detection_table.h"
+		#endif
 
 		// Music plugins
 		// TODO: Use defines to disable or enable each MIDI driver as a
@@ -111,7 +127,7 @@ public:
 		#if defined(IRIX)
 		LINK_PLUGIN(DMEDIA)
 		#endif
-		#if defined(__amigaos4__)
+		#if defined(__amigaos4__) || defined(__MORPHOS__)
 		LINK_PLUGIN(CAMD)
 		#endif
 		#if defined(MACOSX)
@@ -138,9 +154,28 @@ public:
 		LINK_PLUGIN(APPLEIIGS)
 		LINK_PLUGIN(TOWNS)
 		LINK_PLUGIN(PC98)
+		LINK_PLUGIN(SEGACD)
 		#if defined(USE_TIMIDITY)
 		LINK_PLUGIN(TIMIDITY)
 		#endif
+
+		// Scaler plugins
+		LINK_PLUGIN(NORMAL)
+#ifdef USE_SCALERS
+#ifdef USE_HQ_SCALERS
+		LINK_PLUGIN(HQ)
+#endif
+#ifdef USE_EDGE_SCALERS
+		LINK_PLUGIN(EDGE)
+#endif
+		LINK_PLUGIN(ADVMAME)
+		LINK_PLUGIN(SAI)
+		LINK_PLUGIN(SUPERSAI)
+		LINK_PLUGIN(SUPEREAGLE)
+		LINK_PLUGIN(PM)
+		LINK_PLUGIN(DOTMATRIX)
+		LINK_PLUGIN(TV)
+#endif
 
 		return pl;
 	}
@@ -155,7 +190,9 @@ PluginList FilePluginProvider::getPlugins() {
 	Common::FSList pluginDirs;
 
 	// Add the default directories
+	#ifndef WIN32
 	pluginDirs.push_back(Common::FSNode("."));
+	#endif
 	pluginDirs.push_back(Common::FSNode("plugins"));
 
 	// Add the provider's custom directories
@@ -216,7 +253,7 @@ void FilePluginProvider::addCustomDirectories(Common::FSList &dirs) const {
 
 #pragma mark -
 
-PluginManager *PluginManager::_instance = NULL;
+PluginManager *PluginManager::_instance = nullptr;
 
 PluginManager &PluginManager::instance() {
 	if (_instance)
@@ -251,14 +288,72 @@ void PluginManager::addPluginProvider(PluginProvider *pp) {
 	_providers.push_back(pp);
 }
 
+const Plugin *PluginManager::getEngineFromMetaEngine(const Plugin *plugin) {
+	assert(plugin->getType() == PLUGIN_TYPE_ENGINE_DETECTION);
+
+	const Plugin *enginePlugin = nullptr;
+
+	// Use the engineID from MetaEngine for comparison.
+	Common::String metaEnginePluginName = plugin->getEngineId();
+
+	enginePlugin = PluginMan.findEnginePlugin(metaEnginePluginName);
+
+	if (enginePlugin) {
+		debug(9, "MetaEngine: %s \t matched to \t Engine: %s", plugin->getName(), enginePlugin->getFileName());
+		return enginePlugin;
+	}
+
+	debug(9, "MetaEngine: %s couldn't find a match for an engine plugin.", plugin->getName());
+	return nullptr;
+}
+
+const Plugin *PluginManager::getMetaEngineFromEngine(const Plugin *plugin) {
+	assert(plugin->getType() == PLUGIN_TYPE_ENGINE);
+
+	const Plugin *metaEngine = nullptr;
+
+	PluginList pl = PluginMan.getPlugins(PLUGIN_TYPE_ENGINE_DETECTION);
+
+	// This will return a name of the Engine plugin, which will be identical to
+	// a getEngineID from a relevant MetaEngine.
+	Common::String enginePluginName(plugin->getName());
+
+	for (PluginList::const_iterator itr = pl.begin(); itr != pl.end(); itr++) {
+		Common::String metaEngineName = (*itr)->getEngineId();
+
+		if (metaEngineName.equalsIgnoreCase(enginePluginName)) {
+			metaEngine = (*itr);
+			break;
+		}
+	}
+
+	if (metaEngine) {
+		debug(9, "Engine: %s matched to MetaEngine: %s", plugin->getFileName(), metaEngine->getName());
+		return metaEngine;
+	}
+
+	debug(9, "Engine: %s couldn't find a match for an MetaEngine plugin.", plugin->getFileName());
+	return nullptr;
+}
+
 /**
  * This should only be called once by main()
  **/
 void PluginManagerUncached::init() {
 	unloadAllPlugins();
 	_allEnginePlugins.clear();
+	ConfMan.setBool("always_run_fallback_detection_extern", false);
 
-	unloadPluginsExcept(PLUGIN_TYPE_ENGINE, NULL, false); // empty the engine plugins
+	unloadPluginsExcept(PLUGIN_TYPE_ENGINE, nullptr, false); // empty the engine plugins
+
+#ifndef DETECTION_STATIC
+	Common::String detectPluginName = "detection";
+#ifdef PLUGIN_SUFFIX
+	detectPluginName += PLUGIN_SUFFIX;
+#endif
+
+	bool foundDetectPlugin = false;
+#endif
 
 	for (ProviderList::iterator pp = _providers.begin();
 	                            pp != _providers.end();
@@ -270,6 +365,18 @@ void PluginManagerUncached::init() {
 			// file plugins. Currently this is the case. If it changes, we
 			// should find a fast way of detecting whether a plugin is a
 			// music or an engine plugin.
+#ifndef DETECTION_STATIC
+			if (!foundDetectPlugin && (*pp)->isFilePluginProvider()) {
+				Common::String pName = (*p)->getFileName();
+				if (pName.hasSuffixIgnoreCase(detectPluginName)) {
+					_detectionPlugin = (*p);
+					foundDetectPlugin = true;
+					debug(9, "Detection plugin found!");
+					continue;
+				}
+			}
+#endif
+
 			if ((*pp)->isFilePluginProvider()) {
 				_allEnginePlugins.push_back(*p);
 			} else if ((*p)->loadPlugin()) { // and this is the proper method
@@ -301,6 +408,20 @@ bool PluginManagerUncached::loadPluginFromEngineId(const Common::String &engineI
 			}
 		}
 	}
+	// Check for a plugin with the same name as the engine before starting
+	// to scan all plugins
+	Common::String tentativeEnginePluginFilename = engineId;
+#ifdef PLUGIN_SUFFIX
+	tentativeEnginePluginFilename += PLUGIN_SUFFIX;
+#endif
+	for (PluginList::iterator p = _allEnginePlugins.begin(); p != _allEnginePlugins.end(); ++p) {
+		Common::String filename = (*p)->getFileName();
+		if (filename.hasSuffixIgnoreCase(tentativeEnginePluginFilename)) {
+			if (loadPluginByFileName(filename)) {
+				return true;
+			}
+		}
+	}
 	return false;
 }
 
@@ -311,7 +432,7 @@ bool PluginManagerUncached::loadPluginByFileName(const Common::String &filename)
 	if (filename.empty())
 		return false;
 
-	unloadPluginsExcept(PLUGIN_TYPE_ENGINE, NULL, false);
+	unloadPluginsExcept(PLUGIN_TYPE_ENGINE, nullptr, false);
 
 	PluginList::iterator i;
 	for (i = _allEnginePlugins.begin(); i != _allEnginePlugins.end(); ++i) {
@@ -336,14 +457,58 @@ void PluginManagerUncached::updateConfigWithFileName(const Common::String &engin
 
 		Common::ConfigManager::Domain *domain = ConfMan.getDomain("engine_plugin_files");
 		assert(domain);
-		(*domain)[engineId] = (*_currentPlugin)->getFileName();
+		(*domain).setVal(engineId, (*_currentPlugin)->getFileName());
 
 		ConfMan.flushToDisk();
 	}
 }
 
+#ifndef DETECTION_STATIC
+void PluginManagerUncached::loadDetectionPlugin() {
+	bool linkMetaEngines = false;
+
+	if (_isDetectionLoaded) {
+		debug(9, "Detection plugin is already loaded. Adding each available engines to the memory.");
+		linkMetaEngines = true;
+	} else {
+		if (_detectionPlugin) {
+			if (_detectionPlugin->loadPlugin()) {
+				assert((_detectionPlugin)->getType() == PLUGIN_TYPE_DETECTION);
+
+				linkMetaEngines = true;
+				_isDetectionLoaded = true;
+			} else {
+				debug(9, "Detection plugin was not loaded correctly.");
+				return;
+			}
+		} else {
+			debug(9, "Detection plugin not found.");
+			return;
+		}
+	}
+
+	if (linkMetaEngines) {
+		_pluginsInMem[PLUGIN_TYPE_ENGINE_DETECTION].clear();
+		const Detection &detectionConnect = _detectionPlugin->get<Detection>();
+		const PluginList &pl = detectionConnect.getPlugins();
+		Common::for_each(pl.begin(), pl.end(), Common::bind1st(Common::mem_fun(&PluginManagerUncached::tryLoadPlugin), this));
+	}
+
+}
+
+void PluginManagerUncached::unloadDetectionPlugin() {
+	if (_isDetectionLoaded) {
+		_pluginsInMem[PLUGIN_TYPE_ENGINE_DETECTION].clear();
+		_detectionPlugin->unloadPlugin();
+		_isDetectionLoaded = false;
+	} else {
+		debug(9, "Detection plugin is already unloaded.");
+	}
+}
+#endif
+
 void PluginManagerUncached::loadFirstPlugin() {
-	unloadPluginsExcept(PLUGIN_TYPE_ENGINE, NULL, false);
+	unloadPluginsExcept(PLUGIN_TYPE_ENGINE, nullptr, false);
 
 	// let's try to find one we can load
 	for (_currentPlugin = _allEnginePlugins.begin(); _currentPlugin != _allEnginePlugins.end(); ++_currentPlugin) {
@@ -355,9 +520,9 @@ void PluginManagerUncached::loadFirstPlugin() {
 }
 
 bool PluginManagerUncached::loadNextPlugin() {
-	unloadPluginsExcept(PLUGIN_TYPE_ENGINE, NULL, false);
+	unloadPluginsExcept(PLUGIN_TYPE_ENGINE, nullptr, false);
 
-	if (!_currentPlugin)
+	if (!_currentPlugin || _currentPlugin == _allEnginePlugins.end())
 		return false;
 
 	for (++_currentPlugin; _currentPlugin != _allEnginePlugins.end(); ++_currentPlugin) {
@@ -380,6 +545,22 @@ void PluginManager::loadAllPlugins() {
 		PluginList pl((*pp)->getPlugins());
 		Common::for_each(pl.begin(), pl.end(), Common::bind1st(Common::mem_fun(&PluginManager::tryLoadPlugin), this));
 	}
+
+#ifndef DETECTION_STATIC
+	/*
+	 * When detection is dynamic, loading above only gets us a PLUGIN_TYPE_DETECTION plugin
+	 * We must register all plugins linked in it in order to use them
+	 */
+	PluginList dpl = getPlugins(PLUGIN_TYPE_DETECTION);
+	_pluginsInMem[PLUGIN_TYPE_ENGINE_DETECTION].clear();
+	for (PluginList::iterator it = dpl.begin();
+	                            it != dpl.end();
+	                            ++it) {
+		const Detection &detectionConnect = (*it)->get<Detection>();
+		const PluginList &pl = detectionConnect.getPlugins();
+		Common::for_each(pl.begin(), pl.end(), Common::bind1st(Common::mem_fun(&PluginManager::tryLoadPlugin), this));
+	}
+#endif
 }
 
 void PluginManager::loadAllPluginsOfType(PluginType type) {
@@ -408,22 +589,23 @@ void PluginManager::loadAllPluginsOfType(PluginType type) {
 
 void PluginManager::unloadAllPlugins() {
 	for (int i = 0; i < PLUGIN_TYPE_MAX; i++)
-		unloadPluginsExcept((PluginType)i, NULL);
+		unloadPluginsExcept((PluginType)i, nullptr);
 }
 
 void PluginManager::unloadPluginsExcept(PluginType type, const Plugin *plugin, bool deletePlugin /*=true*/) {
-	Plugin *found = NULL;
+	Plugin *found = nullptr;
 	for (PluginList::iterator p = _pluginsInMem[type].begin(); p != _pluginsInMem[type].end(); ++p) {
 		if (*p == plugin) {
 			found = *p;
 		} else {
 			(*p)->unloadPlugin();
-			if (deletePlugin)
+			if (deletePlugin) {
 				delete *p;
+			}
 		}
 	}
 	_pluginsInMem[type].clear();
-	if (found != NULL) {
+	if (found != nullptr) {
 		_pluginsInMem[type].push_back(found);
 	}
 }
@@ -457,6 +639,7 @@ void PluginManager::addToPluginsInMemList(Plugin *plugin) {
 		if (!strcmp(plugin->getName(), (*pl)->getName())) {
 			// Found a duplicated module. Replace the old one.
 			found = true;
+			(*pl)->unloadPlugin();
 			delete *pl;
 			*pl = plugin;
 			debug(1, "Replaced the duplicated plugin: '%s'", plugin->getName());
@@ -492,7 +675,8 @@ QualifiedGameList EngineManager::findGamesMatching(const Common::String &engineI
 		// If we got an engine name, look for THE game only in that engine
 		const Plugin *p = EngineMan.findPlugin(engineId);
 		if (p) {
-			const MetaEngine &engine = p->get<MetaEngine>();
+			const MetaEngineDetection &engine = p->get<MetaEngineDetection>();
+			DebugMan.addAllDebugChannels(engine.getDebugChannels());
 
 			PlainGameDescriptor pluginResult = engine.findGame(gameId.c_str());
 			if (pluginResult.gameId) {
@@ -521,7 +705,8 @@ QualifiedGameList EngineManager::findGameInLoadedPlugins(const Common::String &g
 	PluginList::const_iterator iter;
 
 	for (iter = plugins.begin(); iter != plugins.end(); ++iter) {
-		const MetaEngine &engine = (*iter)->get<MetaEngine>();
+		const MetaEngineDetection &engine = (*iter)->get<MetaEngineDetection>();
+		DebugMan.addAllDebugChannels(engine.getDebugChannels());
 		PlainGameDescriptor pluginResult = engine.findGame(gameId.c_str());
 
 		if (pluginResult.gameId) {
@@ -532,33 +717,38 @@ QualifiedGameList EngineManager::findGameInLoadedPlugins(const Common::String &g
 	return results;
 }
 
-DetectionResults EngineManager::detectGames(const Common::FSList &fslist) const {
+DetectionResults EngineManager::detectGames(const Common::FSList &fslist) {
 	DetectedGames candidates;
 	PluginList plugins;
 	PluginList::const_iterator iter;
-	PluginMan.loadFirstPlugin();
-	do {
-		plugins = getPlugins();
-		// Iterate over all known games and for each check if it might be
-		// the game in the presented directory.
-		for (iter = plugins.begin(); iter != plugins.end(); ++iter) {
-			const MetaEngine &metaEngine = (*iter)->get<MetaEngine>();
-			DetectedGames engineCandidates = metaEngine.detectGames(fslist);
 
-			for (uint i = 0; i < engineCandidates.size(); i++) {
-				engineCandidates[i].path = fslist.begin()->getParent().getPath();
-				engineCandidates[i].shortPath = fslist.begin()->getParent().getDisplayName();
-				candidates.push_back(engineCandidates[i]);
-			}
+	// MetaEngines are always loaded into memory, so, get them and
+	// run detection for all of them.
+	plugins = getPlugins(PLUGIN_TYPE_ENGINE_DETECTION);
 
+	// Clear md5 cache before each detection starts, just in case.
+	MD5Man.clear();
+
+	// Iterate over all known games and for each check if it might be
+	// the game in the presented directory.
+	for (iter = plugins.begin(); iter != plugins.end(); ++iter) {
+		MetaEngineDetection &metaEngine = (*iter)->get<MetaEngineDetection>();
+		// set the debug flags
+		DebugMan.addAllDebugChannels(metaEngine.getDebugChannels());
+		DetectedGames engineCandidates = metaEngine.detectGames(fslist);
+
+		for (uint i = 0; i < engineCandidates.size(); i++) {
+			engineCandidates[i].path = fslist.begin()->getParent().getPath();
+			engineCandidates[i].shortPath = fslist.begin()->getParent().getDisplayName();
+			candidates.push_back(engineCandidates[i]);
 		}
-	} while (PluginMan.loadNextPlugin());
+	}
 
 	return DetectionResults(candidates);
 }
 
-const PluginList &EngineManager::getPlugins() const {
-	return PluginManager::instance().getPlugins(PLUGIN_TYPE_ENGINE);
+const PluginList &EngineManager::getPlugins(const PluginType fetchPluginType) const {
+	return PluginManager::instance().getPlugins(fetchPluginType);
 }
 
 namespace {
@@ -618,17 +808,27 @@ Common::String EngineManager::createTargetForGame(const DetectedGame &game) {
 	return domain;
 }
 
-const Plugin *EngineManager::findLoadedPlugin(const Common::String &engineId) const {
+const Plugin *EngineManager::findPlugin(const Common::String &engineId) const {
 	const PluginList &plugins = getPlugins();
 
 	for (PluginList::const_iterator iter = plugins.begin(); iter != plugins.end(); iter++)
-		if (engineId == (*iter)->get<MetaEngine>().getEngineId())
+		if (engineId == (*iter)->get<MetaEngineDetection>().getEngineId())
 			return *iter;
 
-	return 0;
+	return nullptr;
 }
 
-const Plugin *EngineManager::findPlugin(const Common::String &engineId) const {
+const Plugin *PluginManager::findLoadedPlugin(const Common::String &engineId) {
+	const PluginList &plugins = getPlugins(PLUGIN_TYPE_ENGINE);
+
+	for (PluginList::const_iterator iter = plugins.begin(); iter != plugins.end(); iter++)
+		if (engineId == (*iter)->get<MetaEngine>().getName())
+			return *iter;
+
+	return nullptr;
+}
+
+const Plugin *PluginManager::findEnginePlugin(const Common::String &engineId) {
 	// First look for the game using the plugins in memory. This is critical
 	// for calls coming from inside games
 	const Plugin *plugin = findLoadedPlugin(engineId);
@@ -637,7 +837,7 @@ const Plugin *EngineManager::findPlugin(const Common::String &engineId) const {
 
 	// Now look for the plugin using the engine ID. This is much faster than scanning plugin
 	// by plugin
-	if (PluginMan.loadPluginFromEngineId(engineId))  {
+	if (loadPluginFromEngineId(engineId))  {
 		plugin = findLoadedPlugin(engineId);
 		if (plugin)
 			return plugin;
@@ -654,7 +854,7 @@ const Plugin *EngineManager::findPlugin(const Common::String &engineId) const {
 		}
 	} while (PluginMan.loadNextPlugin());
 
-	return 0;
+	return nullptr;
 }
 
 QualifiedGameDescriptor EngineManager::findTarget(const Common::String &target, const Plugin **plugin) const {
@@ -674,7 +874,8 @@ QualifiedGameDescriptor EngineManager::findTarget(const Common::String &target, 
 	}
 
 	// Make sure it does support the game ID
-	const MetaEngine &engine = foundPlugin->get<MetaEngine>();
+	const MetaEngineDetection &engine = foundPlugin->get<MetaEngineDetection>();
+	DebugMan.addAllDebugChannels(engine.getDebugChannels());
 	PlainGameDescriptor desc = engine.findGame(domain->getVal("gameid").c_str());
 	if (!desc.gameId) {
 		return QualifiedGameDescriptor();
@@ -692,6 +893,14 @@ void EngineManager::upgradeTargetIfNecessary(const Common::String &target) const
 
 	if (!domain->contains("engineid")) {
 		upgradeTargetForEngineId(target);
+	} else {
+		if (domain->getVal("engineid").equals("fullpipe")) {
+			domain->setVal("engineid", "ngi");
+
+			debug("Upgrading engineid from 'fullpipe' to 'ngi'");
+
+			ConfMan.flushToDisk();
+		}
 	}
 }
 
@@ -731,7 +940,9 @@ void EngineManager::upgradeTargetForEngineId(const Common::String &target) const
 		}
 
 		// Take the first detection entry
-		const MetaEngine &metaEngine = plugin->get<MetaEngine>();
+		MetaEngineDetection &metaEngine = plugin->get<MetaEngineDetection>();
+		// set debug flags before call detectGames
+		DebugMan.addAllDebugChannels(metaEngine.getDebugChannels());
 		DetectedGames candidates = metaEngine.detectGames(files);
 		if (candidates.empty()) {
 			warning("No games supported by the engine '%s' were found in path '%s' when upgrading target '%s'",
@@ -783,4 +994,119 @@ DECLARE_SINGLETON(MusicManager);
 
 const PluginList &MusicManager::getPlugins() const {
 	return PluginManager::instance().getPlugins(PLUGIN_TYPE_MUSIC);
+}
+
+// Scaler plugins
+
+#include "graphics/scalerplugin.h"
+
+namespace Common {
+DECLARE_SINGLETON(ScalerManager);
+}
+
+const PluginList &ScalerManager::getPlugins() const {
+	return PluginManager::instance().getPlugins(PLUGIN_TYPE_SCALER);
+}
+
+uint ScalerManager::getMaxExtraPixels() const {
+	uint maxPixels = 0;
+	PluginList plugins = getPlugins();
+	PluginList::iterator i = plugins.begin();
+	for (; i != plugins.end(); ++i) {
+		uint n = (*i)->get<ScalerPluginObject>().extraPixels();
+		if (n > maxPixels) {
+			maxPixels = n;
+		}
+	}
+	return maxPixels;
+}
+
+Plugin *ScalerManager::findScalerPlugin(const char *name) const {
+	const PluginList &plugins = getPlugins();
+	for (PluginList::const_iterator i = plugins.begin(); i != plugins.end(); ++i) {
+		if (!strcmp((*i)->get<ScalerPluginObject>().getName(), name)) {
+			return *i;
+		}
+	}
+
+	return nullptr;
+}
+
+uint ScalerManager::findScalerPluginIndex(const char *name) const {
+	const PluginList &plugins = getPlugins();
+	uint index = 0;
+
+	for (PluginList::const_iterator i = plugins.begin(); i != plugins.end(); ++i) {
+		if (!strcmp((*i)->get<ScalerPluginObject>().getName(), name)) {
+			return index;
+		}
+		index++;
+	}
+
+	return 0;
+}
+
+struct LegacyGraphicsMode {
+	const char *oldName;
+	const char *newName;
+	uint factor;
+};
+
+// Table for using old names for scalers in the configuration
+// to keep compatibiblity with old config files.
+static const LegacyGraphicsMode s_legacyGraphicsModes[] = {
+	{ "1x", "normal", 1 },
+	{ "2x", "normal", 2 },
+	{ "3x", "normal", 3 },
+	{ "normal1x", "normal", 1 },
+	{ "normal2x", "normal", 2 },
+	{ "normal3x", "normal", 3 },
+	{ "normal4x", "normal", 4 },
+	{ "hq2x", "hq", 2 },
+	{ "hq3x", "hq", 3 },
+	{ "edge2x", "edge", 2 },
+	{ "edge3x", "edge", 3 },
+	{ "advmame2x", "advmame", 2 },
+	{ "advmame3x", "advmame", 3 },
+	{ "advmame4x", "advmame", 4 },
+	{ "2xsai", "sai", 2 },
+	{ "sai2x", "sai", 2 },
+	{ "super2xsai", "supersai", 2 },
+	{ "supersai2x", "supersai", 2 },
+	{ "supereagle", "supereagle", 2 },
+	{ "supereagle2x", "supereagle", 2 },
+	{ "pm2x", "pm", 2 },
+	{ "dotmatrix", "dotmatrix", 2 },
+	{ "dotmatrix2x", "dotmatrix", 2 },
+	{ "tv2x", "tv", 2 }
+};
+
+void ScalerManager::updateOldSettings() {
+	// Search for legacy gfx_mode and replace it
+	if (ConfMan.hasKey("gfx_mode")) {
+		Common::String gfxMode(ConfMan.get("gfx_mode"));
+		for (uint i = 0; i < ARRAYSIZE(s_legacyGraphicsModes); ++i) {
+			if (gfxMode == s_legacyGraphicsModes[i].oldName) {
+				ConfMan.set("scaler", s_legacyGraphicsModes[i].newName);
+				ConfMan.setInt("scale_factor", s_legacyGraphicsModes[i].factor);
+				break;
+			}
+		}
+	}
+
+	// Look in all game domains as well
+	for (Common::ConfigManager::DomainMap::iterator domain = ConfMan.beginGameDomains(); domain != ConfMan.endGameDomains(); ++domain) {
+		if (domain->_value.contains("gfx_mode")) {
+			Common::String gfxMode(domain->_value.getVal("gfx_mode"));
+			for (uint i = 0; i < ARRAYSIZE(s_legacyGraphicsModes); ++i) {
+				if (gfxMode == s_legacyGraphicsModes[i].oldName) {
+					warning("%s: %s -> %s@%dx", domain->_value.getDomainComment().c_str(), s_legacyGraphicsModes[i].oldName, s_legacyGraphicsModes[i].newName, s_legacyGraphicsModes[i].factor);
+					domain->_value.setVal("scaler", s_legacyGraphicsModes[i].newName);
+					domain->_value.setVal("scale_factor", Common::String::format("%i", s_legacyGraphicsModes[i].factor));
+					domain->_value.erase("gfx_mode");
+					break;
+				}
+			}
+		}
+	}
 }

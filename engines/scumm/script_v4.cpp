@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,16 +58,16 @@ void ScummEngine_v4::setupOpcodes() {
 	OPCODE(0xa2, o4_saveLoadGame);
 
 	// Disable some opcodes which are unused in v4.
-	_opcodes[0x3b].setProc(0, 0);
-	_opcodes[0x4c].setProc(0, 0);
-	_opcodes[0xbb].setProc(0, 0);
+	_opcodes[0x3b].setProc(nullptr, nullptr);
+	_opcodes[0x4c].setProc(nullptr, nullptr);
+	_opcodes[0xbb].setProc(nullptr, nullptr);
 }
 
 void ScummEngine_v4::o4_ifState() {
 	int a = getVarOrDirectWord(PARAM_1);
 	int b = getVarOrDirectByte(PARAM_2);
 
-	// WORKAROUND bug #3306145 (also occurs in original): Some old versions of
+	// WORKAROUND bug #5709 (also occurs in original): Some old versions of
 	// Indy3 sometimes fail to allocate IQ points correctly. To quote:
 	// "About the points error leaving Castle Brunwald: It seems to "reversed"!
 	// When you get caught, free yourself and escape, you get 25 IQ points even
@@ -151,7 +150,7 @@ enum StringIds {
 	// The string IDs used by Indy3 to store the episode resp. series IQ points.
 	// Note that we save the episode IQ points but load the series IQ points,
 	// which matches the original Indy3 save/load code. See also the notes
-	// on Feature Request #1666521.
+	// on bug #7547.
 	STRINGID_IQ_EPISODE = 7,
 	STRINGID_IQ_SERIES = 9,
 	// The string IDs of the first savegame name, used as an offset to determine
@@ -337,7 +336,7 @@ void ScummEngine_v4::saveIQPoints() {
 	Common::String filename = _targetName + ".iq";
 
 	file = _saveFileMan->openForSaving(filename);
-	if (file != NULL) {
+	if (file != nullptr) {
 		byte *ptr = getResourceAddress(rtString, STRINGID_IQ_EPISODE);
 		if (ptr) {
 			int size = getResourceSize(rtString, STRINGID_IQ_EPISODE);
@@ -353,7 +352,7 @@ void ScummEngine_v4::loadIQPoints(byte *ptr, int size) {
 	Common::String filename = _targetName + ".iq";
 
 	file = _saveFileMan->openForLoading(filename);
-	if (file != NULL) {
+	if (file != nullptr) {
 		byte *tmp = (byte *)malloc(size);
 		int nread = file->read(tmp, size);
 		if (nread == size) {

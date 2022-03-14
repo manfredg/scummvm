@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,22 +15,34 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/config-manager.h"
 #include "engines/advancedDetector.h"
-#include "common/savefile.h"
-#include "common/system.h"
+
 #include "base/plugins.h"
-#include "graphics/thumbnail.h"
 #include "toon/toon.h"
 
 static const PlainGameDescriptor toonGames[] = {
 	{ "toon", "Toonstruck" },
 	{ 0, 0 }
+};
+
+static const DebugChannelDef debugFlagList[] = {
+	{Toon::kDebugAnim, "Anim", "Animation debug level"},
+	{Toon::kDebugCharacter, "Character", "Character debug level"},
+	{Toon::kDebugAudio, "Audio", "Audio debug level"},
+	{Toon::kDebugHotspot, "Hotspot", "Hotspot debug level"},
+	{Toon::kDebugFont, "Font", "Font debug level"},
+	{Toon::kDebugPath, "Path", "Path debug level"},
+	{Toon::kDebugMovie, "Movie", "Movie debug level"},
+	{Toon::kDebugPicture, "Picture", "Picture debug level"},
+	{Toon::kDebugResource, "Resource", "Resource debug level"},
+	{Toon::kDebugState, "State", "State debug level"},
+	{Toon::kDebugTools, "Tools", "Tools debug level"},
+	{Toon::kDebugText, "Text", "Text debug level"},
+	DEBUG_CHANNEL_END
 };
 
 namespace Toon {
@@ -86,7 +98,7 @@ static const ADGameDescription gameDescriptions[] = {
 		Common::RU_RUS, Common::kPlatformDOS, ADGF_NO_FLAGS, GUIO1(GUIO_NOMIDI)
 	},
 	{
-		"toon", "",
+		"toon", "Demo",
 		{
 			{"local.pak", 0, "bf5da4c03f78ffbd643f12122319366e", 3250841},
 			{"wacexdbl.emc", 0, "cfbc2156a31b294b038204888407ebc8", 6974},
@@ -96,7 +108,7 @@ static const ADGameDescription gameDescriptions[] = {
 		Common::DE_DEU, Common::kPlatformDOS, ADGF_DEMO, GUIO1(GUIO_NOMIDI)
 	},
 	{
-		"toon", "",
+		"toon", "Demo",
 		{
 			{"local.pak", 0, "8ef3368078b9ea70b305c04db826feea", 2680573},
 			{"generic.svl", 0, "5c42724bb93b360dca7044d6b7ef26e5", 7739319},
@@ -134,15 +146,15 @@ static const char * const directoryGlobs[] = {
 	0
 };
 
-class ToonMetaEngine : public AdvancedMetaEngine {
+class ToonMetaEngineDetection : public AdvancedMetaEngineDetection {
 public:
-	ToonMetaEngine() : AdvancedMetaEngine(Toon::gameDescriptions, sizeof(ADGameDescription), toonGames) {
+	ToonMetaEngineDetection() : AdvancedMetaEngineDetection(Toon::gameDescriptions, sizeof(ADGameDescription), toonGames) {
 		_maxScanDepth = 3;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const override {
-		return detectGameFilebased(allFiles, fslist, Toon::fileBasedFallback);
+	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist, ADDetectedGameExtraInfo **extra) const override {
+		return detectGameFilebased(allFiles, Toon::fileBasedFallback);
 	}
 
 	const char *getEngineId() const override {
@@ -157,137 +169,9 @@ public:
 		return "Toonstruck (C) 1996 Virgin Interactive";
 	}
 
-	bool hasFeature(MetaEngineFeature f) const override;
-	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
-	int getMaximumSaveSlot() const override;
-	SaveStateList listSaves(const char *target) const override;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
-	void removeSaveState(const char *target, int slot) const override;
+	const DebugChannelDef *getDebugChannels() const override {
+		return debugFlagList;
+	}
 };
 
-bool ToonMetaEngine::hasFeature(MetaEngineFeature f) const {
-	return
-	    (f == kSupportsListSaves) ||
-	    (f == kSupportsLoadingDuringStartup) ||
-	    (f == kSupportsDeleteSave) ||
-	    (f == kSavesSupportMetaInfo) ||
-	    (f == kSavesSupportThumbnail) ||
-	    (f == kSavesSupportCreationDate) ||
-	    (f == kSavesSupportPlayTime) ||
-		(f == kSimpleSavesNames);
-}
-
-void ToonMetaEngine::removeSaveState(const char *target, int slot) const {
-	Common::String fileName = Common::String::format("%s.%03d", target, slot);
-	g_system->getSavefileManager()->removeSavefile(fileName);
-}
-
-int ToonMetaEngine::getMaximumSaveSlot() const { return MAX_SAVE_SLOT; }
-
-SaveStateList ToonMetaEngine::listSaves(const char *target) const {
-	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::StringArray filenames;
-	Common::String pattern = target;
-	pattern += ".###";
-
-	filenames = saveFileMan->listSavefiles(pattern);
-
-	SaveStateList saveList;
-	for (Common::StringArray::const_iterator filename = filenames.begin(); filename != filenames.end(); ++filename) {
-		// Obtain the last 3 digits of the filename, since they correspond to the save slot
-		int slotNum = atoi(filename->c_str() + filename->size() - 3);
-
-		if (slotNum >= 0 && slotNum <= MAX_SAVE_SLOT) {
-			Common::InSaveFile *file = saveFileMan->openForLoading(*filename);
-			if (file) {
-				int32 version = file->readSint32BE();
-				if ( (version < 4) || (version > TOON_SAVEGAME_VERSION) ) {
-					delete file;
-					continue;
-				}
-
-				// read name
-				uint16 nameSize = file->readUint16BE();
-				if (nameSize >= 255) {
-					delete file;
-					continue;
-				}
-				char name[256];
-				file->read(name, nameSize);
-				name[nameSize] = 0;
-
-				saveList.push_back(SaveStateDescriptor(slotNum, name));
-				delete file;
-			}
-		}
-	}
-
-	// Sort saves based on slot number.
-	Common::sort(saveList.begin(), saveList.end(), SaveStateDescriptorSlotComparator());
-	return saveList;
-}
-
-SaveStateDescriptor ToonMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
-	Common::String fileName = Common::String::format("%s.%03d", target, slot);
-	Common::InSaveFile *file = g_system->getSavefileManager()->openForLoading(fileName);
-
-	if (file) {
-
-		int32 version = file->readSint32BE();
-		if ( (version < 4) || (version > TOON_SAVEGAME_VERSION) ) {
-			delete file;
-			return SaveStateDescriptor();
-		}
-
-		uint32 saveNameLength = file->readUint16BE();
-		char saveName[256];
-		file->read(saveName, saveNameLength);
-		saveName[saveNameLength] = 0;
-
-		SaveStateDescriptor desc(slot, saveName);
-
-		Graphics::Surface *thumbnail = nullptr;
-		if (!Graphics::loadThumbnail(*file, thumbnail, false)) {
-			delete file;
-			return SaveStateDescriptor();
-		}
-		desc.setThumbnail(thumbnail);
-
-		uint32 saveDate = file->readUint32BE();
-		uint16 saveTime = file->readUint16BE();
-
-		int day = (saveDate >> 24) & 0xFF;
-		int month = (saveDate >> 16) & 0xFF;
-		int year = saveDate & 0xFFFF;
-
-		desc.setSaveDate(year, month, day);
-
-		int hour = (saveTime >> 8) & 0xFF;
-		int minutes = saveTime & 0xFF;
-
-		desc.setSaveTime(hour, minutes);
-
-		if (version >= 5) {
-			uint32 playTimeMsec = file->readUint32BE();
-			desc.setPlayTime(playTimeMsec);
-		}
-
-		delete file;
-		return desc;
-	}
-
-	return SaveStateDescriptor();
-}
-
-bool ToonMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	if (desc) {
-		*engine = new Toon::ToonEngine(syst, desc);
-	}
-	return desc != 0;
-}
-
-#if PLUGIN_ENABLED_DYNAMIC(TOON)
-	REGISTER_PLUGIN_DYNAMIC(TOON, PLUGIN_TYPE_ENGINE, ToonMetaEngine);
-#else
-	REGISTER_PLUGIN_STATIC(TOON, PLUGIN_TYPE_ENGINE, ToonMetaEngine);
-#endif
+REGISTER_PLUGIN_STATIC(TOON_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, ToonMetaEngineDetection);

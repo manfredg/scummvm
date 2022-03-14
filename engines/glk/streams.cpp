@@ -4,19 +4,18 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software{} you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation{} either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY{} without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program{} if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -309,7 +308,7 @@ void WindowStream::setReverseVideo(bool reverse) {
 MemoryStream::MemoryStream(Streams *streams, void *buf, size_t buflen, FileMode mode, uint rock, bool unicode) :
 	Stream(streams, mode != filemode_Write, mode != filemode_Read, rock, unicode),
 	_buf(buf), _bufLen(buflen), _bufPtr(buf) {
-	assert(_buf && _bufLen);
+	assert(_buf || !_bufLen);
 	assert(mode == filemode_Read || mode == filemode_Write || mode == filemode_ReadWrite);
 
 	if (unicode)
@@ -977,7 +976,13 @@ void IOStream::setPosition(int pos, uint seekMode) {
 	if (_inStream) {
 		_inStream->seek(pos, SEEK_SET);
 	} else {
-		error("seek not supported for writing files");
+		Common::SeekableWriteStream *ws =
+			dynamic_cast<Common::SeekableWriteStream *>(_outStream);
+
+		if (ws)
+			ws->seek(pos, SEEK_SET);
+		else
+			error("seek not supported for writing files");
 	}
 }
 
@@ -1310,7 +1315,7 @@ uint IOStream::getLineUni(uint32 *ubuf, uint len) {
 FileStream::FileStream(Streams *streams, frefid_t fref, uint fmode, uint rock, bool unicode) :
 		IOStream(streams, fmode == filemode_Read, fmode != filemode_Read, rock, unicode),
 		_inSave(nullptr), _outSave(nullptr) {
-	
+
 	_textFile = fref->_textMode;
 	Common::String fname = fref->_slotNumber == -1 ? fref->_filename : fref->getSaveName();
 
@@ -1407,6 +1412,9 @@ void Streams::removeStream(Stream *stream) {
 		if ((*i)->_echoStream == stream)
 			(*i)->_echoStream = nullptr;
 	}
+
+	if (_currentStream == stream)
+		_currentStream = nullptr;
 }
 
 Stream *Streams::getFirst(uint *rock) {

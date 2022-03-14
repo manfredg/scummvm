@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,14 +27,14 @@ AIScriptLeon::AIScriptLeon(BladeRunnerEngine *vm) : AIScriptBase(vm) {
 	_mcCoyPositionX = 0.0f;
 	_mcCoyPositionY = 0.0f;
 	_mcCoyPositionZ = 0.0f;
-	_flag = false;
+	_resumeIdleAfterFramesetCompletesFlag = false;
 }
 
 void AIScriptLeon::Initialize() {
 	_mcCoyPositionX = 0.0f;
 	_mcCoyPositionY = 0.0f;
 	_mcCoyPositionZ = 0.0f;
-	_flag = false;
+	_resumeIdleAfterFramesetCompletesFlag = false;
 	_animationStateNext = 0;
 	_animationNext = 0;
 	_animationFrame = 0;
@@ -271,105 +270,101 @@ bool AIScriptLeon::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 bool AIScriptLeon::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		*animation = 847;
+		*animation = kModelLeonIdle;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(847)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonIdle)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 1:
-		*animation = 846;
+		*animation = kModelLeonWalking;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(846)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonWalking)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 2:
-		if (_animationFrame == 0
-		 && _flag
-		) {
-			*animation = 847;
+		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
+			*animation = kModelLeonIdle;
 			_animationState = 0;
 		} else {
-			*animation = 850;
+			*animation = kModelLeonCalmTalk;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(850)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonCalmTalk)) {
 				_animationFrame = 0;
 			}
 		}
 		break;
 
 	case 3:
-		*animation = 851;
+		*animation = kModelLeonComplainTalk;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(851)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonComplainTalk)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = 850;
+			*animation = kModelLeonCalmTalk;
 		}
 		break;
 
 	case 4:
-		*animation = 852;
+		*animation = kModelLeonAwkwardTalk;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(852)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonAwkwardTalk)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = 850;
+			*animation = kModelLeonCalmTalk;
 		}
 		break;
 
 	case 5:
-		*animation = 853;
+		*animation = kModelLeonDenyTalk;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(853)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonDenyTalk)) {
 			_animationFrame = 0;
 			_animationState = 2;
-			*animation = 850;
+			*animation = kModelLeonCalmTalk;
 		}
 		break;
 
 	case 6:
-		if (_animationFrame == 0
-		 && _flag
-		) {
+		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
 			Actor_Change_Animation_Mode(kActorLeon, 72);
-			*animation = 848;
+			*animation = kModelLeonGrabHoldHigh;
 		} else {
-			*animation = 854;
+			*animation = kModelLeonGrabTalk;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(854)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonGrabTalk)) {
 				_animationFrame = 0;
 			}
 		}
 		break;
 
 	case 7:
-		*animation = 855;
+		*animation = kModelLeonGrabAndGutPunchTalk;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(855)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonGrabAndGutPunchTalk)) {
 			_animationFrame = 0;
 			_animationState = 6;
-			*animation = 854;
+			*animation = kModelLeonGrabTalk;
 		}
 		break;
 
 	case 8:
-		*animation = 854;
+		*animation = kModelLeonGrabTalk;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(854)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonGrabTalk)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 9:
-		*animation = 849;
+		*animation = kModelLeonGrabLetsGo;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(849)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelLeonGrabLetsGo)) {
 			Actor_Change_Animation_Mode(kActorLeon, kAnimationModeIdle);
-			*animation = 847;
+			*animation = kModelLeonIdle;
 			_animationFrame = 0;
 			_animationState = 0;
 			if (Actor_Query_Goal_Number(kActorLeon) == kGoalLeonReleaseDeskClerk) {
@@ -379,7 +374,7 @@ bool AIScriptLeon::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 10:
-		*animation = 856;
+		*animation = kModelLeonPunchAttack;
 		++_animationFrame;
 		if (_animationFrame == 6) {
 			Actor_Change_Animation_Mode(kActorMcCoy, kAnimationModeDie);
@@ -387,7 +382,7 @@ bool AIScriptLeon::UpdateAnimation(int *animation, int *frame) {
 		}
 
 		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
-			*animation = 847;
+			*animation = kModelLeonIdle;
 			_animationFrame = 0;
 			Actor_Change_Animation_Mode(kActorLeon, kAnimationModeIdle);
 		}
@@ -402,16 +397,23 @@ bool AIScriptLeon::ChangeAnimationMode(int mode) {
 	case kAnimationModeIdle:
 		switch (_animationState) {
 		case 2:
+			// fall through
 		case 3:
+			// fall through
 		case 4:
+			// fall through
 		case 5:
+			// fall through
 		case 6:
+			// fall through
 		case 7:
-			_flag = true;
+			_resumeIdleAfterFramesetCompletesFlag = true;
 			break;
+
 		case 8:
 			Actor_Change_Animation_Mode(kActorLeon, 72);
 			break;
+
 		default:
 			_animationState = 0;
 			_animationFrame = 0;
@@ -427,7 +429,7 @@ bool AIScriptLeon::ChangeAnimationMode(int mode) {
 	case kAnimationModeTalk:
 		_animationState = 2;
 		_animationFrame = 0;
-		_flag = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case kAnimationModeCombatAttack:
@@ -438,31 +440,31 @@ bool AIScriptLeon::ChangeAnimationMode(int mode) {
 	case 12:
 		_animationState = 3;
 		_animationFrame = 0;
-		_flag = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case 13:
 		_animationState = 4;
 		_animationFrame = 0;
-		_flag = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case 14:
 		_animationState = 5;
 		_animationFrame = 0;
-		_flag = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case 15:
 		_animationState = 6;
 		_animationFrame = 0;
-		_flag = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case 16:
 		_animationState = 7;
 		_animationFrame = 0;
-		_flag = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case 26:

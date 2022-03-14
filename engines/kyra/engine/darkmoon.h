@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,10 +51,11 @@ public:
 	~DarkMoonEngine() override;
 
 private:
-	// Init / Release
+	// Init
 	Common::Error init() override;
 	void initStaticResource();
 	void initSpells() override;
+	void loadItemsAndDecorationsShapes() override;
 
 	// Main Menu
 	int mainMenu() override;
@@ -92,6 +92,8 @@ private:
 	void updateUsedCharacterHandItem(int charIndex, int slot) override;
 
 	// Monsters
+	void loadMonsterShapes(const char *filename, int monsterIndex, bool hasDecorations, int encodeTableIndex) override;
+	uint8 *loadFMTownsShape(Common::SeekableReadStream *stream);
 	void generateMonsterPalettes(const char *file, int16 monsterIndex) override;
 	void loadMonsterDecoration(Common::SeekableReadStream *stream, int16 monsterIndex) override;
 	const uint8 *loadMonsterProperties(const uint8 *data) override;
@@ -99,6 +101,7 @@ private:
 	bool killMonsterExtra(EoBMonsterInPlay *m) override;
 
 	// Level
+	void loadVcnData(const char *file, const uint8 *cgaMapping) override;
 	void loadDoorShapes(int doorType1, int shapeId1, int doorType2, int shapeId2) override {}
 	const uint8 *loadDoorShapes(const char *filename, int doorIndex, const uint8 *shapeDefs) override;
 	void drawDoorIntern(int type, int, int x, int y, int w, int wall, int mDim, int16, int16) override;

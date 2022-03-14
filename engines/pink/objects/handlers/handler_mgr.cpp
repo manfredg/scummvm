@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,26 +46,6 @@ void HandlerMgr::toConsole() const {
 	}
 }
 
-bool HandlerMgr::isLeftClickHandler(const Actor *actor) const {
-	for (uint i = 0; i < _leftClickHandlers.size(); ++i) {
-		if (_leftClickHandlers[i]->isSuitable(actor))
-			return true;
-	}
-
-	return false;
-}
-
-bool HandlerMgr::isUseClickHandler(const Actor *actor, const Common::String &itemName) const {
-	for (uint i = 0; i < _useClickHandlers.size(); ++i) {
-		if (itemName == _useClickHandlers[i]->getInventoryItem() &&
-			_useClickHandlers[i]->isSuitable(actor))
-			return true;
-	}
-
-	return false;
-}
-
-
 void HandlerMgr::onTimerMessage(Actor *actor) {
 	Handler *handler = findSuitableHandlerTimer(actor);
 	if (handler)
@@ -80,14 +59,14 @@ void HandlerMgr::onLeftClickMessage(Actor *actor) {
 }
 
 void HandlerMgr::onUseClickMessage(Actor *actor, InventoryItem *item, InventoryMgr *mgr) {
-	HandlerUseClick *handler = findSuitableHandlerUseClick(actor, item);
+	HandlerUseClick *handler = findSuitableHandlerUseClick(actor, item->getName());
 	assert(handler);
 	if (!handler->getRecepient().empty())
 		mgr->setItemOwner(handler->getRecepient(), item);
 	handler->handle(actor);
 }
 
-Handler *HandlerMgr::findSuitableHandlerTimer(Actor *actor) {
+Handler *HandlerMgr::findSuitableHandlerTimer(const Actor *actor) {
 	for (uint i = 0; i < _timerHandlers.size(); ++i) {
 		if (_timerHandlers[i]->isSuitable(actor))
 			return _timerHandlers[i];
@@ -96,7 +75,7 @@ Handler *HandlerMgr::findSuitableHandlerTimer(Actor *actor) {
 	return nullptr;
 }
 
-HandlerLeftClick *HandlerMgr::findSuitableHandlerLeftClick(Actor *actor) {
+HandlerLeftClick *HandlerMgr::findSuitableHandlerLeftClick(const Actor *actor) const {
 	for (uint i = 0; i < _leftClickHandlers.size(); ++i) {
 		if (_leftClickHandlers[i]->isSuitable(actor))
 			return _leftClickHandlers[i];
@@ -105,9 +84,9 @@ HandlerLeftClick *HandlerMgr::findSuitableHandlerLeftClick(Actor *actor) {
 	return nullptr;
 }
 
-HandlerUseClick *HandlerMgr::findSuitableHandlerUseClick(Actor *actor, InventoryItem *item) {
+HandlerUseClick *HandlerMgr::findSuitableHandlerUseClick(const Actor *actor, const Common::String &itemName) const {
 	for (uint i = 0; i < _useClickHandlers.size(); ++i) {
-		if (item->getName() == _useClickHandlers[i]->getInventoryItem() && _useClickHandlers[i]->isSuitable(actor))
+		if (itemName == _useClickHandlers[i]->getInventoryItem() && _useClickHandlers[i]->isSuitable(actor))
 			return _useClickHandlers[i];
 	}
 

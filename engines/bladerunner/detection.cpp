@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,12 +32,17 @@
 
 #include "engines/advancedDetector.h"
 
+static const DebugChannelDef debugFlagList[] = {
+	{BladeRunner::kDebugScript, "Script", "Debug the scripts"},
+	DEBUG_CHANNEL_END
+};
+
 namespace BladeRunner {
 
 static const PlainGameDescriptor bladeRunnerGames[] = {
 	{"bladerunner", "Blade Runner"},
 	{"bladerunner-final", "Blade Runner with restored content"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
 static const ADExtraGuiOptionsMap optionsList[] = {
@@ -92,76 +96,37 @@ static const ADExtraGuiOptionsMap optionsList[] = {
 
 } // End of namespace BladeRunner
 
-class BladeRunnerMetaEngine : public AdvancedMetaEngine {
+class BladeRunnerMetaEngineDetection : public AdvancedMetaEngineDetection {
 public:
-	BladeRunnerMetaEngine();
+	BladeRunnerMetaEngineDetection();
 
 	const char *getEngineId() const override;
 	const char *getName() const override;
 	const char *getOriginalCopyright() const override;
-	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
-	bool hasFeature(MetaEngineFeature f) const override;
-	SaveStateList listSaves(const char *target) const override;
-	int getMaximumSaveSlot() const override;
-	void removeSaveState(const char *target, int slot) const override;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
+	const DebugChannelDef *getDebugChannels() const override;
 };
 
-BladeRunnerMetaEngine::BladeRunnerMetaEngine()
-	: AdvancedMetaEngine(
+BladeRunnerMetaEngineDetection::BladeRunnerMetaEngineDetection()
+	: AdvancedMetaEngineDetection(
 		BladeRunner::gameDescriptions,
 		sizeof(BladeRunner::gameDescriptions[0]),
 		BladeRunner::bladeRunnerGames,
 		BladeRunner::optionsList) {}
 
-const char *BladeRunnerMetaEngine::getEngineId() const {
+const char *BladeRunnerMetaEngineDetection::getEngineId() const {
 	return "bladerunner";
 }
 
-const char *BladeRunnerMetaEngine::getName() const {
+const char *BladeRunnerMetaEngineDetection::getName() const {
 	return "Blade Runner";
 }
 
-const char *BladeRunnerMetaEngine::getOriginalCopyright() const {
+const char *BladeRunnerMetaEngineDetection::getOriginalCopyright() const {
 	return "Blade Runner (C) 1997 Westwood Studios";
 }
 
-bool BladeRunnerMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	*engine = new BladeRunner::BladeRunnerEngine(syst, desc);
-
-	return true;
+const DebugChannelDef *BladeRunnerMetaEngineDetection::getDebugChannels() const {
+	return debugFlagList;
 }
 
-bool BladeRunnerMetaEngine::hasFeature(MetaEngineFeature f) const {
-	return
-		f == kSupportsListSaves ||
-		f == kSupportsLoadingDuringStartup ||
-		f == kSupportsDeleteSave ||
-		f == kSavesSupportMetaInfo ||
-		f == kSavesSupportThumbnail ||
-		f == kSavesSupportCreationDate ||
-		f == kSavesSupportPlayTime ||
-		f == kSimpleSavesNames;
-}
-
-SaveStateList BladeRunnerMetaEngine::listSaves(const char *target) const {
-	return BladeRunner::SaveFileManager::list(target);
-}
-
-int BladeRunnerMetaEngine::getMaximumSaveSlot() const {
-	return 999;
-}
-
-void BladeRunnerMetaEngine::removeSaveState(const char *target, int slot) const {
-	BladeRunner::SaveFileManager::remove(target, slot);
-}
-
-SaveStateDescriptor BladeRunnerMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
-	return BladeRunner::SaveFileManager::queryMetaInfos(target, slot);
-}
-
-#if PLUGIN_ENABLED_DYNAMIC(BLADERUNNER)
-	REGISTER_PLUGIN_DYNAMIC(BLADERUNNER, PLUGIN_TYPE_ENGINE, BladeRunnerMetaEngine);
-#else
-	REGISTER_PLUGIN_STATIC(BLADERUNNER, PLUGIN_TYPE_ENGINE, BladeRunnerMetaEngine);
-#endif
+REGISTER_PLUGIN_STATIC(BLADERUNNER_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, BladeRunnerMetaEngineDetection);

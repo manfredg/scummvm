@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/translation.h"
-
-#include "gui/dialog.h"
-#include "gui/options.h"
-#include "gui/widget.h"
-
+#include "engines/dialogs.h"
 #include "tsage/tsage.h"
 #include "tsage/core.h"
 #include "tsage/dialogs.h"
@@ -88,29 +83,6 @@ int MessageDialog::show2(const Common::String &message, const Common::String &bt
 
 	delete dlg;
 	return result;
-}
-
-/*--------------------------------------------------------------------------*/
-
-class ConfigDialog : public GUI::OptionsDialog {
-public:
-	ConfigDialog();
-};
-
-ConfigDialog::ConfigDialog() : GUI::OptionsDialog("", "GlobalConfig") {
-	//
-	// Sound controllers
-	//
-
-	addVolumeControls(this, "GlobalConfig.");
-	setVolumeSettingsState(true); // could disable controls by GUI options
-
-	//
-	// Add the buttons
-	//
-
-	new GUI::ButtonWidget(this, "GlobalConfig.Ok", _("~O~K"), 0, GUI::kOKCmd);
-	new GUI::ButtonWidget(this, "GlobalConfig.Cancel", _("~C~ancel"), 0, GUI::kCloseCmd);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -192,7 +164,7 @@ void ModalDialog::drawFrame() {
 /*--------------------------------------------------------------------------*/
 
 void SoundDialog::execute() {
-	ConfigDialog *dlg = new ConfigDialog();
+	GUI::ConfigDialog *dlg = new GUI::ConfigDialog();
 	dlg->runModal();
 	delete dlg;
 	g_globals->_soundManager.syncSounds();

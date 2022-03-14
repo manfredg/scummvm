@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,31 +63,27 @@ MacVentureEngine::MacVentureEngine(OSystem *syst, const ADGameDescription *gameD
 	_gameDescription = gameDesc;
 	_rnd = new Common::RandomSource("macventure");
 
-	initDebugChannels();
+	_resourceManager = nullptr;
+	_globalSettings = nullptr;
+	_gui = nullptr;
+	_world = nullptr;
+	_scriptEngine = nullptr;
+	_filenames = nullptr;
 
-	_resourceManager = NULL;
-	_globalSettings = NULL;
-	_gui = NULL;
-	_world = NULL;
-	_scriptEngine = NULL;
-	_filenames = NULL;
+	_decodingDirectArticles = nullptr;
+	_decodingNamingArticles = nullptr;
+	_decodingIndirectArticles = nullptr;
+	_textHuffman = nullptr;
 
-	_decodingDirectArticles = NULL;
-	_decodingNamingArticles = NULL;
-	_decodingIndirectArticles = NULL;
-	_textHuffman = NULL;
+	_soundManager = nullptr;
 
-	_soundManager = NULL;
-
-	_dataBundle = NULL;
+	_dataBundle = nullptr;
 
 	debug("MacVenture::MacVentureEngine()");
 }
 
 MacVentureEngine::~MacVentureEngine() {
 	debug("MacVenture::~MacVentureEngine()");
-
-	DebugMan.clearAllDebugChannels();
 
 	if (_rnd)
 		delete _rnd;
@@ -128,16 +123,6 @@ MacVentureEngine::~MacVentureEngine() {
 
 	if (_dataBundle)
 		delete _dataBundle;
-}
-
-void MacVentureEngine::initDebugChannels() {
-	DebugMan.addDebugChannel(kMVDebugMain, "main", "Engine state");
-	DebugMan.addDebugChannel(kMVDebugGUI, "gui", "Gui");
-	DebugMan.addDebugChannel(kMVDebugText, "text", "Text decoders and printers");
-	DebugMan.addDebugChannel(kMVDebugImage, "image", "Image decoders and renderers");
-	DebugMan.addDebugChannel(kMVDebugScript, "script", "Script engine");
-	DebugMan.addDebugChannel(kMVDebugSound, "sound", "Sound decoders");
-	DebugMan.addDebugChannel(kMVDebugContainer, "container", "Containers");
 }
 
 Common::Error MacVentureEngine::run() {
@@ -461,7 +446,7 @@ bool MacVentureEngine::showTextEntry(ObjID text, ObjID srcObj, ObjID destObj) {
 	return true;
 }
 
-void MacVentureEngine::setTextInput(Common::String content) {
+void MacVentureEngine::setTextInput(const Common::String &content) {
 	_prepared = true;
 	_userInput = content;
 	_clickToContinue = false;
@@ -1029,12 +1014,6 @@ ObjID MacVentureEngine::getParent(ObjID objID) {
 Common::Rect MacVentureEngine::getObjBounds(ObjID objID) {
 	Common::Point pos = getObjPosition(objID);
 
-	WindowReference win = findParentWindow(objID);
-	if (win != kNoWindow) { // If it's not in a window YET, we don't really care about the border
-		BorderBounds bounds = borderBounds(_gui->getWindowData(win).type); // HACK
-		pos.x += bounds.leftOffset;
-		pos.y += bounds.topOffset;
-	}
 	Common::Point measures = _gui->getObjMeasures(objID);
 	uint w = measures.x;
 	uint h = measures.y;
@@ -1161,8 +1140,8 @@ void GlobalSettings::loadSettings(Common::SeekableReadStream *dataStream) {
 	dataStream->readUint16BE(); // unknown
 	_invTop = dataStream->readUint16BE();
 	_invLeft = dataStream->readUint16BE();
-	_invWidth = dataStream->readUint16BE();
 	_invHeight = dataStream->readUint16BE();
+	_invWidth = dataStream->readUint16BE();
 	_invOffsetY = dataStream->readUint16BE();
 	_invOffsetX = dataStream->readSint16BE();
 	_defaultFont = dataStream->readUint16BE();

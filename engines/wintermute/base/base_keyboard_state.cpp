@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -208,7 +207,7 @@ const keyCodeMapping wmeSdlMapping[] = {
 	{ Common::KEYCODE_x,            120 },
 	{ Common::KEYCODE_y,            121 },
 	{ Common::KEYCODE_z,            122 },
-	
+
 	{ Common::KEYCODE_KP_ENTER,     13 },
 	{ Common::KEYCODE_NUMLOCK,      1073741907 },
 	{ Common::KEYCODE_KP_DIVIDE,    1073741908 },
@@ -306,8 +305,8 @@ bool BaseKeyboardState::scCallMethod(ScScript *script, ScStack *stack, ScStack *
 			// IsKeyDown(strings) checks if a key with given ASCII code is pressed
 			// Only 1st character of given string is used for the check
 
-			// This check must be case insensitive, which means that 
-			// IsKeyDown("a") & IsKeyDown("A") are either both true or both false 
+			// This check must be case insensitive, which means that
+			// IsKeyDown("a") & IsKeyDown("A") are either both true or both false
 			const char *str = val->getString();
 			char temp = str[0];
 			if (temp >= 'A' && temp <= 'Z') {
@@ -328,14 +327,14 @@ bool BaseKeyboardState::scCallMethod(ScScript *script, ScStack *stack, ScStack *
 
 			vKeyCode = Common::KEYCODE_INVALID;
 			uint32 temp = (uint32)val->getInt();
-			
+
 			for (uint32 i = 0; i < _mappingSize; i++) {
 				if (_mapping[i].engineKeycode == temp) {
 					vKeyCode = _mapping[i].commonKeycode;
 				}
 			}
 
-            if (vKeyCode == Common::KEYCODE_INVALID) {
+			if (vKeyCode == Common::KEYCODE_INVALID) {
 				warning("Unknown VKEY: %d", temp);
 			}
 
@@ -503,10 +502,10 @@ bool BaseKeyboardState::readKey(Common::Event *event) {
 		}
 
 		if (BaseEngine::instance().getTargetExecutable() < WME_LITE) {
-			_currentPrintable = code == Common::KEYCODE_BACKSPACE || 
-								code == Common::KEYCODE_TAB || 
-								code == Common::KEYCODE_RETURN || 
-								code == Common::KEYCODE_KP_ENTER || 
+			_currentPrintable = code == Common::KEYCODE_BACKSPACE ||
+								code == Common::KEYCODE_TAB ||
+								code == Common::KEYCODE_RETURN ||
+								code == Common::KEYCODE_KP_ENTER ||
 								code == Common::KEYCODE_ESCAPE;
 		} else {
 			_currentPrintable = false;

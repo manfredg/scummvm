@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,18 +28,15 @@
 namespace Ultima {
 namespace Ultima8 {
 
-class IDataSource;
-class ODataSource;
-
 // stringlists: _elementSize = 2, each element is actually a stringref
 // see for example the 0x0E opcode: there is no way to see if the
 // created list is a stringlist or not
 // the opcodes which do need a distinction have a operand for this.
 
-// Question: how are unionList/substractList supposed to know what to do?
+// Question: how are unionList/subtractList supposed to know what to do?
 // their behaviour differs if this is a stringlist
 
-// Question: does substractList remove _all_ occurences of elements or only 1?
+// Question: does subtractList remove _all_ occurrences of elements or only 1?
 
 class UCList {
 	Std::vector<uint8> _elements;
@@ -80,8 +76,16 @@ public:
 		_size++;
 	}
 
+	void appenduint16(uint16 val) {
+		assert(_elementSize == 2);
+		uint8 buf[2];
+		buf[0] = static_cast<uint8>(val);
+		buf[1] = static_cast<uint8>(val >> 8);
+		append(buf);
+	}
+
 	void remove(const uint8 *e) {
-		// do we need to erase all occurences of e or just the first one?
+		// do we need to erase all occurrences of e or just the first one?
 		// (deleting all, currently)
 		for (unsigned int i = 0; i < _size; i++) {
 			bool equal = true;
@@ -108,20 +112,23 @@ public:
 	}
 
 	void appendList(const UCList &l) {
-		// need to check if elementsizes match...
+		// elementsizes should match...
+		assert(_elementSize == l.getElementSize());
 		_elements.reserve(_elementSize * (_size + l._size));
-		unsigned int lsize = l._size;
-		for (unsigned int i = 0; i < lsize; i++)
+		for (unsigned int i = 0; i < l._size; i++)
 			append(l[i]);
 	}
 	void unionList(const UCList &l) { // like append, but remove duplicates
-		// need to check if elementsizes match...
+		// elementsizes should match...
+		assert(_elementSize == l.getElementSize());
 		_elements.reserve(_elementSize * (_size + l._size));
 		for (unsigned int i = 0; i < l._size; i++)
 			if (!inList(l[i]))
 				append(l[i]);
 	}
-	void substractList(const UCList &l) {
+	void subtractList(const UCList &l) {
+		// elementsizes should match...
+		assert(_elementSize == l.getElementSize());
 		for (unsigned int i = 0; i < l._size; i++)
 			remove(l[i]);
 	}
@@ -151,15 +158,15 @@ public:
 	void freeStrings();
 	void copyStringList(const UCList &l) ;
 	void unionStringList(UCList &l);
-	void substractStringList(const UCList &l);
+	void subtractStringList(const UCList &l);
 	bool stringInList(uint16 str) const;
 	void assignString(uint32 index, uint16 str);
 	void removeString(uint16 str, bool nodel = false);
 
 	uint16 getStringIndex(uint32 index) const;
 
-	void save(ODataSource *ods);
-	bool load(IDataSource *ids, uint32 version);
+	void save(Common::WriteStream *ws) const;
+	bool load(Common::ReadStream *rs, uint32 version);
 
 private:
 	const Std::string &getString(uint32 index) const;

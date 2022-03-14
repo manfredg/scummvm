@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "groovie/debug.h"
 #include "groovie/graphics.h"
 #include "groovie/groovie.h"
+#include "groovie/resource.h"
 #include "groovie/script.h"
 
 #include "common/debug-channels.h"
@@ -42,18 +42,19 @@ Debugger::Debugger(GroovieEngine *vm) :
 	registerCmd("fg", WRAP_METHOD(Debugger, cmd_fg));
 	registerCmd("bg", WRAP_METHOD(Debugger, cmd_bg));
 	registerCmd("mem", WRAP_METHOD(Debugger, cmd_mem));
+	registerCmd("var", WRAP_METHOD(Debugger, cmd_mem));	// alias
 	registerCmd("load", WRAP_METHOD(Debugger, cmd_loadgame));
 	registerCmd("save", WRAP_METHOD(Debugger, cmd_savegame));
 	registerCmd("playref", WRAP_METHOD(Debugger, cmd_playref));
 	registerCmd("dumppal", WRAP_METHOD(Debugger, cmd_dumppal));
+	registerCmd("dumpfile", WRAP_METHOD(Debugger, cmd_dumpfile));
 }
 
 Debugger::~Debugger() {
-	DebugMan.clearAllDebugChannels();
 }
 
 int Debugger::getNumber(const char *arg) {
-	return strtol(arg, (char **)NULL, 0);
+	return strtol(arg, (char **)nullptr, 0);
 }
 
 bool Debugger::cmd_step(int argc, const char **argv) {
@@ -97,9 +98,9 @@ bool Debugger::cmd_mem(int argc, const char **argv) {
 			// Get
 			val = _script->_variables[pos];
 		}
-		debugPrintf("mem[0x%04X] = 0x%02X\n", pos, val);
+		debugPrintf("%s[0x%04X] = 0x%02X\n", argv[0], pos, val);
 	} else {
-		debugPrintf("Syntax: mem <addr> [<val>]\n");
+		debugPrintf("Syntax: %s <addr> [<val>]\n", argv[0]);
 	}
 	return true;
 }
@@ -117,7 +118,7 @@ bool Debugger::cmd_loadgame(int argc, const char **argv) {
 bool Debugger::cmd_savegame(int argc, const char **argv) {
 	if (argc == 2) {
 		int slot = getNumber(argv[1]);
-		_script->savegame(slot);
+		_script->directGameSave(slot, "debug save");
 	} else {
 		debugPrintf("Syntax: save <slot>\n");
 	}
@@ -141,6 +142,17 @@ bool Debugger::cmd_dumppal(int argc, const char **argv) {
 
 	for (i = 0; i < 256; i++) {
 		debugPrintf("%3d: %3d,%3d,%3d\n", i, palettedump[(i * 3)], palettedump[(i * 3) + 1], palettedump[(i * 3) + 2]);
+	}
+	return true;
+}
+
+bool Debugger::cmd_dumpfile(int argc, const char **argv) {
+	if (argc == 2) {
+		Common::String fileName = argv[1];
+		debugPrintf("Dumping %s...\n", argv[1]);
+		_vm->_resMan->dumpResource(fileName);
+	} else {
+		debugPrintf("Syntax: %s <filename>\n", argv[0]);
 	}
 	return true;
 }

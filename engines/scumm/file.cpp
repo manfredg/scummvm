@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "scumm/file.h"
-
-#include "scumm/scumm.h"
 
 #include "common/memstream.h"
 #include "common/substream.h"
@@ -52,7 +49,7 @@ void ScummFile::resetSubfile() {
 	seek(0, SEEK_SET);
 }
 
-bool ScummFile::open(const Common::String &filename) {
+bool ScummFile::open(const Common::Path &filename) {
 	if (File::open(filename)) {
 		resetSubfile();
 		return true;
@@ -123,15 +120,15 @@ bool ScummFile::eos() const {
 	return _subFileLen ? _myEos : File::eos();
 }
 
-int32 ScummFile::pos() const {
+int64 ScummFile::pos() const {
 	return File::pos() - _subFileStart;
 }
 
-int32 ScummFile::size() const {
+int64 ScummFile::size() const {
 	return _subFileLen ? _subFileLen : File::size();
 }
 
-bool ScummFile::seek(int32 offs, int whence) {
+bool ScummFile::seek(int64 offs, int whence) {
 	if (_subFileLen) {
 		// Constrain the seek to the subfile
 		switch (whence) {
@@ -189,8 +186,8 @@ uint32 ScummFile::read(void *dataPtr, uint32 dataSize) {
 #pragma mark --- ScummSteamFile ---
 #pragma mark -
 
-bool ScummSteamFile::open(const Common::String &filename) {
-	if (filename.equalsIgnoreCase(_indexFile.indexFileName)) {
+bool ScummSteamFile::open(const Common::Path &filename) {
+	if (filename.toString().equalsIgnoreCase(_indexFile.indexFileName)) {
 		return openWithSubRange(_indexFile.executableName, _indexFile.start, _indexFile.len);
 	} else {
 		// Regular non-bundled file
@@ -243,20 +240,20 @@ static const int zakResourcesPerFile[59] = {
 
 static uint16 write_byte(Common::WriteStream *out, byte val) {
 	val ^= 0xFF;
-	if (out != 0)
+	if (out != nullptr)
 		out->writeByte(val);
 	return 1;
 }
 
 static uint16 write_word(Common::WriteStream *out, uint16 val) {
 	val ^= 0xFFFF;
-	if (out != 0)
+	if (out != nullptr)
 		out->writeUint16LE(val);
 	return 2;
 }
 
 ScummDiskImage::ScummDiskImage(const char *disk1, const char *disk2, GameSettings game)
-	: _stream(0), _buf(0), _game(game),
+	: _stream(nullptr), _buf(nullptr), _game(game),
 	_disk1(disk1), _disk2(disk2), _openedDisk(0) {
 
 	if (_game.id == GID_MANIAC) {
@@ -325,7 +322,7 @@ bool ScummDiskImage::openDisk(char num) {
 	return true;
 }
 
-bool ScummDiskImage::open(const Common::String &filename) {
+bool ScummDiskImage::open(const Common::Path &filename) {
 	uint16 signature;
 
 	// check signature
@@ -343,7 +340,7 @@ bool ScummDiskImage::open(const Common::String &filename) {
 		return false;
 	}
 
-	extractIndex(0); // Fill in resource arrays
+	extractIndex(nullptr); // Fill in resource arrays
 
 	if (_game.features & GF_DEMO)
 		return true;
@@ -425,7 +422,7 @@ uint16 ScummDiskImage::extractIndex(Common::WriteStream *out) {
 bool ScummDiskImage::generateIndex() {
 	int bufsize;
 
-	bufsize = extractIndex(0);
+	bufsize = extractIndex(nullptr);
 
 	free(_buf);
 	_buf = (byte *)calloc(1, bufsize);
@@ -486,7 +483,7 @@ bool ScummDiskImage::generateResource(int res) {
 	if (res >= _numRooms)
 		return false;
 
-	bufsize = extractResource(0, res);
+	bufsize = extractResource(nullptr, res);
 
 	free(_buf);
 	_buf = (byte *)calloc(1, bufsize);
@@ -503,10 +500,10 @@ bool ScummDiskImage::generateResource(int res) {
 
 void ScummDiskImage::close() {
 	delete _stream;
-	_stream = 0;
+	_stream = nullptr;
 
 	free(_buf);
-	_buf = 0;
+	_buf = nullptr;
 
 	File::close();
 }

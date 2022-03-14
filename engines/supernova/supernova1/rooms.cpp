@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,19 +63,19 @@ Intro::Intro(SupernovaEngine *vm, GameManager1 *gm) {
 	_shouldExit = false;
 
 	_introText =
-		_vm->getGameString(kStringIntro1) + '\0' +
-		_vm->getGameString(kStringIntro2) + '\0' +
-		_vm->getGameString(kStringIntro3) + '\0' +
-		_vm->getGameString(kStringIntro4) + '\0' +
-		_vm->getGameString(kStringIntro5) + '\0' +
-		_vm->getGameString(kStringIntro6) + '\0' +
-		_vm->getGameString(kStringIntro7) + '\0' +
-		_vm->getGameString(kStringIntro8) + '\0' +
-		_vm->getGameString(kStringIntro9) + '\0' +
-		_vm->getGameString(kStringIntro10) + '\0' +
-		_vm->getGameString(kStringIntro11) + '\0' +
-		_vm->getGameString(kStringIntro12) + '\0' +
-		_vm->getGameString(kStringIntro13) + '\0';
+		_vm->getGameString(kStringIntro1) + '\1' +
+		_vm->getGameString(kStringIntro2) + '\1' +
+		_vm->getGameString(kStringIntro3) + '\1' +
+		_vm->getGameString(kStringIntro4) + '\1' +
+		_vm->getGameString(kStringIntro5) + '\1' +
+		_vm->getGameString(kStringIntro6) + '\1' +
+		_vm->getGameString(kStringIntro7) + '\1' +
+		_vm->getGameString(kStringIntro8) + '\1' +
+		_vm->getGameString(kStringIntro9) + '\1' +
+		_vm->getGameString(kStringIntro10) + '\1' +
+		_vm->getGameString(kStringIntro11) + '\1' +
+		_vm->getGameString(kStringIntro12) + '\1' +
+		_vm->getGameString(kStringIntro13) + '\1';
 }
 
 void Intro::onEntrance() {
@@ -762,10 +761,10 @@ void ShipSleepCabin::animation() {
 void ShipSleepCabin::onEntrance() {
 	if (_gm->_state._dream && (_gm->_rooms[CAVE]->getObject(1)->_exitRoom == MEETUP3)) {
 		_vm->renderMessage(kStringShipSleepCabin14);
-		_gm->wait(_gm->_messageDuration, true);
+		_gm->wait(_gm->_messageDuration, true, true);
 		_vm->removeMessage();
 		_vm->renderMessage(kStringShipSleepCabin15);
-		_gm->wait(_gm->_messageDuration, true);
+		_gm->wait(_gm->_messageDuration, true, true);
 		_vm->removeMessage();
 		_vm->renderMessage(kStringShipSleepCabin16);
 		_gm->_state._dream = false;
@@ -2089,7 +2088,7 @@ bool ArsanoEntrance::interact(Action verb, Object &obj1, Object &obj2) {
 				_vm->renderMessage(kStringArsanoEntrance20);
 			else {
 				_vm->renderMessage(kStringArsanoEntrance21);
-				_gm->wait(_gm->_messageDuration, true);
+				_gm->wait(_gm->_messageDuration, true, true);
 				_vm->removeMessage();
 				_vm->renderMessage(kStringArsanoEntrance22);
 				_gm->takeObject(*getObject(16));
@@ -2136,7 +2135,7 @@ bool ArsanoEntrance::interact(Action verb, Object &obj1, Object &obj2) {
 			_gm->_rooms[AIRLOCK]->getObject(4)->setProperty(WORN);
 			_gm->_rooms[AIRLOCK]->getObject(5)->setProperty(WORN);
 			_gm->_rooms[AIRLOCK]->getObject(6)->setProperty(WORN);
-			_gm->wait(_gm->_messageDuration, true);
+			_gm->wait(_gm->_messageDuration, true, true);
 			_vm->removeMessage();
 		}
 		return false;
@@ -2456,7 +2455,7 @@ bool ArsanoRoger::interact(Action verb, Object &obj1, Object &obj2) {
 		_vm->_screen->setGuiBrightness(255);
 		_vm->paletteBrightness();
 		_vm->renderMessage(kStringArsanoRoger39);
-		_gm->wait(_gm->_messageDuration, true);
+		_gm->wait(_gm->_messageDuration, true, true);
 		_vm->removeMessage();
 		_vm->_screen->setGuiBrightness(0);
 		_vm->paletteBrightness();
@@ -2473,7 +2472,7 @@ bool ArsanoRoger::interact(Action verb, Object &obj1, Object &obj2) {
 		getObject(6)->_click = 7;
 		_vm->paletteFadeIn();
 		_vm->renderMessage(kStringArsanoRoger40);
-		_gm->wait(_gm->_messageDuration, true);
+		_gm->wait(_gm->_messageDuration, true, true);
 		_vm->removeMessage();
 	} else
 		return false;
@@ -2703,7 +2702,7 @@ bool ArsanoMeetup2::interact(Action verb, Object &obj1, Object &obj2) {
 				_gm->wait(18);
 				_vm->renderMessage(kStringArsanoMeetup2_12);
 				_gm->great(0);
-				_gm->wait(_gm->_messageDuration, true);
+				_gm->wait(_gm->_messageDuration, true, true);
 				_vm->removeMessage();
 				_vm->paletteFadeOut();
 				g_system->fillScreen(kColorBlack);
@@ -4017,7 +4016,7 @@ bool AxacussElevator::interact(Action verb, Object &obj1, Object &obj2) {
 		_vm->_screen->setGuiBrightness(255);
 		_vm->paletteBrightness();
 		_vm->renderMessage(kStringAxacussElevator_3);
-		_gm->wait(_gm->_messageDuration, true);
+		_gm->wait(_gm->_messageDuration, true, true);
 		_vm->removeMessage();
 		_vm->_screen->setGuiBrightness(0);
 		_vm->paletteBrightness();
@@ -4092,20 +4091,20 @@ Outro::Outro(SupernovaEngine *vm, GameManager1 *gm) {
 	_shown[0] = kShownFalse;
 
 	_outroText =
-		_vm->getGameString(kStringOutro1) + '\0' +
-		_vm->getGameString(kStringOutro2) + '\0' +
-		_vm->getGameString(kStringOutro3) + '\0' +
-		_vm->getGameString(kStringOutro4) + '\0' +
-		_vm->getGameString(kStringOutro5) + '\0' +
-		_vm->getGameString(kStringOutro6) + '\0' +
-		_vm->getGameString(kStringOutro7) + '\0' +
-		_vm->getGameString(kStringOutro8) + '\0' +
-		_vm->getGameString(kStringOutro9) + '\0' +
-		_vm->getGameString(kStringOutro10) + '\0' +
-		_vm->getGameString(kStringOutro11) + '\0' +
-		_vm->getGameString(kStringOutro12) + '\0' +
-		_vm->getGameString(kStringOutro13) + '\0' +
-		_vm->getGameString(kStringOutro14) + '\0';
+		_vm->getGameString(kStringOutro1) + '\1' +
+		_vm->getGameString(kStringOutro2) + '\1' +
+		_vm->getGameString(kStringOutro3) + '\1' +
+		_vm->getGameString(kStringOutro4) + '\1' +
+		_vm->getGameString(kStringOutro5) + '\1' +
+		_vm->getGameString(kStringOutro6) + '\1' +
+		_vm->getGameString(kStringOutro7) + '\1' +
+		_vm->getGameString(kStringOutro8) + '\1' +
+		_vm->getGameString(kStringOutro9) + '\1' +
+		_vm->getGameString(kStringOutro10) + '\1' +
+		_vm->getGameString(kStringOutro11) + '\1' +
+		_vm->getGameString(kStringOutro12) + '\1' +
+		_vm->getGameString(kStringOutro13) + '\1' +
+		_vm->getGameString(kStringOutro14) + '\1';
 }
 
 void Outro::onEntrance() {
@@ -4146,7 +4145,7 @@ void Outro::onEntrance() {
 	_vm->_screen->setViewportBrightness(1);
 
 	Common::Event event;
-	event.type = Common::EVENT_RTL;
+	event.type = Common::EVENT_RETURN_TO_LAUNCHER;
 	_vm->getEventManager()->pushEvent(event);
 }
 

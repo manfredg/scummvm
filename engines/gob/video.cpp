@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ Font::Font(const byte *data) : _dataPtr(data) {
 	_itemHeight = _dataPtr[1];
 	_startItem  = _dataPtr[2];
 	_endItem    = _dataPtr[3];
-	_charWidths = 0;
+	_charWidths = nullptr;
 
 	uint8 rowAlignedBits = (_itemWidth - 1) / 8 + 1;
 
@@ -89,7 +88,7 @@ bool Font::hasChar(uint8 c) const {
 }
 
 bool Font::isMonospaced() const {
-	return _charWidths == 0;
+	return _charWidths == nullptr;
 }
 
 void Font::drawLetter(Surface &surf, uint8 c, uint16 x, uint16 y,
@@ -139,7 +138,7 @@ void Font::drawLetter(Surface &surf, uint8 c, uint16 x, uint16 y,
 }
 
 void Font::drawString(const Common::String &str, int16 x, int16 y, int16 color1, int16 color2,
-                      bool transp, Surface &dest) const {
+					  bool transp, Surface &dest) const {
 
 	const char *s = str.c_str();
 
@@ -158,11 +157,11 @@ void Font::drawString(const Common::String &str, int16 x, int16 y, int16 color1,
 const byte *Font::getCharData(uint8 c) const {
 	if (_endItem == 0) {
 		warning("Font::getCharData(): _endItem == 0");
-		return 0;
+		return nullptr;
 	}
 
 	if ((c < _startItem) || (c > _endItem))
-		return 0;
+		return nullptr;
 
 	return _data + (c - _startItem) * _itemSize;
 }

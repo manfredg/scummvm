@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -1721,18 +1720,12 @@ void ScummEngine_v100he::o100_setSystemMessage() {
 	switch (subOp) {
 	case 80: // Set Window Caption
 		// TODO: The 'name' string can contain non-ASCII data. This can lead to
-		// problems, because (a) the encoding used for "name" is not clear,
-		// (b) OSystem::setWindowCaption only supports ASCII. As a result, odd
-		// behavior can occur, from strange wrong titles, up to crashes (happens
-		// under Mac OS X).
+		// problems, because the encoding used for "name" is not clear,
 		//
 		// Possible fixes/workarounds:
 		// - Simply stop using this. It's a rather unimportant "feature" anyway.
-		// - Try to translate the text to ASCII.
-		// - Refine OSystem to accept window captions that are non-ASCII, e.g.
-		//   by enhancing all backends to deal with UTF-8 data. Of course, then
-		//   one still would have to convert 'name' to the correct encoding.
-		//_system->setWindowCaption((const char *)name);
+		// - Try to translate the text to UTF-32.
+		//_system->setWindowCaption(Common::U32String((const char *)name));
 		break;
 	case 131: // Set Version
 		debug(1,"o100_setSystemMessage: (%d) %s", subOp, name);

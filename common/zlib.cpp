@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,9 +31,13 @@
 
 #if defined(USE_ZLIB)
   #ifdef __SYMBIAN32__
-    #include <zlib\zlib.h>
+	#include <zlib\zlib.h>
+  #elif defined(__MORPHOS__)
+	#define _NO_PPCINLINE
+	#include <zlib.h>
+	#undef _NO_PPCINLINE
   #else
-    #include <zlib.h>
+	#include <zlib.h>
   #endif
 
   #if ZLIB_VERNUM < 0x1204
@@ -280,13 +283,13 @@ public:
 		inflateEnd(&_stream);
 	}
 
-	bool err() const { return (_zlibErr != Z_OK) && (_zlibErr != Z_STREAM_END); }
-	void clearErr() {
+	bool err() const override { return (_zlibErr != Z_OK) && (_zlibErr != Z_STREAM_END); }
+	void clearErr() override {
 		// only reset _eos; I/O errors are not recoverable
 		_eos = false;
 	}
 
-	uint32 read(void *dataPtr, uint32 dataSize) {
+	uint32 read(void *dataPtr, uint32 dataSize) override {
 		_stream.next_out = (byte *)dataPtr;
 		_stream.avail_out = dataSize;
 
@@ -309,16 +312,16 @@ public:
 		return dataSize - _stream.avail_out;
 	}
 
-	bool eos() const {
+	bool eos() const override {
 		return _eos;
 	}
-	int32 pos() const {
+	int64 pos() const override {
 		return _pos;
 	}
-	int32 size() const {
+	int64 size() const override {
 		return _origSize;
 	}
-	bool seek(int32 offset, int whence = SEEK_SET) {
+	bool seek(int64 offset, int whence = SEEK_SET) override {
 		int32 newPos = 0;
 		switch (whence) {
 		default:
@@ -368,7 +371,7 @@ public:
 		// bytes, so this should be fine.
 		byte tmpBuf[1024];
 		while (!err() && offset > 0) {
-			offset -= read(tmpBuf, MIN((int32)sizeof(tmpBuf), offset));
+			offset -= read(tmpBuf, MIN((int64)sizeof(tmpBuf), offset));
 		}
 
 		_eos = false;
@@ -435,18 +438,18 @@ public:
 		deflateEnd(&_stream);
 	}
 
-	bool err() const {
+	bool err() const override {
 		// CHECKME: does Z_STREAM_END make sense here?
 		return (_zlibErr != Z_OK && _zlibErr != Z_STREAM_END) || _wrapped->err();
 	}
 
-	void clearErr() {
+	void clearErr() override {
 		// Note: we don't reset the _zlibErr here, as it is not
 		// clear in general how
 		_wrapped->clearErr();
 	}
 
-	void finalize() {
+	void finalize() override {
 		if (_zlibErr != Z_OK)
 			return;
 
@@ -466,7 +469,7 @@ public:
 		_wrapped->finalize();
 	}
 
-	uint32 write(const void *dataPtr, uint32 dataSize) {
+	uint32 write(const void *dataPtr, uint32 dataSize) override {
 		if (err())
 			return 0;
 
@@ -483,13 +486,17 @@ public:
 		return dataSize - _stream.avail_in;
 	}
 
-	virtual int32 pos() const { return _pos; }
+	int64 pos() const override { return _pos; }
 };
 
 #endif	// USE_ZLIB
 
 SeekableReadStream *wrapCompressedReadStream(SeekableReadStream *toBeWrapped, uint32 knownSize) {
 	if (toBeWrapped) {
+		if (toBeWrapped->eos() || toBeWrapped->err() || toBeWrapped->size() < 2) {
+			delete toBeWrapped;
+			return nullptr;
+		}
 		uint16 header = toBeWrapped->readUint16BE();
 		bool isCompressed = (header == 0x1F8B ||
 				     ((header & 0x0F00) == 0x0800 &&
@@ -500,7 +507,7 @@ SeekableReadStream *wrapCompressedReadStream(SeekableReadStream *toBeWrapped, ui
 			return new GZipReadStream(toBeWrapped, knownSize);
 #else
 			delete toBeWrapped;
-			return NULL;
+			return nullptr;
 #endif
 		}
 	}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,9 +25,13 @@
 #define SAGA_MUSIC_H
 
 #include "audio/mididrv.h"
-#include "audio/midiplayer.h"
+#include "audio/mididrv_ms.h"
+#include "audio/mt32gm.h"
 #include "audio/midiparser.h"
 #include "audio/mixer.h"
+#include "audio/softsynth/fmtowns_pc98/towns_pc98_driver.h"
+
+class TownsPC98_AudioDriver;
 
 namespace Saga {
 
@@ -37,35 +40,15 @@ enum MusicFlags {
 	MUSIC_LOOP = 0x0001
 };
 
-class MusicDriver : public Audio::MidiPlayer {
-public:
-	MusicDriver();
-
-	void play(SagaEngine *vm, ByteArray *buffer, bool loop);
-	void playQuickTime(const Common::String &musicName, bool loop);
-	void pause() override;
-	void resume() override;
-
-	bool isAdlib() const { return _driverType == MT_ADLIB; }
-
-	// FIXME
-	bool isPlaying() const { return _parser && _parser->isPlaying(); }
-
-	// MidiDriver_BASE interface implementation
-	void send(uint32 b) override;
-	void metaEvent(byte type, byte *data, uint16 length) override;
-
-protected:
-	MusicType _driverType;
-	bool _isGM;
-	bool _milesAudioMode;
-};
-
 class Music {
-public:
+private:
+	static const uint8 MUSIC_SUNSPOT = 26;
+	static const uint8 MT32_GOODBYE_MSG[MidiDriver_MT32GM::MT32_DISPLAY_NUM_CHARS];
 
+public:
 	Music(SagaEngine *vm, Audio::Mixer *mixer);
 	~Music();
+	void close();
 	bool isPlaying();
 	bool hasDigitalMusic() { return _digitalMusic; }
 
@@ -76,8 +59,12 @@ public:
 
 	void setVolume(int volume, int time = 1);
 	int getVolume() { return _currentVolume; }
+	void resetVolume();
+	bool isFading();
 
-	bool isAdlib() const { return _player->isAdlib(); }
+	bool isAdlib() const { return  _driverType == MT_ADLIB; }
+
+	void syncSoundSettings();
 
 	Common::Array<int32> _songTable;
 
@@ -85,21 +72,31 @@ private:
 	SagaEngine *_vm;
 	Audio::Mixer *_mixer;
 
-	MusicDriver *_player;
+	MidiParser *_parser;
+	MidiDriver_Multisource *_driver;
+	TownsPC98_AudioDriver *_driverPC98;
 	Audio::SoundHandle _musicHandle;
 	uint32 _trackNumber;
 
+	int _userVolume;
+	bool _userMute;
 	int _targetVolume;
 	int _currentVolume;
 	int _currentVolumePercent;
 	bool _digitalMusic;
+	MusicType _musicType;
+	MusicType _driverType;
 
 	ResourceContext *_musicContext;
 	ResourceContext *_digitalMusicContext;
 
 
 	static void musicVolumeGaugeCallback(void *refCon);
-	static void onTimer(void *refCon);
+	static void timerCallback(void *refCon);
+	void onTimer();
+	bool playDigital(uint32 resourceId, MusicFlags flags);
+	void playQuickTime(uint32 resourceId, MusicFlags flags);
+	void playMidi(uint32 resourceId, MusicFlags flags);
 	void musicVolumeGauge();
 	ByteArray *_currentMusicBuffer;
 	ByteArray _musicBuffer[2];

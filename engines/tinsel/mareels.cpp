@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Functions to set up moving actors' reels.
  */
 
 #include "tinsel/handle.h"
 #include "tinsel/pcode.h"	// For D_UP, D_DOWN
-#include "tinsel/rince.h"
+#include "tinsel/movers.h"
 
 #include "common/textconsole.h"
 #include "common/util.h"
@@ -46,17 +45,15 @@ struct SCIdataStruct {
 	SCNHANDLE reels[4];
 };
 
-// FIXME: Avoid non-const global vars
-
+// These vars are reset upon engine destruction
 static SCIdataStruct g_SCIdata[MAX_SCRENTRIES];
-
 static int g_scrEntries = 0;
 
 /**
  * Sets an actor's walk reels
  */
 
-void SetWalkReels(PMOVER pMover, int scale,
+void SetWalkReels(MOVER *pMover, int scale,
 		SCNHANDLE al, SCNHANDLE ar, SCNHANDLE af, SCNHANDLE aa) {
 	assert(scale > 0 && scale <= TOTAL_SCALES);
 
@@ -71,7 +68,7 @@ void SetWalkReels(PMOVER pMover, int scale,
  * Sets an actor's stand reels
  */
 
-void SetStandReels(PMOVER pMover, int scale,
+void SetStandReels(MOVER *pMover, int scale,
 		SCNHANDLE al, SCNHANDLE ar, SCNHANDLE af, SCNHANDLE aa) {
 	assert(scale > 0 && scale <= TOTAL_SCALES);
 
@@ -86,7 +83,7 @@ void SetStandReels(PMOVER pMover, int scale,
  * Sets an actor's talk reels
  */
 
-void SetTalkReels(PMOVER pMover, int scale,
+void SetTalkReels(MOVER *pMover, int scale,
 		SCNHANDLE al, SCNHANDLE ar, SCNHANDLE af, SCNHANDLE aa) {
 	assert(scale > 0 && scale <= TOTAL_SCALES);
 
@@ -99,7 +96,7 @@ void SetTalkReels(PMOVER pMover, int scale,
 /**
  * Return handle to actor's talk reel at present scale and direction.
  */
-SCNHANDLE GetMoverTalkReel(PMOVER pActor, TFTYPE dirn) {
+SCNHANDLE GetMoverTalkReel(MOVER *pActor, TFTYPE dirn) {
 	assert(1 <= pActor->scale && pActor->scale <= TOTAL_SCALES);
 	switch (dirn) {
 	case TF_NONE:
@@ -178,14 +175,12 @@ void RebootScalingReels() {
  * Discourage them from being ditched.
  */
 void TouchMoverReels() {
-	PMOVER	pMover;
+	MOVER *pMover = NextMover(NULL);
 	int	scale;
-
-	pMover = NextMover(NULL);
 
 	do {
 		for (scale = 0; scale < TOTAL_SCALES; scale++) {
-			TouchMem(pMover->walkReels[scale][LEFTREEL]);
+			_vm->_handle->TouchMem(pMover->walkReels[scale][LEFTREEL]);
 		}
 	} while ((pMover = NextMover(pMover)) != NULL);
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,7 +54,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by raziel_ in bug report #1891869
+{ // Supplied by raziel_ in bug report #3622
 	{
 		"gob3",
 		"",
@@ -83,7 +82,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by paul66 in bug report #1652352
+{ // Supplied by paul66 in bug report #3045
 	{
 		"gob3",
 		"",
@@ -153,7 +152,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by SiRoCs in bug report #2098621
+{ // Supplied by SiRoCs in bug report #3949
 	{
 		"gob3",
 		"",
@@ -295,7 +294,7 @@
 
 // -- Mac --
 
-{ // Supplied by fac76 in bug report #1742716
+{ // Supplied by fac76 in bug report #3272
 	{
 		"gob3",
 		"",
@@ -361,7 +360,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by pykman in bug report #3067489
+{ // Supplied by pykman in bug report #5365
 	{
 		"gob3cd",
 		"v1.02 Polish",
@@ -375,7 +374,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by paul66 and noizert in bug reports #1652352 and #1691230
+{ // Supplied by paul66 and noizert in bug reports #3045 and #3137
 	{
 		"gob3cd",
 		"v1.02",
@@ -389,7 +388,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by paul66 and noizert in bug reports #1652352 and #1691230
+{ // Supplied by paul66 and noizert in bug reports #3045 and #3137
 	{
 		"gob3cd",
 		"v1.02",
@@ -403,7 +402,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by paul66 and noizert in bug reports #1652352 and #1691230
+{ // Supplied by paul66 and noizert in bug reports #3045 and #3137
 	{
 		"gob3cd",
 		"v1.02",
@@ -417,7 +416,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by paul66 and noizert in bug reports #1652352 and #1691230
+{ // Supplied by paul66 and noizert in bug reports #3045 and #3137
 	{
 		"gob3cd",
 		"v1.02",
@@ -431,7 +430,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by paul66 and noizert in bug reports #1652352 and #1691230
+{ // Supplied by paul66 and noizert in bug reports #3045 and #3137
 	{
 		"gob3cd",
 		"v1.02",
@@ -445,7 +444,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob3cd",
 		"v1.02",
@@ -459,7 +458,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob3cd",
 		"v1.02",
@@ -473,7 +472,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob3cd",
 		"v1.02",
@@ -487,7 +486,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob3cd",
 		"v1.02",
@@ -508,7 +507,7 @@
 	{
 		"gob3",
 		"Non-interactive Demo",
-		AD_ENTRY1("intro.stk", "b9b898fccebe02b69c086052d5024a55"),
+		AD_ENTRY1s("intro.stk", "b9b898fccebe02b69c086052d5024a55", 600143),
 		UNK_LANG,
 		kPlatformDOS,
 		ADGF_DEMO,
@@ -522,7 +521,7 @@
 	{
 		"gob3",
 		"Interactive Demo",
-		AD_ENTRY1("intro.stk", "7aebd94e49c2c5c518c9e7b74f25de9d"),
+		AD_ENTRY1s("intro.stk", "7aebd94e49c2c5c518c9e7b74f25de9d", 270737),
 		FR_FRA,
 		kPlatformDOS,
 		ADGF_DEMO,
@@ -536,7 +535,7 @@
 	{
 		"gob3",
 		"Interactive Demo 2",
-		AD_ENTRY1("intro.stk", "e5dcbc9f6658ebb1e8fe26bc4da0806d"),
+		AD_ENTRY1s("intro.stk", "e5dcbc9f6658ebb1e8fe26bc4da0806d", 590631),
 		FR_FRA,
 		kPlatformDOS,
 		ADGF_DEMO,

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,7 @@ public:
 	~SpecialOpcodes();
 	void run(int16 opcode);
 
-	struct {
+	struct SceneUpdater {
 		void *tbl;
 		uint16 counter;
 		int16 iniID;
@@ -54,6 +53,22 @@ public:
 		uint16 iniIDTbl[8][5];
 		uint16 sequenceIDTbl[8][5];
 		uint32 textTbl[8][5];
+
+		SceneUpdater() {
+			tbl = nullptr;
+			iniID = sequenceID = 0;
+			counter = 0;
+			curSequence = curSequenceIndex = numTotalSequences = sequenceDuration = 0;
+
+			for (uint i = 0; i < 8; i++) {
+				numSteps[i] = 0;
+				for (int j = 0; j < 5; j++) {
+					iniIDTbl[i][j] = 0;
+					sequenceIDTbl[i][j] = 0;
+					textTbl[i][j] = 0;
+				}
+			}
+		}
 	} sceneUpdater;
 
 protected:
@@ -192,7 +207,7 @@ protected:
 	void spcFlickerPutOnStGeorgeArmor(); //0x7f
 	void spcUnk80FlickerArmorOn(); //0x80
 	void spcShakeScreenSceneLogic(); //0x81
-	void spc82CallResetDataMaybe(); // 0x82
+	void spcClearTextFromScreen(); // 0x82
 	void spcStopScreenShakeUpdater(); // 0x83
 	void spcInsideBlackDragonScreenShake(); // 0x84
 	void spc85SetScene1To0x35(); //0x85
@@ -209,6 +224,7 @@ private:
 	void pizzaMakerStopWorking();
 
 	void clearSceneUpdateFunction();
+	void mapTransition(uint16 mode);
 
 };
 

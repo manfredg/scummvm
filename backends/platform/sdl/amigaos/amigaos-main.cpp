@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,44 +23,40 @@
 
 #if defined(__amigaos4__)
 
-#include "backends/fs/amigaos4/amigaos4-fs.h"
+#include "backends/fs/amigaos/amigaos-fs.h"
 #include "backends/platform/sdl/amigaos/amigaos.h"
 #include "backends/plugins/sdl/sdl-provider.h"
 #include "base/main.h"
 
 int main(int argc, char *argv[]) {
 
-	// The following will gather the application name and add the binary path
-	// to a variable in AmigaOS4's ENV(ARC) system. It will then be placed in
-	// AppPaths, so that ScummVM becomes AmiUpdate aware.
+	// Update support (AmiUpdate):
+	// This will save ScummVM's system application name and add it's binary
+	// path to a variable in the platforms native ENV(ARC) system.
 	const char *const appname = "ScummVM";
 
 	BPTR lock;
-	APTR oldwin;
+	APTR reqwin;
 
-	// Obtain a lock to the home directory.
+	// Obtain a lock to it's home directory.
 	if ((lock = IDOS->GetProgramDir())) {
 		TEXT progpath[2048];
 		TEXT apppath[1024] = "AppPaths";
 
-		if (IDOS->DevNameFromLock(lock,
-			progpath,
-			sizeof(progpath),
-			DN_FULLPATH)) {
+		if (IDOS->DevNameFromLock(lock,	progpath, sizeof(progpath),	DN_FULLPATH)) {
+			// Stop any "Please insert volume ..." type system requester.
+			reqwin = IDOS->SetProcWindow((APTR)-1);
 
-			// Stop any "Insert volume..." type requesters.
-			oldwin = IDOS->SetProcWindow((APTR)-1);
+			// Set the AppPaths variable to the path the binary was run from.
+			IDOS->AddPart(apppath, appname, 1024);
+			IDOS->SetVar(apppath, progpath, -1, GVF_GLOBAL_ONLY|GVF_SAVE_VAR);
 
-			// Finally, set the variable to the path the executable was run from.
-			IDOS->AddPart( apppath, appname, 1024);
-			IDOS->SetVar( apppath, progpath, -1, GVF_GLOBAL_ONLY|GVF_SAVE_VAR );
-
-			// Turn system requesters back on.
-			IDOS->SetProcWindow( oldwin );
+			// Turn system requester back on.
+			IDOS->SetProcWindow(reqwin);
 		}
 	}
 
-	// Set up a stack cookie to avoid crashes from a stack set too low.
+	// Set a stack cookie to avoid crashes from a too low stack.
 	static const char *stack_cookie __attribute__((used)) = "$STACK: 2048000";
 
 	// Create our OSystem instance.
@@ -69,7 +64,7 @@ int main(int argc, char *argv[]) {
 	assert(g_system);
 
 	// Pre-initialize the backend.
-	((OSystem_AmigaOS *)g_system)->init();
+	g_system->init();
 
 #ifdef DYNAMIC_MODULES
 	PluginManager::instance().addPluginProvider(new SDLPluginProvider());

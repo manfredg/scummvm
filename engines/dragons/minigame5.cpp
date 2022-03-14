@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "dragons/minigame5.h"
@@ -32,10 +31,6 @@ namespace Dragons {
 #define DAT_80063a48 0x12d
 #define DAT_80063a40 0x12f
 #define DAT_80063bd0 0x133
-#define DAT_8006393c 0x21BF0
-#define DAT_80063938 0x21DAE
-#define DAT_80063e38 0x21E3E
-#define DAT_8006391c 0x475DA
 
 
 Minigame5::Minigame5(DragonsEngine *vm) : _vm(vm), _dat_800633e6(0) {}
@@ -50,10 +45,10 @@ void Minigame5::run() {
 	uint16 local_850;
 	uint16 auStack2120 [1000];
 	DragonINI*local_78;
-	uint16 local_76;
+	//uint16 local_76;
 	uint16 local_74;
-	uint16 local_72;
-	uint16 bombScale;
+	uint16 local_72 = 0;
+	uint16 bombScale = DRAGONS_ENGINE_SPRITE_100_PERCENT_SCALE;
 	Actor *bombActor;
 	Actor *flickerActor;
 	Actor *pusherActor;
@@ -61,18 +56,18 @@ void Minigame5::run() {
 	uint16 local_66;
 	Actor *wheelsActor;
 	uint16 local_62;
-	uint16 local_60;
-	uint16 local_5e;
-	short local_5c;
-	short local_5a;
+	uint16 local_60 = 0;
+	uint16 local_5e = 0;
+	short local_5c = 0;
+	short local_5a = 0;
 	uint16 currentState;
 	short local_50;
 	Actor *local_4e;
-	uint16 local_4c;
-	uint16 local_4a;
-	uint16 local_48;
+	//uint16 local_4c;
+	//uint16 local_4a;
+	//uint16 local_48;
 	int16 local_46;
-	int16 local_44;
+	//int16 local_44;
 	short local_42;
 	uint16 local_30 [4];
 	//uint16 uStack42;
@@ -95,8 +90,8 @@ void Minigame5::run() {
 
 	fd->close();
 
-	local_48 = 0;
-	local_76 = _vm->_scene->getSceneId();
+	//local_48 = 0;
+	//local_76 = _vm->_scene->getSceneId();
 	local_78 = _vm->_dragonINIResource->getFlickerRecord();
 	local_78->actor->setFlag(ACTOR_FLAG_100);
 	local_78->actor->_priorityLayer = 0;
@@ -121,7 +116,7 @@ void Minigame5::run() {
 	pusherActor = _vm->_actorManager->loadActor
 			(0x26, 0, (int)(short)local_850, (int)(((uint)uVar1 + 5) * 0x10000) >> 0x10);
 //	EnableVSyncEvent();
-	if (pusherActor == NULL) {
+	if (pusherActor == nullptr) {
 		error("Couldn't alloc pusher!");
 	}
 	pusherActor->_flags = pusherActor->_flags | 0x380;
@@ -132,7 +127,7 @@ void Minigame5::run() {
 //	DisableVSyncEvent();
 	wheelsActor = _vm->_actorManager->loadActor(7, 0x11, 0, 0);
 //	EnableVSyncEvent();
-	if (wheelsActor == NULL) {
+	if (wheelsActor == nullptr) {
 		error("Couldn't alloc wheels!");
 	}
 	wheelsActor->_flags = wheelsActor->_flags | 0x380;
@@ -145,7 +140,7 @@ void Minigame5::run() {
 //	DisableVSyncEvent();
 	bombActor = _vm->_actorManager->loadActor(7, 0x1c, 0, 0);
 //	EnableVSyncEvent();
-	if (bombActor == NULL) {
+	if (bombActor == nullptr) {
 		error("Couldn't alloc bomb!");
 	}
 	bombActor->_flags = bombActor->_flags | 0x380;
@@ -154,14 +149,14 @@ void Minigame5::run() {
 //	DisableVSyncEvent();
 	dustActor = _vm->_actorManager->loadActor(8, 8, 100, 100, 0);
 //	EnableVSyncEvent();
-	if (dustActor == NULL) {
+	if (dustActor == nullptr) {
 		error("Couldn't alloc dust sprite!");
 	}
 	dustActor->_flags = dustActor->_flags | 0x380;
 	dustActor->_scale = DRAGONS_ENGINE_SPRITE_100_PERCENT_SCALE;
 	local_4e = _vm->_dragonINIResource->getRecord(DAT_80063a48 + -1)->actor;
-	local_4c = 0;
-	local_4a = local_4e->_sequenceTimerMaxValue;
+	//local_4c = 0;
+	//local_4a = local_4e->_sequenceTimerMaxValue;
 	_vm->setFlags(ENGINE_FLAG_4000000);
 	currentState = 1;
 	local_66 = 0;
@@ -328,7 +323,7 @@ void Minigame5::run() {
 							}
 						} else {
 							local_4e->_sequenceTimerMaxValue = 2;
-							local_4c = 0x3c;
+							//local_4c = 0x3c;
 							bombActor->_priorityLayer = 0;
 							currentState = 8;
 						}
@@ -348,12 +343,14 @@ void Minigame5::run() {
 					_vm->waitForFrames(0x3c);
 					pusherActor->updateSequence(0xb);
 					if (_dat_800633e6 == 0) {
-						_vm->_talk->loadText(DAT_8006393c, auStack2120, 1000);
-						_vm->_talk->displayDialogAroundPoint(auStack2120, (int)(short)(local_850 >> 3), 0xc, 0, 1, DAT_8006393c);
+						uint32 textId = _vm->getDialogTextId(0x21BF0);
+						_vm->_talk->loadText(textId, auStack2120, 1000);
+						_vm->_talk->displayDialogAroundPoint(auStack2120, (int)(short)(local_850 >> 3), 0xc, 0, 1, textId);
 						_dat_800633e6 = 1;
 					} else {
-						_vm->_talk->loadText(DAT_80063938, auStack2120, 1000);
-						_vm->_talk->displayDialogAroundPoint(auStack2120, (int)(short)(local_850 >> 3), 0xc, 0, 1, DAT_80063938);
+						uint32 textId = _vm->getDialogTextId(0x21DAE);
+						_vm->_talk->loadText(textId, auStack2120, 1000);
+						_vm->_talk->displayDialogAroundPoint(auStack2120, (int)(short)(local_850 >> 3), 0xc, 0, 1, textId);
 					}
 					_vm->waitForFrames(10);
 					local_10 = 1;
@@ -372,17 +369,17 @@ void Minigame5::run() {
 					pusherActor->updateSequence(0);
 					_vm->_dragonINIResource->getRecord(DAT_80063bd0 + -1)->actor->updateSequence(2);
 					_vm->waitForFrames(0x12);
-					_vm->_talk->loadText(DAT_80063e38, auStack2120, 1000);
-					_vm->_talk->displayDialogAroundPoint(auStack2120, 0xf, 2, 0x501, 0, DAT_80063e38);
-//						TODO	callMaybeResetData();
+					_vm->_talk->loadText(_vm->getDialogTextId(0x21E3E), auStack2120, 1000);
+					_vm->_talk->displayDialogAroundPoint(auStack2120, 0xf, 2, 0x501, 0, _vm->getDialogTextId(0x21E3E));
+					_vm->clearAllText();
 					_vm->_dragonINIResource->getRecord(DAT_80063bd0 + -1)->actor->updateSequence(3);
 					_vm->_dragonINIResource->getRecord(DAT_80063bd0 + -1)->actor->waitUntilFlag8And4AreSet();
 					pusherActor->updateSequence(7);
-					_vm->_talk->loadText(DAT_8006391c, auStack2120, 1000);
-					_vm->_talk->displayDialogAroundPoint(auStack2120, (int)(short)(local_850 >> 3), 0xc, 0, 1, DAT_8006391c);
+					_vm->_talk->loadText(_vm->getDialogTextId(0x475DA), auStack2120, 1000);
+					_vm->_talk->displayDialogAroundPoint(auStack2120, (int)(short)(local_850 >> 3), 0xc, 0, 1, _vm->getDialogTextId(0x475DA));
 					pusherActor->_flags = pusherActor->_flags | 0x1000;
 					local_10 = 2;
-					local_48 = 1;
+					//local_48 = 1;
 					currentState = 6;
 					break;
 				default:
@@ -485,14 +482,14 @@ void Minigame5::run() {
 			_vm->waitForFrames(0x1e);
 			_vm->_dragonINIResource->getRecord(DAT_80063a40 + -1)->actor->clearFlag(ACTOR_FLAG_100);
 			LAB_8009157c:
-//			callMaybeResetData();
+			_vm->clearAllText();
 			flickerActor->updateSequence(0x15);
 			local_46 = 0;
-			local_44 = 0;
+			//local_44 = 0;
 			if (local_10 == 2) {
 //				DisableVSyncEvent();
 				local_46 = pusherActor->_x_pos;
-				local_44 = pusherActor->_y_pos;
+				//local_44 = pusherActor->_y_pos;
 				pusherActor->reset_maybe();
 //				EnableVSyncEvent();
 			} else {

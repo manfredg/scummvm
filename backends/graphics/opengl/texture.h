@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,8 @@
 #include "graphics/surface.h"
 
 #include "common/rect.h"
+
+class Scaler;
 
 namespace OpenGL {
 
@@ -229,6 +230,8 @@ public:
 	virtual void setColorKey(uint colorKey) {}
 	virtual void setPalette(uint start, uint colors, const byte *palData) {}
 
+	virtual void setScaler(uint scalerIndex, int scaleFactor) {}
+
 	/**
 	 * Update underlying OpenGL texture to reflect current state.
 	 */
@@ -288,6 +291,8 @@ public:
 protected:
 	const Graphics::PixelFormat _format;
 
+	void updateGLTexture(Common::Rect &dirtyArea);
+
 private:
 	GLTexture _glTexture;
 
@@ -295,51 +300,34 @@ private:
 	Graphics::Surface _userPixelData;
 };
 
-class TextureCLUT8 : public Texture {
-public:
-	TextureCLUT8(GLenum glIntFormat, GLenum glFormat, GLenum glType, const Graphics::PixelFormat &format);
-	virtual ~TextureCLUT8();
-
-	virtual void allocate(uint width, uint height);
-
-	virtual Graphics::PixelFormat getFormat() const;
-
-	virtual bool hasPalette() const { return true; }
-
-	virtual void setColorKey(uint colorKey);
-	virtual void setPalette(uint start, uint colors, const byte *palData);
-
-	virtual Graphics::Surface *getSurface() { return &_clut8Data; }
-	virtual const Graphics::Surface *getSurface() const { return &_clut8Data; }
-
-	virtual void updateGLTexture();
-private:
-	Graphics::Surface _clut8Data;
-	byte *_palette;
-};
-
-#if !USE_FORCED_GL
 class FakeTexture : public Texture {
 public:
-	FakeTexture(GLenum glIntFormat, GLenum glFormat, GLenum glType, const Graphics::PixelFormat &format);
+	FakeTexture(GLenum glIntFormat, GLenum glFormat, GLenum glType, const Graphics::PixelFormat &format, const Graphics::PixelFormat &fakeFormat);
 	virtual ~FakeTexture();
 
 	virtual void allocate(uint width, uint height);
 
-	virtual Graphics::PixelFormat getFormat() const = 0;
+	virtual Graphics::PixelFormat getFormat() const { return _fakeFormat; }
+
+	virtual bool hasPalette() const { return (_palette != nullptr); }
+
+	virtual void setColorKey(uint colorKey);
+	virtual void setPalette(uint start, uint colors, const byte *palData);
 
 	virtual Graphics::Surface *getSurface() { return &_rgbData; }
 	virtual const Graphics::Surface *getSurface() const { return &_rgbData; }
+
+	virtual void updateGLTexture();
 protected:
 	Graphics::Surface _rgbData;
+	Graphics::PixelFormat _fakeFormat;
+	uint32 *_palette;
 };
 
 class TextureRGB555 : public FakeTexture {
 public:
 	TextureRGB555();
 	virtual ~TextureRGB555() {};
-
-	virtual Graphics::PixelFormat getFormat() const;
 
 	virtual void updateGLTexture();
 };
@@ -349,11 +337,37 @@ public:
 	TextureRGBA8888Swap();
 	virtual ~TextureRGBA8888Swap() {};
 
-	virtual Graphics::PixelFormat getFormat() const;
-
 	virtual void updateGLTexture();
 };
-#endif // !USE_FORCED_GL
+
+#ifdef USE_SCALERS
+class ScaledTexture : public FakeTexture {
+public:
+	ScaledTexture(GLenum glIntFormat, GLenum glFormat, GLenum glType, const Graphics::PixelFormat &format, const Graphics::PixelFormat &fakeFormat);
+	virtual ~ScaledTexture();
+
+	virtual void allocate(uint width, uint height);
+
+	virtual uint getWidth() const { return _rgbData.w; }
+	virtual uint getHeight() const { return _rgbData.h; }
+	virtual Graphics::PixelFormat getFormat() const { return _fakeFormat; }
+
+	virtual bool hasPalette() const { return (_palette != nullptr); }
+
+	virtual Graphics::Surface *getSurface() { return &_rgbData; }
+	virtual const Graphics::Surface *getSurface() const { return &_rgbData; }
+
+	virtual void updateGLTexture();
+
+	virtual void setScaler(uint scalerIndex, int scaleFactor);
+protected:
+	Graphics::Surface *_convData;
+	Scaler *_scaler;
+	uint _scalerIndex;
+	uint _extraPixels;
+	uint _scaleFactor;
+};
+#endif
 
 #if !USE_FORCED_GLES
 class TextureTarget;

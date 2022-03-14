@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,34 +15,25 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/world/fireball_process.h"
-#include "ultima/ultima8/world/item.h"
-#include "ultima/ultima8/world/current_map.h"
 #include "ultima/ultima8/world/actors/main_actor.h"
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/world/item_factory.h"
-#include "ultima/ultima8/misc/direction.h"
-#include "ultima/ultima8/world/weapon_info.h"
+#include "ultima/ultima8/misc/direction_util.h"
 #include "ultima/ultima8/world/get_object.h"
 
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
-#include "ultima/shared/std/misc.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-// p_dynamic_cast stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE(FireballProcess, Process)
+DEFINE_RUNTIME_CLASSTYPE_CODE(FireballProcess)
 
 FireballProcess::FireballProcess()
-	: Process() {
+	: Process(), _xSpeed(0), _ySpeed(0), _age(0), _target(0) {
 
 }
 
@@ -101,11 +92,11 @@ void FireballProcess::run() {
 	dx = tx - x;
 	dy = ty - y;
 
-	int targetdir = item->getDirToItemCentre(*t);
+	Direction targetdir = item->getDirToItemCentre(*t);
 
 	if (_xSpeed == 0 && _ySpeed == 0 && dx / 64 == 0 && dy / 64 == 0) {
-		_xSpeed += 2 * x_fact[targetdir];
-		_ySpeed += 2 * y_fact[targetdir];
+		_xSpeed += 2 * Direction_XFactor(targetdir);
+		_ySpeed += 2 * Direction_YFactor(targetdir);
 	} else {
 		_xSpeed += (dx / 64);
 		_ySpeed += (dy / 64);
@@ -132,7 +123,8 @@ void FireballProcess::run() {
 	}
 
 	Item *tailitem = getItem(_tail[2]);
-	tailitem->setFrame(Get_WorldDirection(_ySpeed, _xSpeed));
+	Direction movedir = Direction_GetWorldDir(_ySpeed, _xSpeed, dirmode_8dirs);
+	tailitem->setFrame(Direction_ToUsecodeDir(movedir));
 	tailitem->move(x, y, z);
 
 	_tail[2] = _tail[1];
@@ -143,7 +135,7 @@ void FireballProcess::run() {
 		Actor *hit = getActor(hititem);
 		if (hit) {
 			// hit an actor: deal damage and explode
-			hit->receiveHit(0, 8 - targetdir, 5 + (getRandom() % 5),
+			hit->receiveHit(0, Direction_Invert(targetdir), 5 + (getRandom() % 5),
 			                WeaponInfo::DMG_FIRE);
 			terminate();
 			return;
@@ -175,12 +167,12 @@ void FireballProcess::explode() {
 }
 
 uint32 FireballProcess::I_TonysBalls(const uint8 *args,
-                                     unsigned int /*argsize*/) {
+									 unsigned int /*argsize*/) {
 	ARG_NULL16(); // unknown
 	ARG_NULL16(); // unknown
 	ARG_SINT16(x);
 	ARG_SINT16(y);
-	ARG_UINT16(z);
+	ARG_UINT8(z);
 
 	Item *ball = ItemFactory::createItem(260, 4, 0, Item::FLG_FAST_ONLY,
 	                                     0, 0, 0, true);
@@ -203,28 +195,28 @@ uint32 FireballProcess::I_TonysBalls(const uint8 *args,
 	return 0;
 }
 
-void FireballProcess::saveData(ODataSource *ods) {
-	Process::saveData(ods);
+void FireballProcess::saveData(Common::WriteStream *ws) {
+	Process::saveData(ws);
 
-	ods->write4(static_cast<uint32>(_xSpeed));
-	ods->write4(static_cast<uint32>(_ySpeed));
-	ods->write2(_target);
-	ods->write2(_tail[0]);
-	ods->write2(_tail[1]);
-	ods->write2(_tail[2]);
-	ods->write2(_age);
+	ws->writeUint32LE(static_cast<uint32>(_xSpeed));
+	ws->writeUint32LE(static_cast<uint32>(_ySpeed));
+	ws->writeUint16LE(_target);
+	ws->writeUint16LE(_tail[0]);
+	ws->writeUint16LE(_tail[1]);
+	ws->writeUint16LE(_tail[2]);
+	ws->writeUint16LE(_age);
 }
 
-bool FireballProcess::loadData(IDataSource *ids, uint32 version) {
-	if (!Process::loadData(ids, version)) return false;
+bool FireballProcess::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Process::loadData(rs, version)) return false;
 
-	_xSpeed = static_cast<int>(ids->read4());
-	_ySpeed = static_cast<int>(ids->read4());
-	_target = ids->read2();
-	_tail[0] = ids->read2();
-	_tail[1] = ids->read2();
-	_tail[2] = ids->read2();
-	_age = ids->read2();
+	_xSpeed = static_cast<int>(rs->readUint32LE());
+	_ySpeed = static_cast<int>(rs->readUint32LE());
+	_target = rs->readUint16LE();
+	_tail[0] = rs->readUint16LE();
+	_tail[1] = rs->readUint16LE();
+	_tail[2] = rs->readUint16LE();
+	_age = rs->readUint16LE();
 
 	return true;
 }

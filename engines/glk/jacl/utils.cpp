@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -116,7 +115,7 @@ void create_paths(char *full_path) {
 
 	/* FIND THE LAST SLASH IN THE SPECIFIED GAME PATH AND REMOVE THE GAME
 	 * FILE SUFFIX IF ANY EXISTS */
-	last_slash = (char *)NULL;
+	last_slash = (char *)nullptr;
 
 	/* GET A POINTER TO THE LAST SLASH IN THE FULL PATH */
 	last_slash = strrchr(full_path, DIR_SEPARATOR);
@@ -133,7 +132,7 @@ void create_paths(char *full_path) {
 	}
 
 	/* STORE THE GAME PATH AND THE GAME FILENAME PARTS SEPARATELY */
-	if (last_slash == (const char *) NULL) {
+	if (last_slash == (const char *) nullptr) {
 		/* GAME MUST BE IN CURRENT DIRECTORY SO THERE WILL BE NO GAME PATH */
 		strcpy(prefix, full_path);
 		game_path[0] = 0;

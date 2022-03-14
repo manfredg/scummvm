@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/textconsole.h"
@@ -30,7 +29,7 @@
 
 namespace Dragons {
 
-VabSound::VabSound(Common::SeekableReadStream *msfData, const DragonsEngine *_vm): _toneAttrs(NULL), _vbData(NULL) {
+VabSound::VabSound(Common::SeekableReadStream *msfData, const DragonsEngine *_vm): _toneAttrs(nullptr), _vbData(nullptr) {
 	loadHeader(msfData);
 
 	int32 dataSize = msfData->size() - msfData->pos();
@@ -46,7 +45,7 @@ VabSound::VabSound(Common::SeekableReadStream *msfData, const DragonsEngine *_vm
 	delete msfData;
 }
 
-VabSound::VabSound(Common::SeekableReadStream *vhData, Common::SeekableReadStream *vbData): _toneAttrs(NULL), _vbData(NULL) {
+VabSound::VabSound(Common::SeekableReadStream *vhData, Common::SeekableReadStream *vbData): _toneAttrs(nullptr), _vbData(nullptr) {
 	loadHeader(vhData);
 
 	assert(vhData->pos() == vhData->size());
@@ -102,18 +101,17 @@ VabSound::~VabSound() {
 }
 
 Audio::AudioStream *VabSound::getAudioStream(uint16 program, uint16 key) {
-	assert(program < _header.numVAG);
-	// TODO
-	uint16 vagID = 0;
-	for (int i = 0; i < _programAttrs[program].tones; i++) {
-		if (_toneAttrs[i].prog == program && _toneAttrs[i].min == key && _toneAttrs[i].max == key) {
-			vagID = _toneAttrs[i].vag - 1;
-		}
+	int16 vagID = getVagID(program, key);
+	if (vagID < 0) {
+		return nullptr;
 	}
-	debug("Playing program %d, numTones: %d, key %d vagID %d, vagOffset: %x, size: %x", program, _programAttrs[program].tones, key, vagID, _vagOffsets[vagID], _vagSizes[vagID]);
+	int16 baseKey = getBaseToneKey(program, key);
+	int sampleRate = getAdjustedSampleRate(key, baseKey);
+	debug(3, "Playing program %d, Key %d, numTones: %d, vagID %d, vagOffset: %x, size: %x adjustedSampleRate: %d",
+	   program, key, _programAttrs[program].tones, vagID, _vagOffsets[vagID], _vagSizes[vagID], sampleRate);
 	Audio::AudioStream *str = Audio::makeXAStream(
 			new Common::MemoryReadStream(&_vbData[_vagOffsets[vagID]], _vagSizes[vagID], DisposeAfterUse::NO),
-			11025,
+			sampleRate,
 			DisposeAfterUse::YES);
 	return str;
 }
@@ -161,6 +159,46 @@ void VabSound::loadToneAttributes(Common::SeekableReadStream *vhData) {
 			pVabToneAttr->reserved[j] = vhData->readSint16LE();
 		}
 	}
+}
+
+int16 VabSound::getVagID(uint16 program, uint16 key) {
+	if (program < _header.numVAG) {
+		for (int i = 0; i < _programAttrs[program].tones; i++) {
+			if (_toneAttrs[i].prog == program && _toneAttrs[i].min <= key && _toneAttrs[i].max >= key) {
+				return _toneAttrs[i].vag - 1;
+			}
+		}
+	} else {
+		warning("program >= _header.numVAG %d %d", program, _header.numVAG);
+	}
+
+	return -1;
+}
+
+int16 VabSound::getBaseToneKey(uint16 program, uint16 key) {
+	if (program < _header.numVAG) {
+		for (int i = 0; i < _programAttrs[program].tones; i++) {
+			if (_toneAttrs[i].prog == program && _toneAttrs[i].min <= key && _toneAttrs[i].max >= key) {
+				debug("tone key %d center %d mode %d shift %d min %d, max %d adsr 1 %d adsr 2 %d pbmin %d pbmax %d",
+		  			key, _toneAttrs[i].center, _toneAttrs[i].mode, _toneAttrs[i].shift, _toneAttrs[i].min, _toneAttrs[i].max,
+					  _toneAttrs[i].adsr1, _toneAttrs[i].adsr2, _toneAttrs[i].pbmin, _toneAttrs[i].pbmax);
+				return _toneAttrs[i].center;
+			}
+		}
+	}
+	return -1;
+}
+
+bool VabSound::hasSound(uint16 program, uint16 key) {
+	return getVagID(program, key) != -1;
+}
+
+int VabSound::getAdjustedSampleRate(int16 desiredKey, int16 baseToneKey) {
+	if (desiredKey == baseToneKey) {
+		return 44100;
+	}
+	float diff = pow(2, (float)(desiredKey - baseToneKey) / 12);
+	return (int)((float)44100 * diff);
 }
 
 } // End of namespace Dragons

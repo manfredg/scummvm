@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -113,7 +112,7 @@ bool SceneScriptMA01::ClickedOnExit(int exitId) {
 			}
 		} else if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, 1446.0f, 0.0f, -725.0f, 12, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagMA01toMA06);
 			Set_Enter(kSetMA06, kSceneMA06);
 		}
@@ -298,7 +297,7 @@ void SceneScriptMA01::PlayerWalkedIn() {
 void SceneScriptMA01::PlayerWalkedOut() {
 	Actor_Set_Invisible(kActorMcCoy, false);
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 
 	if (_vm->_cutContent) {
 		ADQ_Flush(); // for dispatcher queue cleanup
@@ -306,16 +305,15 @@ void SceneScriptMA01::PlayerWalkedOut() {
 
 	if (!Game_Flag_Query(kFlagMA01toMA06)) {
 		if (Global_Variable_Query(kVariableChapter) == 1) {
-			Outtake_Play(kOuttakeTowards2, true, -1);
-			Outtake_Play(kOuttakeInside1,  true, -1);
-//			// Commented out - Has no sound - TODO can we use external SFX for it?
-//			if (_vm->_cutContent) {
-//				Outtake_Play(kOuttakeFlyThrough,  true, -1);
-//			}
-			Outtake_Play(kOuttakeTowards1, true, -1);
+			if (_vm->_cutContent && (Random_Query(1, 2) == 1)) {
+				Outtake_Play(kOuttakeFlyThrough, true, -1);
+			} else {
+				Outtake_Play(kOuttakeTowards2, true, -1);
+				Outtake_Play(kOuttakeInside1, true, -1);
+				Outtake_Play(kOuttakeTowards1, true, -1);
+			}
 		}
-#if BLADERUNNER_ORIGINAL_BUGS
-#else
+#if !BLADERUNNER_ORIGINAL_BUGS
 		else {
 			// Acts 2, 3 - should still use a spinner fly-through transition
 			if (!Game_Flag_Query(kFlagMcCoyInTyrellBuilding)) {
@@ -323,7 +321,7 @@ void SceneScriptMA01::PlayerWalkedOut() {
 				Outtake_Play(kOuttakeAway1,    true, -1); // available in Acts 2, 3
 			}
 		}
-#endif // BLADERUNNER_ORIGINAL_BUGS
+#endif // !BLADERUNNER_ORIGINAL_BUGS
 	}
 }
 

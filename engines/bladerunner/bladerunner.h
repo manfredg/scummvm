@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "common/random.h"
 #include "common/sinetables.h"
 #include "common/stream.h"
+#include "common/keyboard.h"
 
 #include "engines/engine.h"
 
@@ -110,6 +110,7 @@ public:
 	static const int kArchiveCount = 12; // +2 to original value (10) to accommodate for SUBTITLES.MIX and one extra resource file, to allow for capability of loading all VQAx.MIX and the MODE.MIX file (debug purposes)
 	static const int kActorCount =  100;
 	static const int kActorVoiceOver = kActorCount - 1;
+
 	// Incremental number to keep track of significant revisions of the ScummVM bladerunner engine
 	// that could potentially introduce incompatibilities with old save files or require special actions to restore compatibility
 	// This is stored in game global variable "kVariableGameVersion"
@@ -126,6 +127,7 @@ public:
 	Common::String   _languageCode;
 	Common::Language _language;
 	bool             _russianCP1251;
+	bool             _noMusicDriver; // If "Music Device" is set to "No Music" from Audio tab
 
 	ActorDialogueQueue *_actorDialogueQueue;
 	ScreenEffects      *_screenEffects;
@@ -207,6 +209,7 @@ public:
 	bool _actorIsSpeaking;
 	bool _actorSpeakStopIsRequested;
 	bool _gameOver;
+	bool _gameJustLaunched;
 	int  _gameAutoSaveTextId;
 	bool _gameIsAutoSaving;
 	bool _gameIsLoading;
@@ -220,6 +223,7 @@ public:
 	bool _framesPerSecondMax;
 	bool _disableStaminaDrain;
 	bool _cutContent;
+	bool _validBootParam;
 
 	int _walkSoundId;
 	int _walkSoundVolume;
@@ -249,6 +253,18 @@ public:
 
 	uint32 _timeOfMainGameLoopTickPrevious;
 
+	// This addon is to emulate keeping a keyboard key pressed (continuous / repeated firing of the event)
+	// -- code is pretty much identical from our common\events.cpp (KeyboardRepeatEventSourceWrapper)
+	// for continuous events (keyDown)
+	enum {
+		kKeyRepeatInitialDelay = 400,
+		kKeyRepeatSustainDelay = 100
+	};
+
+	Common::KeyState _currentKeyDown;
+	uint32 _keyRepeatTimeLast;
+	uint32 _keyRepeatTimeDelay;
+
 private:
 	MIXArchive _archives[kArchiveCount];
 
@@ -261,6 +277,20 @@ public:
 	Common::Error loadGameState(int slot) override;
 	bool canSaveGameStateCurrently() override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
+	/**
+	* NOTE: Disable support for external autosave (ScummVM's feature).
+	*       Main reason is that it's not easy to properly label this autosave,
+	*       since currently it would translate "Autosave" to the ScummVM GUI language
+	*       which ends up showing as "?????? ??????" on non-latin languages (eg. Greek),
+	*       and in addition is inconsistent with the game's own GUI language.
+	*       Secondary reason is that the game already has an autosaving mechanism,
+	*       albeit only at the start of a new Act.
+	*       And final reason would be to prevent an autosave at an unforeseen moment,
+	*       if we've failed to account for all cases that the game should not save by itself;
+	*       currently those are listed in BladeRunnerEngine::canSaveGameStateCurrently().
+	*/
+	int getAutosaveSlot() const override { return -1; }
+
 	void pauseEngineIntern(bool pause) override;
 
 	Common::Error run() override;
@@ -294,6 +324,8 @@ public:
 	void handleMouseClick3DObject(int objectId, bool buttonDown, bool isClickable, bool isTarget);
 	void handleMouseClickEmpty(int x, int y, Vector3 &scenePosition, bool buttonDown);
 
+	bool isAllowedRepeatedKey(const Common::KeyState &currKeyState);
+
 	void gameWaitForActive();
 	void loopActorSpeaking();
 	void loopQueuedDialogueStillPlaying();
@@ -315,8 +347,8 @@ public:
 	void playerGainsControl(bool force = false);
 	void playerDied();
 
-	bool saveGame(Common::WriteStream &stream, Graphics::Surface &thumbnail);
-	bool loadGame(Common::SeekableReadStream &stream);
+	bool saveGame(Common::WriteStream &stream, Graphics::Surface *thumb = NULL, bool origformat = false);
+	bool loadGame(Common::SeekableReadStream &stream, int version);
 	void newGame(int difficulty);
 	void autoSaveGame(int textId, bool endgame);
 
@@ -350,17 +382,33 @@ static inline const Graphics::PixelFormat screenPixelFormat() {
 
 static inline void drawPixel(Graphics::Surface &surface, void* dst, uint32 value) {
 	switch (surface.format.bytesPerPixel) {
-		case 1:
-			*(uint8*)dst = (uint8)value;
-			break;
-		case 2:
-			*(uint16*)dst = (uint16)value;
-			break;
-		case 4:
-			*(uint32*)dst = (uint32)value;
-			break;
-		default:
-			break;
+	case 1:
+		*(uint8*)dst = (uint8)value;
+		break;
+	case 2:
+		*(uint16*)dst = (uint16)value;
+		break;
+	case 4:
+		*(uint32*)dst = (uint32)value;
+		break;
+	default:
+		break;
+	}
+}
+
+static inline void getPixel(Graphics::Surface &surface, void* dst, uint32 &value) {
+	switch (surface.format.bytesPerPixel) {
+	case 1:
+		 value = (uint8)(*(uint8*)dst);
+		break;
+	case 2:
+		 value = (uint16)(*(uint16*)dst);
+		break;
+	case 4:
+		value = (uint32)(*(uint32*)dst);
+		break;
+	default:
+		break;
 	}
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -105,10 +104,10 @@ bool PmvPlayer::play(const char *filename) {
 	uint32 soundSize = 0;
 	uint32 soundChunkOfs = 0, palChunkOfs = 0;
 	uint32 palSize = 0;
-	byte *frameData = 0, *audioData, *soundData, *palData, *imageData;
+	byte *frameData = nullptr, *audioData, *soundData, *palData, *imageData;
 	bool firstTime = true;
 
-	uint32 soundStartTime = 0, skipFrames = 0;
+	uint32 skipFrames = 0;
 
 	uint32 bytesRead;
 	uint16 width, height, cmdOffs, pixelOffs, maskOffs, lineSize;
@@ -122,7 +121,7 @@ bool PmvPlayer::play(const char *filename) {
 
 	while (!_vm->shouldQuit() && !_aborted && !_fd->eos() && frameNumber < frameCount) {
 
-		int32 frameTime = _vm->_system->getMillis();
+		int32 frameTime = _vm->getTotalPlayTime();
 
 		readChunk(chunkType, chunkSize);
 		if (chunkType != MKTAG('M','F','R','M')) {
@@ -155,7 +154,7 @@ bool PmvPlayer::play(const char *filename) {
 
 			soundSize = chunkCount * chunkSize;
 			soundData = (byte *)malloc(soundSize);
-			decompressSound(audioData + 8, soundData, chunkSize, chunkCount, NULL, soundDecoderData);
+			decompressSound(audioData + 8, soundData, chunkSize, chunkCount, nullptr, soundDecoderData);
 			_audioStream->queueBuffer(soundData, soundSize, DisposeAfterUse::YES, Audio::FLAG_UNSIGNED);
 		}
 
@@ -189,8 +188,7 @@ bool PmvPlayer::play(const char *filename) {
 		decompressMovieImage(imageData, *_surface, cmdOffs, pixelOffs, maskOffs, lineSize);
 
 		if (firstTime) {
-			_mixer->playStream(Audio::Mixer::kPlainSoundType, &_audioStreamHandle, _audioStream);
-			soundStartTime = g_system->getMillis();
+			_mixer->playStream(Audio::Mixer::kSFXSoundType, &_audioStreamHandle, _audioStream);
 			skipFrames = 0;
 			firstTime = false;
 		}
@@ -199,8 +197,9 @@ bool PmvPlayer::play(const char *filename) {
 		updateScreen();
 
 		if (skipFrames == 0) {
+			uint32 soundElapsedTime = _vm->_mixer->getElapsedTime(_audioStreamHandle).msecs();
 			int32 waitTime = (frameNumber * frameDelay) -
-				(g_system->getMillis() - soundStartTime) - (_vm->_system->getMillis() - frameTime);
+				soundElapsedTime - (_vm->getTotalPlayTime() - frameTime);
 
 			if (waitTime < 0) {
 				skipFrames = -waitTime / frameDelay;
@@ -238,7 +237,7 @@ void PmvPlayer::readChunk(uint32 &chunkType, uint32 &chunkSize) {
 	chunkSize = _fd->readUint32LE();
 
 	debug(2, "ofs = %08X; chunkType = %c%c%c%c; chunkSize = %d\n",
-		_fd->pos(),
+		(int)_fd->pos(),
 		(chunkType >> 24) & 0xFF, (chunkType >> 16) & 0xFF, (chunkType >> 8) & 0xFF, chunkType & 0xFF,
 		chunkSize);
 

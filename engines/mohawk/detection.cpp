@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,129 +15,22 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "base/plugins.h"
 
-#include "backends/keymapper/action.h"
-#include "backends/keymapper/keymap.h"
-
 #include "engines/advancedDetector.h"
 #include "common/config-manager.h"
-#include "common/savefile.h"
-#include "common/system.h"
 #include "common/textconsole.h"
 #include "common/translation.h"
 
-#include "mohawk/livingbooks.h"
+#include "mohawk/detection.h"
 
-#ifdef ENABLE_CSTIME
-#include "mohawk/cstime.h"
-#endif
+#include "mohawk/riven_metaengine.h"
+#include "mohawk/myst_metaengine.h"
 
-#ifdef ENABLE_MYST
-#include "mohawk/myst.h"
-#include "mohawk/myst_state.h"
-#endif
-
-#ifdef ENABLE_MYSTME
-#ifndef ENABLE_MYST
-#error "Myst must be enabled for building Myst ME. Specify --enable-engine=myst,mystme"
-#endif
-#endif
-
-#ifdef ENABLE_RIVEN
-#include "mohawk/riven.h"
-#include "mohawk/riven_saveload.h"
-#endif
-
-namespace Mohawk {
-
-struct MohawkGameDescription {
-	ADGameDescription desc;
-
-	uint8 gameType;
-	uint32 features;
-	const char *appName;
-};
-
-const char* MohawkEngine::getGameId() const {
-	return _gameDescription->desc.gameId;
-}
-
-uint32 MohawkEngine::getFeatures() const {
-	return _gameDescription->features;
-}
-
-Common::Platform MohawkEngine::getPlatform() const {
-	return _gameDescription->desc.platform;
-}
-
-const char *MohawkEngine::getAppName() const {
-	return _gameDescription->appName;
-}
-
-uint8 MohawkEngine::getGameType() const {
-	return _gameDescription->gameType;
-}
-
-Common::String MohawkEngine_LivingBooks::getBookInfoFileName() const {
-	return _gameDescription->desc.filesDescriptions[0].fileName;
-}
-
-Common::Language MohawkEngine::getLanguage() const {
-	return _gameDescription->desc.language;
-}
-
-bool MohawkEngine::hasFeature(EngineFeature f) const {
-	return
-		(f == kSupportsRTL);
-}
-
-Common::String MohawkEngine::getDatafileLanguageName(const char *prefix) const {
-	const ADGameFileDescription *fileDesc;
-	for (fileDesc = _gameDescription->desc.filesDescriptions; fileDesc->fileName; fileDesc++) {
-		if (Common::String(fileDesc->fileName).hasPrefix(prefix)) {
-			break;
-		}
-	}
-
-	if (!fileDesc->fileName) {
-		warning("Malformed detection entry");
-
-		return "";
-	}
-
-	size_t prefixLength = strlen(prefix);
-	return Common::String(&fileDesc->fileName[prefixLength], strlen(fileDesc->fileName) - prefixLength - 4);
-}
-
-#ifdef ENABLE_MYST
-
-bool MohawkEngine_Myst::hasFeature(EngineFeature f) const {
-	return
-		MohawkEngine::hasFeature(f)
-		|| (f == kSupportsLoadingDuringRuntime)
-	        || (f == kSupportsSavingDuringRuntime);
-}
-
-#endif
-
-#ifdef ENABLE_RIVEN
-
-bool MohawkEngine_Riven::hasFeature(EngineFeature f) const {
-	return
-		MohawkEngine::hasFeature(f)
-		|| (f == kSupportsLoadingDuringRuntime)
-		|| (f == kSupportsSavingDuringRuntime);
-}
-
-#endif
-
-} // End of Namespace Mohawk
 
 static const PlainGameDescriptor mohawkGames[] = {
 	{"myst", "Myst"},
@@ -149,6 +42,7 @@ static const PlainGameDescriptor mohawkGames[] = {
 	{"maggiesfa", "Maggie's Farmyard Adventure"},
 	{"greeneggs", "Green Eggs and Ham"},
 	{"seussabc", "Dr Seuss's ABC"},
+	{"seussps", "Dr Seuss's Preschool"},
 	{"tortoise", "Aesop's Fables: The Tortoise and the Hare"},
 	{"arthur", "Arthur's Teacher Trouble"},
 	{"grandma", "Just Grandma and Me"},
@@ -163,6 +57,8 @@ static const PlainGameDescriptor mohawkGames[] = {
 	{"bearfight", "The Berenstain Bears Get in a Fight"},
 	{"beardark", "The Berenstain Bears In The Dark"},
 	{"arthurcomp", "Arthur's Computer Adventure"},
+	{"create", "The Story of Creation"},
+	{"daniel", "Daniel in the Lions' Den"},
 	{"harryhh","Harry and the Haunted House"},
 	{"stellaluna", "Stellaluna"},
 	{"sheila", "Sheila Rae, the Brave"},
@@ -182,29 +78,15 @@ static const char *directoryGlobs[] = {
 	nullptr
 };
 
-static const ADExtraGuiOptionsMap optionsList[] = {
-		{
-				GAMEOPTION_PLAY_MYST_FLYBY,
-				{
-						_s("Play the Myst fly by movie"),
-						_s("The Myst fly by movie was not played by the original engine."),
-						"playmystflyby",
-						false
-				}
-		},
-
-		AD_EXTRA_GUI_OPTIONS_TERMINATOR
-};
-
-class MohawkMetaEngine : public AdvancedMetaEngine {
+class MohawkMetaEngineDetection : public AdvancedMetaEngineDetection {
 public:
-	MohawkMetaEngine() : AdvancedMetaEngine(Mohawk::gameDescriptions, sizeof(Mohawk::MohawkGameDescription), mohawkGames, optionsList) {
+	MohawkMetaEngineDetection() : AdvancedMetaEngineDetection(Mohawk::gameDescriptions, sizeof(Mohawk::MohawkGameDescription), mohawkGames) {
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const override {
-		return detectGameFilebased(allFiles, fslist, Mohawk::fileBased);
+	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist, ADDetectedGameExtraInfo **extra) const override {
+		return detectGameFilebased(allFiles, Mohawk::fileBased);
 	}
 
 	const char *getEngineId() const override {
@@ -219,188 +101,35 @@ public:
 		return "Myst and Riven (C) Cyan Worlds\nMohawk OS (C) Ubisoft";
 	}
 
-	bool hasFeature(MetaEngineFeature f) const override;
-	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
-	SaveStateList listSaves(const char *target) const override;
-	SaveStateList listSavesForPrefix(const char *prefix, const char *extension) const;
-	int getMaximumSaveSlot() const override { return 999; }
-	void removeSaveState(const char *target, int slot) const override;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
-	Common::KeymapArray initKeymaps(const char *target) const override;
+	DetectedGame toDetectedGame(const ADDetectedGame &adGame, ADDetectedGameExtraInfo *extraInfo) const override;
 };
 
-bool MohawkMetaEngine::hasFeature(MetaEngineFeature f) const {
-	return
-		(f == kSupportsListSaves)
-		|| (f == kSupportsLoadingDuringStartup)
-		|| (f == kSupportsDeleteSave)
-		|| (f == kSavesSupportMetaInfo)
-		|| (f == kSavesSupportThumbnail)
-		|| (f == kSavesSupportCreationDate)
-		|| (f == kSavesSupportPlayTime);
-}
+DetectedGame MohawkMetaEngineDetection::toDetectedGame(const ADDetectedGame &adGame, ADDetectedGameExtraInfo *extraInfo) const {
+	DetectedGame game = AdvancedMetaEngineDetection::toDetectedGame(adGame);
 
-SaveStateList MohawkMetaEngine::listSavesForPrefix(const char *prefix, const char *extension) const {
-	Common::String pattern = Common::String::format("%s-###.%s", prefix, extension);
-	Common::StringArray filenames = g_system->getSavefileManager()->listSavefiles(pattern);
-	size_t prefixLen = strlen(prefix);
-
-	SaveStateList saveList;
-	for (Common::StringArray::const_iterator filename = filenames.begin(); filename != filenames.end(); ++filename) {
-		// Extract the slot number from the filename
-		char slot[4];
-		slot[0] = (*filename)[prefixLen + 1];
-		slot[1] = (*filename)[prefixLen + 2];
-		slot[2] = (*filename)[prefixLen + 3];
-		slot[3] = '\0';
-
-		int slotNum = atoi(slot);
-
-		saveList.push_back(SaveStateDescriptor(slotNum, ""));
-	}
-
-	Common::sort(saveList.begin(), saveList.end(), SaveStateDescriptorSlotComparator());
-
-	return saveList;
-}
-
-SaveStateList MohawkMetaEngine::listSaves(const char *target) const {
-	Common::String gameId = ConfMan.get("gameid", target);
-	SaveStateList saveList;
-
-	// Loading games is only supported in Myst/Riven currently.
-#ifdef ENABLE_MYST
-	if (gameId == "myst") {
-		saveList = listSavesForPrefix("myst", "mys");
-
-		for (SaveStateList::iterator save = saveList.begin(); save != saveList.end(); ++save) {
-			// Read the description from the save
-			int slot = save->getSaveSlot();
-			Common::String description = Mohawk::MystGameState::querySaveDescription(slot);
-			save->setDescription(description);
-		}
-	}
-#endif
-#ifdef ENABLE_RIVEN
-	if (gameId == "riven") {
-		saveList = listSavesForPrefix("riven", "rvn");
-
-		for (SaveStateList::iterator save = saveList.begin(); save != saveList.end(); ++save) {
-			// Read the description from the save
-			int slot = save->getSaveSlot();
-			Common::String description = Mohawk::RivenSaveLoad::querySaveDescription(slot);
-			save->setDescription(description);
-		}
-	}
-#endif
-
-	return saveList;
-}
-
-void MohawkMetaEngine::removeSaveState(const char *target, int slot) const {
-	Common::String gameId = ConfMan.get("gameid", target);
-
-	// Removing saved games is only supported in Myst/Riven currently.
-#ifdef ENABLE_MYST
-	if (gameId == "myst") {
-		Mohawk::MystGameState::deleteSave(slot);
-	}
-#endif
-#ifdef ENABLE_RIVEN
-	if (gameId == "riven") {
-		Mohawk::RivenSaveLoad::deleteSave(slot);
-	}
-#endif
-}
-
-SaveStateDescriptor MohawkMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
-	Common::String gameId = ConfMan.get("gameid", target);
-
-#ifdef ENABLE_MYST
-	if (gameId == "myst") {
-		return Mohawk::MystGameState::querySaveMetaInfos(slot);
-	}
-#endif
-#ifdef ENABLE_RIVEN
-	if (gameId == "riven") {
-		return Mohawk::RivenSaveLoad::querySaveMetaInfos(slot);
-	} else
-#endif
-	{
-		return SaveStateDescriptor();
-	}
-}
-
-Common::KeymapArray MohawkMetaEngine::initKeymaps(const char *target) const {
-	Common::String gameId = ConfMan.get("gameid", target);
-
-#ifdef ENABLE_MYST
-	if (gameId == "myst" || gameId == "makingofmyst") {
-		return Mohawk::MohawkEngine_Myst::initKeymaps(target);
-	}
-#endif
-#ifdef ENABLE_RIVEN
-	if (gameId == "riven") {
-		return Mohawk::MohawkEngine_Riven::initKeymaps(target);
-	}
-#endif
-
-	return AdvancedMetaEngine::initKeymaps(target);
-}
-
-bool MohawkMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	const Mohawk::MohawkGameDescription *gd = (const Mohawk::MohawkGameDescription *)desc;
-
-	if (gd) {
-		switch (gd->gameType) {
-		case Mohawk::GType_MYST:
-		case Mohawk::GType_MAKINGOF:
-#ifdef ENABLE_MYST
-#ifndef ENABLE_MYSTME
-			if (gd->features & Mohawk::GF_ME) {
-				warning("Myst ME support not compiled in");
-				return false;
-			}
-#endif
-			*engine = new Mohawk::MohawkEngine_Myst(syst, gd);
-			break;
-#else
-			warning("Myst support not compiled in");
-			return false;
-#endif
-		case Mohawk::GType_RIVEN:
-#ifdef ENABLE_RIVEN
-			*engine = new Mohawk::MohawkEngine_Riven(syst, gd);
-			break;
-#else
-			warning("Riven support not compiled in");
-			return false;
-#endif
-		case Mohawk::GType_LIVINGBOOKSV1:
-		case Mohawk::GType_LIVINGBOOKSV2:
-		case Mohawk::GType_LIVINGBOOKSV3:
-		case Mohawk::GType_LIVINGBOOKSV4:
-		case Mohawk::GType_LIVINGBOOKSV5:
-			*engine = new Mohawk::MohawkEngine_LivingBooks(syst, gd);
-			break;
-		case Mohawk::GType_CSTIME:
-#ifdef ENABLE_CSTIME
-			*engine = new Mohawk::MohawkEngine_CSTime(syst, gd);
-			break;
-#else
-			warning("CSTime support not compiled in");
-			return false;
-#endif
-		default:
-			error("Unknown Mohawk Engine");
+	// The AdvancedDetector model only allows specifying a single supported
+	// game language. The 25th anniversary edition Myst games are multilanguage.
+	// Here we amend the detected games to set the list of supported languages.
+	if (game.gameId == "myst"
+			&& Common::checkGameGUIOption(GAMEOPTION_25TH, game.getGUIOptions())
+			&& Common::checkGameGUIOption(GAMEOPTION_ME, game.getGUIOptions())) {
+		const Mohawk::MystLanguage *languages = Mohawk::MohawkMetaEngine_Myst::listLanguages();
+		while (languages->language != Common::UNK_LANG) {
+			game.appendGUIOptions(Common::getGameGUIOptionsDescriptionLanguage(languages->language));
+			languages++;
 		}
 	}
 
-	return (gd != nullptr);
+	if (game.gameId == "riven"
+			&& Common::checkGameGUIOption(GAMEOPTION_25TH, game.getGUIOptions())) {
+		const Mohawk::RivenLanguage *languages = Mohawk::MohawkMetaEngine_Riven::listLanguages();
+		while (languages->language != Common::UNK_LANG) {
+			game.appendGUIOptions(Common::getGameGUIOptionsDescriptionLanguage(languages->language));
+			languages++;
+		}
+	}
+
+	return game;
 }
 
-#if PLUGIN_ENABLED_DYNAMIC(MOHAWK)
-	REGISTER_PLUGIN_DYNAMIC(MOHAWK, PLUGIN_TYPE_ENGINE, MohawkMetaEngine);
-#else
-	REGISTER_PLUGIN_STATIC(MOHAWK, PLUGIN_TYPE_ENGINE, MohawkMetaEngine);
-#endif
+REGISTER_PLUGIN_STATIC(MOHAWK_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, MohawkMetaEngineDetection);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,10 +40,6 @@ protected:
 	uint8           *_pixels;                // Pointer to logical pixel 0,0
 	uint8           *_pixels00;              // Pointer to physical pixel 0,0
 
-	// Depth Buffer
-	uint16          *_zBuffer;               // Pointer to logical pixel 0,0
-	uint8           *_zBuffer00;             // Pointer to physical pixel 0,0
-
 	// Pixel Format (also see 'Colour shifting values' later)
 	int             _bytesPerPixel;          // 2 or 4
 	int             _bitsPerPixel;           // 16 or 32
@@ -54,7 +49,6 @@ protected:
 	int32           _ox, _oy;                // Physical Pixel for Logical Origin
 	int32           _width, _height;         // Width and height
 	int32           _pitch;                  // Frame buffer pitch (bytes) (could be negated)
-	int32           _zPitch;                 // Z Buffer pitch (bytes) (could be negated)
 	bool            _flipped;
 
 	// Clipping Rectangle
@@ -65,37 +59,18 @@ protected:
 
 	Graphics::ManagedSurface *_surface;
 
-	// Renderint to a texture
-	Texture         *_rttTex;
-
 	// Create from a managed surface
 	BaseSoftRenderSurface(Graphics::ManagedSurface *);
-
-	// Create with Texture
-	BaseSoftRenderSurface(int w, int h);
-
-	// Create Generic
-	BaseSoftRenderSurface(int w, int h, int bpp, int rsft, int gsft, int bsft, int asft);
-	BaseSoftRenderSurface(int w, int h, uint8 *buf);
-	virtual ECode GenericLock()  {
-		return P_NO_ERROR;
-	}
-	virtual ECode GenericUnlock()  {
-		return P_NO_ERROR;
-	}
 
 	// Update the Pixels Pointer
 	void    SetPixelsPointer() {
 		uint8 *pix00 = _pixels00;
-		uint8 *zbuf00 = _zBuffer00;
 
 		if (_flipped) {
 			pix00 += -_pitch * (_height - 1);
-			zbuf00 += -_zPitch * (_height - 1);
 		}
 
 		_pixels = pix00 + _ox * _bytesPerPixel + _oy * _pitch;
-		_zBuffer = reinterpret_cast<uint16 *>(zbuf00 + _ox + _oy * _zPitch);
 	}
 
 public:
@@ -110,15 +85,11 @@ public:
 	// Begin painting to the buffer. MUST BE CALLED BEFORE DOING ANYTHING TO THE SURFACE!
 	// Can be called multiple times
 	// Returns Error Code on error. Check return code.....
-	ECode BeginPainting() override;
+	bool BeginPainting() override;
 
 	// Finish paining to the buffer. MUST BE CALLED FOR EACH CALL TO BeginPainting()
 	// Returns Error Code on error. Check return code.....
-	ECode EndPainting() override;
-
-	// Get the surface as a Texture. Only valid for SecondaryRenderSurfaces
-	Texture *GetSurfaceAsTexture() override;
-
+	bool EndPainting() override;
 
 	//
 	// Surface Properties
@@ -164,7 +135,7 @@ public:
 	// Get The Surface Palette
 	// TODO: virtual void GetPalette(uint8 palette[768]);
 
-	void CreateNativePalette(Palette *palette) override;
+	void CreateNativePalette(Palette *palette, int maxindex = 0) override;
 
 	Graphics::ManagedSurface *getRawSurface() const override {
 		return _surface;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -109,13 +108,23 @@ void BasePlatform::handleEvent(Common::Event *event) {
 			_gameRef->handleMouseWheel(event->type == Common::EVENT_WHEELUP ? 1 : -1);
 		}
 		break;
+	case Common::EVENT_CUSTOM_ENGINE_ACTION_START:
+		if (_gameRef) {
+			_gameRef->handleCustomActionStart((BaseGameCustomAction)event->customType);
+		}
+		break;
+	case Common::EVENT_CUSTOM_ENGINE_ACTION_END:
+		if (_gameRef) {
+			_gameRef->handleCustomActionEnd((BaseGameCustomAction)event->customType);
+		}
+		break;
 	case Common::EVENT_SCREEN_CHANGED:
 		if (_gameRef) {
 			_gameRef->_renderer->onWindowChange();
 		}
 		break;
 // Focus-events have been removed (_gameRef->onActivate originally)
-	case Common::EVENT_RTL:
+	case Common::EVENT_RETURN_TO_LAUNCHER:
 		_gameRef->_quitting = true;
 		break;
 	case Common::EVENT_QUIT:
@@ -144,25 +153,37 @@ void BasePlatform::handleEvent(Common::Event *event) {
 // Win32 API bindings
 //////////////////////////////////////////////////////////////////////////
 bool BasePlatform::getCursorPos(Point32 *lpPoint) {
+	// in 3d mode we take the mouse postion as is for now
+	// this seems to give the right results
+	// actually, BaseRenderer has no functions pointFromScreen/pointToScreen anyways
+#ifndef ENABLE_WME3D
 	BaseRenderOSystem *renderer = static_cast<BaseRenderOSystem *>(_gameRef->_renderer);
 
+#endif
 	Common::Point p = g_system->getEventManager()->getMousePos();
 	lpPoint->x = p.x;
 	lpPoint->y = p.y;
 
+#ifndef ENABLE_WME3D
 	renderer->pointFromScreen(lpPoint);
+#endif
 
 	return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
 bool BasePlatform::setCursorPos(int x, int y) {
+#ifndef ENABLE_WME3D
 	BaseRenderOSystem *renderer = static_cast<BaseRenderOSystem *>(_gameRef->_renderer);
 
+#endif
 	Point32 p;
 	p.x = x;
 	p.y = y;
+
+#ifndef ENABLE_WME3D
 	renderer->pointToScreen(&p);
+#endif
 
 	g_system->warpMouse(x, y);
 	return true;

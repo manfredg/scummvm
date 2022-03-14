@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -137,6 +136,13 @@ struct SelectorCache {
 	Selector cycleSpeed;
 	Selector owner;
 
+	Selector curPos; // for LSL6 volume sync
+	Selector update; // for LSL6 volume sync
+
+	Selector canInput; // for Phant2 restore from launcher and checking if user has input
+	Selector input;	// for checking if user has input
+	Selector controls; // for checking if user has input
+
 #ifdef ENABLE_SCI32
 	Selector data; // Used by Array()/String()
 	Selector picture; // Used to hold the picture ID for SCI32 pictures
@@ -170,8 +176,6 @@ struct SelectorCache {
 	Selector reSyncVol; // for Torin volume sync on restore
 	Selector set; // for LSL6hires subtitle sync
 	Selector clear; // for LSL6hires subtitle sync
-	Selector curPos; // for LSL6hires volume sync
-	Selector update; // for LSL6hires volume sync
 	Selector show; // for GK1 volume sync
 	Selector position; // for GK1 volume sync
 	Selector musicVolume; // for GK1 volume sync

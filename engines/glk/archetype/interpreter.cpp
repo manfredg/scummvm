@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,7 +57,7 @@ bool convert_to(AclType target_type, ResultType &the_scalar) {
 	int the_number = -1;
 	String s1;
 	void *p;
-    bool boolval = false;
+	bool boolval = false;
 
 	if (target_type == the_scalar._kind)
 		return true;
@@ -74,8 +73,8 @@ bool convert_to(AclType target_type, ResultType &the_scalar) {
 	}
 
 	switch (the_scalar._kind) {
-    case NUMERIC:
-        dir_from = 'N';
+	case NUMERIC:
+		dir_from = 'N';
 		the_number = the_scalar._data._numeric.acl_int;
 		break;
 
@@ -87,21 +86,21 @@ bool convert_to(AclType target_type, ResultType &the_scalar) {
 
 	case TEXT_LIT:
 	case QUOTE_LIT:
-        dir_from = 'S';
+		dir_from = 'S';
 		if (index_xarray(g_vm->Literals, the_scalar._data._msgTextQuote.index, p))
 			s1 = *(StringPtr)p;
 		break;
 
 	case STR_PTR:
 		// string memory will be disposed ONLY if successful convert
-        dir_from = 'S';
+		dir_from = 'S';
 		s1 = *the_scalar._data._str.acl_str;
 		break;
 
 	case IDENT:
 		//with the_scalar do begin
-        dir_from = 'S';
-        
+		dir_from = 'S';
+
 		switch (the_scalar._data._ident.ident_kind) {
 		case ENUMERATE_ID:
 			dir_from = 'N';
@@ -207,7 +206,7 @@ bool convert_to(AclType target_type, ResultType &the_scalar) {
 			}
 
 			return true;
-			
+
 		default:
 			break;
 		}

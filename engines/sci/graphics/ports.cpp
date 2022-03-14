@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -128,7 +127,7 @@ void GfxPorts::init(bool usesOldGfxFunctions, GfxPaint16 *paint16, GfxText16 *te
 	_wmgrPort->curLeft = 0;
 	_windowList.push_front(_wmgrPort);
 
-	_picWind = addWindow(Common::Rect(0, offTop, _screen->getScriptWidth(), _screen->getScriptHeight()), 0, 0, SCI_WINDOWMGR_STYLE_TRANSPARENT | SCI_WINDOWMGR_STYLE_NOFRAME, 0, true);
+	_picWind = addWindow(Common::Rect(0, offTop, _screen->getScriptWidth(), _screen->getScriptHeight()), nullptr, nullptr, SCI_WINDOWMGR_STYLE_TRANSPARENT | SCI_WINDOWMGR_STYLE_NOFRAME, 0, true);
 	// For SCI0 games till kq4 (.502 - not including) we set _picWind top to offTop instead
 	//  Because of the menu/status bar
 	if (_usesOldGfxFunctions)
@@ -210,12 +209,12 @@ reg_t GfxPorts::kernelGetActive() {
 }
 
 reg_t GfxPorts::kernelNewWindow(Common::Rect dims, Common::Rect restoreRect, uint16 style, int16 priority, int16 colorPen, int16 colorBack, const char *title) {
-	Window *wnd = NULL;
+	Window *wnd = nullptr;
 
 	if (restoreRect.bottom != 0 && restoreRect.right != 0)
 		wnd = addWindow(dims, &restoreRect, title, style, priority, false);
 	else
-		wnd = addWindow(dims, NULL, title, style, priority, false);
+		wnd = addWindow(dims, nullptr, title, style, priority, false);
 	wnd->penClr = colorPen;
 	wnd->backClr = colorBack;
 	drawWindow(wnd);
@@ -304,7 +303,7 @@ Window *GfxPorts::addWindow(const Common::Rect &dims, const Common::Rect *restor
 
 	// KQ1sci, KQ4, iceman, QfG2 always add windows to the back of the list.
 	// KQ5CD checks style.
-	// Hoyle3-demo also always adds to the back (#3036763).
+	// Hoyle3-demo also always adds to the back (#5040).
 	bool forceToBack = (getSciVersion() <= SCI_VERSION_1_EGA_ONLY) ||
 	                   (g_sci->getGameId() == GID_HOYLE3 && g_sci->isDemo());
 
@@ -394,7 +393,7 @@ Window *GfxPorts::addWindow(const Common::Rect &dims, const Common::Rect *restor
 	// invasive changes than this one, thus it's not really worth the effort
 	// for a feature that was not present in the original game, and its
 	// implementation is buggy in the first place.
-	// Adjusting the restore rect properly fixes bug #3575276.
+	// Adjusting the restore rect properly fixes bug #6154.
 
 	if (wmprect.top > pwnd->dims.top) {
 		pwnd->dims.moveTo(pwnd->dims.left, wmprect.top);
@@ -422,7 +421,7 @@ Window *GfxPorts::addWindow(const Common::Rect &dims, const Common::Rect *restor
 
 	pwnd->rect.moveTo(pwnd->rect.left + pwnd->dims.left - oldleft, pwnd->rect.top + pwnd->dims.top - oldtop);
 
-	if (restoreRect == 0)
+	if (restoreRect == nullptr)
 		pwnd->restoreRect = pwnd->dims;
 
 	if (pwnd->restoreRect.top < 0 && g_sci->getPlatform() == Common::kPlatformMacintosh &&
@@ -567,7 +566,7 @@ Port *GfxPorts::getPort() {
 }
 
 void GfxPorts::setOrigin(int16 left, int16 top) {
-	_curPort->left = left;
+	_curPort->left = left & 0xfffe; // SSCI clears the last bit
 	_curPort->top = top;
 }
 

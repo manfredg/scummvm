@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/config-manager.h"
+#include "common/events.h"
 #include "common/file.h"
 
 #include "agos/intern.h"
@@ -112,8 +112,8 @@ void AGOSEngine::setup_cond_c_helper() {
 		}
 	}
 
-	_lastHitArea = 0;
-	_hitAreaObjectItem = NULL;
+	_lastHitArea = nullptr;
+	_hitAreaObjectItem = nullptr;
 	_nameLocked = false;
 
 	last = _lastNameOn;
@@ -121,8 +121,8 @@ void AGOSEngine::setup_cond_c_helper() {
 	_lastNameOn = last;
 
 	while (!shouldQuit()) {
-		_lastHitArea = NULL;
-		_lastHitArea3 = 0;
+		_lastHitArea = nullptr;
+		_lastHitArea3 = nullptr;
 		_leftButtonDown = false;
 
 		do {
@@ -142,14 +142,14 @@ void AGOSEngine::setup_cond_c_helper() {
 			}
 
 			delay(100);
-		} while ((_lastHitArea3 == (HitArea *) -1 || _lastHitArea3 == 0) && !shouldQuit());
+		} while ((_lastHitArea3 == (HitArea *) -1 || _lastHitArea3 == nullptr) && !shouldQuit());
 
-		if (_lastHitArea == NULL) {
+		if (_lastHitArea == nullptr) {
 		} else if (_lastHitArea->id == 0x7FFB) {
 			inventoryUp(_lastHitArea->window);
 		} else if (_lastHitArea->id == 0x7FFC) {
 			inventoryDown(_lastHitArea->window);
-		} else if (_lastHitArea->itemPtr != NULL) {
+		} else if (_lastHitArea->itemPtr != nullptr) {
 			_hitAreaObjectItem = _lastHitArea->itemPtr;
 			setVerbText(_lastHitArea);
 			break;
@@ -157,9 +157,9 @@ void AGOSEngine::setup_cond_c_helper() {
 	}
 
 out_of_here:
-	_lastHitArea3 = 0;
-	_lastHitArea = 0;
-	_lastNameOn = NULL;
+	_lastHitArea3 = nullptr;
+	_lastHitArea = nullptr;
+	_lastNameOn = nullptr;
 
 	_mouseCursor = 0;
 	_noRightClick = 0;
@@ -170,11 +170,11 @@ void AGOSEngine::waitForInput() {
 	uint id;
 
 	_leftButtonDown = false;
-	_lastHitArea = 0;
+	_lastHitArea = nullptr;
 	//_lastClickRem = 0;
 	_verbHitArea = 0;
-	_hitAreaSubjectItem = NULL;
-	_hitAreaObjectItem = NULL;
+	_hitAreaSubjectItem = nullptr;
+	_hitAreaObjectItem = nullptr;
 	_clickOnly = false;
 	_nameLocked = false;
 
@@ -187,8 +187,8 @@ void AGOSEngine::waitForInput() {
 	}
 
 	while (!shouldQuit()) {
-		_lastHitArea = NULL;
-		_lastHitArea3 = NULL;
+		_lastHitArea = nullptr;
+		_lastHitArea3 = nullptr;
 		_dragAccept = true;
 
 		while (!shouldQuit()) {
@@ -200,8 +200,8 @@ void AGOSEngine::waitForInput() {
 					goto out_of_here;
 			}
 			if (_lastHitArea3 == (HitArea *) -1) {
-				_lastHitArea = NULL;
-				_lastHitArea3 = NULL;
+				_lastHitArea = nullptr;
+				_lastHitArea3 = nullptr;
 				_dragAccept = true;
 			} else {
 				if (_lastHitArea3 || _dragMode)
@@ -214,7 +214,7 @@ void AGOSEngine::waitForInput() {
 		if (!_lastHitArea3 && _dragMode) {
 			ha = _lastClickRem;
 
-			if (ha == 0 || ha->itemPtr == NULL || !(ha->flags & kBFDragBox)) {
+			if (ha == nullptr || ha->itemPtr == nullptr || !(ha->flags & kBFDragBox)) {
 				_dragFlag = false;
 				_dragMode = false;
 				_dragCount = 0;
@@ -245,7 +245,7 @@ void AGOSEngine::waitForInput() {
 
 			boxController(_mouse.x, _mouse.y, 1);
 
-			if (_currentBox != NULL) {
+			if (_currentBox != nullptr) {
 				_hitAreaObjectItem = _currentBox->itemPtr;
 				setVerbText(_currentBox);
 			}
@@ -254,7 +254,7 @@ void AGOSEngine::waitForInput() {
 		}
 
 		ha = _lastHitArea;
-		if (ha == NULL) {
+		if (ha == nullptr) {
 		} else if (ha->id == 0x7FFB) {
 			inventoryUp(ha->window);
 		} else if (ha->id == 0x7FFC) {
@@ -326,7 +326,7 @@ void AGOSEngine::waitForInput() {
 						_hitAreaSubjectItem = ha->itemPtr;
 						break;
 					}
-					if (_hitAreaSubjectItem != NULL)
+					if (_hitAreaSubjectItem != nullptr)
 						break;
 
 					if (getGameType() == GType_WW) {
@@ -368,7 +368,7 @@ void AGOSEngine::hitarea_stuff_helper() {
 		uint subr_id = (uint16)_variableArray[254];
 		if (subr_id) {
 			Subroutine *sub = getSubroutineByID(subr_id);
-			if (sub != NULL) {
+			if (sub != nullptr) {
 				startSubroutineEx(sub);
 				permitInput();
 			}
@@ -395,7 +395,7 @@ void AGOSEngine::hitarea_stuff_helper_2() {
 	subr_id = (uint16)_variableArray[249];
 	if (subr_id) {
 		sub = getSubroutineByID(subr_id);
-		if (sub != NULL) {
+		if (sub != nullptr) {
 			_variableArray[249] = 0;
 			startSubroutineEx(sub);
 			permitInput();
@@ -406,7 +406,7 @@ void AGOSEngine::hitarea_stuff_helper_2() {
 	subr_id = (uint16)_variableArray[254];
 	if (subr_id) {
 		sub = getSubroutineByID(subr_id);
-		if (sub != NULL) {
+		if (sub != nullptr) {
 			_variableArray[254] = 0;
 			startSubroutineEx(sub);
 			permitInput();
@@ -451,7 +451,7 @@ void AGOSEngine_Feeble::handleMouseWheelDown() {
 
 void AGOSEngine_Simon1::handleMouseWheelUp() {
 	HitArea *ha = findBox(206);
-	if (ha != NULL && (ha->flags & kBFBoxInUse) && !(ha->flags & kBFBoxDead)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse) && !(ha->flags & kBFBoxDead)) {
 			if (_saveLoadRowCurPos != 1) {
 				if (_saveLoadRowCurPos < 7)
 					_saveLoadRowCurPos = 1;
@@ -468,7 +468,7 @@ void AGOSEngine_Simon1::handleMouseWheelUp() {
 
 void AGOSEngine_Simon1::handleMouseWheelDown() {
 	HitArea *ha = findBox(207);
-	if (ha != NULL && (ha->flags & kBFBoxInUse) && !(ha->flags & kBFBoxDead)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse) && !(ha->flags & kBFBoxDead)) {
 			if (_saveDialogFlag) {
 				_saveLoadRowCurPos += 1;
 				if (_saveLoadRowCurPos >= _numSaveGameRows)
@@ -484,7 +484,7 @@ void AGOSEngine_Simon1::handleMouseWheelDown() {
 
 void AGOSEngine_Elvira2::handleMouseWheelUp() {
 	HitArea *ha = findBox(224);
-	if (ha != NULL && (ha->flags & kBFBoxInUse)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse)) {
 			_saveGameNameLen = 0;
 
 			if (_saveLoadRowCurPos < 3)
@@ -493,35 +493,35 @@ void AGOSEngine_Elvira2::handleMouseWheelUp() {
 				_saveLoadRowCurPos -= 3;
 
 			listSaveGames();
-	} else {
-		AGOSEngine::handleMouseWheelUp();
+	} else if ((ha = findBox(0x7FFB)) && ha->window && ha->window->iconPtr) {
+		_lastHitArea3 = _lastHitArea = ha;
 	}
 }
 
 void AGOSEngine_Elvira2::handleMouseWheelDown() {
 	HitArea *ha =  findBox(224);
-	if (ha != NULL && (ha->flags & kBFBoxInUse)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse)) {
 			_saveGameNameLen = 0;
 			_saveLoadRowCurPos += 3;
 			if (_saveLoadRowCurPos >= _numSaveGameRows)
 				_saveLoadRowCurPos = 1;
 
 			listSaveGames();
-	} else {
-		AGOSEngine::handleMouseWheelDown();
+	} else if ((ha = findBox(0x7FFC)) && ha->window && ha->window->iconPtr) {
+		_lastHitArea3 = _lastHitArea = ha;
 	}
 }
 
 void AGOSEngine::handleMouseWheelUp() {
 	HitArea *ha = findBox(0x7FFB);
-	if (ha != NULL && (ha->flags & kBFBoxInUse)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse) && !(getGameId() == GID_ELVIRA1 && _windowNum == 3)) {
 		inventoryUp(ha->window);
 	}
 }
 
 void AGOSEngine::handleMouseWheelDown() {
 	HitArea *ha = findBox(0x7FFC);
-	if (ha != NULL && (ha->flags & kBFBoxInUse)) {
+	if (ha != nullptr && (ha->flags & kBFBoxInUse) && !(getGameId() == GID_ELVIRA1 && _windowNum == 3)) {
 		inventoryDown(ha->window);
 	}
 }

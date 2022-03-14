@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-#define FORBIDDEN_SYMBOL_EXCEPTION_getcwd
 
 #if defined(WIN32) && !defined(__SYMBIAN32__)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <direct.h>
+#include "backends/platform/sdl/win32/win32_wrapper.h"
 #endif
 
 #include "engines/engine.h"
@@ -38,6 +35,7 @@
 #include "common/file.h"
 #include "common/system.h"
 #include "common/str.h"
+#include "common/ustr.h"
 #include "common/error.h"
 #include "common/list.h"
 #include "common/memstream.h"
@@ -48,6 +46,7 @@
 #include "common/translation.h"
 #include "common/singleton.h"
 
+#include "backends/audiocd/audiocd.h"
 #include "backends/keymapper/action.h"
 #include "backends/keymapper/keymapper.h"
 #include "base/version.h"
@@ -55,6 +54,7 @@
 #include "gui/gui-manager.h"
 #include "gui/debugger.h"
 #include "gui/dialog.h"
+#include "gui/EventRecorder.h"
 #include "gui/message.h"
 #include "gui/saveload.h"
 
@@ -65,9 +65,7 @@
 #include "graphics/pixelformat.h"
 #include "image/bmp.h"
 
-#ifdef USE_TTS
 #include "common/text-to-speech.h"
-#endif
 
 // FIXME: HACK for error()
 Engine *g_engine = 0;
@@ -82,7 +80,9 @@ static void defaultOutputFormatter(char *dst, const char *src, size_t dstSize) {
 	}
 }
 
-static void defaultErrorHandler(const char *msg) {
+static bool defaultErrorHandler(const char *msg) {
+	bool handled = false;
+
 	// Unless this error -originated- within the debugger itself, we
 	// now invoke the debugger, if available / supported.
 	if (g_engine) {
@@ -95,6 +95,7 @@ static void defaultErrorHandler(const char *msg) {
 		if (debugger && !debugger->isActive()) {
 			debugger->attach(msg);
 			debugger->onFrame();
+			handled = true;
 		}
 
 
@@ -103,6 +104,8 @@ static void defaultErrorHandler(const char *msg) {
 #endif
 
 	}
+
+	return handled;
 }
 
 // Chained games manager
@@ -146,6 +149,7 @@ Engine::Engine(OSystem *syst)
 		_pauseLevel(0),
 		_pauseStartTime(0),
 		_saveSlotToLoad(-1),
+		_autoSaving(false),
 		_engineStartTime(_system->getMillis()),
 		_mainMenuDialog(NULL),
 		_debugger(NULL),
@@ -216,6 +220,9 @@ void initCommonGFX() {
 		if (gameDomain->contains("stretch_mode"))
 			g_system->setStretchMode(ConfMan.get("stretch_mode").c_str());
 
+		if (gameDomain->contains("scaler") || gameDomain->contains("scale_factor"))
+			g_system->setScaler(ConfMan.get("scaler").c_str(), ConfMan.getInt("scale_factor"));
+
 		if (gameDomain->contains("shader"))
 			g_system->setShader(ConfMan.get("shader").c_str());
 	}
@@ -242,30 +249,47 @@ void splashScreen() {
 	}
 
 	g_system->showOverlay();
+	float scaleFactor = g_system->getHiDPIScreenFactor();
+	int16 overlayWidth = g_system->getOverlayWidth();
+	int16 overlayHeight = g_system->getOverlayHeight();
+	int16 scaledW = (int16)(overlayWidth / scaleFactor);
+	int16 scaledH = (int16)(overlayHeight / scaleFactor);
 
 	// Fill with orange
 	Graphics::Surface screen;
-	screen.create(g_system->getOverlayWidth(), g_system->getOverlayHeight(), g_system->getOverlayFormat());
+	screen.create(scaledW, scaledH, g_system->getOverlayFormat());
 	screen.fillRect(Common::Rect(screen.w, screen.h), screen.format.ARGBToColor(0xff, 0xcc, 0x66, 0x00));
-
-	// Load logo
-	Graphics::Surface *logo = bitmap.getSurface()->convertTo(g_system->getOverlayFormat(), bitmap.getPalette());
-	int lx = MAX((g_system->getOverlayWidth() - logo->w) / 2, 0);
-	int ly = MAX((g_system->getOverlayHeight() - logo->h) / 2, 0);
 
 	// Print version information
 	const Graphics::Font *font = FontMan.getFontByUsage(Graphics::FontManager::kConsoleFont);
 	int w = font->getStringWidth(gScummVMVersionDate);
-	int x = g_system->getOverlayWidth() - w - 5; // lx + logo->w - w + 5;
-	int y = g_system->getOverlayHeight() - font->getFontHeight() - 5; //ly + logo->h + 5;
+	int x = screen.w - w - 5;
+	int y = screen.h - font->getFontHeight() - 5;
 	font->drawString(&screen, gScummVMVersionDate, x, y, w, screen.format.ARGBToColor(0xff, 0, 0, 0));
 
-	g_system->copyRectToOverlay(screen.getPixels(), screen.pitch, 0, 0, screen.w, screen.h);
+	// Scale if needed and copy to overlay
+	if (screen.w != overlayWidth) {
+		Graphics::Surface *scaledScreen = screen.scale(overlayWidth, overlayHeight, false);
+		g_system->copyRectToOverlay(scaledScreen->getPixels(), scaledScreen->pitch, 0, 0, scaledScreen->w, scaledScreen->h);
+		scaledScreen->free();
+		delete scaledScreen;
+	} else
+		g_system->copyRectToOverlay(screen.getPixels(), screen.pitch, 0, 0, screen.w, screen.h);
 	screen.free();
 
 	// Draw logo
-	int lw = MIN<uint16>(logo->w, g_system->getOverlayWidth() - lx);
-	int lh = MIN<uint16>(logo->h, g_system->getOverlayHeight() - ly);
+	Graphics::Surface *logo = bitmap.getSurface()->convertTo(g_system->getOverlayFormat(), bitmap.getPalette());
+	if (scaleFactor != 1.0f) {
+		Graphics::Surface *tmp = logo->scale(int16(logo->w * scaleFactor), int16(logo->h * scaleFactor), true);
+		logo->free();
+		delete logo;
+		logo = tmp;
+	}
+
+	int lx = MAX((overlayWidth - logo->w) / 2, 0);
+	int ly = MAX((overlayHeight - logo->h) / 2, 0);
+	int lw = MIN<uint16>(logo->w, overlayWidth - lx);
+	int lh = MIN<uint16>(logo->h, overlayHeight - ly);
 
 	g_system->copyRectToOverlay(logo->getPixels(), logo->pitch, lx, ly, lw, lh);
 	logo->free();
@@ -318,17 +342,17 @@ void initGraphics(int width, int height, const Graphics::PixelFormat *format) {
 
 	// Error out on size switch failure
 	if (gfxError & OSystem::kTransactionSizeChangeFailed) {
-		Common::String message;
-		message = Common::String::format(_("Could not switch to resolution '%dx%d'."), width, height);
+		Common::U32String message;
+		message = Common::U32String::format(_("Could not switch to resolution '%dx%d'."), width, height);
 
 		GUIErrorMessage(message);
-		error("%s", message.c_str());
+		error("Could not switch to resolution '%dx%d'.", width, height);
 	}
 
 	// Just show warnings then these occur:
 #ifdef USE_RGB_COLOR
 	if (gfxError & OSystem::kTransactionFormatNotSupported) {
-		Common::String message = _("Could not initialize color format.");
+		Common::U32String message = _("Could not initialize color format.");
 
 		GUI::MessageDialog dialog(message);
 		dialog.runModal();
@@ -336,16 +360,16 @@ void initGraphics(int width, int height, const Graphics::PixelFormat *format) {
 #endif
 
 	if (gfxError & OSystem::kTransactionModeSwitchFailed) {
-		Common::String message;
-		message = Common::String::format(_("Could not switch to video mode '%s'."), ConfMan.get("gfx_mode").c_str());
+		Common::U32String message;
+		message = Common::U32String::format(_("Could not switch to video mode '%s'."), ConfMan.get("gfx_mode").c_str());
 
 		GUI::MessageDialog dialog(message);
 		dialog.runModal();
 	}
 
 	if (gfxError & OSystem::kTransactionStretchModeSwitchFailed) {
-		Common::String message;
-		message = Common::String::format(_("Could not switch to stretch mode '%s'."), ConfMan.get("stretch_mode").c_str());
+		Common::U32String message;
+		message = Common::U32String::format(_("Could not switch to stretch mode '%s'."), ConfMan.get("stretch_mode").c_str());
 
 		GUI::MessageDialog dialog(message);
 		dialog.runModal();
@@ -398,16 +422,42 @@ void initGraphics(int width, int height) {
 	initGraphics(width, height, &format);
 }
 
-void GUIErrorMessage(const Common::String &msg) {
-	g_system->setWindowCaption("Error");
+void initGraphics3d(int width, int height) {
+	g_system->beginGFXTransaction();
+		g_system->setGraphicsMode(0, OSystem::kGfxModeRender3d);
+		g_system->initSize(width, height);
+		g_system->setFeatureState(OSystem::kFeatureFullscreenMode, ConfMan.getBool("fullscreen")); // TODO: Replace this with initCommonGFX()
+		g_system->setFeatureState(OSystem::kFeatureAspectRatioCorrection, ConfMan.getBool("aspect_ratio")); // TODO: Replace this with initCommonGFX()
+	g_system->endGFXTransaction();
+}
+
+void GUIErrorMessageWithURL(const Common::U32String &msg, const char *url) {
+	GUIErrorMessage(msg, url);
+}
+
+void GUIErrorMessageWithURL(const Common::String &msg, const char *url) {
+	GUIErrorMessage(Common::U32String(msg), url);
+}
+
+void GUIErrorMessage(const Common::String &msg, const char *url) {
+	GUIErrorMessage(Common::U32String(msg), url);
+}
+
+void GUIErrorMessage(const Common::U32String &msg, const char *url) {
+	g_system->setWindowCaption(_("Error"));
 	g_system->beginGFXTransaction();
 		initCommonGFX();
 		g_system->initSize(320, 200);
 	if (g_system->endGFXTransaction() == OSystem::kTransactionSuccess) {
-		GUI::MessageDialog dialog(msg);
-		dialog.runModal();
+		if (url) {
+			GUI::MessageDialogWithURL dialog(msg, url);
+			dialog.runModal();
+		} else {
+			GUI::MessageDialog dialog(msg);
+			dialog.runModal();
+		}
 	} else {
-		error("%s", msg.c_str());
+		error("%s", msg.encode().c_str());
 	}
 }
 
@@ -422,7 +472,33 @@ void GUIErrorMessageFormat(const char *fmt, ...) {
 	GUIErrorMessage(msg);
 }
 
-void Engine::checkCD() {
+void GUIErrorMessageFormat(Common::U32String fmt, ...) {
+	Common::U32String msg("");
+
+	va_list va;
+	va_start(va, fmt);
+	Common::U32String::vformat(fmt.begin(), fmt.end(), msg, va);
+	va_end(va);
+
+	GUIErrorMessage(msg);
+}
+
+/**
+ * Checks if supported (extracted) audio files are found.
+ *
+ * @return			true if audio files of the expected naming scheme are found, as long as ScummVM
+ *					is also built with support to the respective audio format (eg. ogg, flac, mad/mp3)
+ */
+bool Engine::existExtractedCDAudioFiles(uint track) {
+	return g_system->getAudioCDManager()->existExtractedCDAudioFiles(track);
+}
+
+/**
+ * Displays a warning on Windows version of ScummVM, if game data
+ * are read from the same CD drive which should also play game CD audio.
+ * @return			true, if this case is applicable and the warning is displayed
+ */
+bool Engine::isDataAndCDAudioReadFromSameCD() {
 #if defined(WIN32) && !defined(__SYMBIAN32__)
 	// It is a known bug under Windows that games that play CD audio cause
 	// ScummVM to crash if the data files are read from the same CD. Check
@@ -430,68 +506,59 @@ void Engine::checkCD() {
 
 	// If we can find a compressed audio track, then it should be ok even
 	// if it's running from CD.
-
-#ifdef USE_VORBIS
-	if (Common::File::exists("track1.ogg") ||
-	    Common::File::exists("track01.ogg"))
-		return;
-#endif
-#ifdef USE_FLAC
-	if (Common::File::exists("track1.fla") ||
-            Common::File::exists("track1.flac") ||
-	    Common::File::exists("track01.fla") ||
-	    Common::File::exists("track01.flac"))
-		return;
-#endif
-#ifdef USE_MAD
-	if (Common::File::exists("track1.mp3") ||
-	    Common::File::exists("track01.mp3"))
-		return;
-#endif
-
-	char buffer[MAXPATHLEN];
-	int i;
-
+	char driveLetter;
 	const Common::FSNode gameDataDir(ConfMan.get("path"));
-
-	if (gameDataDir.getPath().empty()) {
+	if (!gameDataDir.getPath().empty()) {
+		driveLetter = gameDataDir.getPath()[0];
+	} else {
 		// That's it! I give up!
-		if (getcwd(buffer, MAXPATHLEN) == NULL)
-			return;
-	} else
-		Common::strlcpy(buffer, gameDataDir.getPath().c_str(), sizeof(buffer));
-
-	for (i = 0; i < MAXPATHLEN - 1; i++) {
-		if (buffer[i] == '\\')
-			break;
+		Common::FSNode currentDir(".");
+		if (!currentDir.getPath().empty()) {
+			driveLetter = currentDir.getPath()[0];
+		} else {
+			return false;
+		}
 	}
 
-	buffer[i + 1] = 0;
-
-	if (GetDriveType(buffer) == DRIVE_CDROM) {
+	if (Win32::isDriveCD(driveLetter)) {
 		GUI::MessageDialog dialog(
 			_("You appear to be playing this game directly\n"
 			"from the CD. This is known to cause problems,\n"
 			"and it is therefore recommended that you copy\n"
 			"the data files to your hard disk instead.\n"
-			"See the README file for details."), _("OK"));
+			"See the documentation (CD audio) for details."), _("OK"));
 		dialog.runModal();
-	} else {
-		// If we reached here, the game has audio tracks,
-		// it's not ran from the CD and the tracks have not
-		// been ripped.
-		GUI::MessageDialog dialog(
-			_("This game has audio tracks in its disk. These\n"
-			"tracks need to be ripped from the disk using\n"
-			"an appropriate CD audio extracting tool in\n"
-			"order to listen to the game's music.\n"
-			"See the README file for details."), _("OK"));
-		dialog.runModal();
+		return true;
 	}
-#endif
+#endif // defined(WIN32) && !defined(__SYMBIAN32__)
+	return false;
+}
+
+/**
+ * Displays a warning, for the case when the game has CD audio but
+ * no extracted (ripped) audio files were found.
+ *
+ * This method only shows the warning. It does not check for the
+ * existence of the ripped audio files.
+ */
+void Engine::warnMissingExtractedCDAudio() {
+	// Display a modal informative dialogue for the case when:
+	// - The game has audio tracks,
+	// - and the tracks have not been ripped.
+	GUI::MessageDialog dialog(
+		_("This game has audio tracks on its CD. These\n"
+		"tracks need to be ripped from the CD using\n"
+		"an appropriate CD audio extracting tool in\n"
+		"order to listen to the game's music.\n"
+		"See the documentation (CD audio) for details."), _("OK"));
+	dialog.runModal();
 }
 
 void Engine::handleAutoSave() {
+#ifdef ENABLE_EVENTRECORDER
+	if (!g_eventRec.processAutosave())
+		return;
+#endif
 	const int diff = _system->getMillis() - _lastAutosaveTime;
 
 	if (_autosaveInterval != 0 && diff > (_autosaveInterval * 1000)) {
@@ -500,51 +567,94 @@ void Engine::handleAutoSave() {
 	}
 }
 
+bool Engine::warnBeforeOverwritingAutosave() {
+	SaveStateDescriptor desc = getMetaEngine()->querySaveMetaInfos(
+		_targetName.c_str(), getAutosaveSlot());
+	if (!desc.isValid() || desc.hasAutosaveName())
+		return true;
+	Common::U32StringArray altButtons;
+	altButtons.push_back(_("Overwrite"));
+	altButtons.push_back(_("Cancel autosave"));
+	const Common::U32String message = Common::U32String::format(
+				_("WARNING: The autosave slot has a saved game named %S. "
+				  "You can either move the existing save to a new slot, "
+				  "Overwrite the existing save, "
+				  "or cancel autosave (will not prompt again until restart)"), desc.getDescription().c_str());
+	GUI::MessageDialog warn(message, _("Move"), altButtons);
+	switch (runDialog(warn)) {
+	case GUI::kMessageOK:
+		if (!getMetaEngine()->copySaveFileToFreeSlot(_targetName.c_str(), getAutosaveSlot())) {
+			GUI::MessageDialog error(_("ERROR: Could not copy the savegame to a new slot"));
+			error.runModal();
+			return false;
+		}
+		return true;
+	case GUI::kMessageAlt: // Overwrite
+		return true;
+	case GUI::kMessageAlt + 1: // Cancel autosave
+		_autosaveInterval = 0;
+		return false;
+	default: // Hitting Escape returns -1. On this case, don't save but do prompt again later.
+		return false;
+	}
+}
+
 void Engine::saveAutosaveIfEnabled() {
-	if (_autosaveInterval != 0) {
-		bool saveFlag = canSaveAutosaveCurrently();
+	// Prevents recursive calls if saving the game causes the engine to poll events
+	// (as is the case with the AGS engine for example, or when showing a prompt).
+	if (_autoSaving || _autosaveInterval == 0)
+		return;
+	const int autoSaveSlot = getAutosaveSlot();
+	if (autoSaveSlot < 0)
+		return;
+	_autoSaving = true;
 
-		if (saveFlag) {
-			// First check for an existing savegame in the slot, and if present, if it's an autosave
-			SaveStateDescriptor desc = getMetaEngine().querySaveMetaInfos(
-				_targetName.c_str(), getAutosaveSlot());
-			saveFlag = desc.getSaveSlot() == -1 || desc.isAutosave();
-		}
+	bool saveFlag = canSaveAutosaveCurrently();
+	const Common::String autoSaveName = Common::convertFromU32String(_("Autosave"));
 
-		if (saveFlag && saveGameState(getAutosaveSlot(), _("Autosave"), true).getCode() != Common::kNoError) {
-			// Couldn't autosave at the designated time
-			g_system->displayMessageOnOSD(_("Error occurred making autosave"));
-			saveFlag = false;
-		}
+	// First check for an existing savegame in the slot, and if present, if it's an autosave
+	if (saveFlag)
+		saveFlag = warnBeforeOverwritingAutosave();
 
-		if (!saveFlag) {
-			// Set the next autosave interval to be in 5 minutes, rather than whatever
-			// full autosave interval the user has selected
-			_lastAutosaveTime = _system->getMillis() + (5 * 60 * 1000) - _autosaveInterval;
-			return;
-		}
+	if (saveFlag && saveGameState(autoSaveSlot, autoSaveName, true).getCode() != Common::kNoError) {
+		// Couldn't autosave at the designated time
+		g_system->displayMessageOnOSD(_("Error occurred making autosave"));
+		saveFlag = false;
 	}
 
-	// Reset the last autosave time
-	_lastAutosaveTime = _system->getMillis();
+	if (saveFlag) {
+		_lastAutosaveTime = _system->getMillis();
+	} else {
+		// Set the next autosave interval to be in 5 minutes, rather than whatever
+		// full autosave interval the user has selected
+		_lastAutosaveTime += ((5 * 60 - _autosaveInterval) * 1000);
+	}
+	_autoSaving = false;
 }
 
 void Engine::errorString(const char *buf1, char *buf2, int size) {
 	Common::strlcpy(buf2, buf1, size);
 }
 
-void Engine::pauseEngine(bool pause) {
-	assert((pause && _pauseLevel >= 0) || (!pause && _pauseLevel));
+PauseToken Engine::pauseEngine() {
+	assert(_pauseLevel >= 0);
 
-	if (pause)
-		_pauseLevel++;
-	else
-		_pauseLevel--;
+	_pauseLevel++;
 
-	if (_pauseLevel == 1 && pause) {
+	if (_pauseLevel == 1) {
 		_pauseStartTime = _system->getMillis();
 		pauseEngineIntern(true);
-	} else if (_pauseLevel == 0) {
+	}
+
+	return PauseToken(this);
+}
+
+void Engine::resumeEngine() {
+	assert(_pauseLevel > 0);
+
+	_pauseLevel--;
+
+	if (_pauseLevel == 0) {
 		pauseEngineIntern(false);
 		_engineStartTime += _system->getMillis() - _pauseStartTime;
 		_pauseStartTime = 0;
@@ -559,24 +669,31 @@ void Engine::pauseEngineIntern(bool pause) {
 void Engine::openMainMenuDialog() {
 	if (!_mainMenuDialog)
 		_mainMenuDialog = new MainMenuDialog(this);
-#ifdef USE_TTS
 	Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
-	ttsMan->pushState();
-	g_gui.initTextToSpeech();
-#endif
+	if (ttsMan != nullptr) {
+		ttsMan->pushState();
+		g_gui.initTextToSpeech();
+	}
 
 	setGameToLoadSlot(-1);
 
+	bool hasVKeyb = g_system->getFeatureState(OSystem::kFeatureVirtualKeyboard);
+	if (hasVKeyb)
+		g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
+
 	runDialog(*_mainMenuDialog);
+
+	if (hasVKeyb)
+		g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, true);
 
 	// Load savegame after main menu execution
 	// (not from inside the menu loop to avoid
 	// mouse cursor glitches and similar bugs,
-	// e.g. #2822778).
+	// e.g. #4420).
 	if (_saveSlotToLoad >= 0) {
 		Common::Error status = loadGameState(_saveSlotToLoad);
 		if (status.getCode() != Common::kNoError) {
-			Common::String failMessage = Common::String::format(_("Failed to load saved game (%s)! "
+			Common::U32String failMessage = Common::U32String::format(_("Failed to load saved game (%s)! "
 				  "Please consult the README for basic information, and for "
 				  "instructions on how to obtain further assistance."), status.getDesc().c_str());
 			GUI::MessageDialog dialog(failMessage);
@@ -584,21 +701,31 @@ void Engine::openMainMenuDialog() {
 		}
 	}
 
+	if (ttsMan != nullptr)
+		ttsMan->popState();
+
+	g_system->applyBackendSettings();
+	applyGameSettings();
 	syncSoundSettings();
-#ifdef USE_TTS
-	ttsMan->popState();
-#endif
 }
 
-bool Engine::warnUserAboutUnsupportedGame() {
+bool Engine::warnUserAboutUnsupportedGame(Common::String msg) {
 	if (ConfMan.getBool("enable_unsupported_game_warning")) {
-		GUI::MessageDialog alert(_("WARNING: The game you are about to start is"
+		GUI::MessageDialog alert(!msg.empty() ? _("WARNING: ") + Common::U32String(msg) + _(" Shall we still run the game?") :
+				 _("WARNING: The game you are about to start is"
 			" not yet fully supported by ScummVM. As such, it is likely to be"
 			" unstable, and any saved game you make might not work in future"
 			" versions of ScummVM."), _("Start anyway"), _("Cancel"));
 		return alert.runModal() == GUI::kMessageOK;
 	}
 	return true;
+}
+
+void Engine::errorUnsupportedGame(Common::String extraMsg) {
+	Common::String message = extraMsg.empty() ? _("This game is not supported.") : _("This game is not supported for the following reason:\n\n");
+	message += _(extraMsg);
+	message += "\n\n";
+	GUI::MessageDialog(message).runModal();
 }
 
 uint32 Engine::getTotalPlayTime() const {
@@ -620,9 +747,8 @@ void Engine::setTotalPlayTime(uint32 time) {
 }
 
 int Engine::runDialog(GUI::Dialog &dialog) {
-	pauseEngine(true);
+	PauseToken pt = pauseEngine();
 	int result = dialog.runModal();
-	pauseEngine(false);
 
 	return result;
 }
@@ -714,7 +840,7 @@ Common::Error Engine::saveGameState(int slot, const Common::String &desc, bool i
 
 	Common::Error result = saveGameStream(saveFile, isAutosave);
 	if (result.getCode() == Common::kNoError) {
-		MetaEngine::appendExtendedSave(saveFile, getTotalPlayTime() / 1000, desc, isAutosave);
+		getMetaEngine()->appendExtendedSave(saveFile, getTotalPlayTime() / 1000, desc, isAutosave);
 
 		saveFile->finalize();
 	}
@@ -740,9 +866,13 @@ bool Engine::loadGameDialog() {
 	}
 
 	GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Load game:"), _("Load"), false);
-	pauseEngine(true);
-	int slotNum = dialog->runModalWithCurrentTarget();
-	pauseEngine(false);
+
+	int slotNum;
+	{
+		PauseToken pt = pauseEngine();
+		slotNum = dialog->runModalWithCurrentTarget();
+	}
+
 	delete dialog;
 
 	if (slotNum < 0)
@@ -765,9 +895,11 @@ bool Engine::saveGameDialog() {
 	}
 
 	GUI::SaveLoadChooser *dialog = new GUI::SaveLoadChooser(_("Save game:"), _("Save"), true);
-	pauseEngine(true);
-	int slotNum = dialog->runModalWithCurrentTarget();
-	pauseEngine(false);
+	int slotNum;
+	{
+		PauseToken pt = pauseEngine();
+		slotNum = dialog->runModalWithCurrentTarget();
+	}
 
 	Common::String desc = dialog->getResultString();
 	if (desc.empty())
@@ -797,7 +929,7 @@ void Engine::quitGame() {
 
 bool Engine::shouldQuit() {
 	Common::EventManager *eventMan = g_system->getEventManager();
-	return (eventMan->shouldQuit() || eventMan->shouldRTL());
+	return (eventMan->shouldQuit() || eventMan->shouldReturnToLauncher());
 }
 
 GUI::Debugger *Engine::getOrCreateDebugger() {
@@ -816,8 +948,56 @@ EnginePlugin *Engine::getMetaEnginePlugin() const {
 
 */
 
-MetaEngine &Engine::getMetaEngine() {
+MetaEngineDetection &Engine::getMetaEngineDetection() {
 	const Plugin *plugin = EngineMan.findPlugin(ConfMan.get("engineid"));
 	assert(plugin);
-	return plugin->get<MetaEngine>();
+	return plugin->get<MetaEngineDetection>();
 }
+
+PauseToken::PauseToken() : _engine(nullptr) {}
+
+PauseToken::PauseToken(Engine *engine) : _engine(engine) {}
+
+void PauseToken::operator=(const PauseToken &t2) {
+	if (_engine) {
+		error("Tried to assign to an already busy PauseToken");
+	}
+	_engine = t2._engine;
+	if (_engine) {
+		_engine->_pauseLevel++;
+	}
+}
+
+PauseToken::PauseToken(const PauseToken &t2) : _engine(t2._engine) {
+	if (_engine) {
+		_engine->_pauseLevel++;
+	}
+}
+
+void PauseToken::clear() {
+	if (!_engine) {
+		error("Tried to clear an already cleared PauseToken");
+	}
+	_engine->resumeEngine();
+	_engine = nullptr;
+}
+
+PauseToken::~PauseToken() {
+	if (_engine) {
+		_engine->resumeEngine();
+	}
+}
+
+#if __cplusplus >= 201103L
+PauseToken::PauseToken(PauseToken &&t2) : _engine(t2._engine) {
+	t2._engine = nullptr;
+}
+
+void PauseToken::operator=(PauseToken &&t2) {
+	if (_engine) {
+		error("Tried to assign to an already busy PauseToken");
+	}
+	_engine = t2._engine;
+	t2._engine = nullptr;
+}
+#endif

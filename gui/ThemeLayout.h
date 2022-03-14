@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,8 @@
 #include "common/array.h"
 #include "common/rect.h"
 #include "graphics/font.h"
+
+//#define LAYOUT_DEBUG_DIALOG "Dialog.Launcher"
 
 #ifdef LAYOUT_DEBUG_DIALOG
 namespace Graphics {
@@ -63,7 +64,7 @@ public:
 	ThemeLayout(ThemeLayout *p) :
 		_parent(p), _x(0), _y(0), _w(-1), _h(-1),
 		_defaultW(-1), _defaultH(-1),
-		_textHAlign(Graphics::kTextAlignInvalid) {}
+		_textHAlign(Graphics::kTextAlignInvalid), _useRTL(true) {}
 
 	virtual ~ThemeLayout() {
 		for (uint i = 0; i < _children.size(); ++i)
@@ -114,7 +115,8 @@ protected:
 	virtual ThemeLayout *makeClone(ThemeLayout *newParent) = 0;
 
 public:
-	virtual bool getWidgetData(const Common::String &name, int16 &x, int16 &y, uint16 &w, uint16 &h);
+	virtual bool getWidgetData(const Common::String &name, int16 &x, int16 &y, int16 &w, int16 &h, bool &useRTL);
+	bool getUseRTL() { return _useRTL; }
 
 	virtual Graphics::TextAlign getWidgetTextHAlign(const Common::String &name);
 
@@ -123,14 +125,14 @@ public:
 	Graphics::TextAlign getTextHAlign() { return _textHAlign; }
 
 #ifdef LAYOUT_DEBUG_DIALOG
-	void debugDraw(Graphics::Surface *screen, const Graphics::Font *font);
-
-	virtual const char *getName() const = 0;
+	void debugDraw(Graphics::ManagedSurface *screen, const Graphics::Font *font);
 #endif
+	virtual const char *getName() const { return "<override-me>"; }
 
 protected:
 	ThemeLayout *_parent;
 	int16 _x, _y, _w, _h;
+	bool _useRTL;
 	Common::Rect _padding;
 	Common::Array<ThemeLayout *> _children;
 	int16 _defaultW, _defaultH;
@@ -139,11 +141,10 @@ protected:
 
 class ThemeLayoutMain : public ThemeLayout {
 public:
-	ThemeLayoutMain(const Common::String &name, const Common::String &overlays, int16 width, int16 height, bool enabled, int inset) :
+	ThemeLayoutMain(const Common::String &name, const Common::String &overlays, int16 width, int16 height, int inset) :
 			ThemeLayout(nullptr),
 			_name(name),
 			_overlays(overlays),
-			_enabled(enabled),
 			_inset(inset) {
 		_w = _defaultW = width;
 		_h = _defaultH = height;
@@ -158,7 +159,7 @@ public:
 		_y = _defaultY;
 	}
 
-	const char *getName() const { return _name.c_str(); }
+	virtual const char *getName() const override { return _name.c_str(); }
 
 protected:
 	LayoutType getLayoutType() const override { return kLayoutMain; }
@@ -169,7 +170,6 @@ protected:
 
 	Common::String _name;
 	Common::String _overlays;
-	bool _enabled;
 	int _inset;
 };
 
@@ -192,7 +192,7 @@ public:
 	void reflowLayoutVertical(Widget *widgetChain);
 
 #ifdef LAYOUT_DEBUG_DIALOG
-	const char *getName() const {
+	const char *getName() const override {
 		return (_type == kLayoutVertical)
 			? "Vertical Layout" : "Horizontal Layout";
 	}
@@ -221,19 +221,20 @@ protected:
 
 class ThemeLayoutWidget : public ThemeLayout {
 public:
-	ThemeLayoutWidget(ThemeLayout *p, const Common::String &name, int16 w, int16 h, Graphics::TextAlign align) : ThemeLayout(p), _name(name) {
+	ThemeLayoutWidget(ThemeLayout *p, const Common::String &name, int16 w, int16 h, Graphics::TextAlign align, bool useRTL) : ThemeLayout(p), _name(name) {
 		_w = _defaultW = w;
 		_h = _defaultH = h;
+		_useRTL = useRTL;
 
 		setTextHAlign(align);
 	}
 
-	bool getWidgetData(const Common::String &name, int16 &x, int16 &y, uint16 &w, uint16 &h) override;
+	bool getWidgetData(const Common::String &name, int16 &x, int16 &y, int16 &w, int16 &h, bool &useRTL) override;
 	Graphics::TextAlign getWidgetTextHAlign(const Common::String &name) override;
 
 	void reflowLayout(Widget *widgetChain) override;
 
-	virtual const char *getName() const { return _name.c_str(); }
+	virtual const char *getName() const override { return _name.c_str(); }
 
 protected:
 	LayoutType getLayoutType() const override { return kLayoutWidget; }
@@ -255,7 +256,7 @@ class ThemeLayoutTabWidget : public ThemeLayoutWidget {
 
 public:
 	ThemeLayoutTabWidget(ThemeLayout *p, const Common::String &name, int16 w, int16 h, Graphics::TextAlign align, int tabHeight):
-		ThemeLayoutWidget(p, name, w, h, align) {
+		ThemeLayoutWidget(p, name, w, h, align, p->getUseRTL()) {
 		_tabHeight = tabHeight;
 	}
 
@@ -265,8 +266,8 @@ public:
 		}
 	}
 
-	bool getWidgetData(const Common::String &name, int16 &x, int16 &y, uint16 &w, uint16 &h) override {
-		if (ThemeLayoutWidget::getWidgetData(name, x, y, w, h)) {
+	bool getWidgetData(const Common::String &name, int16 &x, int16 &y, int16 &w, int16 &h, bool &useRTL) override {
+		if (ThemeLayoutWidget::getWidgetData(name, x, y, w, h, useRTL)) {
 			h -= _tabHeight;
 			return true;
 		}
@@ -296,10 +297,10 @@ public:
 		}
 	}
 
-	bool getWidgetData(const Common::String &name, int16 &x, int16 &y, uint16 &w, uint16 &h) override { return false; }
+	bool getWidgetData(const Common::String &name, int16 &x, int16 &y, int16 &w, int16 &h, bool &useRTL) override { return false; }
 	void reflowLayout(Widget *widgetChain) override {}
 #ifdef LAYOUT_DEBUG_DIALOG
-	const char *getName() const { return "SPACE"; }
+	const char *getName() const override { return "SPACE"; }
 #endif
 
 protected:

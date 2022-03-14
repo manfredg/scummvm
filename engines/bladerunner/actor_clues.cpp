@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,7 +70,7 @@ void ActorClues::acquire(int clueId, bool flag2, int fromActorId) {
 		return;
 	} else {
 		_clues[clueIndex].flags |= 0x01;
-		_clues[clueIndex].flags = (_clues[clueIndex].flags & ~0x02) | ((flag2 << 1) & 0x02);
+		_clues[clueIndex].flags = (_clues[clueIndex].flags & ~0x02) | (((flag2? 1:0) << 1) & 0x02);
 		_clues[clueIndex].fromActorId = fromActorId;
 	// debug("Actor acquired clue: \"%s\" from %d", _vm->_crimesDatabase->getClueText(clueId), fromActorId);
 	}
@@ -105,10 +104,11 @@ int ActorClues::getWeight(int clueId) const {
 
 int ActorClues::getModifier(int actorId, int otherActorId, int clueId) {
 	Actor *actor = _vm->_actors[actorId];
+	Actor *otherActor = _vm->_actors[otherActorId];
 	int modifier1, modifier2, modifier3, modifier4;
 
 	int friendliness = actor->getFriendlinessToOther(otherActorId);
-	int clueWeight = actor->_clues->getWeight(clueId);
+	int clueWeight = otherActor->_clues->getWeight(clueId);
 
 	if (actor->_clues->isFlag2(clueId)) {
 		modifier1 = 100 - actor->getHonesty() - friendliness;
@@ -216,7 +216,7 @@ void ActorClues::acquireCluesByRelations(int actorId, int otherActorId) {
 	}
 }
 
-int ActorClues::findAcquirableCluesFromActor(int actorId, int targetActorId, CluesUS *list, int size) {
+int ActorClues::findAcquirableCluesFromActor(int actorId, int targetActorId, ActorClues::CluesUS *list, int size) {
 	Actor *actor = _vm->_actors[actorId];
 	Actor *otherActor = _vm->_actors[targetActorId];
 	int count = 0;
@@ -247,6 +247,16 @@ int ActorClues::getFromActorId(int clueId) const {
 	return _clues[clueIndex].fromActorId;
 }
 
+/**
+ * @brief returns if flag2 for specified clue is set.
+ *
+ * Bit flag "flag2" seems to affect one modifier when sharing / spreading clues
+ * (based on Honesty, friendliness and some seemingly *complicated* algorithm).
+ * It seems that it increases the overall modifier value for a clue, making it more likely to be shared with another actor.
+ *
+ * @param clueId
+ * @return true if this bit flag is set, false otherwise
+*/
 bool ActorClues::isFlag2(int clueId) const {
 	int clueIndex = findClueIndex(clueId);
 	if (clueIndex == -1) {
@@ -278,6 +288,32 @@ void ActorClues::setViewed(int clueId, bool viewed) {
 	}
 }
 
+// Method for Restored Content
+// Checks whether a clue, which McCoy has, was shared between McCoy and Mainframe
+bool ActorClues::isSharedWithMainframe(int clueId) const {
+	int clueIndex = findClueIndex(clueId);
+	if (clueIndex == -1) {
+		return false;
+	}
+
+	return _clues[clueIndex].field4 & 0x01;
+}
+
+// Method for Restored Content
+// Marks a clue, which McCoy has, as shared between McCoy and Mainframe
+void ActorClues::setSharedWithMainframe(int clueId, bool value) {
+	int clueIndex = findClueIndex(clueId);
+	if (clueIndex == -1) {
+		return;
+	}
+
+	if (value) {
+		_clues[clueIndex].field4 |= 0x01;
+	} else {
+		_clues[clueIndex].field4 &= ~0x01;
+	}
+}
+
 bool ActorClues::isPrivate(int clueId) const {
 	int clueIndex = findClueIndex(clueId);
 	if (clueIndex == -1) {
@@ -298,19 +334,6 @@ void ActorClues::setPrivate(int clueId, bool value) {
 	} else {
 		_clues[clueIndex].flags &= ~0x08;
 	}
-}
-
-int ActorClues::getField1(int clueId) const {
-	if (!_count) {
-		return 0;
-	}
-
-	int clueIndex = findClueIndex(clueId);
-	if (clueIndex == -1) {
-		return 0;
-	}
-
-	return _clues[clueIndex].weight;
 }
 
 int ActorClues::getCount() const {
@@ -349,8 +372,8 @@ void ActorClues::add(int actorId, int clueId, int weight, bool acquired, bool un
 	_clues[_count].weight = weight;
 
 	_clues[_count].flags = 0;
-	_clues[_count].flags = (_clues[_count].flags & ~0x01) | (acquired & 0x01);
-	_clues[_count].flags = (_clues[_count].flags & ~0x02) | ((unknownFlag << 1) & 0x02);
+	_clues[_count].flags = (_clues[_count].flags & ~0x01) | ((acquired? 1:0) & 0x01);
+	_clues[_count].flags = (_clues[_count].flags & ~0x02) | (((unknownFlag? 1:0) << 1) & 0x02);
 
 	_clues[_count].fromActorId = fromActorId;
 	++_count;
@@ -370,12 +393,12 @@ void ActorClues::remove(int index) {
 	_clues[index].flags       = 0;
 	_clues[index].fromActorId = -1;
 
-	_clues[index].field3 = -1;
-	_clues[index].field4 = 0;
-	_clues[index].field5 = -1;
-	_clues[index].field6 = 0;
-	_clues[index].field7 = -1;
-	_clues[index].field8 = 0;
+	_clues[index].field3 = -1; // unused (but stored/restored)
+	_clues[index].field4 = 0;  // Restored Content: Use to mark if McCoy's clue was shared with Mainframe. original: unused (but stored/restored)
+	_clues[index].field5 = -1; // unused (but stored/restored)
+	_clues[index].field6 = 0;  // unused (but stored/restored)
+	_clues[index].field7 = -1; // unused (but stored/restored)
+	_clues[index].field8 = 0;  // unused (but stored/restored)
 }
 
 void ActorClues::save(SaveFileWriteStream &f) {

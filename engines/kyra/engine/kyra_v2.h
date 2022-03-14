@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -93,6 +92,8 @@ protected:
 
 	// detection
 	int _lang;
+	const int _numLang;
+	int _langIntern;
 
 	// Input
 	virtual int inputSceneChange(int x, int y, int unk1, int unk2) = 0;
@@ -343,7 +344,7 @@ protected:
 	// chat
 	int _vocHigh;
 
-	const char *_chatText;
+	Common::String _chatText;
 	int _chatObject;
 	uint32 _chatEndTime;
 	int _chatVocHigh, _chatVocLow;

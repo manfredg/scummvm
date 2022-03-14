@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,30 +47,30 @@ public:
 	    @brief Erzeugt eine neues Exemplar von BS_FontResource
 	    @param pKernel ein Pointer auf den Kernel
 	    @param FileName der Dateiname der zu ladenen Resource
-	    @remark Wenn der Konstruktor erfolgreich ausgeführt werden konnte gibt die Methode IsValid true zurück.
+	    @remark Wenn der Konstruktor erfolgreich ausgefÃ¼hrt werden konnte gibt die Methode IsValid true zurÃ¼ck.
 	*/
 	FontResource(Kernel *pKernel, const Common::String &fileName);
 
 	/**
-	    @brief Gibt true zurück, wenn das Objekt korrekt initialisiert wurde.
+	    @brief Gibt true zurÃ¼ck, wenn das Objekt korrekt initialisiert wurde.
 
-	    Diese Methode kann dazu benutzt werden um festzustellen, ob der Konstruktor erfolgreich ausgeführt wurde.
+	    Diese Methode kann dazu benutzt werden um festzustellen, ob der Konstruktor erfolgreich ausgefÃ¼hrt wurde.
 	*/
 	bool isValid() const {
 		return _valid;
 	}
 
 	/**
-	    @brief Gibt die Zeilenhöhe des Fonts in Pixeln zurück.
+	    @brief Gibt die ZeilenhÃ¶he des Fonts in Pixeln zurÃ¼ck.
 
-	    Die Zeilenhöhe ist der Wert, der zur Y-Koordinate addiert wird, wenn ein Zeilenumbruch auftritt.
+	    Die ZeilenhÃ¶he ist der Wert, der zur Y-Koordinate addiert wird, wenn ein Zeilenumbruch auftritt.
 	*/
 	int getLineHeight() const {
 		return _lineHeight;
 	}
 
 	/**
-	    @brief Gibt den Buchstabenabstand der Fonts in Pixeln zurück.
+	    @brief Gibt den Buchstabenabstand der Fonts in Pixeln zurÃ¼ck.
 
 	    Der Buchstabenabstand ist der Wert, der zwischen zwei Buchstaben freigelassen wird.
 	*/
@@ -80,9 +79,9 @@ public:
 	}
 
 	/**
-	    @brief Gibt das Bounding-Rect eines Zeichens auf der Charactermap zurück.
+	    @brief Gibt das Bounding-Rect eines Zeichens auf der Charactermap zurÃ¼ck.
 	    @param Character der ASCII-Code des Zeichens
-	    @return Das Bounding-Rect des übergebenen Zeichens auf der Charactermap.
+	    @return Das Bounding-Rect des Ã¼bergebenen Zeichens auf der Charactermap.
 	*/
 	const Common::Rect &getCharacterRect(int character) const {
 		assert(character >= 0 && character < 256);
@@ -90,7 +89,7 @@ public:
 	}
 
 	/**
-	    @brief Gibt den Dateinamen der Charactermap zurück.
+	    @brief Gibt den Dateinamen der Charactermap zurÃ¼ck.
 	*/
 	const Common::String &getCharactermapFileName() const {
 		return _bitmapFileName;

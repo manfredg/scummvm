@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -889,7 +888,7 @@ void Control::checkForOldSaveGames() {
 	      "Press OK to convert them now, otherwise you will be asked again the next time you start the game.\n"), _("OK"), _("Cancel"));
 
 	int choice = dialog0.runModal();
-	if (choice == GUI::kMessageCancel) {
+	if (choice != GUI::kMessageOK) {
 		// user pressed cancel
 		return;
 	}
@@ -1258,13 +1257,13 @@ bool Control::convertSaveGame(uint8 slot, char *desc) {
 	if (testSave) {
 		delete testSave;
 
-		Common::String msg = Common::String::format(_("Target new saved game already exists!\n"
+		Common::U32String msg = Common::U32String::format(_("Target new saved game already exists!\n"
 		                     "Would you like to keep the old saved game (%s) or the new one (%s)?\n"),
 		                     oldFileName, newFileName);
 		GUI::MessageDialog dialog0(msg, _("Keep the old one"), _("Keep the new one"));
 
 		int choice = dialog0.runModal();
-		if (choice == GUI::kMessageCancel) {
+		if (choice == GUI::kMessageAlt) {
 			// User chose to keep the new game, so delete the old one
 			_saveFileMan->removeSavefile(oldFileName);
 			return true;
@@ -1510,7 +1509,7 @@ const uint8 Control::_languageStrings[8 * 20][43] = {
 //BS1_GERMAN:
 	"PAUSE",
 	"BITTE LEGEN SIE CD-",
-	"EIN UND DR\xDC""CKEN SIE EINE BELIEBIGE TASTE",
+	("EIN UND DR\xDC""CKEN SIE EINE BELIEBIGE TASTE"),
 	"FALSCHE CD",
 	"Speichern",
 	"Laden",

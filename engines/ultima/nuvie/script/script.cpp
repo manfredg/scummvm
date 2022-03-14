@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,22 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#ifdef USE_COMMON_LUA
 #include "common/lua/lua.h"
 #include "common/lua/lauxlib.h"
 #include "common/lua/lualib.h"
-#else
-#define FORBIDDEN_SYMBOL_ALLOW_ALL
-#include "common/scummsys.h"
-#include "ultima/nuvie/lua/lua.h"
-#include "ultima/nuvie/lua/lauxlib.h"
-#include "ultima/nuvie/lua/lualib.h"
-#endif
 
 #include "ultima/nuvie/core/nuvie_defs.h"
 #include "ultima/nuvie/conf/configuration.h"
@@ -80,9 +71,9 @@ An in-game object
 @int qty quantity
 @string[readonly] name The object name from the 'look' table.
 @string[readonly] look_string A printable look description
-     a book
-     an elephant
-     5 torches
+	 a book
+	 an elephant
+	 5 torches
 @bool[readonly] on_map Is the object on the map?
 @bool[readonly] in_container Is the object in a container?
 @field parent (Obj|Actor) The parent of this object. Either an object if this object is in a container. Or an Actor if this object is in an inventory.
@@ -115,8 +106,6 @@ An actor schedule entry
 @int y
 @int z
  */
-
-extern bool nscript_new_actor_var(lua_State *L, uint16 actor_num);
 
 struct ScriptObjRef {
 	uint16 refcount;
@@ -472,11 +461,7 @@ uint8 ScriptThread::resume_with_nil() {
 
 uint8 ScriptThread::resume(int narg) {
 	const char *s;
-#ifdef USE_COMMON_LUA
 	int ret = lua_resume(L, /*NULL,*/ narg);
-#else
-	int ret = lua_resume(L, NULL, narg);
-#endif
 
 	state = NUVIE_SCRIPT_ERROR;
 
@@ -954,10 +939,6 @@ bool Script::play_cutscene(const char *script_file) {
 	script_file_path += script_file;
 
 	ConsoleHide();
-//if !SDL_VERSION_ATLEAST(2, 0, 0)
-#if 0
-	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY / 2, SDL_DEFAULT_REPEAT_INTERVAL * 2);
-#endif
 
 	return run_lua_file(script_file_path.c_str());
 }
@@ -1284,7 +1265,7 @@ bool Script::call_magic_get_spell_list(Spell **spell_list) {
 		lua_gettable(L, -2);
 
 		if (!lua_istable(L, -1)) { //we've hit the end of our targets
-			::debug("end = %d", i);
+			::debug(1, "end = %d", i);
 			lua_pop(L, 1);
 			break;
 		}
@@ -1301,7 +1282,7 @@ bool Script::call_magic_get_spell_list(Spell **spell_list) {
 
 		if (num < 256 && spell_list[num] == NULL) {
 			spell_list[num] = new Spell((uint8)num, (const char *)name, (const char *)invocation, re);
-			::debug("num = %d, reagents = %d, name = %s invocation = %s\n", num, re, name, invocation);
+			::debug(1, "num = %d, reagents = %d, name = %s invocation = %s\n", num, re, name, invocation);
 		}
 
 		lua_pop(L, 1);
@@ -1550,11 +1531,7 @@ uint16 Script::call_get_tile_to_object_mapping(uint16 tile_n) {
 	lua_pushnumber(L, (lua_Number)tile_n);
 	call_function("get_tile_to_object_mapping", 1, 1);
 
-#ifdef USE_COMMON_LUA
 	return ((uint)lua_tonumber(L, -1));
-#else
-	return (lua_tounsigned(L, -1));
-#endif
 }
 
 bool Script::call_is_tile_object(uint16 obj_n) {
@@ -1807,10 +1784,10 @@ static int nscript_obj_gc(lua_State *L) {
    {
    if(s_obj)
    {
-    if(s_obj->obj_ptr)
-      return s_obj->obj_ptr;
-    else
-      return &s_obj->script_obj;
+	if(s_obj->obj_ptr)
+	  return s_obj->obj_ptr;
+	else
+	  return &s_obj->script_obj;
    }
 
    return NULL;
@@ -2286,7 +2263,7 @@ static int nscript_u6link_gc(lua_State *L) {
 
 	releaseU6Link(link);
 
-	::debug("U6Link garbage collector!!");
+	::debug(1, "U6Link garbage collector!!");
 	return 0;
 }
 
@@ -2334,7 +2311,7 @@ static int nscript_print(lua_State *L) {
 	if (scroll) {
 		scroll->display_string(string);
 	} else {
-		::debug("%s", string);
+		::debug(1, "%s", string);
 	}
 	return 0;
 }
@@ -2362,8 +2339,8 @@ static int nscript_display_prompt(lua_State *L) {
    @function nuvie_load
    @param path lua file relative to data/scripts directory
    @return contents of the lua file as a function block on success.
-           A string is returned on compilation failure.
-           nil is returned if the file cannot be opened
+		   A string is returned on compilation failure.
+		   nil is returned if the file cannot be opened
  */
 static int nscript_load(lua_State *L) {
 	const char *file = luaL_checkstring(L, 1);
@@ -3418,13 +3395,13 @@ to iterate through a list of Actors and Objects that were hit by the explosion.
 @int y
 @treturn table A table containing the hit Actor and Obj objects.
 @usage
-    local hit_items = explosion_start(0x17e, actor.x, actor.y)
+	local hit_items = explosion_start(0x17e, actor.x, actor.y)
 
-    for k,v in pairs(hit_items) do
-      if v.luatype == "actor" then
-        actor_hit(v, random(1, 0x14))
-      end
-    end
+	for k,v in pairs(hit_items) do
+	  if v.luatype == "actor" then
+		actor_hit(v, random(1, 0x14))
+	  end
+	end
 @within effects
  */
 static int nscript_explosion_start(lua_State *L) {
@@ -3517,7 +3494,7 @@ static int nscript_projectile_anim_multi(lua_State *L) {
 		lua_gettable(L, -2);
 
 		if (!lua_istable(L, -1)) { //we've hit the end of our targets
-			::debug("end = %d", i);
+			::debug(1, "end = %d", i);
 			lua_pop(L, 1);
 			break;
 		}
@@ -3868,7 +3845,7 @@ Iterate through party members.
 @usage
   local actor
   for actor in party_members() do
-    actor.poisoned = false
+	actor.poisoned = false
   end
 @within party
  */
@@ -3986,9 +3963,9 @@ Iterate through all objects of a specific type on a given map level.
 @usage
   local loc = player_get_location()
   for obj in find_obj(loc.z, 223, 1) do
-    if obj ~= nil then
-      explode_obj(obj)
-    end
+	if obj ~= nil then
+	  explode_obj(obj)
+	end
   end
 @within Object
  */
@@ -4375,11 +4352,11 @@ Iterate through objects in a container.
 @usage
   local child
   for child in container_objs(obj) do  -- look through container for effect object.
-    if child.obj_n == 337 then --effect
-      found = true
-      print("\nIt's trapped.\n");
-      break
-    end
+	if child.obj_n == 337 then --effect
+	  found = true
+	  print("\nIt's trapped.\n");
+	  break
+	end
   end
 @within Object
  */

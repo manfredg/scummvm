@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,13 +18,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "pegasus/gamestate.h"
 #include "pegasus/pegasus.h"
+#include "pegasus/items/biochips/arthurchip.h"
 #include "pegasus/neighborhood/caldoria/caldoria.h"
 #include "pegasus/neighborhood/caldoria/caldoriabomb.h"
 
@@ -48,7 +48,9 @@ static const uint32 kOnTime3 = kOffTime2 + kFlashOnTime;
 static const uint32 kOffTime3 = kOnTime3 + kFlashOffTime;
 static const uint32 kOnTime4 = kOffTime3 + kFlashOnTime;
 
-static const HotSpotID kVertextHotSpotBaseID = 10000;
+// Bomb hotspots start at 20000 since the extra Caldoria hotspots start at 10000.
+// Assigning these vice versa causes a hotspot in level 4 to never activate for some reason.
+static const HotSpotID kVertextHotSpotBaseID = 20000;
 
 static const CoordType kVertextHotSpotWidth = 24;
 static const CoordType kVertextHotSpotHeight = 24;
@@ -927,8 +929,8 @@ bool setEdgeUsed(BombEdgeList edges, VertexType fromVertex, VertexType toVertex)
 	while (numEdges--) {
 		VertexType *p = anEdge;
 		VertexType numVerts = *++p;
-		VertexType *fromPtr = 0;
-		VertexType *toPtr = 0;
+		VertexType *fromPtr = nullptr;
+		VertexType *toPtr = nullptr;
 		VertexType i = numVerts;
 		p++;
 
@@ -1248,6 +1250,12 @@ void CaldoriaBomb::receiveNotification(Notification *notification, const Notific
 			_lastVertex = -1;
 			_owner->_navMovie.setVolume(((PegasusEngine *)g_engine)->getAmbienceLevel());
 			startBombAmbient("Sounds/Caldoria/BmbLoop1.22K.AIFF");
+			if (g_arthurChip) {
+				if (((PegasusEngine *)g_engine)->getRandomBit())
+					g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA14", kArthurCaldoriaSeeRoofBomb);
+				else
+					g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBB28", kArthurCaldoriaSeeRoofBomb);
+			}
 			break;
 		case kCaldoria56BombStage2:
 		case kCaldoria56BombStage3:
@@ -1429,6 +1437,8 @@ void CaldoriaBomb::handleInput(const Input &input, const Hotspot *hotspot) {
 				_timer.hide();
 				_owner->_navMovie.setVolume(((PegasusEngine *)g_engine)->getSoundFXLevel());
 				_owner->startExtraSequence(kCaldoria56BombStage7, kExtraCompletedFlag, kFilterNoInput);
+				if (g_arthurChip)
+					g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA02", kArthurCaldoriaDisarmedNuke);
 				break;
 			default:
 				break;

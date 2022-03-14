@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,7 +52,7 @@ int32 getLineHeight(int16 charCount, const FontEntry *fontPtr) {
  * This function determines how many lines the text will have
  */
 int32 getTextLineCount(int32 rightBorder_X, int16 wordSpacingWidth,
-                       const FontEntry *fontData, const char *textString) {
+					   const FontEntry *fontData, const char *textString) {
 	const char *localString = textString;
 	const char *tempPtr = textString;
 	uint8 ch;
@@ -99,7 +98,7 @@ int32 getTextLineCount(int32 rightBorder_X, int16 wordSpacingWidth,
 void loadFNT(const char *fileName) {
 	uint8 header[4];
 
-	_systemFNT = NULL;
+	_systemFNT = nullptr;
 
 	Common::File fontFileHandle;
 
@@ -115,7 +114,7 @@ void loadFNT(const char *fileName) {
 
 		_systemFNT = (uint8 *)mallocAndZero(fontSize);
 
-		if (_systemFNT != NULL) {
+		if (_systemFNT != nullptr) {
 			fontFileHandle.seek(4);
 			fontFileHandle.read(_systemFNT, fontSize);
 
@@ -148,7 +147,7 @@ void initSystem() {
 
 	for (i = 0; i < 64; i++) {
 		strcpy(preloadData[i].name, "");
-		preloadData[i].ptr = NULL;
+		preloadData[i].ptr = nullptr;
 		preloadData[i].nofree = 0;
 	}
 
@@ -188,7 +187,7 @@ void flipGen(void *var, int32 length) {
 }
 
 void renderWord(const uint8 *fontPtr_Data, uint8 *outBufferPtr, int xOffset, int yOffset,
-                int32 height, int32 param4, int32 stringRenderBufferSize, int32 width, int32 charWidth) {
+				int32 height, int32 param4, int32 stringRenderBufferSize, int32 width, int32 charWidth) {
 	const uint8 *fontPtr_Data2 = fontPtr_Data + height * 2;
 	outBufferPtr += yOffset * width + xOffset;
 
@@ -214,7 +213,7 @@ void renderWord(const uint8 *fontPtr_Data, uint8 *outBufferPtr, int xOffset, int
 
 // returns character count and pixel size (via pointer) per line of the string (old: prepareWordRender(int32 param, int32 var1, int16* out2, uint8* ptr3, uint8* string))
 int32 prepareWordRender(int32 inRightBorder_X, int16 wordSpacingWidth,
-                        int16 *strPixelLength, const FontEntry *fontData, const char *textString) {
+						int16 *strPixelLength, const FontEntry *fontData, const char *textString) {
 	const char *localString = textString;
 
 	int32 counter = 0;
@@ -273,7 +272,7 @@ void drawString(int32 x, int32 y, const char *string, uint8 *buffer, uint8 fontC
 
 	// Free the data
 	delete s->imagePtr;
-	delete s;
+	free(s);
 }
 
 // calculates all necessary datas and renders text
@@ -299,7 +298,7 @@ gfxEntryStruct *renderText(int inRightBorder_X, const char *string) {
 
 	// check if string is empty
 	if (!string) {
-		return NULL;
+		return nullptr;
 	}
 	// check if font has been loaded, else get system font
 	if (fontFileIndex != -1) {
@@ -313,7 +312,7 @@ gfxEntryStruct *renderText(int inRightBorder_X, const char *string) {
 	}
 
 	if (!fontPtr) {
-		return NULL;
+		return nullptr;
 	}
 
 	fontPtr_Desc = (const FontEntry *)((const uint8 *)fontPtr + sizeof(FontInfo));
@@ -333,7 +332,7 @@ gfxEntryStruct *renderText(int inRightBorder_X, const char *string) {
 	numLines = getTextLineCount(rightBorder_X, wordSpacingWidth, fontPtr_Desc, string);	// ok
 
 	if (!numLines) {
-		return NULL;
+		return nullptr;
 	}
 
 	stringHeight = ((wordSpacingHeight + lineHeight + 2) * numLines) + 1;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,7 @@ void AGOSEngine::loadMenuFile() {
 
 	uint fileSize = in.size();
 	_menuBase = (byte *)malloc(fileSize);
-	if (_menuBase == NULL)
+	if (_menuBase == nullptr)
 		error("loadMenuFile: Out of memory for menu data");
 	in.read(_menuBase, fileSize);
 	in.close();
@@ -163,7 +162,7 @@ void AGOSEngine::unlightMenuStrip() {
 
 	mouseOff();
 
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = getBackendSurface();
 	src = (byte *)screen->getBasePtr(272, 8);
 	w = 48;
 	h = 82;
@@ -179,7 +178,8 @@ void AGOSEngine::unlightMenuStrip() {
 	for (i = 120; i != 130; i++)
 		disableBox(i);
 
-	_system->unlockScreen();
+	Common::Rect dirtyRect(272, 8, 320, 90);
+	updateBackendSurface(&dirtyRect);
 
 	mouseOn();
 }
@@ -191,7 +191,7 @@ void AGOSEngine::lightMenuBox(uint hitarea) {
 
 	mouseOff();
 
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = getBackendSurface();
 	src = (byte *)screen->getBasePtr(ha->x, ha->y);
 	w = ha->width;
 	h = ha->height;
@@ -204,18 +204,19 @@ void AGOSEngine::lightMenuBox(uint hitarea) {
 		src += screen->pitch;
 	} while (--h);
 
-	_system->unlockScreen();
+	Common::Rect dirtyRect(ha->x, ha->y, ha->x + w, ha->y + ha->height);
+	updateBackendSurface(&dirtyRect);
 
 	mouseOn();
 }
 
 // Elvira 2 specific
 uint AGOSEngine::menuFor_e2(Item *item) {
-	if (item == NULL || item == _dummyItem2 || item == _dummyItem3)
+	if (item == nullptr || item == _dummyItem2 || item == _dummyItem3)
 		return 0xFFFF;
 
 	SubObject *subObject = (SubObject *)findChildOfType(item, kObjectType);
-	if (subObject != NULL && subObject->objectFlags & kOFMenu) {
+	if (subObject != nullptr && subObject->objectFlags & kOFMenu) {
 		uint offs = getOffsetOfChild2Param(subObject, kOFMenu);
 		return subObject->objectFlagValue[offs];
 	}
@@ -228,11 +229,11 @@ uint AGOSEngine::menuFor_ww(Item *item, uint id) {
 	if (id != 0xFFFF && id < 10 && _textMenu[id] != 0)
 		return _textMenu[id];
 
-	if (item == NULL || item == _dummyItem2 || item == _dummyItem3)
+	if (item == nullptr || item == _dummyItem2 || item == _dummyItem3)
 		return _agosMenu;
 
 	SubObject *subObject = (SubObject *)findChildOfType(item, kObjectType);
-	if (subObject != NULL && subObject->objectFlags & kOFMenu) {
+	if (subObject != nullptr && subObject->objectFlags & kOFMenu) {
 		uint offs = getOffsetOfChild2Param(subObject, kOFMenu);
 		return subObject->objectFlagValue[offs];
 	}
@@ -279,7 +280,7 @@ void AGOSEngine::doMenuStrip(uint menuNum) {
 		_variableArray[v] = verb;
 
 		HitArea *ha = findBox(id);
-		if (ha != NULL) {
+		if (ha != nullptr) {
 			ha->flags &= ~kBFBoxDead;
 			ha->verb = verb;
 		}

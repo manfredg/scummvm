@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,10 +26,7 @@
 #include "mads/msurface.h"
 #include "mads/nebular/dialogs_nebular.h"
 #include "common/config-manager.h"
-
-#ifdef USE_TTS
 #include "common/text-to-speech.h"
-#endif
 
 namespace MADS {
 
@@ -199,12 +195,11 @@ int TextDialog::estimatePieces(int maxLen) {
 }
 
 TextDialog::~TextDialog() {
-#ifdef USE_TTS
 	if (ConfMan.getBool("tts_narrator")) {
-		Common::TextToSpeechManager* _ttsMan = g_system->getTextToSpeechManager();
-		_ttsMan->stop();
+		Common::TextToSpeechManager* ttsMan = g_system->getTextToSpeechManager();
+		if (ttsMan != nullptr)
+			ttsMan->stop();
 	}
-#endif
 
 	delete _edgeSeries;
 }
@@ -350,9 +345,7 @@ void TextDialog::draw() {
 
 	// Draw the text lines
 	int lineYp = _position.y + 5;
-	#ifdef USE_TTS
 	Common::String text;
-	#endif
 	for (int lineNum = 0; lineNum <= _numLines; ++lineNum) {
 		if (_lineXp[lineNum] == -1) {
 			// Draw a line across the entire dialog
@@ -376,24 +369,21 @@ void TextDialog::draw() {
 				int lineWidth = _font->getWidth(_lines[lineNum], 1);
 				_vm->_screen->hLine(xp, yp + _font->getHeight(), xp + lineWidth,
 					TEXTDIALOG_BLACK);
-			}
-#ifdef USE_TTS
-			else {
+			} else {
 				text += _lines[lineNum];
 			}
-#endif
 		}
 
 		lineYp += _font->getHeight() + 1;
 	}
 
-	#ifdef USE_TTS
 	if (ConfMan.getBool("tts_narrator")) {
-		Common::TextToSpeechManager *_ttsMan = g_system->getTextToSpeechManager();
-		_ttsMan->stop();
-		_ttsMan->say(text.c_str());
+		Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+		if (ttsMan != nullptr) {
+			ttsMan->stop();
+			ttsMan->say(text.c_str());
+		}
 	}
-	#endif
 }
 
 void TextDialog::calculateBounds() {

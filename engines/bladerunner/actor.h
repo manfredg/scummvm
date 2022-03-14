@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -126,7 +125,7 @@ public:
 	void setup(int actorId);
 
 	void setAtXYZ(const Vector3 &pos, int facing, bool setFacing = true, bool moving = false, bool retired = false);
-	void setAtWaypoint(int waypointId, int angle, int unknown, bool retired);
+	void setAtWaypoint(int waypointId, int angle, bool moving, bool retired);
 
 	int  getId() const { return _id; };
 	float getX() const;
@@ -140,10 +139,11 @@ public:
 	Vector3 getPosition() const { return _position; }
 
 	void changeAnimationMode(int animationMode, bool force = false);
+	int  getFPS() const;
 	void setFPS(int fps);
 	void increaseFPS();
 
-	void   timerStart(int timerId, int32 interval);
+	void   timerStart(int timerId, int32 intervalMillis);
 	void   timerReset(int timerId);
 	int32 timerLeft(int timerId);
 	void   timersUpdate();
@@ -168,6 +168,8 @@ public:
 	bool tick(bool forceUpdate, Common::Rect *screenRect);
 	void tickCombat();
 	bool draw(Common::Rect *screenRect);
+
+	void resetScreenRectangleAndBbox();
 
 	int getSetId()  const;
 	void setSetId(int setId);
@@ -259,7 +261,7 @@ public:
 	void acquireCluesByRelations();
 
 	int soundVolume() const;
-	int soundPan() const;
+	int soundPan(uint8 overrideRange = 35) const;
 
 	bool isObstacleBetween(const Vector3 &target);
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,44 +27,52 @@
 namespace Common {
 
 /**
- * This file contains an enum with commonly used error codes.
+ * @defgroup common_error Error codes
+ * @ingroup common
+ *
+ * @brief  Commonly used error codes.
+ *
+ * @{
  */
 
-
-
 /**
- * Error codes which may be reported by plugins under various circumstances.
+ * Error codes that may be reported by plugins under various circumstances.
  *
  * @note Error names should follow the pattern k-NOUN/ACTION-CONDITION-Error.
- *       So kPathInvalidError would be correct, but these would not be:
+ *       So kPathInvalidError is correct, but the following are not:
  *       kInvalidPath, kPathInvalid, kPathIsInvalid, kInvalidPathError.
+ *
  * @todo Adjust all error codes to comply with these conventions.
  */
 enum ErrorCode {
-	kNoError = 0,				///< No error occurred
-	kNoGameDataFoundError,		///< Engine initialization: No game data was found in the specified location
-	kUnsupportedGameidError,	///< Engine initialization: Gameid not supported by this (Meta)Engine
-	kUnsupportedColorMode,		///< Engine initialization: Engine does not support backend's color mode
-	kAudioDeviceInitFailed,		///< Engine initialization: Audio device initialization failed
+	kNoError = 0,				///< No error occurred.
+	kNoGameDataFoundError,		///< Engine initialization: No game data was found in the specified location.
+	kUnsupportedGameidError,	///< Engine initialization: Game ID not supported by this (Meta)Engine.
+	kUnsupportedColorMode,		///< Engine initialization: Engine does not support backend's color mode.
+	kAudioDeviceInitFailed,		///< Engine initialization: Audio device initialization failed.
 
-	kReadPermissionDenied,		///< Unable to read data due to missing read permission
-	kWritePermissionDenied,		///< Unable to write data due to missing write permission
+	kReadPermissionDenied,		///< Unable to read data due to missing read permission.
+	kWritePermissionDenied,		///< Unable to write data due to missing write permission.
 
-	kPathDoesNotExist,			///< The specified path does not exist
-	kPathNotDirectory,			///< The specified path does not point to a directory
-	kPathNotFile,				///< The specified path does not point to a file
+	kPathDoesNotExist,			///< The specified path does not exist.
+	kPathNotDirectory,			///< The specified path does not point to a directory.
+	kPathNotFile,				///< The specified path does not point to a file.
 
-	kCreatingFileFailed,		///< Failed creating a (savestate) file
-	kReadingFailed,				///< Failed to read a file (permission denied?)
-	kWritingFailed,				///< Failure to write data -- disk full?
+	kCreatingFileFailed,		///< Failed creating a (savestate) file.
+	kReadingFailed,				///< Failed to read a file (permission denied?).
+	kWritingFailed,				///< Failure to write data - disk full?
 
-	// The following are used by --list-saves
-	kEnginePluginNotFound,		///< Failed to find plugin to handle target
-	kEnginePluginNotSupportSaves,	///< Failed if plugin does not support listing save states
+	/** Failed to find a MetaEnginePlugin. This should never happen, because all MetaEngines must always
+	 * be built into the executable, regardless if the engine plugins are present or not.
+	 */
+	kMetaEnginePluginNotFound,
 
-	kUserCanceled,			///< User has canceled the launching of the game
+	kEnginePluginNotFound,		///< Failed to find an Engine plugin to handle target.
+	kEnginePluginNotSupportSaves,	///< The plugin does not support listing save states.
 
-	kUnknownError				///< Catch-all error, used if no other error code matches
+	kUserCanceled,			///< User has canceled the launching of the game.
+
+	kUnknownError				///< Catch-all error, used if no other error code matches.
 };
 
 /**
@@ -76,8 +83,8 @@ enum ErrorCode {
  */
 class Error {
 protected:
-	ErrorCode _code;
-	String _desc;
+	ErrorCode _code; /*!< Error code. */
+	String _desc;    /*!< Error description. */
 public:
 	/**
 	 * Construct a new Error with the specified error code and the default
@@ -102,6 +109,8 @@ public:
 	 */
 	ErrorCode getCode() const { return _code; }
 };
+
+/** @} */
 
 } // End of namespace Common
 

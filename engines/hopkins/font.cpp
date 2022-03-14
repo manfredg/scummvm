@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,7 +60,7 @@ void FontManager::loadZoneText() {
 }
 
 void FontManager::clearAll() {
-	_font = NULL;
+	_font = nullptr;
 	_fontFixedHeight = 0;
 	_fontFixedWidth = 0;
 
@@ -84,8 +83,8 @@ void FontManager::clearAll() {
 	for (int idx = 0; idx < 4048; idx++)
 		_index[idx] = 0;
 
-	_tempText = NULL;
-	_zoneText = NULL;
+	_tempText = nullptr;
+	_zoneText = nullptr;
 
 	_boxWidth = 240;
 }
@@ -216,7 +215,7 @@ void FontManager::box(int idx, int messageId, const Common::String &filename, in
 			f.seek(_index[messageId]);
 
 			_tempText = _vm->_globals->allocMemory(2058);
-			if (_tempText == NULL)
+			if (_tempText == nullptr)
 				error("Error allocating text");
 
 			Common::fill(&_tempText[0], &_tempText[2058], 0);
@@ -360,7 +359,7 @@ void FontManager::box(int idx, int messageId, const Common::String &filename, in
 		if (textType == 1 || textType == 3 || textType == 5 || textType == 6) {
 			int size = saveHeight * saveWidth;
 			byte *ptrd = _vm->_globals->allocMemory(size);
-			if (ptrd == NULL)
+			if (ptrd == nullptr)
 				error("Cutting a block for text box (%d)", size);
 
 			_vm->_graphicsMan->copySurfaceRect(_vm->_graphicsMan->_frontBuffer, ptrd, posX, posY, saveWidth, saveHeight);
@@ -391,7 +390,7 @@ void FontManager::box(int idx, int messageId, const Common::String &filename, in
 			_text[idx]._textBlock = _vm->_globals->freeMemory(_text[idx]._textBlock);
 			int blockSize = blockHeight * blockWidth;
 			byte *ptre = _vm->_globals->allocMemory(blockSize + 20);
-			if (ptre == NULL)
+			if (ptre == nullptr)
 				error("Cutting a block for text box (%d)", blockSize);
 
 			_text[idx]._textBlock = ptre;

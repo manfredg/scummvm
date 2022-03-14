@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -80,7 +79,7 @@ Converse::Converse() {
  */
 void
 Converse::init(Configuration *cfg, nuvie_game_t t, MsgScroll *s, ActorManager *a,
-               GameClock *c, Player *p, ViewManager *v, ObjManager *o) {
+			   GameClock *c, Player *p, ViewManager *v, ObjManager *o) {
 	Std::string townsdir;
 
 	config = cfg;
@@ -95,7 +94,7 @@ Converse::init(Configuration *cfg, nuvie_game_t t, MsgScroll *s, ActorManager *a
 	cfg->value("config/cheats/party_all_the_time", party_all_the_time);
 	cfg->value("config/audio/conversations_stop_music", conversations_stop_music, false);
 
-	cfg->value("config/ultima6/townsdir", townsdir, "");
+	cfg->value("config/townsdir", townsdir, "");
 	if (townsdir != "" && directory_exists(townsdir.c_str()))
 		using_fmtowns = true;
 
@@ -121,8 +120,10 @@ Converse::~Converse() {
 void Converse::reset() {
 	delete conv_i;
 	conv_i = NULL;
-	set_input(""); // delete
-	set_output(""); // clear output
+	set_input("");	// delete
+	set_output("");	// clear output
+	_name = "";		// clear name
+
 	if (script) {
 		delete script;
 		script = NULL;
@@ -145,7 +146,7 @@ void Converse::reset() {
 void Converse::load_conv(const Std::string &convfilename) {
 	string conv_lib_str;
 	if (gametype == NUVIE_GAME_U6 && using_fmtowns) {
-		config->pathFromValue("config/ultima6/townsdir", convfilename, conv_lib_str); //FIXME handle case insensitive filename here.
+		config->pathFromValue("config/townsdir", convfilename, conv_lib_str);
 	} else {
 		config_get_path(config, convfilename, conv_lib_str);
 	}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,10 +32,14 @@
 
 #include "common/array.h"
 
+#ifdef USE_DISCORD
+class DiscordPresence;
+#endif
+
 /**
  * Base OSystem class for all SDL ports.
  */
-class OSystem_SDL : public ModularBackend {
+class OSystem_SDL : public ModularMixerBackend, public ModularGraphicsBackend {
 public:
 	OSystem_SDL();
 	virtual ~OSystem_SDL();
@@ -46,55 +49,63 @@ public:
 	 * instantiating the backend. Early needed managers are
 	 * created here.
 	 */
-	virtual void init();
+	void init() override;
 
-	/**
-	 * Get the Mixer Manager instance. Not to confuse with getMixer(),
-	 * that returns Audio::Mixer. The Mixer Manager is a SDL wrapper class
-	 * for the Audio::Mixer. Used by other managers.
-	 */
-	virtual SdlMixerManager *getMixerManager();
-
-	virtual bool hasFeature(Feature f) override;
+	bool hasFeature(Feature f) override;
 
 	// Override functions from ModularBackend and OSystem
-	virtual void initBackend() override;
-	virtual void engineInit() override;
-	virtual void engineDone() override;
-	virtual void quit() override;
-	virtual void fatalError() override;
+	void initBackend() override;
+	void engineInit() override;
+	void engineDone() override;
+	void quit() override;
+	void fatalError() override;
 	Common::KeymapArray getGlobalKeymaps() override;
 	Common::HardwareInputSet *getHardwareInputSet() override;
 
 	// Logging
-	virtual void logMessage(LogMessageType::Type type, const char *message) override;
+	void logMessage(LogMessageType::Type type, const char *message) override;
 
-	virtual Common::String getSystemLanguage() const override;
+	Common::String getSystemLanguage() const override;
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	// Clipboard
-	virtual bool hasTextInClipboard() override;
-	virtual Common::String getTextFromClipboard() override;
-	virtual bool setTextInClipboard(const Common::String &text) override;
+	bool hasTextInClipboard() override;
+	Common::U32String getTextFromClipboard() override;
+	bool setTextInClipboard(const Common::U32String &text) override;
+
+	void messageBox(LogMessageType::Type type, const char *message) override;
 #endif
 
-	virtual void setWindowCaption(const char *caption) override;
-	virtual void addSysArchivesToSearchSet(Common::SearchSet &s, int priority = 0) override;
-	virtual uint32 getMillis(bool skipRecord = false) override;
-	virtual void delayMillis(uint msecs) override;
-	virtual void getTimeAndDate(TimeDate &td) const override;
-	virtual Audio::Mixer *getMixer() override;
-	virtual Common::TimerManager *getTimerManager() override;
-	virtual Common::SaveFileManager *getSavefileManager() override;
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+	bool openUrl(const Common::String &url) override;
+#endif
+
+	void setWindowCaption(const Common::U32String &caption) override;
+	void addSysArchivesToSearchSet(Common::SearchSet &s, int priority = 0) override;
+	Common::MutexInternal *createMutex() override;
+	uint32 getMillis(bool skipRecord = false) override;
+	void delayMillis(uint msecs) override;
+	void getTimeAndDate(TimeDate &td, bool skipRecord = false) const override;
+	MixerManager *getMixerManager() override;
+	Common::TimerManager *getTimerManager() override;
+	Common::SaveFileManager *getSavefileManager() override;
 
 	//Screenshots
 	virtual Common::String getScreenshotsPath();
+
+#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
+	Common::Array<uint> getSupportedAntiAliasingLevels() const override;
+#endif
 
 protected:
 	bool _inited;
 	bool _initedSDL;
 #ifdef USE_SDL_NET
 	bool _initedSDLnet;
+#endif
+
+#ifdef USE_DISCORD
+	DiscordPresence *_presence;
 #endif
 
 	/**
@@ -108,25 +119,35 @@ protected:
 	Common::String _logFilePath;
 
 	/**
-	 * Mixer manager that configures and setups SDL for
-	 * the wrapped Audio::Mixer, the true mixer.
+	 * A path specified by the user where screenshots are created.
+	 * This may be empty, in which case a OS-dependent default path is used.
 	 */
-	SdlMixerManager *_mixerManager;
+	Common::String _userScreenshotPath;
 
 	/**
 	 * The event source we use for obtaining SDL events.
 	 */
 	SdlEventSource *_eventSource;
+	Common::EventSource *_eventSourceWrapper;
 
 	/**
 	 * The SDL output window.
 	 */
 	SdlWindow *_window;
 
-	virtual Common::EventSource *getDefaultEventSource() override { return _eventSource; }
+	SdlGraphicsManager::State _gfxManagerState;
+
+#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
+	// Graphics capabilities
+	void detectFramebufferSupport();
+	void detectAntiAliasingSupport();
+
+	bool _supportsFrameBuffer;
+	Common::Array<uint> _antiAliasLevels;
+#endif
 
 	/**
-	 * Initialze the SDL library.
+	 * Initialize the SDL library.
 	 */
 	virtual void initSDL();
 
@@ -141,8 +162,6 @@ protected:
 	Backends::Log::Log *_logger;
 
 #ifdef USE_OPENGL
-	int _desktopWidth, _desktopHeight;
-
 	typedef Common::Array<GraphicsMode> GraphicsModeArray;
 	GraphicsModeArray _graphicsModes;
 	Common::Array<int> _graphicsModeIds;
@@ -152,17 +171,22 @@ protected:
 	int _defaultGLMode;
 
 	/**
-	 * Creates the merged graphics modes list
+	 * Create the merged graphics modes list.
 	 */
 	void setupGraphicsModes();
 
-	virtual const OSystem::GraphicsMode *getSupportedGraphicsModes() const override;
-	virtual int getDefaultGraphicsMode() const override;
-	virtual bool setGraphicsMode(int mode) override;
-	virtual int getGraphicsMode() const override;
+	/**
+	 * Clear the merged graphics modes list.
+	 */
+	void clearGraphicsModes();
+
+	enum GraphicsManagerType { GraphicsManagerSDL, GraphicsManagerOpenGL };
+	virtual GraphicsManagerType getDefaultGraphicsManager() const { return GraphicsManagerSDL; }
+	const OSystem::GraphicsMode *getSupportedGraphicsModes() const override;
+	int getDefaultGraphicsMode() const override;
+	bool setGraphicsMode(int mode, uint flags) override;
+	int getGraphicsMode() const override;
 #endif
-protected:
-	virtual char *convertEncoding(const char *to, const char *from, const char *string, size_t length) override;
 };
 
 #endif

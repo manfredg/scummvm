@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,7 +51,7 @@ void RenderObjectQueue::add(RenderObject *renderObject) {
 bool RenderObjectQueue::exists(const RenderObjectQueueItem &renderObjectQueueItem) {
 	for (RenderObjectQueue::iterator it = begin(); it != end(); ++it)
 		if ((*it)._renderObject == renderObjectQueueItem._renderObject &&
-			(*it)._version == renderObjectQueueItem._version && 
+			(*it)._version == renderObjectQueueItem._version &&
 			(*it)._bbox == renderObjectQueueItem._bbox)
 			return true;
 	return false;
@@ -68,7 +67,7 @@ RenderObjectManager::RenderObjectManager(int width, int height, int framebufferC
 }
 
 RenderObjectManager::~RenderObjectManager() {
-	// Die Wurzel des Baumes löschen, damit werden alle BS_RenderObjects mitgelöscht.
+	// Die Wurzel des Baumes lÃ¶schen, damit werden alle BS_RenderObjects mitgelÃ¶scht.
 	_rootPtr.erase();
 	delete _uta;
 	delete _currQueue;
@@ -81,7 +80,7 @@ void RenderObjectManager::startFrame() {
 	// Verstrichene Zeit bestimmen
 	int timeElapsed = Kernel::getInstance()->getGfx()->getLastFrameDurationMicro();
 
-	// Alle BS_TimedRenderObject Objekte über den Framestart und die verstrichene Zeit in Kenntnis setzen
+	// Alle BS_TimedRenderObject Objekte Ã¼ber den Framestart und die verstrichene Zeit in Kenntnis setzen
 	RenderObjectList::iterator iter = _timedRenderObjects.begin();
 	for (; iter != _timedRenderObjects.end(); ++iter)
 		(*iter)->frameNotification(timeElapsed);
@@ -96,7 +95,7 @@ bool RenderObjectManager::render() {
 
 	_frameStarted = false;
 
-	// Die Render-Methode der Wurzel aufrufen. Dadurch wird das rekursive Rendern der Baumelemente angestoßen.
+	// Die Render-Methode der Wurzel aufrufen. Dadurch wird das rekursive Rendern der Baumelemente angestoÃŸen.
 
 	_currQueue->clear();
 	_rootPtr->preRender(_currQueue);
@@ -191,7 +190,7 @@ bool RenderObjectManager::persist(OutputPersistenceBlock &writer) {
 bool RenderObjectManager::unpersist(InputPersistenceBlock &reader) {
 	bool result = true;
 
-	// Alle Kinder des Wurzelknotens löschen. Damit werden alle BS_RenderObjects gelöscht.
+	// Alle Kinder des Wurzelknotens lÃ¶schen. Damit werden alle BS_RenderObjects gelÃ¶scht.
 	_rootPtr->deleteAllChildren();
 
 	// Alle BS_RenderObjects wieder hestellen.
@@ -200,7 +199,7 @@ bool RenderObjectManager::unpersist(InputPersistenceBlock &reader) {
 
 	reader.read(_frameStarted);
 
-	// Momentan gespeicherte Referenzen auf TimedRenderObjects löschen.
+	// Momentan gespeicherte Referenzen auf TimedRenderObjects lÃ¶schen.
 	_timedRenderObjects.resize(0);
 
 	// Referenzen auf die TimedRenderObjects wieder herstellen.

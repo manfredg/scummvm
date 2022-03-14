@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,6 +40,8 @@ void EoBCoreEngine::loadLevel(int level, int sub) {
 
 	disableSysTimer(2);
 	uint32 end = _system->getMillis() + 500;
+
+	resetWallData();
 
 	readLevelFileData(level);
 
@@ -90,12 +91,12 @@ void EoBCoreEngine::loadLevel(int level, int sub) {
 		pos += 2;
 	}
 
-	// WORKAROUND for bug #3596547 (EOB1: Door Buttons Don't Work)
+	// WORKAROUND for bug #6211 (EOB1: Door Buttons Don't Work)
 	if (_flags.gameID == GI_EOB1 && level == 7 && _levelBlockProperties[0x035C].assignedObjects == 0x0E89)
 		_levelBlockProperties[0x035C].assignedObjects = 0x0E8D;
 
 	loadVcnData(gfxFile.c_str(), _cgaLevelMappingIndex ? _cgaMappingLevel[_cgaLevelMappingIndex[level - 1]] : 0);
-	_screen->loadEoBBitmap("INVENT", _cgaMappingInv, 5, 3, 2);
+	gui_setupPlayFieldHelperPages();
 	if (_flags.platform == Common::kPlatformAmiga && _flags.gameID == GI_EOB1)
 		_screen->getPalette(0).copy(_screen->getPalette(1), 1, 5, 1);
 
@@ -108,14 +109,13 @@ void EoBCoreEngine::loadLevel(int level, int sub) {
 	_screen->setCurPage(0);
 	setHandItem(_itemInHand);
 
-	if (_flags.platform == Common::kPlatformPC98)
-		snd_playSong(level + 1);
+	snd_playLevelScore();
 }
 
 void EoBCoreEngine::readLevelFileData(int level) {
 	Common::String file;
 	Common::SeekableReadStream *s = 0;
-	static const char *const suffix[] = { "INF", "DRO", "ELO", "JOT", 0 };
+	static const char *const suffix[] = { "DRO", "INF", "ELO", "JOT", 0 };
 
 	for (const char *const *sf = suffix; *sf && !s; sf++) {
 		file = Common::String::format("LEVEL%d.%s", level, *sf);
@@ -126,7 +126,8 @@ void EoBCoreEngine::readLevelFileData(int level) {
 		error("Failed to load level file LEVEL%d.INF/DRO/ELO/JOT", level);
 
 	if (s->readUint16LE() + 2 == s->size()) {
-		if (s->readUint16LE() == 4) {
+		// check for valid compression type
+		if (s->readUint16LE() <= 4) {
 			delete s;
 			s = 0;
 			_screen->loadBitmap(file.c_str(), 5, 5, 0, true);
@@ -162,9 +163,9 @@ Common::String EoBCoreEngine::initLevelData(int sub) {
 		loadBlockProperties((const char *)pos);
 		pos += slen;
 
-		Common::SeekableReadStreamEndian *s = _res->createEndianAwareReadStream(Common::String::format(_vmpFilePattern.c_str(), (const char *)pos));
+		Common::SeekableReadStreamEndian *s = getVmpData((const char*)pos);
 		assert(s);
-		uint16 size = (_flags.platform == Common::kPlatformFMTowns) ? 2916 : s->readUint16();
+		uint16 size = (_flags.platform == Common::kPlatformFMTowns || _flags.platform == Common::kPlatformSegaCD) ? 2916 : s->readUint16();
 		delete[] _vmpPtr;
 		_vmpPtr = new uint16[size];
 		if (_flags.gameID == GI_EOB1) {
@@ -196,6 +197,8 @@ Common::String EoBCoreEngine::initLevelData(int sub) {
 		if (_flags.gameID == GI_EOB2 || (_flags.platform != Common::kPlatformAmiga && _configRenderMode != Common::kRenderCGA && _configRenderMode != Common::kRenderEGA))
 			_screen->loadPalette(tmpStr.c_str(), _screen->getPalette(_flags.platform == Common::kPlatformAmiga ? 6 : 0));
 
+		setLevelPalettes(_currentLevel);
+
 		if (_flags.platform == Common::kPlatformFMTowns) {
 			uint16 *src = (uint16*)_screen->getPalette(0).getData();
 			_screen->createFadeTable16bit(src, (uint16*)_greenFadingTable, 4, 75);
@@ -204,11 +207,7 @@ Common::String EoBCoreEngine::initLevelData(int sub) {
 			_screen->createFadeTable16bit(src, (uint16*)_lightBlueFadingTable, 11, 125);
 			_screen->createFadeTable16bit(src, (uint16*)_greyFadingTable, 0, 85);
 			_screen->setScreenPalette(_screen->getPalette(0));
-		} else if (_flags.platform == Common::kPlatformAmiga) {
-			// Amiga versions don't have shape shading
-		} else if (_flags.gameID == GI_EOB1 && _flags.platform == Common::kPlatformPC98) {
-		
-		} else if (_configRenderMode != Common::kRenderCGA) {
+		} else if (_configRenderMode != Common::kRenderCGA && _flags.platform != Common::kPlatformAmiga && _flags.platform != Common::kPlatformSegaCD && !(_flags.gameID == GI_EOB1 && _flags.platform == Common::kPlatformPC98)) {
 			Palette backupPal(256);
 			backupPal.copy(_screen->getPalette(0), 224, 32, 224);
 			_screen->getPalette(0).fill(224, 32, 0x3F);
@@ -317,31 +316,9 @@ void EoBCoreEngine::addLevelItems() {
 	}
 }
 
-void EoBCoreEngine::loadVcnData(const char *file, const uint8 *cgaMapping) {	
-	if (file)
-		strcpy(_lastBlockDataFile, file);
-
-	delete[] _vcnBlocks;
+void EoBCoreEngine::loadVcnData(const char *file, const uint8 *cgaMapping) {
 	uint32 vcnSize = 0;
-
 	Common::String fn = Common::String::format(_vcnFilePattern.c_str(), _lastBlockDataFile);
-
-	if (_flags.platform == Common::kPlatformFMTowns) {
-		_vcnBlocks = _res->fileData(fn.c_str(), &vcnSize);
-		return;
-	} else if (_flags.gameID == GI_EOB1 && (_flags.platform == Common::kPlatformAmiga || _flags.platform == Common::kPlatformPC98)) {
-		Common::SeekableReadStream *in = _res->createReadStream(fn);
-		vcnSize = _flags.platform == Common::kPlatformPC98 ? in->size() : in->readUint16LE() * (_vcnSrcBitsPerPixel << 3);
-		_vcnBlocks = new uint8[vcnSize];			
-		if (_flags.platform == Common::kPlatformAmiga) {
-			_screen->getPalette(1).loadAmigaPalette(*in, 1, 5);
-			in->seek(22, SEEK_CUR);
-		}
-		in->read(_vcnBlocks, vcnSize);
-		delete in;
-		return;
-	}
-
 	_screen->loadBitmap(fn.c_str(), 3, 3, 0, true);
 
 	const uint8 *pos = _screen->getCPagePtr(3);
@@ -376,9 +353,13 @@ void EoBCoreEngine::loadVcnData(const char *file, const uint8 *cgaMapping) {
 	} else {
 		if (_flags.platform != Common::kPlatformAmiga && !(_flags.gameID == GI_EOB1 && _configRenderMode == Common::kRenderEGA))
 			memcpy(_vcnColTable, colMap, 32);
-		
+
 		memcpy(_vcnBlocks, pos, vcnSize);
 	}
+}
+
+Common::SeekableReadStreamEndian *EoBCoreEngine::getVmpData(const char *file) {
+	return _res->createEndianAwareReadStream(Common::String::format(_vmpFilePattern.c_str(), file));
 }
 
 void EoBCoreEngine::loadBlockProperties(const char *mazFile) {
@@ -425,17 +406,25 @@ Common::String EoBCoreEngine::getBlockFileName(int levelIndex, int sub) {
 
 const uint8 *EoBCoreEngine::getBlockFileData(const char *mazFile) {
 	_curBlockFile = mazFile;
-	return getBlockFileData();
+	return getBlockFileData(_currentLevel);
+}
+
+
+Common::SeekableReadStreamEndian *EoBCoreEngine::getDecDefinitions(const char *decFile) {
+	return _res->createEndianAwareReadStream(decFile, Resource::kForceLE);
+}
+
+void EoBCoreEngine::loadDecShapesToPage3(const char *shpFile) {
+	_screen->loadShapeSetBitmap(shpFile, 5, 3);
 }
 
 void EoBCoreEngine::loadDecorations(const char *cpsFile, const char *decFile) {
-	_screen->loadShapeSetBitmap(cpsFile, 5, 3);
-	Common::SeekableReadStream *s = _res->createReadStream(decFile);
+	loadDecShapesToPage3(cpsFile);
+	Common::SeekableReadStreamEndian *s = getDecDefinitions(decFile);
 
-	_levelDecorationDataSize = s->readUint16LE();
+	_levelDecorationDataSize = s->readUint16();
 	delete[] _levelDecorationData;
-	_levelDecorationData = new LevelDecorationProperty[_levelDecorationDataSize];
-	memset(_levelDecorationData, 0, _levelDecorationDataSize * sizeof(LevelDecorationProperty));
+	_levelDecorationData = new LevelDecorationProperty[_levelDecorationDataSize]();
 
 	for (int i = 0; i < _levelDecorationDataSize; i++) {
 		LevelDecorationProperty *l = &_levelDecorationData[i];
@@ -447,20 +436,20 @@ void EoBCoreEngine::loadDecorations(const char *cpsFile, const char *decFile) {
 		l->next = s->readByte();
 		l->flags = s->readByte();
 		for (int ii = 0; ii < 10; ii++)
-			l->shapeX[ii] = s->readSint16LE();
+			l->shapeX[ii] = s->readSint16();
 		for (int ii = 0; ii < 10; ii++)
-			l->shapeY[ii] = s->readSint16LE();
+			l->shapeY[ii] = s->readSint16();
 	}
 
-	int len = s->readUint16LE();
+	int len = s->readUint16();
 	delete[] _levelDecorationRects;
 	_levelDecorationRects = new EoBRect8[len];
 	for (int i = 0; i < len; i++) {
 		EoBRect8 *l = &_levelDecorationRects[i];
-		l->x = s->readUint16LE();
-		l->y = s->readUint16LE();
-		l->w = s->readUint16LE();
-		l->h = s->readUint16LE();
+		l->x = s->readUint16();
+		l->y = s->readUint16();
+		l->w = s->readUint16();
+		l->h = s->readUint16();
 	}
 
 	delete s;
@@ -499,7 +488,12 @@ void EoBCoreEngine::assignWallsAndDecorations(int wallIndex, int vmpIndex, int d
 			if (r->w == 0 || r->h == 0)
 				error("Error trying to make decoration %d (x: %d, y: %d, w: %d, h: %d)", decIndex, r->x, r->y, r->w, r->h);
 
-			_levelDecorationShapes[t] = _screen->encodeShape(r->x, r->y, r->w, r->h, false, _cgaLevelMappingIndex ? _cgaMappingLevel[_cgaLevelMappingIndex[_currentLevel - 1]] : 0);
+			if (_flags.platform == Common::kPlatformSegaCD) {
+				_levelDecorationShapes[t] = _screen->sega_convertShape(_dcrShpDataPos, r->w << 3, r->h, 0);
+				_dcrShpDataPos += ((r->w << 2) * r->h);
+			} else {
+				_levelDecorationShapes[t] = _screen->encodeShape(r->x, r->y, r->w, r->h, false, _cgaLevelMappingIndex ? _cgaMappingLevel[_cgaLevelMappingIndex[_currentLevel - 1]] : 0);
+			}
 		}
 
 		decIndex = _levelDecorationProperties[_mappedDecorationsCount++].next;
@@ -520,6 +514,7 @@ void EoBCoreEngine::releaseDecorations() {
 		}
 	}
 	_mappedDecorationsCount = 0;
+	_dcrShpDataPos = 0;
 }
 
 void EoBCoreEngine::releaseDoorShapes() {
@@ -529,6 +524,24 @@ void EoBCoreEngine::releaseDoorShapes() {
 		delete[] _doorSwitches[i].shp;
 		_doorSwitches[i].shp = 0;
 	}
+}
+
+void EoBCoreEngine::resetWallData() {
+	memset(_wllVmpMap, 0, 256);
+	_wllVmpMap[1] = 1;
+	_wllVmpMap[2] = 2;
+	memset(&_wllVmpMap[3], 3, 20);
+	_wllVmpMap[23] = 4;
+	_wllVmpMap[24] = 5;
+	memset(_wllShapeMap, 0, 256);
+	memset(&_wllShapeMap[3], -1, 5);
+	memset(&_wllShapeMap[13], -1, 5);
+	memset(_wllWallFlags, 0, 256);
+	memcpy(_wllWallFlags, _wllFlagPreset, _wllFlagPresetSize);
+	memset(_specialWallTypes, 0, 256);
+	memset(&_specialWallTypes[3], 1, 5);
+	memset(&_specialWallTypes[13], 1, 5);
+	_specialWallTypes[8] = _specialWallTypes[18] = 6;
 }
 
 void EoBCoreEngine::toggleWallState(int wall, int toggle) {
@@ -541,7 +554,7 @@ void EoBCoreEngine::toggleWallState(int wall, int toggle) {
 		if (toggle)
 			_wllWallFlags[wall + i] |= 2;
 		else
-			_wllWallFlags[wall + i] &= 0xFD;
+			_wllWallFlags[wall + i] &= ~2;
 	}
 }
 
@@ -552,7 +565,7 @@ void EoBCoreEngine::drawScene(int refresh) {
 
 	if (_sceneDrawPage2) {
 		if (refresh)
-			_screen->fillRect(0, 0, 176, 120, guiSettings()->colors.guiColorBlack);
+			_screen->fillRect(0, 0, 175, 119, guiSettings()->colors.guiColorBlack);
 
 		if (!_loading)
 			_screen->setScreenPalette(_screen->getPalette(0));
@@ -565,6 +578,7 @@ void EoBCoreEngine::drawScene(int refresh) {
 		int diff = _flashShapeTimer - ct;
 		while ((diff > 0) && !shouldQuit()) {
 			updateInput();
+			updateAnimTimers();
 			uint32 step = MIN<uint32>(diff, _tickLength / 5);
 			_system->delayMillis(step);
 			diff -= step;
@@ -577,7 +591,7 @@ void EoBCoreEngine::drawScene(int refresh) {
 	if (refresh && !_partyResting)
 		_screen->copyRegion(0, 0, 0, 0, 176, 120, 2, 0, Screen::CR_NO_P_CHECK);
 
-	updateEnvironmentalSfx(0);
+	snd_updateEnvironmentalSfx(0);
 
 	if (!_dialogueField && refresh && !_updateFlags)
 		gui_drawCompass(false);
@@ -586,15 +600,15 @@ void EoBCoreEngine::drawScene(int refresh) {
 		_screen->updateScreen();
 
 	if (_sceneDefaultUpdate) {
-		_sceneDefaultUpdate = false;
+		_sceneDefaultUpdate = 0;
 		_drawSceneTimer = _system->getMillis() + 4 * _tickLength;
 	}
 
 	_sceneUpdateRequired = false;
 }
 
-void EoBCoreEngine::drawSceneShapes(int start) {
-	for (int i = start; i < 18; i++) {
+void EoBCoreEngine::drawSceneShapes(int start, int end, int drawFlags) {
+	for (int i = start; i < end; i++) {
 		uint8 t = _dscTileIndex[i];
 		uint8 s = _visibleBlocks[t]->walls[_sceneDrawVarDown];
 
@@ -606,31 +620,33 @@ void EoBCoreEngine::drawSceneShapes(int start) {
 		if (_shpDmX2 <= _shpDmX1)
 			continue;
 
-		drawDecorations(t);
+		if (drawFlags & 0x01)
+			drawDecorations(t);
 
-		if (_visibleBlocks[t]->drawObjects)
+		if ((drawFlags & 0x02) && _visibleBlocks[t]->drawObjects)
 			drawBlockItems(t);
 
 		if (t < 15) {
 			uint16 w = _wllWallFlags[s];
 
-			if (w & 8)
+			if ((drawFlags & 0x04) && (w & 8))
 				drawDoor(t);
 
-			if (_visibleBlocks[t]->flags & 7) {
+			if ((drawFlags & 0x08) && (_visibleBlocks[t]->flags & 7)) {
 				const ScreenDim *dm = _screen->getScreenDim(5);
 				_screen->modifyScreenDim(5, dm->sx, _lvlShapeTop[t], dm->w, _lvlShapeBottom[t] - _lvlShapeTop[t]);
 				drawMonsters(t);
 				drawLevelModifyScreenDim(5, _lvlShapeLeftRight[(t << 1)], 0, _lvlShapeLeftRight[(t << 1) + 1], 15);
 			}
 
-			if (_flags.gameID == GI_EOB2 && s == 74)
+			if ((drawFlags & 0x10) && _flags.gameID == GI_EOB2 && s == 74)
 				drawWallOfForce(t);
 		}
 
-		drawFlyingObjects(t);
+		if (drawFlags & 0x20)
+			drawFlyingObjects(t);
 
-		if (s == _teleporterWallId)
+		if ((drawFlags & 0x40) && s == _teleporterWallId)
 			drawTeleporter(t);
 	}
 }
@@ -642,7 +658,7 @@ void EoBCoreEngine::drawDecorations(int index) {
 			int16 d = *_dscWallMapping[s];
 			int8 l = _wllShapeMap[_visibleBlocks[index]->walls[d]];
 
-			uint8 *shapeData = 0;
+			const uint8 *shapeData = 0;
 
 			int x = 0;
 
@@ -712,6 +728,11 @@ void EoBCoreEngine::notifyBlockNotPassable() {
 	_txt->printMessage(_warningStrings[0]);
 	snd_playSoundEffect(_flags.gameID == GI_EOB1 && _flags.platform == Common::kPlatformPC98 ? 45 : 29);
 	removeInputTop();
+}
+
+void EoBCoreEngine::increaseStepsCounter() {
+	if (_totalSteps < 0xFFFFFFFF)
+		_totalSteps++;
 }
 
 void EoBCoreEngine::moveParty(uint16 block) {

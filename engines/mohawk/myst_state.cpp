@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -94,9 +93,6 @@ void MystGameState::reset() {
 	_globals.heldPage = kNoPage;
 	_globals.u1 = 1;
 	_globals.ending = kDniNotVisited;
-
-	_globals.zipMode = ConfMan.getBool("zip_mode");
-	_globals.transitions = ConfMan.getBool("transition_mode");
 
 	// Library Bookcase Door - Default to Up
 	_myst.libraryBookcaseDoor = 1;
@@ -216,7 +212,7 @@ bool MystGameState::saveState(int slot) {
 	debugC(kDebugSaveLoad, "Saving game to '%s'", filename.c_str());
 
 	Common::Serializer s(nullptr, saveFile);
-	syncGameState(s, _vm->getFeatures() & GF_ME);
+	syncGameState(s, _vm->isGameVariant(GF_ME));
 	saveFile->finalize();
 	delete saveFile;
 
@@ -271,9 +267,8 @@ bool MystGameState::saveMetadata(int slot, const Graphics::Surface *thumbnail) {
 	return true;
 }
 
-SaveStateDescriptor MystGameState::querySaveMetaInfos(int slot) {
-	SaveStateDescriptor desc;
-	desc.setWriteProtectedFlag(slot == kAutoSaveSlot);
+SaveStateDescriptor MystGameState::querySaveMetaInfos(const MetaEngine *metaEngine, int slot) {
+	SaveStateDescriptor desc(metaEngine, slot, Common::U32String());
 
 	// Open the save file
 	Common::String filename = buildSaveFilename(slot);
@@ -284,8 +279,6 @@ SaveStateDescriptor MystGameState::querySaveMetaInfos(int slot) {
 	delete saveFile;
 
 	// There is a save in the slot
-	desc.setSaveSlot(slot);
-
 	// Open the metadata file
 	filename = buildMetadataFilename(slot);
 	Common::InSaveFile *metadataFile = g_system->getSavefileManager()->openForLoading(filename);
@@ -535,7 +528,7 @@ void MystGameState::addZipDest(MystStack stack, uint16 view) {
 	ZipDests *zipDests = nullptr;
 
 	// The demo has no zip dest storage
-	if (_vm->getFeatures() & GF_DEMO)
+	if (_vm->isGameVariant(GF_DEMO))
 		return;
 
 	// Select stack
@@ -577,11 +570,11 @@ void MystGameState::addZipDest(MystStack stack, uint16 view) {
 
 bool MystGameState::isReachableZipDest(MystStack stack, uint16 view) {
 	// Zip mode enabled
-	if (!_globals.zipMode)
+	if (!ConfMan.getBool("zip_mode"))
 		return false;
 
 	// The demo has no zip dest storage
-	if (_vm->getFeatures() & GF_DEMO)
+	if (_vm->isGameVariant(GF_DEMO))
 		return false;
 
 	// Select stack

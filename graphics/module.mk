@@ -5,6 +5,7 @@ MODULE_OBJS := \
 	cursorman.o \
 	font.o \
 	fontman.o \
+	fonts/amigafont.o \
 	fonts/bdf.o \
 	fonts/consolefont.o \
 	fonts/macfont.o \
@@ -12,9 +13,12 @@ MODULE_OBJS := \
 	fonts/newfont.o \
 	fonts/ttf.o \
 	fonts/winfont.o \
+	framelimiter.o \
+	korfont.o \
 	larryScale.o \
 	maccursor.o \
-	macgui/maceditabletext.o \
+	macgui/datafiles.o \
+	macgui/macbutton.o \
 	macgui/macfontmanager.o \
 	macgui/macmenu.o \
 	macgui/mactext.o \
@@ -25,13 +29,18 @@ MODULE_OBJS := \
 	macgui/macwindowmanager.o \
 	managed_surface.o \
 	nine_patch.o \
+	opengl/context.o \
+	opengl/shader.o \
 	pixelformat.o \
 	primitives.o \
-	scaler.o \
+	renderer.o \
+	scalerplugin.o \
 	scaler/thumbnail_intern.o \
 	screen.o \
+	scaler/normal.o \
 	sjis.o \
 	surface.o \
+	svg.o \
 	transform_struct.o \
 	transform_tools.o \
 	transparent_surface.o \
@@ -41,14 +50,49 @@ MODULE_OBJS := \
 	wincursor.o \
 	yuv_to_rgb.o
 
+ifdef USE_TINYGL
+MODULE_OBJS += \
+	tinygl/api.o \
+	tinygl/arrays.o \
+	tinygl/clear.o \
+	tinygl/clip.o \
+	tinygl/get.o \
+	tinygl/image_util.o \
+	tinygl/init.o \
+	tinygl/light.o \
+	tinygl/list.o \
+	tinygl/matrix.o \
+	tinygl/memory.o \
+	tinygl/misc.o \
+	tinygl/pixelbuffer.o \
+	tinygl/select.o \
+	tinygl/specbuf.o \
+	tinygl/texture.o \
+	tinygl/texelbuffer.o \
+	tinygl/vertex.o \
+	tinygl/zbuffer.o \
+	tinygl/zline.o \
+	tinygl/zmath.o \
+	tinygl/ztriangle.o \
+	tinygl/zblit.o \
+	tinygl/zdirtyrect.o
+endif
+
+ifdef USE_ASPECT
+MODULE_OBJS += \
+	scaler/aspect.o
+endif
+
 ifdef USE_SCALERS
 MODULE_OBJS += \
-	scaler/2xsai.o \
-	scaler/aspect.o \
+	scaler/dotmatrix.o \
+	scaler/sai.o \
+	scaler/pm.o \
 	scaler/downscaler.o \
 	scaler/scale2x.o \
 	scaler/scale3x.o \
-	scaler/scalebit.o
+	scaler/scalebit.o \
+	scaler/tv.o
 
 ifdef USE_ARM_SCALER_ASM
 MODULE_OBJS += \
@@ -59,8 +103,7 @@ endif
 
 ifdef USE_HQ_SCALERS
 MODULE_OBJS += \
-	scaler/hq2x.o \
-	scaler/hq3x.o
+	scaler/hq.o
 
 ifdef USE_NASM
 MODULE_OBJS += \
@@ -68,6 +111,11 @@ MODULE_OBJS += \
 	scaler/hq3x_i386.o
 endif
 
+endif
+
+ifdef USE_EDGE_SCALERS
+MODULE_OBJS += \
+	scaler/edge.o
 endif
 
 endif

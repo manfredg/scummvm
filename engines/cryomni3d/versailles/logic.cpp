@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,9 +66,9 @@ void CryOmni3DEngine_Versailles::setupObjects() {
 	_objects.reserve(51);
 #define SET_OBJECT(cursorId, nameId) _objects.push_back(Object(_sprites, cursorId, nameId))
 #define SET_OBJECT_AND_CB(cursorId, nameId, cb) do { \
-        _objects.push_back(Object(_sprites, cursorId, nameId)); \
-        _objects.back().setViewCallback(new Common::Functor0Mem<void, CryOmni3DEngine_Versailles>(this, &CryOmni3DEngine_Versailles::cb)); \
-    } while (false)
+		_objects.push_back(Object(_sprites, cursorId, nameId)); \
+		_objects.back().setViewCallback(new Common::Functor0Mem<void, CryOmni3DEngine_Versailles>(this, &CryOmni3DEngine_Versailles::cb)); \
+	} while (false)
 #define SET_OBJECT_GENERIC_CB(cursorId, nameId, imageId) SET_OBJECT_AND_CB(cursorId, nameId, genericDisplayObject<imageId>)
 #define SET_OBJECT_CB(cursorId, nameId) SET_OBJECT_AND_CB(cursorId, nameId, obj_ ## nameId)
 	SET_OBJECT(161, 93); // 0
@@ -106,7 +105,7 @@ void CryOmni3DEngine_Versailles::setupObjects() {
 	SET_OBJECT_CB(112, 126);
 	SET_OBJECT_GENERIC_CB(90, 127, 17);
 	SET_OBJECT(216, 128);
-	SET_OBJECT_GENERIC_CB(32, 129, 18);
+	SET_OBJECT_CB(32, 129);
 	SET_OBJECT(37, 130); // 35
 	SET_OBJECT_GENERIC_CB(134, 131, 19);
 	SET_OBJECT_GENERIC_CB(150, 132, 20);
@@ -192,6 +191,46 @@ void CryOmni3DEngine_Versailles::obj_126hk(Graphics::ManagedSurface &surface) {
 	for (uint i = 0; i < 28; i++) {
 		bmpLetters[i].free();
 	}
+
+	if (_messages.size() <= 148) {
+		return;
+	}
+
+	Common::String &translation = _messages[148];
+
+	if (translation.size() == 0) {
+		return;
+	}
+
+	_fontManager.setCurrentFont(1);
+	_fontManager.setTransparentBackground(true);
+	_fontManager.setForeColor(0);
+	_fontManager.setSurface(&surface);
+	_fontManager.displayStr(9, 424, translation);
+}
+
+void CryOmni3DEngine_Versailles::obj_129() {
+	displayObject(kImagesObjects[18], &CryOmni3DEngine_Versailles::obj_129hk);
+}
+
+void CryOmni3DEngine_Versailles::obj_129hk(Graphics::ManagedSurface &surface) {
+	if (_messages.size() <= 149) {
+		return;
+	}
+
+	Common::String &translation = _messages[149];
+
+	if (translation.size() == 0) {
+		return;
+	}
+
+	surface.fillRect(Common::Rect(0, 455, 640, 480), 247);
+
+	_fontManager.setCurrentFont(8);
+	_fontManager.setTransparentBackground(true);
+	_fontManager.setForeColor(242);
+	_fontManager.setSurface(&surface);
+	_fontManager.displayStr(10, 460, translation);
 }
 
 void CryOmni3DEngine_Versailles::obj_142() {
@@ -438,12 +477,12 @@ void CryOmni3DEngine_Versailles::genericDumbImage(ZonFixedImage *fimg) {
 
 // Generic handler for interrogation mark action: display the painting title
 #define HANDLE_QUESTION(ID) \
-    do { \
-        if (fimg->_zoneQuestion) { \
-            displayMessageBox(kFixedimageMsgBoxParameters, fimg->surface(), _paintingsTitles[ID], Common::Point(600, 400), \
-                    Common::Functor0Mem<void, ZonFixedImage>(fimg, &ZonFixedImage::manage)); \
-        } \
-    } while (false)
+	do { \
+		if (fimg->_zoneQuestion) { \
+			displayMessageBox(kFixedimageMsgBoxParameters, fimg->surface(), _paintingsTitles[ID], Common::Point(600, 400), \
+					Common::Functor0Mem<void, ZonFixedImage>(fimg, &ZonFixedImage::manage)); \
+		} \
+	} while (false)
 
 // Generic handler for paintings fixed images
 template<uint ID>
@@ -1246,7 +1285,7 @@ const uint16 CryOmni3DEngine_Versailles::kSafeDigitsX[] = { 267, 318, 370, 421 }
 const uint16 CryOmni3DEngine_Versailles::kSafeDigitsY[] = { 148, 230, 311 };
 
 void CryOmni3DEngine_Versailles::drawSafeDigits(Graphics::ManagedSurface &surface,
-        const Graphics::Surface(&bmpDigits)[10], const unsigned char (&safeDigits)[kSafeDigitsCount]) {
+		const Graphics::Surface(&bmpDigits)[10], const unsigned char (&safeDigits)[kSafeDigitsCount]) {
 	for (uint i = 0; i < ARRAYSIZE(safeDigits); i++) {
 		const Graphics::Surface &digit = bmpDigits[safeDigits[i]];
 		Common::Point dst(kSafeDigitsX[i % 4], kSafeDigitsY[i / 4]);
@@ -2379,7 +2418,7 @@ bool CryOmni3DEngine_Versailles::handleEpigraph(ZonFixedImage *fimg) {
 				}
 				if (keyCode >= Common::KEYCODE_a &&
 				        keyCode <= Common::KEYCODE_z &&
-				        _epigraphContent.contains(keyCode - Common::KEYCODE_a + 'A')) {
+				        _epigraphContent.contains((char)(keyCode - Common::KEYCODE_a + 'A'))) {
 					password += keyCode - Common::KEYCODE_a + 'A';
 				} else {
 					continue;
@@ -2404,7 +2443,7 @@ bool CryOmni3DEngine_Versailles::handleEpigraph(ZonFixedImage *fimg) {
 }
 
 void CryOmni3DEngine_Versailles::drawEpigraphLetters(Graphics::ManagedSurface &surface,
-        const Graphics::Surface(&bmpLetters)[28], const Common::String &letters) {
+		const Graphics::Surface(&bmpLetters)[28], const Common::String &letters) {
 	for (uint i = 0; i < letters.size() && i < kEpigraphMaxLetters; i++) {
 		uint letterId = 0;
 		if (letters[i] >= 'A' && letters[i] <= 'Z') {
@@ -2930,8 +2969,8 @@ bool CryOmni3DEngine_Versailles::handleBomb(ZonFixedImage *fimg) {
 	bool success = false;
 	Common::RandomSource rnd("VersaillesBomb");
 	Graphics::Surface bmpLetters[28];
-	unsigned char bombPossibilites[60][5];
-	unsigned char bombCurrentLetters[60];
+	uint32 bombPossibilites[60][5];
+	byte bombCurrentLetters[60];
 	Graphics::ManagedSurface tempSurf;
 
 	const uint bombPasswordLength = _bombPassword.size();
@@ -2939,14 +2978,21 @@ bool CryOmni3DEngine_Versailles::handleBomb(ZonFixedImage *fimg) {
 		error("Bomb password is too long");
 	}
 
-	loadBMPs("bomb_%02d.bmp", bmpLetters, 28);
+	uint max = _bombAlphabet.size() - 1;
+	if (getLanguage() != Common::JA_JPN) {
+		// In bitmap mode we only have 28 images
+		assert(max < 28);
+		// BUG: in game the rand is modulo 27
+		max = 26;
+		loadBMPs("bomb_%02d.bmp", bmpLetters, 28);
+	}
 	for (uint i = 0; i < bombPasswordLength; i++) {
-		bombPossibilites[i][0] = toupper(_bombPassword[i]);
+		bombPossibilites[i][0] = _bombPassword[i];
 		for (uint j = 1; j < 5; j++) {
 			bool foundSameLetter;
 			do {
 				foundSameLetter = false;
-				bombPossibilites[i][j] = rnd.getRandomNumberRng('A', 'Z');
+				bombPossibilites[i][j] = _bombAlphabet[rnd.getRandomNumber(max)];
 				for (uint k = 0; k < j; k++) {
 					if (bombPossibilites[i][k] == bombPossibilites[i][j]) {
 						foundSameLetter = true;
@@ -2989,13 +3035,14 @@ bool CryOmni3DEngine_Versailles::handleBomb(ZonFixedImage *fimg) {
 				// Check if password is OK
 				success = true;
 				for (uint i = 0; i < bombPasswordLength; i++) {
-					unsigned char letterChar = bombPossibilites[i][bombCurrentLetters[i]];
-					if (letterChar != _bombPassword[i]) {
+					uint16 letterId = bombPossibilites[i][bombCurrentLetters[i]];
+					if (letterId != _bombPassword[i]) {
 						success = false;
 						break;
 					}
 				}
 				if (success) {
+					handleBombTranslation(tempSurf);
 					break;
 				}
 			}
@@ -3011,6 +3058,43 @@ bool CryOmni3DEngine_Versailles::handleBomb(ZonFixedImage *fimg) {
 		bmpLetters[i].free();
 	}
 	return success;
+}
+
+void CryOmni3DEngine_Versailles::handleBombTranslation(Graphics::ManagedSurface &surface) {
+	if (_messages.size() <= 150) {
+		return;
+	}
+
+	Common::String &translation = _messages[150];
+
+	if (translation.size() == 0) {
+		return;
+	}
+
+	surface.fillRect(Common::Rect(0, 430, 640, 480), 247);
+
+	_fontManager.setCurrentFont(1);
+	_fontManager.setTransparentBackground(true);
+	_fontManager.setForeColor(242);
+	_fontManager.setSurface(&surface);
+	uint w = _fontManager.getStrWidth(translation);
+	_fontManager.displayStr((640 - w) / 2, 440, translation);
+
+	g_system->copyRectToScreen(surface.getPixels(), surface.pitch, 0, 0,
+	                           surface.w, surface.h);
+	g_system->updateScreen();
+
+	uint32 end = g_system->getMillis() + 5000;
+	bool exitImg = false;
+	while (!shouldAbort() && !exitImg && g_system->getMillis() < end) {
+		if (pollEvents()) {
+			if (checkKeysPressed() || getCurrentMouseButton() == 1) {
+				exitImg = true;
+			}
+		}
+		g_system->updateScreen();
+		g_system->delayMillis(10);
+	}
 }
 
 const uint16 CryOmni3DEngine_Versailles::kBombLettersPos[2][kBombPasswordMaxLength][2] = {
@@ -3121,23 +3205,34 @@ const uint16 CryOmni3DEngine_Versailles::kBombLettersPos[2][kBombPasswordMaxLeng
 };
 
 void CryOmni3DEngine_Versailles::drawBombLetters(Graphics::ManagedSurface &surface,
-        const Graphics::Surface(&bmpLetters)[28], const uint bombPasswordLength,
-        const unsigned char (&bombPossibilites)[kBombPasswordMaxLength][5],
-        const unsigned char (&bombCurrentLetters)[kBombPasswordMaxLength]) {
+		const Graphics::Surface(&bmpLetters)[28], const uint bombPasswordLength,
+		const uint32(&bombPossibilites)[kBombPasswordMaxLength][5],
+		const byte(&bombCurrentLetters)[kBombPasswordMaxLength]) {
 	uint table = bombPasswordLength <= kBombPasswordSmallLength ? 0 : 1;
-	for (uint i = 0; i < bombPasswordLength; i++) {
-		unsigned char letterChar = bombPossibilites[i][bombCurrentLetters[i]];
-		uint letterId = 0;
-		if (letterChar >= 'A' && letterChar <= 'Z') {
-			letterId = letterChar - 'A';
-		} else if (letterChar == ' ') {
-			letterId = 26;
-		} else if (letterChar == '\'') {
-			letterId = 27;
+	if (getLanguage() == Common::JA_JPN) {
+		_fontManager.setCurrentFont(1);
+		_fontManager.setTransparentBackground(true);
+		_fontManager.setForeColor(0);
+		_fontManager.setSurface(&surface);
+
+		for (uint i = 0; i < bombPasswordLength; i++) {
+			Common::Rect rct(34, 34);
+			rct.moveTo(kBombLettersPos[table][i][0], kBombLettersPos[table][i][1]);
+			surface.fillRect(rct, 239);
+
+			uint32 letter = bombPossibilites[i][bombCurrentLetters[i]];
+			Common::U32String str(&letter, 1);
+
+			_fontManager.displayStr(rct.left + (34 - _fontManager.getStrWidth(str)) / 2,
+			                        rct.top + 5, str);
 		}
-		const Graphics::Surface &letter = bmpLetters[letterId];
-		Common::Point dst(kBombLettersPos[table][i][0], kBombLettersPos[table][i][1]);
-		surface.transBlitFrom(letter, dst);
+	} else {
+		for (uint i = 0; i < bombPasswordLength; i++) {
+			uint letterId = _bombAlphabet.find(bombPossibilites[i][bombCurrentLetters[i]]);
+			const Graphics::Surface &letter = bmpLetters[letterId];
+			Common::Point dst(kBombLettersPos[table][i][0], kBombLettersPos[table][i][1]);
+			surface.transBlitFrom(letter, dst);
+		}
 	}
 }
 
@@ -3273,13 +3368,13 @@ FILTER_EVENT(1, 3) {
 // Event 19 is not in this room: must be a leftover
 /*
 FILTER_EVENT(1, 7) {
-    if (*event == 19) {
-        // Too dark
-        displayMessageBoxWarp(7);
-        return false;
-    }
+	if (*event == 19) {
+		// Too dark
+		displayMessageBoxWarp(7);
+		return false;
+	}
 
-    return true;
+	return true;
 }
 */
 

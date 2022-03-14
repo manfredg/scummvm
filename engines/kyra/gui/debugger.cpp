@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,7 +80,7 @@ bool Debugger::cmdLoadPalette(int argc, const char **argv) {
 		}
 
 		_vm->screen()->copyRegionToBuffer(5, 0, 0, 320, 200, buffer);
-		_vm->screen()->loadBitmap(argv[1], 5, 5, 0);
+		_vm->screen()->loadBitmap(argv[1], 5, 5, nullptr);
 		palette.copy(_vm->screen()->getCPagePtr(5), 0, 256);
 		_vm->screen()->copyBlockToPage(5, 0, 0, 320, 200, buffer);
 
@@ -516,6 +515,11 @@ bool Debugger_EoB::cmdImportSaveFile(int argc, const char **argv) {
 }
 
 bool Debugger_EoB::cmdSaveOriginal(int argc, const char **argv) {
+	if (_vm->gameFlags().platform == Common::kPlatformSegaCD) {
+		debugPrintf("Command not supported for this version.\n");
+		return true;
+	}
+
 	if (!_vm->_runFlag) {
 		debugPrintf("This command doesn't work during intro or outro sequences,\nfrom the main menu or from the character generation.\n");
 		return true;
@@ -657,7 +661,7 @@ bool Debugger_EoB::cmdPrintMap(int, const char **) {
 		}
 
 		if (_vm->_currentBlock == i) {
-			c = 'X';			
+			c = 'X';
 		} else if (key) {
 			c = signs[8];
 		} else {
@@ -668,7 +672,7 @@ bool Debugger_EoB::cmdPrintMap(int, const char **) {
 				}
 			}
 		}
-		
+
 		debugPrintf("%c", c);
 	}
 	debugPrintf("\n\nParty Position:   %c  Door:             %c  Stairs Up/Down: %c/%c  Plate:      %c   Hole: %c\nSwitch:           %c  Clickable Object: %c  Illusion Wall:  %c    Teleporter: %c   Key:  %c\n\n", 'X', 216, signs[3], signs[4], signs[6], signs[5], '/', 176, signs[1], signs[0], signs[8]);

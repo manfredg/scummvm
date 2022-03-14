@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -114,7 +113,7 @@ void *sx_realloc(void *pointer, size_t size) {
 	}
 
 	if (pointer == sx_zero_allocation)
-		pointer = NULL;
+		pointer = nullptr;
 
 	allocated = realloc(pointer, size);
 	if (!allocated)
@@ -168,7 +167,7 @@ static const sc_char NUL = '\0';
 static sc_bool sx_isspace(sc_char character) {
 	static const sc_char *const WHITESPACE = "\t\n\v\f\r ";
 
-	return character != NUL && strchr(WHITESPACE, character) != NULL;
+	return character != NUL && strchr(WHITESPACE, character) != nullptr;
 }
 
 static sc_bool sx_isprint(sc_char character) {

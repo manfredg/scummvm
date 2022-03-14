@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,8 +62,8 @@ void setGameTarget(const char *target) {
 }
 
 static Common::String generateSavegameFilename(uint slotID) {
-	char buffer[MAX_SAVEGAME_SIZE];
-	snprintf(buffer, MAX_SAVEGAME_SIZE, "%s.%.3d", gameTarget, slotID);
+	char buffer[MAX_SAVEGAME_SIZE+5];
+	snprintf(buffer, MAX_SAVEGAME_SIZE+5, "%s.%.3d", gameTarget, slotID);
 	return Common::String(buffer);
 }
 
@@ -214,7 +213,7 @@ Common::String PersistenceService::getSavegameDirectory() {
 
 namespace {
 bool checkslotID(uint slotID) {
-	// Überprüfen, ob die Slot-ID zulässig ist.
+	// ÃœberprÃ¼fen, ob die Slot-ID zulÃ¤ssig ist.
 	if (slotID >= SLOT_COUNT) {
 		error("Tried to access an invalid slot (%d). Only slot ids from 0 to %d are allowed.", slotID, SLOT_COUNT - 1);
 		return false;
@@ -261,7 +260,7 @@ bool PersistenceService::saveGame(uint slotID, const Common::String &screenshotF
 	// FIXME: This code is a hack which bypasses the savefile API,
 	// and should eventually be removed.
 
-	// Überprüfen, ob die Slot-ID zulässig ist.
+	// ÃœberprÃ¼fen, ob die Slot-ID zulÃ¤ssig ist.
 	if (slotID >= SLOT_COUNT) {
 		error("Tried to save to an invalid slot (%d). Only slot ids form 0 to %d are allowed.", slotID, SLOT_COUNT - 1);
 		return false;
@@ -270,7 +269,7 @@ bool PersistenceService::saveGame(uint slotID, const Common::String &screenshotF
 	// Dateinamen erzeugen.
 	Common::String filename = generateSavegameFilename(slotID);
 
-	// Spielstanddatei öffnen und die Headerdaten schreiben.
+	// Spielstanddatei Ã¶ffnen und die Headerdaten schreiben.
 	Common::SaveFileManager *sfm = g_system->getSavefileManager();
 	Common::OutSaveFile *file = sfm->openForSaving(filename);
 
@@ -335,7 +334,7 @@ bool PersistenceService::saveGame(uint slotID, const Common::String &screenshotF
 	file->finalize();
 	delete file;
 
-	// Savegameinformationen für diesen Slot aktualisieren.
+	// Savegameinformationen fÃ¼r diesen Slot aktualisieren.
 	_impl->readSlotSavegameInformation(slotID);
 
 	// Empty the cache, to remove old thumbnails
@@ -349,7 +348,7 @@ bool PersistenceService::loadGame(uint slotID) {
 	Common::SaveFileManager *sfm = g_system->getSavefileManager();
 	Common::InSaveFile *file;
 
-	// Überprüfen, ob die Slot-ID zulässig ist.
+	// ÃœberprÃ¼fen, ob die Slot-ID zulÃ¤ssig ist.
 	if (slotID >= SLOT_COUNT) {
 		error("Tried to load from an invalid slot (%d). Only slot ids form 0 to %d are allowed.", slotID, SLOT_COUNT - 1);
 		return false;
@@ -357,15 +356,15 @@ bool PersistenceService::loadGame(uint slotID) {
 
 	SavegameInformation &curSavegameInfo = _impl->_savegameInformations[slotID];
 
-	// Überprüfen, ob der Slot belegt ist.
+	// ÃœberprÃ¼fen, ob der Slot belegt ist.
 	if (!curSavegameInfo.isOccupied) {
 		error("Tried to load from an empty slot (%d).", slotID);
 		return false;
 	}
 
-	// Überprüfen, ob der Spielstand im angegebenen Slot mit der aktuellen Engine-Version kompatibel ist.
-	// Im Debug-Modus wird dieser Test übersprungen. Für das Testen ist es hinderlich auf die Einhaltung dieser strengen Bedingung zu bestehen,
-	// da sich die Versions-ID bei jeder Codeänderung mitändert.
+	// ÃœberprÃ¼fen, ob der Spielstand im angegebenen Slot mit der aktuellen Engine-Version kompatibel ist.
+	// Im Debug-Modus wird dieser Test Ã¼bersprungen. FÃ¼r das Testen ist es hinderlich auf die Einhaltung dieser strengen Bedingung zu bestehen,
+	// da sich die Versions-ID bei jeder CodeÃ¤nderung mitÃ¤ndert.
 #ifndef DEBUG
 	if (!curSavegameInfo.isCompatible) {
 		error("Tried to load a savegame (%d) that is not compatible with this engine version.", slotID);

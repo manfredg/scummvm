@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ public:
 		NUM_INSTRUMENTS = 15
 	};
 
-	SoundFx(int rate, bool stereo);
+	SoundFx(int rate, bool stereo, bool repeat, int periodScaleDivisor = 1);
 	virtual ~SoundFx();
 
 	bool load(Common::SeekableReadStream *data, LoadSoundFxInstrumentCallback loadCb);
@@ -62,7 +61,7 @@ protected:
 	void disablePaulaChannel(uint8 channel);
 	void setupPaulaChannel(uint8 channel, const int8 *data, uint16 len, uint16 repeatPos, uint16 repeatLen);
 
-	virtual void interrupt();
+	void interrupt() override;
 
 	uint8 _ticks;
 	uint16 _delay;
@@ -73,10 +72,11 @@ protected:
 	uint8 _ordersTable[128];
 	uint8 *_patternData;
 	uint16 _effects[NUM_CHANNELS];
+	bool _repeat;
 };
 
-SoundFx::SoundFx(int rate, bool stereo)
-	: Paula(stereo, rate) {
+SoundFx::SoundFx(int rate, bool stereo, bool repeat, int periodScaleDivisor)
+	: Paula(stereo, rate, 0, kFilterModeDefault, periodScaleDivisor) {
 	setTimerBaseValue(kPalCiaClock);
 	_ticks = 0;
 	_delay = 0;
@@ -85,8 +85,9 @@ SoundFx::SoundFx(int rate, bool stereo)
 	_curOrder = 0;
 	_curPos = 0;
 	memset(_ordersTable, 0, sizeof(_ordersTable));
-	_patternData = 0;
+	_patternData = nullptr;
 	memset(_effects, 0, sizeof(_effects));
+	_repeat = repeat;
 }
 
 SoundFx::~SoundFx() {
@@ -148,8 +149,8 @@ bool SoundFx::load(Common::SeekableReadStream *data, LoadSoundFxInstrumentCallba
 			}
 		} else {
 			if (ins->name[0]) {
-				ins->name[8] = '\0';
-				ins->data = (int8 *)(*loadCb)(ins->name, 0);
+				ins->name[22] = '\0';
+				ins->data = (int8 *)(*loadCb)(ins->name, nullptr);
 				if (!ins->data) {
 					return false;
 				}
@@ -244,7 +245,10 @@ void SoundFx::handleTick() {
 			_curPos = 0;
 			++_curOrder;
 			if (_curOrder == _numOrders) {
-				stopPaula();
+				if (_repeat)
+					_curOrder = 0;
+				else
+					stopPaula();
 			}
 		}
 	}
@@ -264,14 +268,14 @@ void SoundFx::interrupt() {
 	handleTick();
 }
 
-AudioStream *makeSoundFxStream(Common::SeekableReadStream *data, LoadSoundFxInstrumentCallback loadCb, int rate, bool stereo) {
-	SoundFx *stream = new SoundFx(rate, stereo);
+AudioStream *makeSoundFxStream(Common::SeekableReadStream *data, LoadSoundFxInstrumentCallback loadCb, int rate, bool stereo, bool repeat, int periodScaleDivisor) {
+	SoundFx *stream = new SoundFx(rate, stereo, repeat, periodScaleDivisor);
 	if (stream->load(data, loadCb)) {
 		stream->play();
 		return stream;
 	}
 	delete stream;
-	return 0;
+	return nullptr;
 }
 
 } // End of namespace Audio

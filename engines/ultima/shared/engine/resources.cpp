@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/shared/engine/resources.h"
 #include "ultima/shared/early/font_resources.h"
-#include "ultima/ultima1/core/resources.h"
 #include "common/endian.h"
+
+#ifndef RELEASE_BUILD
+#include "ultima/ultima1/core/resources.h"
+#endif
 
 namespace Ultima {
 namespace Shared {
@@ -34,8 +36,10 @@ bool Resources::open() {
 	// Save locally constructred resources to the archive manager for access
 	Shared::FontResources sharedFonts(this);
 	sharedFonts.save();
+#ifndef RELEASE_BUILD
 	Ultima1::GameResources u1Data(this);
 	u1Data.save();
+#endif
 
 	return true;
 }
@@ -50,7 +54,8 @@ void Resources::addResource(const Common::String &name, const byte *data, size_t
 	Common::copy(data, data + size, &lr._data[0]);
 }
 
-bool Resources::hasFile(const Common::String &name) const {
+bool Resources::hasFile(const Common::Path &path) const {
+	Common::String name = path.toString();
 	for (uint idx = 0; idx < _localResources.size(); ++idx)
 		if (!_localResources[idx]._name.compareToIgnoreCase(name))
 			return true;
@@ -66,14 +71,16 @@ int Resources::listMembers(Common::ArchiveMemberList &list) const {
 	return _localResources.size();
 }
 
-const Common::ArchiveMemberPtr Resources::getMember(const Common::String &name) const {
+const Common::ArchiveMemberPtr Resources::getMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	if (!hasFile(name))
 		return Common::ArchiveMemberPtr();
 
 	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
 }
 
-Common::SeekableReadStream *Resources::createReadStreamForMember(const Common::String &name) const {
+Common::SeekableReadStream *Resources::createReadStreamForMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	for (uint idx = 0; idx < _localResources.size(); ++idx) {
 		const LocalResource &lr = _localResources[idx];
 		if (!lr._name.compareToIgnoreCase(name))

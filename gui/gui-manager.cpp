@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,9 +24,11 @@
 #include "common/util.h"
 #include "common/config-manager.h"
 #include "common/algorithm.h"
+#include "common/file.h"
 #include "common/rect.h"
 #include "common/textconsole.h"
 #include "common/translation.h"
+#include "common/unzip.h"
 #include "gui/EventRecorder.h"
 
 #include "backends/keymapper/action.h"
@@ -53,21 +54,27 @@ namespace GUI {
 enum {
 	kDoubleClickDelay = 500, // milliseconds
 	kCursorAnimateDelay = 250,
-	kTooltipDelay = 1250
+	kTooltipDelay = 1250,
+	kTooltipSameWidgetDelay = 7000
 };
 
 // Constructor
 GuiManager::GuiManager() : _redrawStatus(kRedrawDisabled), _stateIsSaved(false),
-    _cursorAnimateCounter(0), _cursorAnimateTimer(0) {
+	_cursorAnimateCounter(0), _cursorAnimateTimer(0) {
 	_theme = nullptr;
 	_useStdCursor = false;
 
 	_system = g_system;
 	_lastScreenChangeID = _system->getScreenChangeID();
-	_width = _system->getOverlayWidth();
-	_height = _system->getOverlayHeight();
+
+	computeScaleFactor();
 
 	_launched = false;
+
+	_useRTL = false;
+
+	_topDialogLeftPadding = 0;
+	_topDialogRightPadding = 0;
 
 	// Clear the cursor
 	memset(_cursor, 0xFF, sizeof(_cursor));
@@ -75,11 +82,11 @@ GuiManager::GuiManager() : _redrawStatus(kRedrawDisabled), _stateIsSaved(false),
 #ifdef USE_TRANSLATION
 	// Enable translation
 	TransMan.setLanguage(ConfMan.get("gui_language").c_str());
+	setLanguageRTL();
 #endif // USE_TRANSLATION
 
-#ifdef USE_TTS
 	initTextToSpeech();
-#endif // USE_TTS
+	initIconsSet();
 
 	ConfMan.registerDefault("gui_theme", "scummremastered");
 	Common::String themefile(ConfMan.get("gui_theme"));
@@ -87,14 +94,6 @@ GuiManager::GuiManager() : _redrawStatus(kRedrawDisabled), _stateIsSaved(false),
 	ConfMan.registerDefault("gui_renderer", ThemeEngine::findModeConfigName(ThemeEngine::_defaultRendererMode));
 	ThemeEngine::GraphicsMode gfxMode = (ThemeEngine::GraphicsMode)ThemeEngine::findMode(ConfMan.get("gui_renderer"));
 
-#ifdef __DS__
-	// Searching for the theme file takes ~10 seconds on the DS.
-	// Disable this search here because external themes are not supported.
-	if (!loadNewTheme("builtin", gfxMode)) {
-		// Loading the built-in theme failed as well. Bail out
-		error("Failed to load any GUI theme, aborting");
-	}
-#else
 	// Try to load the theme
 	if (!loadNewTheme(themefile, gfxMode)) {
 		// Loading the theme failed, try to load the built-in theme
@@ -103,11 +102,108 @@ GuiManager::GuiManager() : _redrawStatus(kRedrawDisabled), _stateIsSaved(false),
 			error("Failed to load any GUI theme, aborting");
 		}
 	}
-#endif
 }
 
 GuiManager::~GuiManager() {
 	delete _theme;
+}
+
+struct ArchiveMemberListBackComparator {
+	bool operator()(const Common::ArchiveMemberPtr &a, const Common::ArchiveMemberPtr &b) {
+		return a->getName() > b->getName();
+	}
+};
+void GuiManager::initIconsSet() {
+	Common::Archive *dat;
+
+	_iconsSet.clear();
+
+	if (ConfMan.hasKey("iconspath")) {
+		Common::FSDirectory *iconDir = new Common::FSDirectory(ConfMan.get("iconspath"));
+		Common::ArchiveMemberList iconFiles;
+
+		iconDir->listMatchingMembers(iconFiles, "gui-icons*.dat");
+		Common::sort(iconFiles.begin(), iconFiles.end(), ArchiveMemberListBackComparator());
+
+		for (Common::ArchiveMemberList::iterator ic = iconFiles.begin(); ic != iconFiles.end(); ++ic) {
+			debug(2, "GUI: Loaded icon file: %s", (*ic)->getName().c_str());
+
+			dat = Common::makeZipArchive((*ic)->createReadStream());
+
+			if (dat) {
+				_iconsSet.add((*ic)->getName(), dat);
+			}
+		}
+
+		delete iconDir;
+	}
+
+	dat = nullptr;
+
+	const char fname[] = "gui-icons.dat";
+
+	if (ConfMan.hasKey("themepath")) {
+		Common::FSNode *fs = new Common::FSNode(normalizePath(ConfMan.get("themepath") + "/" + fname, '/'));
+		if (fs->exists()) {
+			dat = Common::makeZipArchive(*fs);
+		}
+		delete fs;
+	}
+
+	if (!dat) {
+		Common::File *file = new Common::File;
+		if (ConfMan.hasKey("iconspath"))
+			file->open(normalizePath(ConfMan.get("iconspath") + "/" + fname, '/'));
+
+		if (!file->isOpen())
+			file->open(fname);
+
+		if (file->isOpen())
+			dat = Common::makeZipArchive(file);
+
+		if (!dat) {
+			warning("GUI: Could not find '%s'", fname);
+			delete file;
+			return;
+		}
+	}
+
+	_iconsSet.add(fname, dat);
+
+	debug(2, "GUI: Loaded icon file: %s", fname);
+}
+
+void GuiManager::computeScaleFactor() {
+	uint16 w = g_system->getOverlayWidth();
+	uint16 h = g_system->getOverlayHeight();
+
+	_scaleFactor = g_system->getHiDPIScreenFactor();
+	if (ConfMan.hasKey("gui_scale"))
+		_scaleFactor *= ConfMan.getInt("gui_scale") / 100.f;
+
+	_baseHeight = (int16)((float)h / _scaleFactor);
+	_baseWidth = (int16)((float)w / _scaleFactor);
+
+	// Never go below 320x200. Our GUI layout is not designed to go below that.
+	// On the DS, this causes issues at 256x192 due to the use of non-scalable
+	// BDF fonts.
+#ifndef __DS__
+	if (_baseHeight < 200) {
+		_baseHeight = 200;
+		_scaleFactor = (float)h / (float)_baseHeight;
+		_baseWidth = (int16)((float)w / _scaleFactor);
+	}
+	if (_baseWidth < 320) {
+		_baseWidth = 320;
+		_scaleFactor = (float)w / (float)_baseWidth;
+		_baseHeight = (int16)((float)h / _scaleFactor);
+	}
+#endif
+
+	if (_theme)
+		_theme->setBaseResolution(_baseWidth, _baseHeight, _scaleFactor);
+
+	debug(3, "Setting %d x %d -> %d x %d -- %g", w, h, _baseWidth, _baseHeight, _scaleFactor);
 }
 
 Common::Keymap *GuiManager::getKeymap() const {
@@ -148,6 +244,10 @@ Common::Keymap *GuiManager::getKeymap() const {
 	act->addDefaultInputMapping("JOY_RIGHT");
 	guiMap->addAction(act);
 
+	act = new Action(kStandardActionEE, _("???"));
+	act->setKeyEvent(KEYCODE_v);
+	guiMap->addAction(act);
+
 	return guiMap;
 }
 
@@ -184,9 +284,12 @@ bool GuiManager::loadNewTheme(Common::String id, ThemeEngine::GraphicsMode gfx, 
 	// Try to load the new theme
 	newTheme = new ThemeEngine(id, gfx);
 	assert(newTheme);
+	newTheme->setBaseResolution(_baseWidth, _baseHeight, _scaleFactor);
 
-	if (!newTheme->init())
+	if (!newTheme->init()) {
+		delete newTheme;
 		return false;
+	}
 
 	//
 	// Disable and delete the old theme
@@ -246,8 +349,13 @@ void GuiManager::redraw() {
 	// Tanoku: Do not apply shading more than once when opening many dialogs
 	// on top of each other. Screen ends up being too dark and it's a
 	// performance hog.
-	if (_redrawStatus == kRedrawOpenDialog && _dialogStack.size() > 3)
+	if (_redrawStatus == kRedrawOpenDialog && _dialogStack.size() > 2)
 		shading = ThemeEngine::kShadingNone;
+
+	// Reset any custom RTL paddings set by stacked dialogs when we go back to the top
+	if (useRTL() && _dialogStack.size() == 1) {
+		setDialogPaddings(0, 0);
+	}
 
 	switch (_redrawStatus) {
 		case kRedrawCloseDialog:
@@ -301,7 +409,7 @@ Dialog *GuiManager::getTopDialog() const {
 	return _dialogStack.top();
 }
 
-void GuiManager::addToTrash(GuiObject* object, Dialog* parent) {
+void GuiManager::addToTrash(GuiObject* object, Dialog *parent) {
 	debug(7, "Adding Gui Object %p to trash", (void *)object);
 	GuiObjectTrashItem t;
 	t.object = object;
@@ -315,6 +423,14 @@ void GuiManager::addToTrash(GuiObject* object, Dialog* parent) {
 			}
 		}
 	}
+
+	for (auto it = _guiObjectTrash.begin(); it != _guiObjectTrash.end(); ++it) {
+		if (it->object == object) {
+			debug(6, "The object %p was already scheduled for deletion, skipping", (void *)(*it).object);
+			return;
+		}
+	}
+
 	_guiObjectTrash.push_back(t);
 }
 
@@ -327,7 +443,7 @@ void GuiManager::runLoop() {
 
 #ifdef ENABLE_EVENTRECORDER
 	// Suspend recording while GUI is shown
-	g_eventRec.suspendRecording();
+	g_eventRec.acquireRecording();
 #endif
 
 	if (!_stateIsSaved) {
@@ -348,7 +464,7 @@ void GuiManager::runLoop() {
 	Common::EventManager *eventMan = _system->getEventManager();
 	const uint32 targetFrameDuration = 1000 / 60;
 
-	while (!_dialogStack.empty() && activeDialog == getTopDialog() && !eventMan->shouldQuit()) {
+	while (!_dialogStack.empty() && activeDialog == getTopDialog() && !eventMan->shouldQuit() && (!g_engine || !eventMan->shouldReturnToLauncher())) {
 		uint32 frameStartTime = _system->getMillis(true);
 
 		// Don't "tickle" the dialog until the theme has had a chance
@@ -400,35 +516,67 @@ void GuiManager::runLoop() {
 				++it;
 		}
 
-		if (_lastMousePosition.time + kTooltipDelay < _system->getMillis(true)) {
+		// Handle tooltip for the widget under the mouse cursor.
+		// 1. Only try to show a tooltip if the mouse cursor was actually moved
+		//    and sufficient time (kTooltipDelay) passed since mouse cursor rested in-place.
+		//    Note, Dialog objects acquiring or losing focus lead to a _lastMousePosition update,
+		//    which may lead to a change of its time and x,y coordinate values.
+		//    See: GuiManager::giveFocusToDialog()
+		//    We avoid updating _lastMousePosition when giving focus to the Tooltip object
+		//    by having the Tooltip objects set a false value for their (inherited) member
+		//    var _mouseUpdatedOnFocus (in Tooltip::setup()).
+		//    However, when the tooltip loses focus, _lastMousePosition will be updated.
+		//    If the mouse had stayed in the same position in the meantime,
+		//    then at the time of the tooltip losing focus
+		//    the _lastMousePosition.time will be new, but the x,y cordinates
+		//    will be the same as the stored ones in _lastTooltipShown.
+		// 2. If the mouse was moved but ended on the same (tooltip enabled) widget,
+		//    then delay showing the tooltip based on the value of kTooltipSameWidgetDelay.
+		uint32 systemMillisNowForTooltipCheck = _system->getMillis(true);
+		if ((_lastTooltipShown.x != _lastMousePosition.x || _lastTooltipShown.y != _lastMousePosition.y)
+		    && _lastMousePosition.time + kTooltipDelay < systemMillisNowForTooltipCheck) {
 			Widget *wdg = activeDialog->findWidget(_lastMousePosition.x, _lastMousePosition.y);
-			if (wdg && wdg->hasTooltip() && !(wdg->getFlags() & WIDGET_PRESSED)) {
-				Tooltip *tooltip = new Tooltip();
-				tooltip->setup(activeDialog, wdg, _lastMousePosition.x, _lastMousePosition.y);
-				tooltip->runModal();
-				delete tooltip;
+			if (wdg && wdg->hasTooltip() && !(wdg->getFlags() & WIDGET_PRESSED)
+			    && (_lastTooltipShown.wdg != wdg || _lastTooltipShown.time + kTooltipSameWidgetDelay < systemMillisNowForTooltipCheck)) {
+				_lastTooltipShown.time = systemMillisNowForTooltipCheck;
+				_lastTooltipShown.wdg  = wdg;
+				_lastTooltipShown.x = _lastMousePosition.x;
+				_lastTooltipShown.y = _lastMousePosition.y;
+				if (wdg->getType() != kEditTextWidget || activeDialog->getFocusWidget() != wdg) {
+					Tooltip *tooltip = new Tooltip();
+					tooltip->setup(activeDialog, wdg, _lastMousePosition.x, _lastMousePosition.y);
+					tooltip->runModal();
+					delete tooltip;
+				}
 			}
 		}
 
 		redraw();
 
-		// Delay until the allocated frame time is elapsed to match the target frame rate
-		uint32 actualFrameDuration = _system->getMillis(true) - frameStartTime;
-		if (actualFrameDuration < targetFrameDuration) {
-			_system->delayMillis(targetFrameDuration - actualFrameDuration);
+		// Delay until the allocated frame time is elapsed to match the target frame rate.
+		// In case we have vsync enabled, we should rely on vsync to do take care about frame times.
+		// With vsync enabled, we currently have to force a frame time of 1ms since otherwise
+		// CPU usage will skyrocket on one thread as soon as no updateScreen(); calls happening.
+		if (g_system->getFeatureState(OSystem::kFeatureVSync)) {
+			_system->delayMillis(1);
+		} else {
+			uint32 actualFrameDuration = _system->getMillis(true) - frameStartTime;
+			if (actualFrameDuration < targetFrameDuration) {
+				_system->delayMillis(targetFrameDuration - actualFrameDuration);
+			}
 		}
 		_system->updateScreen();
 	}
 
 	// WORKAROUND: When quitting we might not properly close the dialogs on
 	// the dialog stack, thus we do this here to avoid any problems.
-	// This is most noticable in bug #3481395 "LAUNCHER: Can't quit from unsupported game dialog".
+	// This is most noticeable in bug #5954 "LAUNCHER: Can't quit from unsupported game dialog".
 	// It seems that Dialog::runModal never removes the dialog from the dialog
 	// stack, thus if the dialog does not call Dialog::close to close itself
 	// it will never be removed. Since we can have multiple run loops being
 	// called we cannot rely on catching EVENT_QUIT in the event loop above,
 	// since it would only catch it for the top run loop.
-	if (eventMan->shouldQuit() && activeDialog == getTopDialog())
+	if ((eventMan->shouldQuit() || (g_engine && eventMan->shouldReturnToLauncher())) && activeDialog == getTopDialog())
 		getTopDialog()->close();
 
 	if (didSaveState) {
@@ -439,8 +587,13 @@ void GuiManager::runLoop() {
 
 #ifdef ENABLE_EVENTRECORDER
 	// Resume recording once GUI is shown
-	g_eventRec.resumeRecording();
+	g_eventRec.releaseRecording();
 #endif
+}
+
+void GuiManager::exitLoop() {
+	while (!_dialogStack.empty())
+		getTopDialog()->close();
 }
 
 #pragma mark -
@@ -550,9 +703,16 @@ bool GuiManager::checkScreenChange() {
 }
 
 void GuiManager::screenChange() {
+#ifdef ENABLE_EVENTRECORDER
+	// Suspend recording while GUI is redrawn.
+	// We need this in addition to the lock in runLoop, as EVENT_SCREEN_CHANGED can
+	// be fired by in-game GUI components (such as the event recorder itself)
+	g_eventRec.acquireRecording();
+#endif
+
 	_lastScreenChangeID = _system->getScreenChangeID();
-	_width = _system->getOverlayWidth();
-	_height = _system->getOverlayHeight();
+
+	computeScaleFactor();
 
 	// reinit the whole theme
 	_theme->refresh();
@@ -567,6 +727,11 @@ void GuiManager::screenChange() {
 	_redrawStatus = kRedrawFull;
 	redraw();
 	_system->updateScreen();
+
+#ifdef ENABLE_EVENTRECORDER
+	// Resume recording once GUI has redrawn
+	g_eventRec.releaseRecording();
+#endif
 }
 
 void GuiManager::processEvent(const Common::Event &event, Dialog *const activeDialog) {
@@ -575,6 +740,9 @@ void GuiManager::processEvent(const Common::Event &event, Dialog *const activeDi
 	int button;
 	uint32 time;
 	Common::Point mouse(event.mouse.x - activeDialog->_x, event.mouse.y - activeDialog->_y);
+	if (g_gui.useRTL()) {
+		mouse.x = g_system->getOverlayWidth() - event.mouse.x - activeDialog->_x + g_gui.getOverlayOffset();
+	}
 
 	switch (event.type) {
 	case Common::EVENT_KEYDOWN:
@@ -584,7 +752,11 @@ void GuiManager::processEvent(const Common::Event &event, Dialog *const activeDi
 		activeDialog->handleKeyUp(event.kbd);
 		break;
 	case Common::EVENT_MOUSEMOVE:
-		_globalMousePosition.x = event.mouse.x;
+		if (g_gui.useRTL()) {
+			_globalMousePosition.x = g_system->getOverlayWidth() - event.mouse.x + g_gui.getOverlayOffset();
+		} else {
+			_globalMousePosition.x = event.mouse.x;
+		}
 		_globalMousePosition.y = event.mouse.y;
 		activeDialog->handleMouseMoved(mouse.x, mouse.y, 0);
 
@@ -638,7 +810,9 @@ void GuiManager::giveFocusToDialog(Dialog *dialog) {
 	int16 dialogX = _globalMousePosition.x - dialog->_x;
 	int16 dialogY = _globalMousePosition.y - dialog->_y;
 	dialog->receivedFocus(dialogX, dialogY);
-	setLastMousePos(dialogX, dialogY);
+	if (dialog->isMouseUpdatedOnFocus()) {
+		setLastMousePos(dialogX, dialogY);
+	}
 }
 
 void GuiManager::setLastMousePos(int16 x, int16 y) {
@@ -647,15 +821,33 @@ void GuiManager::setLastMousePos(int16 x, int16 y) {
 	_lastMousePosition.time = _system->getMillis(true);
 }
 
-#ifdef USE_TTS
+void GuiManager::setLanguageRTL() {
+	if (ConfMan.hasKey("guiRTL")) {		// Put guiRTL = yes to your scummvm.ini to force RTL GUI
+		_useRTL = ConfMan.getBool("guiRTL");
+		return;
+	}
+#ifdef USE_TRANSLATION
+	Common::String language = TransMan.getCurrentLanguage();
+	if (language.equals("he")) {		// GUI TODO: modify when we'll support other RTL languages, such as Arabic and Farsi
+		_useRTL = true;
+		return;
+	}
+#endif // USE_TRANSLATION
+
+	_useRTL = false;
+}
+
+void GuiManager::setDialogPaddings(int l, int r) {
+	_topDialogLeftPadding = l;
+	_topDialogRightPadding = r;
+}
+
 void GuiManager::initTextToSpeech() {
 	Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
 	if (ttsMan == nullptr)
 		return;
 #ifdef USE_TRANSLATION
 	Common::String currentLanguage = TransMan.getCurrentLanguage();
-	if (currentLanguage == "C")
-		currentLanguage = "en";
 	ttsMan->setLanguage(currentLanguage);
 #endif
 	int volume = (ConfMan.getInt("speech_volume", "scummvm") * 100) / 256;
@@ -664,14 +856,13 @@ void GuiManager::initTextToSpeech() {
 	ttsMan->setVolume(volume);
 
 	unsigned voice;
-	if(ConfMan.hasKey("tts_voice"))
+	if(ConfMan.hasKey("tts_voice")) {
 		voice = ConfMan.getInt("tts_voice", "scummvm");
-	else
-		voice = 0;
-	if (voice >= ttsMan->getVoicesArray().size())
-		voice = 0;
+		if (voice >= ttsMan->getVoicesArray().size())
+			voice = ttsMan->getDefaultVoice();
+	} else
+		voice = ttsMan->getDefaultVoice();
 	ttsMan->setVoice(voice);
 }
-#endif
 
 } // End of namespace GUI

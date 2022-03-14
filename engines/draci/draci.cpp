@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,46 +70,39 @@ const uint kDubbingFrequency = 22050;
 
 DraciEngine::DraciEngine(OSystem *syst, const ADGameDescription *gameDesc)
  : Engine(syst), _rnd("draci") {
-	DebugMan.addDebugChannel(kDraciGeneralDebugLevel, "general", "Draci general debug info");
-	DebugMan.addDebugChannel(kDraciBytecodeDebugLevel, "bytecode", "GPL bytecode instructions");
-	DebugMan.addDebugChannel(kDraciArchiverDebugLevel, "archiver", "BAR archiver debug info");
-	DebugMan.addDebugChannel(kDraciLogicDebugLevel, "logic", "Game logic debug info");
-	DebugMan.addDebugChannel(kDraciAnimationDebugLevel, "animation", "Animation debug info");
-	DebugMan.addDebugChannel(kDraciSoundDebugLevel, "sound", "Sound debug info");
-	DebugMan.addDebugChannel(kDraciWalkingDebugLevel, "walking", "Walking debug info");
 
 	setDebugger(new DraciConsole(this));
 
-	_screen = 0;
-	_mouse = 0;
-	_game = 0;
-	_script = 0;
-	_anims = 0;
-	_sound = 0;
-	_music = 0;
-	_smallFont = 0;
-	_bigFont = 0;
-	_iconsArchive = 0;
-	_objectsArchive = 0;
-	_spritesArchive = 0;
-	_paletteArchive = 0;
-	_roomsArchive = 0;
-	_overlaysArchive = 0;
-	_animationsArchive = 0;
-	_walkingMapsArchive = 0;
-	_itemsArchive = 0;
-	_itemImagesArchive = 0;
-	_initArchive = 0;
-	_stringsArchive = 0;
-	_soundsArchive = 0;
-	_dubbingArchive = 0;
+	_screen = nullptr;
+	_mouse = nullptr;
+	_game = nullptr;
+	_script = nullptr;
+	_anims = nullptr;
+	_sound = nullptr;
+	_music = nullptr;
+	_smallFont = nullptr;
+	_bigFont = nullptr;
+	_iconsArchive = nullptr;
+	_objectsArchive = nullptr;
+	_spritesArchive = nullptr;
+	_paletteArchive = nullptr;
+	_roomsArchive = nullptr;
+	_overlaysArchive = nullptr;
+	_animationsArchive = nullptr;
+	_walkingMapsArchive = nullptr;
+	_itemsArchive = nullptr;
+	_itemImagesArchive = nullptr;
+	_initArchive = nullptr;
+	_stringsArchive = nullptr;
+	_soundsArchive = nullptr;
+	_dubbingArchive = nullptr;
 	_showWalkingMap = 0;
 	_pauseStartTime = 0;
 }
 
 bool DraciEngine::hasFeature(EngineFeature f) const {
 	return (f == kSupportsSubtitleOptions) ||
-		(f == kSupportsRTL) ||
+		(f == kSupportsReturnToLauncher) ||
 		(f == kSupportsLoadingDuringRuntime) ||
 		(f == kSupportsSavingDuringRuntime);
 }
@@ -357,7 +349,7 @@ void DraciEngine::handleEvents() {
 		}
 	}
 
-	// Handle EVENT_QUIT and EVENT_RTL.
+	// Handle EVENT_QUIT and EVENT_RETURN_TO_LAUNCHER.
 	if (shouldQuit()) {
 		_game->setQuit(true);
 		_script->endCurrentProgram(true);
@@ -398,9 +390,6 @@ DraciEngine::~DraciEngine() {
 	delete _music;
 	delete _soundsArchive;
 	delete _dubbingArchive;
-
-	// Remove all of our debug levels here
-	DebugMan.clearAllDebugChannels();
 }
 
 Common::Error DraciEngine::run() {

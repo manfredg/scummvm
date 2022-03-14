@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@ int16 numPoly;
 void freePerso(int persoIdx) {
 	if (persoTable[persoIdx]) {
 		MemFree(persoTable[persoIdx]);
-		persoTable[persoIdx] = NULL;
+		persoTable[persoIdx] = nullptr;
 	}
 }
 
@@ -46,11 +45,11 @@ void freeCTP() {
 	if (_vm->_polyStruct) {
 		_vm->_polyStructNorm.clear();
 		_vm->_polyStructExp.clear();
-		_vm->_polyStruct = NULL;
+		_vm->_polyStruct = nullptr;
 	}
 
-	ctpVar17 = NULL;
-	_vm->_polyStruct = NULL;
+	ctpVar17 = nullptr;
+	_vm->_polyStruct = nullptr;
 
 	strcpy((char *)currentCtpName, "");
 }
@@ -169,9 +168,9 @@ int cor_droite(int x1, int y1, int x2, int y2, point* outputTable) {
 }
 
 void processActorWalk(MovementEntry &resx_y, int16 *inc_droite, int16 *inc_droite0,
-                      int16 *inc_chemin, point* cor_joueur,
-                      int16 solution0[NUM_NODES + 3][2], int16 *inc_jo1, int16 *inc_jo2,
-                      int16 *dir_perso, int16 *inc_jo0, int16 num) {
+					  int16 *inc_chemin, point* cor_joueur,
+					  int16 solution0[NUM_NODES + 3][2], int16 *inc_jo1, int16 *inc_jo2,
+					  int16 *dir_perso, int16 *inc_jo0, int16 num) {
 	int u = 0;
 	inc_jo = *inc_jo0;
 

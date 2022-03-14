@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 // Disable symbol overrides so that we can use system headers.
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
-
-// HACK to allow building with the SDL backend on MinGW
-// see bug #1800764 "TOOLS: MinGW tools building broken"
-#ifdef main
-#undef main
-#endif // main
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,11 +36,11 @@ struct Parts {
 };
 
 #define DEFINE_GAME_PLATFORM_LANG_FUNCS(game, platform, lang) \
-    size_t write ## game ## _ ## platform ## _ ## lang ## Header(FILE *f, \
-                                   uint32 offset, uint32 size); \
-    size_t write ## game ## _ ## platform ## _ ## lang ## Data(FILE *f);
-#define GAME_PLATFORM_LANG_PART(game, platform, lang) { write ## game ## _ ## platform ## _ ## lang ## Header, \
-    write ## game ## _ ## platform ## _ ## lang ## Data, 0, 0 }
+	size_t write ## game ## _ ## platform ## _ ## lang ## _Header(FILE *f, \
+								   uint32 offset, uint32 size); \
+	size_t write ## game ## _ ## platform ## _ ## lang ## _Data(FILE *f);
+#define GAME_PLATFORM_LANG_PART(game, platform, lang) { write ## game ## _ ## platform ## _ ## lang ## _Header, \
+	write ## game ## _ ## platform ## _ ## lang ## _Data, 0, 0 }
 
 DEFINE_GAME_PLATFORM_LANG_FUNCS(Versailles, ALL, FR)
 DEFINE_GAME_PLATFORM_LANG_FUNCS(Versailles, ALL, BR)
@@ -55,6 +48,9 @@ DEFINE_GAME_PLATFORM_LANG_FUNCS(Versailles, ALL, DE)
 DEFINE_GAME_PLATFORM_LANG_FUNCS(Versailles, ALL, EN)
 DEFINE_GAME_PLATFORM_LANG_FUNCS(Versailles, ALL, ES)
 DEFINE_GAME_PLATFORM_LANG_FUNCS(Versailles, ALL, IT)
+DEFINE_GAME_PLATFORM_LANG_FUNCS(Versailles, ALL, JA)
+DEFINE_GAME_PLATFORM_LANG_FUNCS(Versailles, ALL, KO)
+DEFINE_GAME_PLATFORM_LANG_FUNCS(Versailles, ALL, ZT)
 
 static Parts gamesParts[] = {
 	GAME_PLATFORM_LANG_PART(Versailles, ALL, FR),
@@ -63,6 +59,9 @@ static Parts gamesParts[] = {
 	GAME_PLATFORM_LANG_PART(Versailles, ALL, EN),
 	GAME_PLATFORM_LANG_PART(Versailles, ALL, ES),
 	GAME_PLATFORM_LANG_PART(Versailles, ALL, IT),
+	GAME_PLATFORM_LANG_PART(Versailles, ALL, JA),
+	GAME_PLATFORM_LANG_PART(Versailles, ALL, KO),
+	GAME_PLATFORM_LANG_PART(Versailles, ALL, ZT),
 };
 
 #define CRYOMNI3D_DAT_VER 1 // 32-bit integer
@@ -80,7 +79,7 @@ size_t writeFileHeader(FILE *f, uint16 games) {
 }
 
 size_t writeGameHeader(FILE *f, uint32 gameId, uint16 version, uint16 lang, uint32 platforms,
-                       uint32 offset, uint32 size) {
+					   uint32 offset, uint32 size) {
 	size_t headerSize = 0;
 	headerSize += writeUint32BE(f, gameId); // BE to keep the tag readable
 	headerSize += writeUint16LE(f, version);

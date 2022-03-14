@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/events.h"
+#include "common/stream.h"
 #include "common/system.h"
 #include "engines/engine.h"
 #include "graphics/palette.h"
 #include "video/flic_decoder.h"
-
+#include "chewy/globals.h"
+#include "chewy/mcga.h"
 #include "chewy/sound.h"
 #include "chewy/video/cfo_decoder.h"
 
@@ -93,6 +94,7 @@ CfoDecoder::CfoVideoTrack::~CfoVideoTrack() {
 	}
 
 	delete[] _musicData;
+	_musicData = nullptr;
 }
 
 void CfoDecoder::CfoVideoTrack::readHeader() {
@@ -195,7 +197,7 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 		case kChunkLoadMusic:
 			// Used in videos 0, 18, 34, 71
 			_musicSize = frameSize;
-			_musicData = new byte[frameSize];
+			_musicData = new uint8[frameSize];
 			_fileStream->read(_musicData, frameSize);
 			break;
 		case kChunkLoadRaw:
@@ -207,7 +209,7 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 			delete[] _soundEffects[number];
 
 			_soundEffectSize[number] = frameSize - 2;
-			_soundEffects[number] = new byte[frameSize - 2];
+			_soundEffects[number] = new uint8[frameSize - 2];
 			_fileStream->read(_soundEffects[number], frameSize - 2);
 			break;
 		case kChunkPlayMusic:
@@ -225,6 +227,7 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 
 			// Game videos do not restart music after stopping it
 			delete[] _musicData;
+			_musicData = nullptr;
 			_musicSize = 0;
 			break;
 		case kChunkWaitMusicEnd:
@@ -253,7 +256,7 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 			assert(number < MAX_SOUND_EFFECTS);
 
 			_sound->setSoundVolume(volume);
-			_sound->playSound(_soundEffects[number], _soundEffectSize[number], repeat, channel, DisposeAfterUse::NO);
+			_sound->playSound(_soundEffects[number], _soundEffectSize[number], channel, repeat, DisposeAfterUse::NO);
 			break;
 		case kChunkSetSoundVolume:
 			volume = _fileStream->readUint16LE() * Audio::Mixer::kMaxChannelVolume / 63;
@@ -277,9 +280,8 @@ void CfoDecoder::CfoVideoTrack::handleCustomFrame() {
 			break;
 		case kChunkMusicFadeOut:
 			// Used in videos 0, 71
-			warning("kChunkMusicFadeOut");
-			// TODO
-			_fileStream->skip(frameSize);
+			channel = _fileStream->readUint16LE();
+			_G(sndPlayer)->fadeOut(channel);
 			break;
 		case kChunkSetBalance:
 			channel = _fileStream->readUint16LE();
@@ -310,6 +312,7 @@ void CfoDecoder::CfoVideoTrack::fadeOut() {
 				--_palette[i * 3 + 2];
 		}
 
+		//setScummVMPalette(_palette, 0, 256);
 		g_system->getPaletteManager()->setPalette(_palette, 0, 256);
 		g_system->updateScreen();
 		g_system->delayMillis(10);

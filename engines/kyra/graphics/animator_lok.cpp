@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,13 +31,11 @@ Animator_LoK::Animator_LoK(KyraEngine_LoK *vm, OSystem *system) {
 	_screen = vm->screen();
 	_initOk = false;
 	_system = system;
-	_screenObjects = _actors = _items = _sprites = _objectQueue = 0;
+	_screenObjects = _actors = _items = _sprites = _objectQueue = nullptr;
 	_noDrawShapesFlag = 0;
 
-	_actorBkgBackUp[0] = new uint8[_screen->getRectSize(8, 69)];
-	memset(_actorBkgBackUp[0], 0, _screen->getRectSize(8, 69));
-	_actorBkgBackUp[1] = new uint8[_screen->getRectSize(8, 69)];
-	memset(_actorBkgBackUp[1], 0, _screen->getRectSize(8, 69));
+	_actorBkgBackUp[0] = new uint8[_screen->getRectSize(8, 69)]();
+	_actorBkgBackUp[1] = new uint8[_screen->getRectSize(8, 69)]();
 }
 
 Animator_LoK::~Animator_LoK() {
@@ -48,9 +45,8 @@ Animator_LoK::~Animator_LoK() {
 }
 
 void Animator_LoK::init(int actors_, int items_, int sprites_) {
-	_screenObjects = new AnimObject[actors_ + items_ + sprites_];
+	_screenObjects = new AnimObject[actors_ + items_ + sprites_]();
 	assert(_screenObjects);
-	memset(_screenObjects, 0, sizeof(AnimObject) * (actors_ + items_ + sprites_));
 	_actors = _screenObjects;
 	_sprites = &_screenObjects[actors_];
 	_items = &_screenObjects[actors_ + items_];
@@ -63,7 +59,7 @@ void Animator_LoK::close() {
 	if (_initOk) {
 		_initOk = false;
 		delete[] _screenObjects;
-		_screenObjects = _actors = _items = _sprites = _objectQueue = 0;
+		_screenObjects = _actors = _items = _sprites = _objectQueue = nullptr;
 	}
 }
 
@@ -393,7 +389,7 @@ void Animator_LoK::animRemoveGameItem(int index) {
 	restoreAllObjectBackgrounds();
 
 	AnimObject *animObj = &_items[index];
-	animObj->sceneAnimPtr = 0;
+	animObj->sceneAnimPtr = nullptr;
 	animObj->animFrameNumber = -1;
 	animObj->refreshFlag = 1;
 	animObj->bkgdChangeFlag = 1;
@@ -466,16 +462,16 @@ Animator_LoK::AnimObject *Animator_LoK::objectRemoveQueue(AnimObject *queue, Ani
 
 	if (cur == queue) {
 		if (!cur)
-			return 0;
+			return nullptr;
 		return cur->nextAnimObject;
 	}
 
 	if (!cur->nextAnimObject) {
 		if (cur == rem) {
 			if (!prev)
-				return 0;
+				return nullptr;
 			else
-				prev->nextAnimObject = 0;
+				prev->nextAnimObject = nullptr;
 		}
 	} else {
 		if (cur == rem)
@@ -510,14 +506,14 @@ Animator_LoK::AnimObject *Animator_LoK::objectQueue(AnimObject *queue, AnimObjec
 		add->nextAnimObject = cur;
 	} else {
 		cur->nextAnimObject = add;
-		add->nextAnimObject = 0;
+		add->nextAnimObject = nullptr;
 	}
 	return queue;
 }
 
 void Animator_LoK::addObjectToQueue(AnimObject *object) {
 	if (!_objectQueue)
-		_objectQueue = objectAddHead(0, object);
+		_objectQueue = objectAddHead(nullptr, object);
 	else
 		_objectQueue = objectQueue(_objectQueue, object);
 }
@@ -527,7 +523,7 @@ void Animator_LoK::refreshObject(AnimObject *object) {
 	if (_objectQueue)
 		_objectQueue = objectQueue(_objectQueue, object);
 	else
-		_objectQueue = objectAddHead(0, object);
+		_objectQueue = objectAddHead(nullptr, object);
 }
 
 void Animator_LoK::makeBrandonFaceMouse() {

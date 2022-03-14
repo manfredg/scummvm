@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,17 +23,29 @@
 #define COMMON_TASKBAR_MANAGER_H
 
 #include "common/scummsys.h"
-#include "common/str.h"
 
 #if defined(USE_TASKBAR)
 
+#include "common/str.h"
+#include "common/config-manager.h"
+#include "common/file.h"
+
 namespace Common {
+
+/**
+ * @defgroup common_taskbar Taskbar Manager
+ * @ingroup common
+ *
+ * @brief The TaskbarManager module allows for interaction with the ScummVM application icon.
+ *
+ * @{
+ */
 
 /**
  * The TaskbarManager allows interaction with the ScummVM application icon:
  *  - in the taskbar on Windows 7 and later
  *  - in the launcher for Unity
- *  - in the dock on Mac OS X
+ *  - in the dock on macOS
  *  - ...
  *
  * This allows GUI code and engines to display a progress bar, an overlay icon and/or count
@@ -134,7 +145,62 @@ public:
 	 * Clears the error notification
 	 */
 	virtual void clearError() {}
+
+protected:
+	/**
+	 * 	Get the path to an icon for the game
+	 *
+	 * @param   target     The game target
+	 * @param   extension  The icon extension
+	 * @return  The icon path (or "" if no icon was found)
+	 */
+	Common::String getIconPath(const Common::String &target, const Common::String &extension) {
+		// We first try to look for a iconspath configuration variable then
+		// fallback to the extra path
+		//
+		// Icons can be either in a subfolder named "icons" or directly in the path
+
+		Common::String iconsPath = ConfMan.get("iconspath");
+		Common::String extraPath = ConfMan.get("extrapath");
+
+		Common::String targetIcon = target + extension;
+		Common::String qualifiedIcon = ConfMan.get("engineid") + "-" + ConfMan.get("gameid") + extension;
+		Common::String gameIcon = ConfMan.get("gameid") + extension;
+		Common::String engineIcon = ConfMan.get("engineid") + extension;
+
+#define TRY_ICON_PATH(path) { \
+Common::FSNode node((path)); \
+if (node.exists()) \
+return (path); \
+}
+		if (!iconsPath.empty()) {
+			TRY_ICON_PATH(iconsPath + "/" + targetIcon);
+			TRY_ICON_PATH(iconsPath + "/" + qualifiedIcon);
+			TRY_ICON_PATH(iconsPath + "/" + gameIcon);
+			TRY_ICON_PATH(iconsPath + "/" + engineIcon);
+			TRY_ICON_PATH(iconsPath + "/icons/" + targetIcon);
+			TRY_ICON_PATH(iconsPath + "/icons/" + qualifiedIcon);
+			TRY_ICON_PATH(iconsPath + "/icons/" + gameIcon);
+			TRY_ICON_PATH(iconsPath + "/icons/" + engineIcon);
+		}
+
+		if (!extraPath.empty()) {
+			TRY_ICON_PATH(extraPath + "/" + targetIcon);
+			TRY_ICON_PATH(extraPath + "/" + qualifiedIcon);
+			TRY_ICON_PATH(extraPath + "/" + gameIcon);
+			TRY_ICON_PATH(extraPath + "/" + engineIcon);
+			TRY_ICON_PATH(extraPath + "/icons/" + targetIcon);
+			TRY_ICON_PATH(extraPath + "/icons/" + qualifiedIcon);
+			TRY_ICON_PATH(extraPath + "/icons/" + gameIcon);
+			TRY_ICON_PATH(extraPath + "/icons/" + engineIcon);
+		}
+#undef TRY_ICON_PATH
+
+		return "";
+	}
 };
+
+/** @} */
 
 } // End of namespace Common
 

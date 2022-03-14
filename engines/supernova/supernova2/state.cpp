@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/system.h"
+#include "common/config-manager.h"
+#include "common/text-to-speech.h"
 #include "graphics/cursorman.h"
 #include "graphics/palette.h"
 #include "gui/message.h"
@@ -933,16 +934,30 @@ bool GameManager2::talk(int mod1, int mod2, int rest, MessagePosition pos, int i
 	Common::KeyCode key = Common::KEYCODE_INVALID;
 	const Common::String& text = _vm->getGameString(id);
 
+	Common::TextToSpeechManager *ttsMan = nullptr;
+	if (ConfMan.getBool("tts_enabled"))
+		ttsMan = g_system->getTextToSpeechManager();
+
+	// Wait for the end of the current speech
+	if (ttsMan && ttsMan->isSpeaking())
+		wait(0, true, ttsMan);
+
 	_vm->renderMessage(text, pos);
 	int animation_count = (text.size() + 20) * (10 - rest) * _vm->_textSpeed / 400;
 	_restTime =  (text.size() + 20) * rest * _vm->_textSpeed / 400;
 
-	while (animation_count) {
+	// We only wait for TTS below if there is no rest time
+	if (_restTime)
+		ttsMan = nullptr;
+
+	while (animation_count || (ttsMan && ttsMan->isSpeaking())) {
 		if (mod1)
 			_vm->renderImage(mod1);
 
 		if (waitOnInput(2, key)) {
 			_vm->removeMessage();
+			if (ttsMan)
+				ttsMan->stop();
 			return key != Common::KEYCODE_ESCAPE && !_vm->shouldQuit();
 		}
 		if (mod2)
@@ -950,9 +965,12 @@ bool GameManager2::talk(int mod1, int mod2, int rest, MessagePosition pos, int i
 
 		if (waitOnInput(2, key)) {
 			_vm->removeMessage();
+			if (ttsMan)
+				ttsMan->stop();
 			return key != Common::KEYCODE_ESCAPE && !_vm->shouldQuit();
 		}
-		animation_count--;
+		if (animation_count)
+			animation_count--;
 	}
 	if (_restTime == 0)
 		_vm->removeMessage();
@@ -961,19 +979,28 @@ bool GameManager2::talk(int mod1, int mod2, int rest, MessagePosition pos, int i
 }
 
 bool GameManager2::talkRest(int mod1, int mod2, int rest) {
+	Common::TextToSpeechManager *ttsMan = nullptr;
+	if (ConfMan.getBool("tts_enabled"))
+		ttsMan = g_system->getTextToSpeechManager();
+
 	Common::KeyCode key = Common::KEYCODE_INVALID;
-	while (rest) {
+	while (rest || (ttsMan && ttsMan->isSpeaking())) {
 		_vm->renderImage(mod1);
 		if (waitOnInput(2, key)) {
 			_vm->removeMessage();
+			if (ttsMan)
+				ttsMan->stop();
 			return key != Common::KEYCODE_ESCAPE && !_vm->shouldQuit();
 		}
 		_vm->renderImage(mod2);
 		if (waitOnInput(2, key)) {
 			_vm->removeMessage();
+			if (ttsMan)
+				ttsMan->stop();
 			return key != Common::KEYCODE_ESCAPE && !_vm->shouldQuit();
 		}
-		rest--;
+		if (rest)
+			rest--;
 	}
 	return true;
 }
@@ -1005,26 +1032,26 @@ void GameManager2::passageConstruction() {
 	};
 
 	changeRoom(PYR_ENTRANCE);
-	_rooms[PYR_ENTRANCE]->setSectionVisible(1, 
+	_rooms[PYR_ENTRANCE]->setSectionVisible(1,
 			!wall(_state._pyraS, _state._pyraZ, _state._pyraDirection, 0, -1));
-	_rooms[PYR_ENTRANCE]->setSectionVisible(2, 
+	_rooms[PYR_ENTRANCE]->setSectionVisible(2,
 			!wall(_state._pyraS, _state._pyraZ, _state._pyraDirection, 0,  1));
-	_rooms[PYR_ENTRANCE]->setSectionVisible(7, 
+	_rooms[PYR_ENTRANCE]->setSectionVisible(7,
 			wall(_state._pyraS, _state._pyraZ, _state._pyraDirection, 1,  0));
 
 	if (!_rooms[PYR_ENTRANCE]->isSectionVisible(7)) {
 		_rooms[PYR_ENTRANCE]->getObject(3)->_type = EXIT;
 		_rooms[PYR_ENTRANCE]->getObject(3)->_click = 0;
-		_rooms[PYR_ENTRANCE]->setSectionVisible(3, 
+		_rooms[PYR_ENTRANCE]->setSectionVisible(3,
 				!wall(_state._pyraS, _state._pyraZ, _state._pyraDirection, 1, -1));
-		_rooms[PYR_ENTRANCE]->setSectionVisible(4, 
+		_rooms[PYR_ENTRANCE]->setSectionVisible(4,
 				!wall(_state._pyraS, _state._pyraZ, _state._pyraDirection, 1,  1));
-		_rooms[PYR_ENTRANCE]->setSectionVisible(8, 
+		_rooms[PYR_ENTRANCE]->setSectionVisible(8,
 				wall(_state._pyraS, _state._pyraZ, _state._pyraDirection, 2,  0));
 		if (!_rooms[PYR_ENTRANCE]->isSectionVisible(8)) {
-			_rooms[PYR_ENTRANCE]->setSectionVisible(5, 
+			_rooms[PYR_ENTRANCE]->setSectionVisible(5,
 				   !wall(_state._pyraS, _state._pyraZ, _state._pyraDirection, 2, -1));
-			_rooms[PYR_ENTRANCE]->setSectionVisible(6, 
+			_rooms[PYR_ENTRANCE]->setSectionVisible(6,
 				   !wall(_state._pyraS, _state._pyraZ, _state._pyraDirection, 2,  1));
 		} else {
 			_rooms[PYR_ENTRANCE]->setSectionVisible(5, kShownFalse);
@@ -1071,16 +1098,16 @@ void GameManager2::passageConstruction() {
 			break;
 		}
 	}
-	_rooms[PYR_ENTRANCE]->setSectionVisible(9, 
+	_rooms[PYR_ENTRANCE]->setSectionVisible(9,
 			 _rooms[PYR_ENTRANCE]->isSectionVisible(7) &&
 			!_rooms[PYR_ENTRANCE]->isSectionVisible(1));
-	_rooms[PYR_ENTRANCE]->setSectionVisible(10, 
+	_rooms[PYR_ENTRANCE]->setSectionVisible(10,
 			 _rooms[PYR_ENTRANCE]->isSectionVisible(7) &&
 			!_rooms[PYR_ENTRANCE]->isSectionVisible(2));
-	_rooms[PYR_ENTRANCE]->setSectionVisible(11, 
+	_rooms[PYR_ENTRANCE]->setSectionVisible(11,
 			 _rooms[PYR_ENTRANCE]->isSectionVisible(8) &&
 			!_rooms[PYR_ENTRANCE]->isSectionVisible(3));
-	_rooms[PYR_ENTRANCE]->setSectionVisible(12, 
+	_rooms[PYR_ENTRANCE]->setSectionVisible(12,
 			 _rooms[PYR_ENTRANCE]->isSectionVisible(8) &&
 			!_rooms[PYR_ENTRANCE]->isSectionVisible(4));
 }
@@ -1261,25 +1288,25 @@ void GameManager2::caught() {
 		_vm->removeMessage();
 	if        (_currentRoom->getId() <  MUS1) {
 	} else if (_currentRoom->getId() <= MUS2) {
-		_vm->renderImage( 8); 
+		_vm->renderImage( 8);
 		_vm->renderImage(18);
 	} else if (_currentRoom->getId() == MUS3) {
-		_vm->renderImage(12); 
+		_vm->renderImage(12);
 		_vm->renderImage(30);
 	} else if (_currentRoom->getId() == MUS4) {
-		_vm->renderImage( 8); 
+		_vm->renderImage( 8);
 		_vm->renderImage(18);
 	} else if (_currentRoom->getId() == MUS5) {
-		_vm->renderImage( 9); 
+		_vm->renderImage( 9);
 		_vm->renderImage(29);
 	} else if (_currentRoom->getId() <= MUS7) {
-		_vm->renderImage( 7); 
+		_vm->renderImage( 7);
 		_vm->renderImage(17);
 	} else if (_currentRoom->getId() <= MUS9) {
-		_vm->renderImage( 1); 
+		_vm->renderImage( 1);
 		_vm->renderImage( 7);
 	} else if (_currentRoom->getId() <= MUS11) {
-		_vm->renderImage( 2); 
+		_vm->renderImage( 2);
 		_vm->renderImage( 8);
 	}
 	caught2();
@@ -1327,11 +1354,11 @@ void GameManager2::drawClock() {
 	}
 	for (int i = 0; i < 3; i++) {
 		Object *o = r->getObject(i);
-		if ((o->_id == DOOR || o->_id == ENCRYPTED_DOOR || o->_id == SMALL_DOOR) && 
+		if ((o->_id == DOOR || o->_id == ENCRYPTED_DOOR || o->_id == SMALL_DOOR) &&
 				(o->_type & OPENED) && ! _state._alarmOn)
 			alarm();
 	}
-	if (!_state._alarmOn && _currentRoom == _rooms[MUS4] && 
+	if (!_state._alarmOn && _currentRoom == _rooms[MUS4] &&
 			second >= 21 && second <= 40)
 		alarm();
 	if (_currentRoom == _rooms[MUS_ENTRANCE] && second >= 22 && second <= 29) {
@@ -1470,7 +1497,7 @@ void GameManager2::pressureAlarmCount() {
 	if (!(_state._alarmOn ||
 			(_currentRoom == _rooms[MUS22] && _currentRoom->isSectionVisible(6)))) {
 		_state._pressureCounter++;
-		if ((_currentRoom->getId() >= MUS12 && _state._pressureCounter > 8) || 
+		if ((_currentRoom->getId() >= MUS12 && _state._pressureCounter > 8) ||
 				_state._pressureCounter > 16)
 			alarm();
 	}

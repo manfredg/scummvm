@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -97,7 +96,7 @@ struct DijkstraNode {
 };
 
 static void initDijkstraNodes(DijkstraNode::Container &dijkstraNodes, const Region &region,
-                              const Vertex &start, const Common::Array<Vertex> &nodes) {
+							  const Vertex &start, const Common::Array<Vertex> &nodes) {
 	// Allocate sufficient space in the array
 	dijkstraNodes.resize(nodes.size());
 
@@ -126,8 +125,8 @@ static DijkstraNode::Iter chooseClosestNode(DijkstraNode::Container &nodes) {
 }
 
 static void relaxNodes(DijkstraNode::Container &nodes,
-                       const Common::Array< Common::Array<int> > &visibilityMatrix,
-                       const DijkstraNode::ConstIter &curNodeIter) {
+					   const Common::Array< Common::Array<int> > &visibilityMatrix,
+					   const DijkstraNode::ConstIter &curNodeIter) {
 	// All the successors of the current node that have not been chosen will be
 	// inserted into the boundary node list, and the cost will be updated if
 	// a shorter path has been found to them.
@@ -146,10 +145,10 @@ static void relaxNodes(DijkstraNode::Container &nodes,
 }
 
 static void relaxEndPoint(const Vertex &curNodePos,
-                          const DijkstraNode::ConstIter &curNodeIter,
-                          const Vertex &endPointPos,
-                          DijkstraNode &endPoint,
-                          const Region &region) {
+						  const DijkstraNode::ConstIter &curNodeIter,
+						  const Vertex &endPointPos,
+						  DijkstraNode &endPoint,
+						  const Region &region) {
 	if (region.isLineOfSight(curNodePos, endPointPos)) {
 		int totalCost = (*curNodeIter).cost + curNodePos.distance(endPointPos);
 		if (totalCost < endPoint.cost) {
@@ -237,7 +236,7 @@ void WalkRegion::initNodeVector() {
 			nodeCount += _polygons[i].vertexCount;
 	}
 
-	// Knoten-Vector füllen
+	// Knoten-Vector fÃ¼llen
 	_nodes.reserve(nodeCount);
 	{
 		for (uint j = 0; j < _polygons.size(); j++)

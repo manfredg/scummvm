@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,28 +59,28 @@ void TextInput::draw() {
 	s.writeString(text, TextPoint(0, 0), _color);
 }
 
-bool TextInput::KeypressMsg(CKeypressMsg &msg) {
-	uint16 c = msg._keyState.ascii;
+bool TextInput::KeypressMsg(CKeypressMsg *msg) {
+	uint16 c = msg->_keyState.ascii;
 	//TreeItem *respondTo = _respondTo;
 
 	if (c >= ' ' && c <= 0x7f) {
 		// Printable character
 		if (_text.size() < _maxCharacters && (!_isNumeric || (c >= '0' && c <= '9'))) {
-			_text += msg._keyState.ascii;
+			_text += msg->_keyState.ascii;
 			setDirty();
 		}
-	} else if (msg._keyState.keycode == Common::KEYCODE_BACKSPACE || msg._keyState.keycode == Common::KEYCODE_LEFT) {
+	} else if (msg->_keyState.keycode == Common::KEYCODE_BACKSPACE || msg->_keyState.keycode == Common::KEYCODE_LEFT) {
 		if (!_text.empty()) {
 			_text.deleteLastChar();
 			setDirty();
 		}
-	} else if (msg._keyState.keycode == Common::KEYCODE_RETURN || msg._keyState.keycode == Common::KEYCODE_KP_ENTER) {
+	} else if (msg->_keyState.keycode == Common::KEYCODE_RETURN || msg->_keyState.keycode == Common::KEYCODE_KP_ENTER) {
 		_game->_textCursor->setVisible(false);
 		hide();
 
 		CTextInputMsg inputMsg(_text, false);
 		inputMsg.execute(_respondTo);
-	} else if (msg._keyState.keycode == Common::KEYCODE_ESCAPE) {
+	} else if (msg->_keyState.keycode == Common::KEYCODE_ESCAPE) {
 		_game->_textCursor->setVisible(false);
 		hide();
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,6 @@
 namespace Ultima {
 namespace Ultima8 {
 
-class IDataSource;
 class RenderSurface;
 
 class PaletteManager {
@@ -44,20 +42,26 @@ public:
 	enum PalIndex {
 		Pal_Game = 0,
 		Pal_Movie = 1,
+		Pal_Diff = 2,	// Crusaders only - difficulty screen??
+		Pal_Misc = 3,	// Crusaders only - game menu
+		Pal_Misc2 = 4,	// Crusaders only - ??
+		Pal_Star = 5,	// Crusaders only - ??
+		Pal_Cred = 6,	// Crusader: No regret only (but mentioned in the no remorse exe!)
 		Pal_JPFontStart = 16
 	};
 
-	void load(PalIndex index, IDataSource &ds, IDataSource &xformds);
-	void load(PalIndex index, IDataSource &ds);
+	void load(PalIndex index, Common::ReadStream &rs, Common::ReadStream &xformrs);
+	void load(PalIndex index, Common::ReadStream &rs);
 	Palette *getPalette(PalIndex index);
 
 	void duplicate(PalIndex src, PalIndex dest);
 
-	//! Re-convert a palette to native format after modifying it
-	void updatedFont(PalIndex index);
+	//! Re-convert a palette to native format after modifying it. If maxindex is set,
+	//! only recalculate color indexes up to that value.
+	void updatedPalette(PalIndex index, int maxindex = 0);
 
 	//! Apply a transform matrix to a palette (-4.11 fixed)
-	void transformPalette(PalIndex index, int16 matrix[12]);
+	void transformPalette(PalIndex index, const int16 matrix[12]);
 
 	//! reset the transformation matrix of a palette
 	void untransformPalette(PalIndex index);

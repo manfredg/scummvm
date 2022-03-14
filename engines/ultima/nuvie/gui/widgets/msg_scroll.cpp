@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -377,7 +376,7 @@ void MsgScroll::display_string(Std::string s, Font *f, uint8 color, bool include
 
 	msg_text = new MsgText(s, f);
 	msg_text->color = color;
-	//::debug("%s", msg_text->s.c_str());
+	//::debug(1, "%s", msg_text->s.c_str());
 
 	holding_buffer.push_back(msg_text);
 
@@ -476,7 +475,8 @@ bool MsgScroll::parse_token(MsgText *token) {
 			set_font(NUVIE_FONT_NORMAL); // english font
 			break;
 		}
-	// Note fall through. ;-) We fall through if we haven't already seen a '<' char
+		// falls through
+		// ...if we haven't already seen a '<' char
 
 	default   :
 		if (msg_line) {
@@ -1042,7 +1042,7 @@ bool MsgScroll::input_buf_add_char(char c) {
 	input_char = 0;
 	if (permit_input != NULL)
 		input_buf_remove_char();
-	input_buf.append(&c, 1);
+	input_buf.push_back(c);
 	scroll_updated = true;
 
 // Add char to scroll buffer
@@ -1082,7 +1082,7 @@ Std::string MsgScroll::get_input() {
 	if (input_mode == false) {
 		s.assign(input_buf);
 	}
-	//::debug("%s", s.c_str());
+	//::debug(1, "%s", s.c_str());
 
 	return s;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,12 +25,24 @@
 #include "common/algorithm.h"
 #include "common/array.h"
 #include "common/hashmap.h"
+#include "common/hash-str.h"
 #include "common/list.h"
 #include "common/queue.h"
 #include "common/stack.h"
 
 namespace Ultima {
 namespace Std {
+
+template<class T1, class T2>
+struct pair {
+	T1 first;
+	T2 second;
+
+	pair() {
+	}
+	pair(T1 first_, T2 second_) : first(first_), second(second_) {
+	}
+};
 
 template<class T>
 class vector : public Common::Array<T> {
@@ -44,7 +55,7 @@ public:
 		reverse_iterator(vector<T> *owner, int index) : _owner(owner), _index(index) {}
 		reverse_iterator() : _owner(0), _index(-1) {}
 
-		T operator*() const { return (*_owner)[_index]; }
+		T &operator*() { return (*_owner)[_index]; }
 
 		reverse_iterator &operator++() {
 			--_index;
@@ -58,13 +69,43 @@ public:
 			return !operator==(rhs);
 		}
 	};
+
+	struct const_reverse_iterator {
+	private:
+		const vector<T> *_owner;
+		int _index;
+	public:
+		const_reverse_iterator(const vector<T> *owner, int index) : _owner(owner), _index(index) {
+		}
+		const_reverse_iterator() : _owner(0), _index(-1) {
+		}
+
+		const T operator*() const {
+			return (*_owner)[_index];
+		}
+
+		const_reverse_iterator &operator++() {
+			--_index;
+			return *this;
+		}
+
+		bool operator==(const const_reverse_iterator &rhs) {
+			return _owner == rhs._owner && _index == rhs._index;
+		}
+		bool operator!=(const const_reverse_iterator &rhs) {
+			return !operator==(rhs);
+		}
+	};
 public:
 	typedef T reference;
 	typedef const T const_reference;
 
 	vector() : Common::Array<T>() {}
 	vector(size_t newSize) : Common::Array<T>() {
-		Common::Array<T>::reserve(newSize);
+		Common::Array<T>::resize(newSize);
+	}
+	vector(size_t newSize, const T elem) {
+		resize(newSize, elem);
 	}
 
 	typename Common::Array<T>::iterator erase(typename Common::Array<T>::iterator pos) {
@@ -97,9 +138,29 @@ public:
 	reverse_iterator rend() {
 		return reverse_iterator(this, -1);
 	}
+	const_reverse_iterator rbegin() const {
+		return const_reverse_iterator(this, (int)Common::Array<T>::size() - 1);
+	}
+	const_reverse_iterator rend() const {
+		return const_reverse_iterator(this, -1);
+	}
 
 	void pop_front() {
 		Common::Array<T>::remove_at(0);
+	}
+
+	void resize(size_t newSize) {
+		Common::Array<T>::resize(newSize);
+	}
+	void resize(size_t newSize, const T elem) {
+		size_t oldSize = Common::Array<T>::size();
+		resize(newSize);
+		for (size_t idx = oldSize; idx < newSize; ++idx)
+			this->operator[](idx) = elem;
+	}
+
+	T at(size_t index) const {
+		return (*this)[index];
 	}
 };
 
@@ -128,6 +189,8 @@ public:
 
 	iterator begin() { return _items.begin(); }
 	iterator end() { return _items.end(); }
+	const_iterator begin() const { return _items.begin(); }
+	const_iterator end() const { return _items.end(); }
 
 	/**
 	 * Clear the set
@@ -163,20 +226,49 @@ public:
 	/**
 	 * Find an item
 	 */
-	iterator find(T item) {
+	iterator find(const T item) {
 		iterator it = begin();
 		for (; it != end() && *it != item; ++it) {}
 		return it;
 	}
+	const_iterator find(const T item) const {
+		const_iterator it = begin();
+		for (; it != end() && *it != item; ++it) {
+		}
+		return it;
+	}
+};
+
+struct PointerHash {
+	Common::Hash<const char *> hash;
+
+	uint operator()(const void *ptr) const {
+		Common::String str = Common::String::format("%p", ptr);
+		return hash.operator()(str.c_str());
+	}
 };
 
 template<class Key, class Val, class HashFunc = Common::Hash<Key>,
-         class EqualFunc = Common::EqualTo<Key> >
+		 class EqualFunc = Common::EqualTo<Key> >
 class map : public Common::HashMap<Key, Val, HashFunc, EqualFunc> {
+public:
+	void insert(Std::pair<Key, Val> elem) {
+		this->operator[](elem.first) = elem.second;
+	}
 };
 
 template<class VAL>
 class deque : public Common::List<VAL> {
+public:
+	VAL operator[](uint index) {
+		for (typename Common::List<VAL>::iterator it = this->begin();
+				it != this->end(); ++it, --index) {
+			if (index == 0)
+				return *it;
+		}
+
+		error("Invalid index");
+	}
 };
 
 template<class T>
@@ -216,10 +308,6 @@ public:
 
 template<class VAL>
 class stack : public Common::Stack<VAL> {
-};
-
-template<class T>
-class queue : public Common::Queue<T> {
 };
 
 /**
@@ -263,7 +351,7 @@ public:
 	}
 
 	typename _Container::const_reference top() const {
-		return c.front();
+		return c.back();
 	}
 
 	void push(const typename _Container::value_type &_Val) {
@@ -272,7 +360,7 @@ public:
 	}
 
 	void pop() {
-		c.pop_front();
+		c.pop_back();
 	}
 
 	void swap(priority_queue &_Right) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -181,7 +180,7 @@ Common::Error IllusionsEngine_BBDOU::run() {
 
 	initUpdateFunctions();
 
-	_fader = 0;
+	_fader = nullptr;
 
 	_scriptOpcodes = new ScriptOpcodes_BBDOU(this);
 	_stack = new ScriptStack();
@@ -259,7 +258,7 @@ Common::Error IllusionsEngine_BBDOU::run() {
 
 bool IllusionsEngine_BBDOU::hasFeature(EngineFeature f) const {
 	return
-		(f == kSupportsRTL) ||
+		(f == kSupportsReturnToLauncher) ||
 		(f == kSupportsLoadingDuringRuntime) ||
 		(f == kSupportsSavingDuringRuntime);
 }
@@ -367,7 +366,7 @@ void IllusionsEngine_BBDOU::loadSpecialCode(uint32 resId) {
 
 void IllusionsEngine_BBDOU::unloadSpecialCode(uint32 resId) {
 	delete _specialCode;
-	_specialCode = 0;
+	_specialCode = nullptr;
 }
 
 void IllusionsEngine_BBDOU::notifyThreadId(uint32 &threadId) {
@@ -574,7 +573,7 @@ bool IllusionsEngine_BBDOU::enterScene(uint32 sceneId, uint32 threadId) {
 		// After that the game is ready and a savegame can finally be loaded.
 		_canResumeFromSavegame = true;
 	}
-	return sceneInfo != 0;
+	return sceneInfo != nullptr;
 }
 
 void IllusionsEngine_BBDOU::exitScene(uint32 threadId) {
@@ -611,7 +610,7 @@ void IllusionsEngine_BBDOU::dumpActiveScenes(uint32 sceneId, uint32 threadId) {
 	uint activeScenesCount = _activeScenes.getActiveScenesCount();
 	while (activeScenesCount > 0) {
 		uint32 activeSceneId;
-		_activeScenes.getActiveSceneInfo(activeScenesCount, &activeSceneId, 0);
+		_activeScenes.getActiveSceneInfo(activeScenesCount, &activeSceneId, nullptr);
 		if (activeSceneId == sceneId)
 			break;
 		exitScene(threadId);
@@ -668,14 +667,14 @@ void IllusionsEngine_BBDOU::reset() {
 
 void IllusionsEngine_BBDOU::loadSavegameFromScript(int16 slotNum, uint32 callingThreadId) {
 	// NOTE Just loads the savegame, doesn't activate it yet
-	const char *fileName = getSavegameFilename(_savegameSlotNum);
-	_loadGameResult = loadgame(fileName);
+	Common::String fileName = getSavegameFilename(_targetName, _savegameSlotNum);
+	_loadGameResult = loadgame(fileName.c_str());
 }
 
 void IllusionsEngine_BBDOU::saveSavegameFromScript(int16 slotNum, uint32 callingThreadId) {
 	// TODO
-	// const char *fileName = getSavegameFilename(slotNum);
-	_saveGameResult = false;//savegame(fileName, _savegameDescription.c_str());
+	// Common::String fileName = getSavegameFilename(_targetName, slotNum);
+	_saveGameResult = false;//savegame(fileName.c_str(), _savegameDescription.c_str());
 }
 
 void IllusionsEngine_BBDOU::activateSavegame(uint32 callingThreadId) {

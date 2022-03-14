@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,7 @@
 #include "engines/engine.h"
 #include "gui/gui-manager.h"
 
-namespace _3DS {
+namespace N3DS {
 
 static Common::Mutex *eventMutex;
 static InputMode inputMode = MODE_DRAG;
@@ -45,32 +44,32 @@ static InputMode savedInputMode = MODE_DRAG;
 static aptHookCookie cookie;
 
 static const Common::HardwareInputTableEntry ctrJoystickButtons[] = {
-    { "JOY_A",              Common::JOYSTICK_BUTTON_A,              _s("A")           },
-    { "JOY_B",              Common::JOYSTICK_BUTTON_B,              _s("B")           },
-    { "JOY_X",              Common::JOYSTICK_BUTTON_X,              _s("X")           },
-    { "JOY_Y",              Common::JOYSTICK_BUTTON_Y,              _s("Y")           },
-    { "JOY_BACK",           Common::JOYSTICK_BUTTON_BACK,           _s("Select")      },
-    { "JOY_START",          Common::JOYSTICK_BUTTON_START,          _s("Start")       },
-    { "JOY_LEFT_STICK",     Common::JOYSTICK_BUTTON_LEFT_STICK,     _s("ZL")          },
-    { "JOY_RIGHT_STICK",    Common::JOYSTICK_BUTTON_RIGHT_STICK,    _s("ZR")          },
-    { "JOY_LEFT_SHOULDER",  Common::JOYSTICK_BUTTON_LEFT_SHOULDER,  _s("L")           },
-    { "JOY_RIGHT_SHOULDER", Common::JOYSTICK_BUTTON_RIGHT_SHOULDER, _s("R")           },
-    { "JOY_UP",             Common::JOYSTICK_BUTTON_DPAD_UP,        _s("D-pad Up")    },
-    { "JOY_DOWN",           Common::JOYSTICK_BUTTON_DPAD_DOWN,      _s("D-pad Down")  },
-    { "JOY_LEFT",           Common::JOYSTICK_BUTTON_DPAD_LEFT,      _s("D-pad Left")  },
-    { "JOY_RIGHT",          Common::JOYSTICK_BUTTON_DPAD_RIGHT,     _s("D-pad Right") },
-    { nullptr,              0,                                      nullptr           }
+	{ "JOY_A",              Common::JOYSTICK_BUTTON_A,              _s("A")           },
+	{ "JOY_B",              Common::JOYSTICK_BUTTON_B,              _s("B")           },
+	{ "JOY_X",              Common::JOYSTICK_BUTTON_X,              _s("X")           },
+	{ "JOY_Y",              Common::JOYSTICK_BUTTON_Y,              _s("Y")           },
+	{ "JOY_BACK",           Common::JOYSTICK_BUTTON_BACK,           _s("Select")      },
+	{ "JOY_START",          Common::JOYSTICK_BUTTON_START,          _s("Start")       },
+	{ "JOY_LEFT_STICK",     Common::JOYSTICK_BUTTON_LEFT_STICK,     _s("ZL")          },
+	{ "JOY_RIGHT_STICK",    Common::JOYSTICK_BUTTON_RIGHT_STICK,    _s("ZR")          },
+	{ "JOY_LEFT_SHOULDER",  Common::JOYSTICK_BUTTON_LEFT_SHOULDER,  _s("L")           },
+	{ "JOY_RIGHT_SHOULDER", Common::JOYSTICK_BUTTON_RIGHT_SHOULDER, _s("R")           },
+	{ "JOY_UP",             Common::JOYSTICK_BUTTON_DPAD_UP,        _s("D-pad Up")    },
+	{ "JOY_DOWN",           Common::JOYSTICK_BUTTON_DPAD_DOWN,      _s("D-pad Down")  },
+	{ "JOY_LEFT",           Common::JOYSTICK_BUTTON_DPAD_LEFT,      _s("D-pad Left")  },
+	{ "JOY_RIGHT",          Common::JOYSTICK_BUTTON_DPAD_RIGHT,     _s("D-pad Right") },
+	{ nullptr,              0,                                      nullptr           }
 };
 
 static const Common::AxisTableEntry ctrJoystickAxes[] = {
-    { "JOY_LEFT_STICK_X", Common::JOYSTICK_AXIS_LEFT_STICK_X, Common::kAxisTypeFull, _s("C-Pad X") },
-    { "JOY_LEFT_STICK_Y", Common::JOYSTICK_AXIS_LEFT_STICK_Y, Common::kAxisTypeFull, _s("C-Pad Y") },
-    { nullptr,            0,                                  Common::kAxisTypeFull, nullptr       }
+	{ "JOY_LEFT_STICK_X", Common::JOYSTICK_AXIS_LEFT_STICK_X, Common::kAxisTypeFull, _s("C-Pad X") },
+	{ "JOY_LEFT_STICK_Y", Common::JOYSTICK_AXIS_LEFT_STICK_Y, Common::kAxisTypeFull, _s("C-Pad Y") },
+	{ nullptr,            0,                                  Common::kAxisTypeFull, nullptr       }
 };
 
 const Common::HardwareInputTableEntry ctrMouseButtons[] = {
-    { "MOUSE_LEFT",   Common::MOUSE_BUTTON_LEFT,   _s("Touch") },
-    { nullptr,        0,                           nullptr     }
+	{ "MOUSE_LEFT",   Common::MOUSE_BUTTON_LEFT,   _s("Touch") },
+	{ nullptr,        0,                           nullptr     }
 };
 
 static const int16 CIRCLE_MAX = 160;
@@ -91,8 +90,8 @@ static void doJoyEvent(Common::Queue<Common::Event> *queue, u32 keysPressed, u32
 }
 
 static void eventThreadFunc(void *arg) {
-	OSystem_3DS *osys = (OSystem_3DS *)g_system;
-	auto eventQueue = (Common::Queue<Common::Event> *)arg;
+	OSystem_3DS *osys = dynamic_cast<OSystem_3DS *>(g_system);
+	Common::Queue<Common::Event> *eventQueue = (Common::Queue<Common::Event> *)arg;
 
 	uint32 touchStartTime = osys->getMillis();
 	touchPosition  lastTouch  = {0, 0};
@@ -168,16 +167,20 @@ static void eventThreadFunc(void *arg) {
 		hidCircleRead(&circle);
 
 		if (circle.dx != lastCircle.dx) {
+			int32 position = (int32)circle.dx * Common::JOYAXIS_MAX / CIRCLE_MAX;
+
 			event.type              = Common::EVENT_JOYAXIS_MOTION;
 			event.joystick.axis     = Common::JOYSTICK_AXIS_LEFT_STICK_X;
-			event.joystick.position = (int32)circle.dx * Common::JOYAXIS_MAX / CIRCLE_MAX;
+			event.joystick.position = CLIP<int32>(position, Common::JOYAXIS_MIN, Common::JOYAXIS_MAX);
 			pushEventQueue(eventQueue, event);
 		}
 
 		if (circle.dy != lastCircle.dy) {
+			int32 position = -(int32)circle.dy * Common::JOYAXIS_MAX / CIRCLE_MAX;
+
 			event.type              = Common::EVENT_JOYAXIS_MOTION;
 			event.joystick.axis     = Common::JOYSTICK_AXIS_LEFT_STICK_Y;
-			event.joystick.position = -(int32)circle.dy * Common::JOYAXIS_MAX / CIRCLE_MAX;
+			event.joystick.position = CLIP<int32>(position, Common::JOYAXIS_MIN, Common::JOYAXIS_MAX);
 			pushEventQueue(eventQueue, event);
 		}
 
@@ -202,13 +205,13 @@ static void eventThreadFunc(void *arg) {
 }
 
 static void aptHookFunc(APT_HookType hookType, void *param) {
-	OSystem_3DS *osys = (OSystem_3DS *)g_system;
+	OSystem_3DS *osys = dynamic_cast<OSystem_3DS *>(g_system);
 
 	switch (hookType) {
 		case APTHOOK_ONSUSPEND:
 		case APTHOOK_ONSLEEP:
 			if (g_engine) {
-				g_engine->pauseEngine(true);
+				osys->_sleepPauseToken = g_engine->pauseEngine();
 			}
 			osys->sleeping = true;
 			if (R_SUCCEEDED(gspLcdInit())) {
@@ -219,17 +222,15 @@ static void aptHookFunc(APT_HookType hookType, void *param) {
 		case APTHOOK_ONRESTORE:
 		case APTHOOK_ONWAKEUP:
 			if (g_engine) {
-				g_engine->pauseEngine(false);
+				osys->_sleepPauseToken.clear();
 			}
 			osys->sleeping = false;
 			loadConfig();
 			break;
-		default: {
-			Common::StackLock lock(*eventMutex);
-			Common::Event event;
-			event.type = Common::EVENT_QUIT;
-			g_system->getEventManager()->pushEvent(event);
-		}
+		case APTHOOK_ONEXIT:
+			break;
+		default:
+			warning("Unhandled APT hook, type: %d", hookType);
 	}
 }
 
@@ -338,10 +339,18 @@ Common::KeymapperDefaultBindings *OSystem_3DS::getKeymapperDefaultBindings() {
 }
 
 bool OSystem_3DS::pollEvent(Common::Event &event) {
-	aptMainLoop(); // Call apt hook when necessary
+	if (!aptMainLoop()) {
+		// The system requested us to quit
+		if (_sleepPauseToken.isActive()) {
+			_sleepPauseToken.clear();
+		}
+
+		event.type = Common::EVENT_QUIT;
+		return true;
+	}
 
 	// If magnify mode is on when returning to Launcher, turn it off
-	if (_eventManager->shouldRTL()) {
+	if (_eventManager->shouldReturnToLauncher()) {
 		if (_magnifyMode == MODE_MAGON) {
 			_magnifyMode = MODE_MAGOFF;
 			updateSize();
@@ -442,13 +451,14 @@ void OSystem_3DS::runOptionsDialog() {
 
 	optionsDialogRunning = true;
 
+	PauseToken pauseToken;
 	OptionsDialog dialog;
 	if (g_engine) {
-		g_engine->pauseEngine(true);
+		pauseToken = g_engine->pauseEngine();
 	}
 	int result = dialog.runModal();
 	if (g_engine) {
-		g_engine->pauseEngine(false);
+		pauseToken.clear();
 	}
 
 	if (result > 0) {
@@ -471,4 +481,4 @@ void OSystem_3DS::runOptionsDialog() {
 	optionsDialogRunning = false;
 }
 
-} // namespace _3DS
+} // namespace N3DS

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -346,15 +345,15 @@ uint32 SavegameStream::readCompressed(void *dataPtr, uint32 dataSize) {
 // Constructors
 //////////////////////////////////////////////////////////////////////////
 
-SaveLoad::SaveLoad(LastExpressEngine *engine) : _engine(engine), _savegame(NULL), _gameTicksLastSavegame(0), _entity(kEntityPlayer) {
+SaveLoad::SaveLoad(LastExpressEngine *engine) : _engine(engine), _savegame(nullptr), _gameTicksLastSavegame(0), _entity(kEntityPlayer) {
 }
 
 SaveLoad::~SaveLoad() {
 	clear(true);
-	_savegame = NULL;
+	_savegame = nullptr;
 
 	// Zero passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 void SaveLoad::initStream() {
@@ -382,7 +381,7 @@ void SaveLoad::flushStream(GameId id) {
 void SaveLoad::create(GameId id) {
 	initStream();
 
-	Common::Serializer ser(NULL, _savegame);
+	Common::Serializer ser(nullptr, _savegame);
 	SavegameMainHeader header;
 	header.saveLoadWithSerializer(ser);
 
@@ -396,7 +395,7 @@ uint32 SaveLoad::init(GameId id, bool resetHeaders) {
 	loadStream(id);
 
 	// Get the main header
-	Common::Serializer ser(_savegame, NULL);
+	Common::Serializer ser(_savegame, nullptr);
 	SavegameMainHeader mainHeader;
 	mainHeader.saveLoadWithSerializer(ser);
 	if (!mainHeader.isValid())
@@ -439,7 +438,7 @@ uint32 SaveLoad::init(GameId id, bool resetHeaders) {
 void SaveLoad::loadStream(GameId id) {
 	Common::InSaveFile *save = openForLoading(id);
 	if (save->size() < 32)
-		error("[SaveLoad::loadStream] Savegame seems to be corrupted (not enough data: %i bytes)", save->size());
+		error("[SaveLoad::loadStream] Savegame seems to be corrupted (not enough data: %i bytes)", (int)save->size());
 
 	if (!_savegame)
 		error("[SaveLoad::loadStream] Savegame stream is invalid");
@@ -530,7 +529,7 @@ void SaveLoad::loadGame(uint32 index) {
 	header.brightness = getState()->brightness;
 	header.volume = getState()->volume;
 
-	Common::Serializer ser(NULL, _savegame);
+	Common::Serializer ser(nullptr, _savegame);
 	header.saveLoadWithSerializer(ser);
 
 	// TODO
@@ -564,7 +563,7 @@ void SaveLoad::saveGame(SavegameType type, EntityIndex entity, uint32 value) {
 
 		// Load entry header
 		SavegameEntryHeader entry;
-		Common::Serializer ser(_savegame, NULL);
+		Common::Serializer ser(_savegame, nullptr);
 		entry.saveLoadWithSerializer(ser);
 
 		if (!entry.isValid()) {
@@ -610,7 +609,7 @@ void SaveLoad::saveGame(SavegameType type, EntityIndex entity, uint32 value) {
 
 	// Write the main header
 	_savegame->seek(0);
-	Common::Serializer ser(NULL, _savegame);
+	Common::Serializer ser(nullptr, _savegame);
 	header.saveLoadWithSerializer(ser);
 
 	flushStream(getMenu()->getGameId());
@@ -629,14 +628,14 @@ bool SaveLoad::loadMainHeader(Common::InSaveFile *stream, SavegameMainHeader *he
 
 	// Check there is enough data (32 bytes)
 	if (stream->size() < 32) {
-		debugC(2, kLastExpressDebugSavegame, "Savegame seems to be corrupted (not enough data: %i bytes)", stream->size());
+		debugC(2, kLastExpressDebugSavegame, "Savegame seems to be corrupted (not enough data: %i bytes)", (int)stream->size());
 		return false;
 	}
 
 	// Rewind stream
 	stream->seek(0);
 
-	Common::Serializer ser(stream, NULL);
+	Common::Serializer ser(stream, nullptr);
 	header->saveLoadWithSerializer(ser);
 
 	// Validate the header
@@ -711,7 +710,7 @@ void SaveLoad::writeEntry(SavegameType type, EntityIndex entity, uint32 value) {
 	uint32 originalPosition = (uint32)_savegame->pos();
 
 	// Write header
-	Common::Serializer ser(NULL, _savegame);
+	Common::Serializer ser(nullptr, _savegame);
 	header.saveLoadWithSerializer(ser);
 
 	// Write game data
@@ -764,7 +763,7 @@ void SaveLoad::readEntry(SavegameType *type, EntityIndex *entity, uint32 *val, b
 
 	// Load entry header
 	SavegameEntryHeader entry;
-	Common::Serializer ser(_savegame, NULL);
+	Common::Serializer ser(_savegame, nullptr);
 	entry.saveLoadWithSerializer(ser);
 
 	if (!entry.isValid())

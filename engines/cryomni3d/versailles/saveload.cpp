@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/archive.h"
@@ -53,10 +52,15 @@ bool CryOmni3DEngine_Versailles::canVisit() const {
 	return Common::File::exists("game0001.sav");
 }
 
-void CryOmni3DEngine_Versailles::getSavesList(bool visit, Common::StringArray &saveNames) {
+void CryOmni3DEngine_Versailles::getSavesList(bool visit, Common::StringArray &saveNames,
+		int &nextSaveNum) {
+	nextSaveNum = 1;
+	bool supportsAutoName = (_messages.size() >= 148);
+
 	char saveName[kSaveDescriptionLen + 1];
+	// Terminate saveName here forever (we don't overrun kSaveDescriptionLen)
 	saveName[kSaveDescriptionLen] = '\0';
-	Common::String pattern = Common::String::format("%s%s.????", _targetName.c_str(),
+	Common::String pattern = Common::String::format("%s%s.####", _targetName.c_str(),
 	                         visit ? "_visit" : "");
 	Common::StringArray filenames = _saveFileMan->listSavefiles(pattern);
 	sort(filenames.begin(), filenames.end());   // Sort (hopefully ensuring we are sorted numerically..)
@@ -98,9 +102,37 @@ void CryOmni3DEngine_Versailles::getSavesList(bool visit, Common::StringArray &s
 			num++;
 			Common::InSaveFile *in = _saveFileMan->openForLoading(*file);
 			if (in) {
-				if (in->read(saveName, kSaveDescriptionLen) == kSaveDescriptionLen) {
-					saveNames.push_back(saveName);
+				if (in->read(saveName, kSaveDescriptionLen) != kSaveDescriptionLen) {
+					warning("getSavesList(): Corrupted save %s", saveName);
+					delete in;
+
+					continue;
 				}
+
+				Common::String saveNameStr = saveName;
+				if (supportsAutoName && saveNameStr.hasPrefix("AUTO")) {
+					int saveNum = atoi(saveName + 4);
+					if (saveNum >= 1 && saveNum <= 9999) {
+						in->seek(436); // Go to current level
+						uint32 level = in->readUint32BE();
+
+						if (level < 8) {
+							saveNameStr = Common::String::format(_messages[146].c_str(), level);
+						} else {
+							saveNameStr = _messages[147];
+						}
+						saveNameStr += Common::String::format(" - %d", saveNum);
+						if (saveNum >= nextSaveNum) {
+							if (saveNum >= 9999) {
+								nextSaveNum = 9999;
+							} else {
+								nextSaveNum = saveNum + 1;
+							}
+						}
+					}
+				}
+
+				saveNames.push_back(saveNameStr);
 				delete in;
 			}
 		}
@@ -112,7 +144,7 @@ void CryOmni3DEngine_Versailles::getSavesList(bool visit, Common::StringArray &s
 }
 
 void CryOmni3DEngine_Versailles::saveGame(bool visit, uint saveNum,
-        const Common::String &saveName) {
+		const Common::String &saveName) {
 	if (visit && saveNum == 1) {
 		error("Can't erase bootstrap visit");
 	}

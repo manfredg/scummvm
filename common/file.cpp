@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,25 +37,25 @@ File::~File() {
 	close();
 }
 
-bool File::open(const String &filename) {
+bool File::open(const Path &filename) {
 	return open(filename, SearchMan);
 }
 
-bool File::open(const String &filename, Archive &archive) {
+bool File::open(const Path &filename, Archive &archive) {
 	assert(!filename.empty());
 	assert(!_handle);
 
 	SeekableReadStream *stream = nullptr;
 
 	if ((stream = archive.createReadStreamForMember(filename))) {
-		debug(8, "Opening hashed: %s", filename.c_str());
-	} else if ((stream = archive.createReadStreamForMember(filename + "."))) {
-		// WORKAROUND: Bug #1458388: "SIMON1: Game Detection fails"
+		debug(8, "Opening hashed: %s", filename.toString().c_str());
+	} else if ((stream = archive.createReadStreamForMember(filename.append(".")))) {
+		// WORKAROUND: Bug #2548: "SIMON1: Game Detection fails"
 		// sometimes instead of "GAMEPC" we get "GAMEPC." (note trailing dot)
-		debug(8, "Opening hashed: %s.", filename.c_str());
+		debug(8, "Opening hashed: %s.", filename.toString().c_str());
 	}
 
-	return open(stream, filename);
+	return open(stream, filename.toString());
 }
 
 bool File::open(const FSNode &node) {
@@ -87,11 +86,11 @@ bool File::open(SeekableReadStream *stream, const String &name) {
 }
 
 
-bool File::exists(const String &filename) {
+bool File::exists(const Path &filename) {
 	if (SearchMan.hasFile(filename)) {
 		return true;
-	} else if (SearchMan.hasFile(filename + ".")) {
-		// WORKAROUND: Bug #1458388: "SIMON1: Game Detection fails"
+	} else if (SearchMan.hasFile(filename.append("."))) {
+		// WORKAROUND: Bug #2548: "SIMON1: Game Detection fails"
 		// sometimes instead of "GAMEPC" we get "GAMEPC." (note trailing dot)
 		return true;
 	}
@@ -123,17 +122,17 @@ bool File::eos() const {
 	return _handle->eos();
 }
 
-int32 File::pos() const {
+int64 File::pos() const {
 	assert(_handle);
 	return _handle->pos();
 }
 
-int32 File::size() const {
+int64 File::size() const {
 	assert(_handle);
 	return _handle->size();
 }
 
-bool File::seek(int32 offs, int whence) {
+bool File::seek(int64 offs, int whence) {
 	assert(_handle);
 	return _handle->seek(offs, whence);
 }
@@ -160,13 +159,13 @@ bool DumpFile::open(const String &filename, bool createPath) {
 			if (filename[i] == '/' || filename[i] == '\\') {
 				Common::String subpath = filename;
 				subpath.erase(i);
-				if (subpath.empty()) continue;
+				if (subpath.empty() || subpath == ".") continue;
 				AbstractFSNode *node = g_system->getFilesystemFactory()->makeFileNodePath(subpath);
 				if (node->exists()) {
 					delete node;
 					continue;
 				}
-				if (!node->createDirectory()) warning("DumpFile: unable to create directories from path prefix");
+				if (!node->createDirectory()) warning("DumpFile: unable to create directories from path prefix (%s)", subpath.c_str());
 				delete node;
 			}
 		}
@@ -221,14 +220,14 @@ bool DumpFile::flush() {
 	return _handle->flush();
 }
 
-int32 DumpFile::pos() const { return _handle->pos(); }
+int64 DumpFile::pos() const { return _handle->pos(); }
 
-bool DumpFile::seek(int32 offset, int whence) {
+bool DumpFile::seek(int64 offset, int whence) {
 	SeekableWriteStream *ws = dynamic_cast<SeekableWriteStream *>(_handle);
 	return ws ? ws->seek(offset, whence) : false;
 }
 
-int32 DumpFile::size() const {
+int64 DumpFile::size() const {
 	SeekableWriteStream *ws = dynamic_cast<SeekableWriteStream *>(_handle);
 	return ws ? ws->size() : -1;
 }

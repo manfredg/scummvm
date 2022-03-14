@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,12 +30,12 @@
 namespace Kyra {
 
 GUI_v2::GUI_v2(KyraEngine_v2 *vm) : GUI_v1(vm), _vm(vm), _screen(vm->screen_v2()) {
-	_backUpButtonList = _specialProcessButton = 0;
+	_backUpButtonList = _specialProcessButton = nullptr;
 	_buttonListChanged = false;
 	_lastScreenUpdate = 0;
 	_flagsModifier = 0;
 
-	_currentMenu = 0;
+	_currentMenu = nullptr;
 	_isDeathMenu = false;
 	_isSaveMenu = false;
 	_isLoadMenu = false;
@@ -45,6 +44,15 @@ GUI_v2::GUI_v2(KyraEngine_v2 *vm) : GUI_v1(vm), _vm(vm), _screen(vm->screen_v2()
 	_sliderHandlerFunctor = BUTTON_FUNCTOR(GUI_v2, this, &GUI_v2::sliderHandler);
 	_savegameOffset = 0;
 	_isDeleteMenu = false;
+	_saveMenuFont = Screen::FID_8_FNT;
+	_saveMenuCursor = Common::Rect(1, 1, 7, 8);
+	_saveLoadNumSlots = 5;
+
+	if (vm->game() == GI_KYRA2 && vm->gameFlags().lang == Common::ZH_TWN) {
+		_saveMenuFont = Screen::FID_CHINESE_FNT;
+		_saveMenuCursor = Common::Rect(0, 0, 8, 14);
+		_saveLoadNumSlots = 4;
+	}
 }
 
 Button *GUI_v2::addButtonToList(Button *list, Button *newButton) {
@@ -67,7 +75,7 @@ void GUI_v2::processButton(Button *button) {
 	int entry = button->flags2 & 5;
 
 	byte val1 = 0, val2 = 0, val3 = 0;
-	const uint8 *dataPtr = 0;
+	const uint8 *dataPtr = nullptr;
 	Button::Callback callback;
 	if (entry == 1) {
 		val1 = button->data1Val1;
@@ -135,7 +143,7 @@ int GUI_v2::processButtonList(Button *buttonList, uint16 inputFlag, int8 mouseWh
 		return inputFlag & 0x7FFF;
 
 	if (_backUpButtonList != buttonList || _buttonListChanged) {
-		_specialProcessButton = 0;
+		_specialProcessButton = nullptr;
 		//flagsModifier |= 0x2200;
 		_backUpButtonList = buttonList;
 		_buttonListChanged = false;
@@ -177,7 +185,7 @@ int GUI_v2::processButtonList(Button *buttonList, uint16 inputFlag, int8 mouseWh
 	if (_specialProcessButton) {
 		buttonList = _specialProcessButton;
 		if (_specialProcessButton->flags & 8)
-			_specialProcessButton = 0;
+			_specialProcessButton = nullptr;
 	}
 
 	int returnValue = 0;
@@ -330,13 +338,13 @@ int GUI_v2::processButtonList(Button *buttonList, uint16 inputFlag, int8 mouseWh
 		}
 
 		if ((flags & 0x8800) == 0x8800) {
-			_specialProcessButton = 0;
+			_specialProcessButton = nullptr;
 			if (!progress || (buttonList->flags & 4))
 				buttonList->flags2 &= ~6;
 		}
 
 		if (!progress && buttonList == _specialProcessButton && !(buttonList->flags & 0x40))
-			_specialProcessButton = 0;
+			_specialProcessButton = nullptr;
 
 		if ((buttonList->flags2 & 0x18) != ((buttonList->flags2 & 3) << 3))
 			processButton(buttonList);
@@ -430,7 +438,8 @@ void GUI_v2::restorePage1(const uint8 *buffer) {
 
 void GUI_v2::setupSavegameNames(Menu &menu, int num) {
 	for (int i = 0; i < num; ++i) {
-		strcpy(getTableString(menu.item[i].itemId), "");
+		menu.item[i].useItemString = true;
+		menu.item[i].itemString = "";
 		menu.item[i].saveSlot = -1;
 		menu.item[i].enabled = false;
 	}
@@ -442,37 +451,44 @@ void GUI_v2::setupSavegameNames(Menu &menu, int num) {
 	KyraEngine_v2::SaveHeader header;
 	Common::InSaveFile *in;
 	for (int i = startSlot; i < num && uint(_savegameOffset + i) < _saveSlots.size(); ++i) {
-		if ((in = _vm->openSaveForReading(_vm->getSavegameFilename(_saveSlots[i + _savegameOffset]), header)) != 0) {
-			char *s = getTableString(menu.item[i].itemId);
-			Common::strlcpy(s, header.description.c_str(), 80);
-			Util::convertISOToDOS(s);
+		if ((in = _vm->openSaveForReading(_vm->getSavegameFilename(_saveSlots[i + _savegameOffset]), header)) != nullptr) {
+			Common::String s = header.description;
+			s = Util::convertUTF8ToDOS(s);
+
+			if (_vm->gameFlags().lang == Common::JA_JPN || _vm->gameFlags().lang == Common::ZH_CHN || _vm->gameFlags().lang == Common::ZH_TWN) {
+				// Strip special characters from GMM save dialog which might get misinterpreted as 2-byte characters
+				for (Common::String::iterator ii = s.begin(); ii != s.end(); ++ii) {
+					if (*ii < 32) // due to the signed char type this will also clean up everything >= 0x80
+						*ii = ' ';
+				}
+			}
 
 			// Trim long GMM save descriptions to fit our save slots
-			_screen->_charWidth = -2;
-			int fC = _screen->getTextWidth(s);
-			while (s[0] && fC > 240) {
-				s[strlen(s) - 1]  = 0;
-				fC = _screen->getTextWidth(s);
+			_screen->_charSpacing = -2;
+			int fC = _screen->getTextWidth(s.c_str());
+			while (!s.empty() && fC > 240) {
+				s.deleteLastChar();
+				fC = _screen->getTextWidth(s.c_str());
 			}
-			_screen->_charWidth = 0;
+			_screen->_charSpacing = 0;
 
 			menu.item[i].saveSlot = _saveSlots[i + _savegameOffset];
 			menu.item[i].enabled = true;
+			menu.item[i].useItemString = true;
+			menu.item[i].itemString = s;
 			delete in;
 		}
 	}
 
 	if (_savegameOffset == 0) {
 		if (_isSaveMenu) {
-			char *dst = getTableString(menu.item[0].itemId);
-			const char *src = getTableString(_vm->gameFlags().isTalkie ? 10 : 18);
-			strcpy(dst, src);
 			menu.item[0].saveSlot = -2;
 			menu.item[0].enabled = true;
+			menu.item[0].useItemString = true;
+			menu.item[0].itemString = getTableString(_vm->gameFlags().isTalkie ? 10 : 18);
 		} else {
-			char *dst = getTableString(menu.item[0].itemId);
-			const char *src = getTableString(_vm->gameFlags().isTalkie ? 34 : 42);
-			strcpy(dst, src);
+			menu.item[0].useItemString = true;
+			menu.item[0].itemString = getTableString(_vm->gameFlags().isTalkie ? 34 : 42, _vm->gameFlags().lang == Common::RU_RUS);
 		}
 	}
 }
@@ -485,11 +501,11 @@ int GUI_v2::scrollUpButton(Button *button) {
 
 	--_savegameOffset;
 	if (_isLoadMenu) {
-		setupSavegameNames(_loadMenu, 5);
+		setupSavegameNames(_loadMenu, _saveLoadNumSlots);
 		// original calls something different here...
 		initMenu(_loadMenu);
 	} else if (_isSaveMenu || _isDeleteMenu) {
-		setupSavegameNames(_saveMenu, 5);
+		setupSavegameNames(_saveMenu, _saveLoadNumSlots);
 		// original calls something different here...
 		initMenu(_saveMenu);
 	}
@@ -501,15 +517,15 @@ int GUI_v2::scrollDownButton(Button *button) {
 	updateMenuButton(button);
 	++_savegameOffset;
 
-	if (uint(_savegameOffset + 5) >= _saveSlots.size())
-		_savegameOffset = MAX<int>(_saveSlots.size() - 5, _isDeleteMenu ? 1 : 0);
+	if (uint(_savegameOffset + _saveLoadNumSlots) >= _saveSlots.size())
+		_savegameOffset = MAX<int>(_saveSlots.size() - _saveLoadNumSlots, _isDeleteMenu ? 1 : 0);
 
 	if (_isLoadMenu) {
-		setupSavegameNames(_loadMenu, 5);
+		setupSavegameNames(_loadMenu, _saveLoadNumSlots);
 		// original calls something different here...
 		initMenu(_loadMenu);
 	} else if (_isSaveMenu || _isDeleteMenu) {
-		setupSavegameNames(_saveMenu, 5);
+		setupSavegameNames(_saveMenu, _saveLoadNumSlots);
 		// original calls something different here...
 		initMenu(_saveMenu);
 	}
@@ -520,6 +536,8 @@ int GUI_v2::scrollDownButton(Button *button) {
 int GUI_v2::resumeGame(Button *caller) {
 	updateMenuButton(caller);
 	_displayMenu = false;
+	if (!(_vm->game() == GI_KYRA2 && _vm->gameFlags().lang == Common::ZH_TWN))
+		_screen->setFontStyles(_screen->_currentFont, Font::kStyleBorder);
 	return 0;
 }
 
@@ -595,7 +613,7 @@ int GUI_v2::saveMenu(Button *caller) {
 	_noSaveProcess = false;
 	_saveSlot = -1;
 	_savegameOffset = 0;
-	setupSavegameNames(_saveMenu, 5);
+	setupSavegameNames(_saveMenu, _saveLoadNumSlots);
 	initMenu(_saveMenu);
 
 	updateAllMenuButtons();
@@ -620,11 +638,13 @@ int GUI_v2::saveMenu(Button *caller) {
 
 	Graphics::Surface thumb;
 	createScreenThumbnail(thumb);
-	Util::convertDOSToISO(_saveDescription);
+	Util::convertDOSToUTF8(_saveDescription, 81);
 	_vm->saveGameStateIntern(_saveSlot, _saveDescription, &thumb);
 	thumb.free();
 
 	_displayMenu = false;
+	if (!(_vm->game() == GI_KYRA2 && _vm->gameFlags().lang == Common::ZH_TWN))
+		_screen->setFontStyles(_screen->_currentFont, Font::kStyleBorder);
 	_madeSave = true;
 
 	return 0;
@@ -644,7 +664,7 @@ int GUI_v2::clickSaveSlot(Button *caller) {
 			return 0;
 		} else {
 			_saveSlot = item.saveSlot;
-			strcpy(_saveDescription, getTableString(item.itemId));
+			Common::strlcpy(_saveDescription, item.itemString.c_str(), sizeof(_saveDescription));
 		}
 	} else if (item.saveSlot == -2) {
 		_saveSlot = getNextSavegameSlot();
@@ -655,7 +675,7 @@ int GUI_v2::clickSaveSlot(Button *caller) {
 	backUpPage1(_vm->_screenBuffer);
 
 	initMenu(_savenameMenu);
-	_screen->fillRect(0x26, 0x5B, 0x11F, 0x66, textFieldColor2());
+	_screen->fillRect(0x26, 0x5B, 0x11F, _vm->gameFlags().lang == Common::ZH_TWN ? 0x6b : 0x66, textFieldColor2());
 	g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, true);
 	const char *desc = nameInputProcess(_saveDescription, 0x27, 0x5C, textFieldColor1(), textFieldColor2(), textFieldColor3(), 0x50);
 	g_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
@@ -693,7 +713,7 @@ int GUI_v2::deleteMenu(Button *caller) {
 		backUpPage1(_vm->_screenBuffer);
 		_savegameOffset = 1;
 		_saveMenu.menuNameId = _vm->gameFlags().isTalkie ? 35 : 1;
-		setupSavegameNames(_saveMenu, 5);
+		setupSavegameNames(_saveMenu, _saveLoadNumSlots);
 		initMenu(_saveMenu);
 		_isDeleteMenu = true;
 		_slotToDelete = -1;
@@ -739,9 +759,10 @@ int GUI_v2::deleteMenu(Button *caller) {
 const char *GUI_v2::nameInputProcess(char *buffer, int x, int y, uint8 c1, uint8 c2, uint8 c3, int bufferSize) {
 	bool running = true;
 	int curPos = strlen(buffer);
-
+	uint8 keyLim = (_vm->gameFlags().lang == Common::JA_JPN || _vm->gameFlags().lang == Common::ZH_TWN) ? 128 : 226;
 	int x2 = x, y2 = y;
-	Screen::FontId of = _screen->setFont(Screen::FID_8_FNT);
+
+	Screen::FontId of = _screen->setFont(_saveMenuFont);
 	_text->printText(buffer, x, y, c1, c2, c2);
 
 	for (int i = 0; i < curPos; ++i)
@@ -753,7 +774,7 @@ const char *GUI_v2::nameInputProcess(char *buffer, int x, int y, uint8 c1, uint8
 	_keyPressed.reset();
 	_cancelNameInput = _finishNameInput = false;
 	while (running && !_vm->shouldQuit()) {
-		of = _screen->setFont(Screen::FID_8_FNT);
+		of = _screen->setFont(_saveMenuFont);
 		checkTextfieldInput();
 		_screen->setFont(of);
 		processHighlights(_savenameMenu);
@@ -770,7 +791,7 @@ const char *GUI_v2::nameInputProcess(char *buffer, int x, int y, uint8 c1, uint8
 			}
 		} else if (_keyPressed.keycode == Common::KEYCODE_ESCAPE || _cancelNameInput) {
 			running = false;
-			return 0;
+			return nullptr;
 		} else if ((_keyPressed.keycode == Common::KEYCODE_BACKSPACE || _keyPressed.keycode == Common::KEYCODE_DELETE) && curPos > 0) {
 			drawTextfieldBlock(x2, y2, c2);
 			--curPos;
@@ -778,12 +799,17 @@ const char *GUI_v2::nameInputProcess(char *buffer, int x, int y, uint8 c1, uint8
 			drawTextfieldBlock(x2, y2, c3);
 			_screen->updateScreen();
 			_lastScreenUpdate = _vm->_system->getMillis();
-		} else if ((uint8)inputKey > 31 && (uint8)inputKey < (_vm->gameFlags().lang == Common::JA_JPN ? 128 : 226) && curPos < bufferSize) {
-			of = _screen->setFont(Screen::FID_8_FNT);
+		} else if ((uint8)inputKey > 31 && (uint8)inputKey < keyLim && curPos < bufferSize) {
+			of = _screen->setFont(_saveMenuFont);
 			if (x2 + getCharWidth(inputKey) + 7 < 0x11F) {
 				buffer[curPos] = inputKey;
 				const char text[2] = { buffer[curPos], 0 };
-				_text->printText(text, x2, y2, c1, c2, c2);
+				if (_saveMenuFont == Screen::FID_CHINESE_FNT) {
+					drawTextfieldBlock(x2, y2, c2);
+					_text->printText(text, x2, y2, c1, c2, 0);
+				} else {
+					_text->printText(text, x2, y2, c1, c2, c2);
+				}
 				x2 += getCharWidth(inputKey);
 				drawTextfieldBlock(x2, y2, c3);
 				++curPos;
@@ -826,16 +852,16 @@ bool GUI_v2::checkSavegameDescription(const char *buffer, int size) {
 }
 
 int GUI_v2::getCharWidth(uint8 c) {
-	Screen::FontId old = _screen->setFont(Screen::FID_8_FNT);
-	_screen->_charWidth = -2;
+	Screen::FontId old = _screen->setFont(_saveMenuFont);
+	_screen->_charSpacing = -2;
 	int width = _screen->getCharWidth(c);
-	_screen->_charWidth = 0;
+	_screen->_charSpacing = 0;
 	_screen->setFont(old);
 	return width;
 }
 
 void GUI_v2::drawTextfieldBlock(int x, int y, uint8 c) {
-	_screen->fillRect(x + 1, y + 1, x + 7, y + 8, c);
+	_screen->fillRect(x + _saveMenuCursor.left, y + _saveMenuCursor.top, x + _saveMenuCursor.right, y + _saveMenuCursor.bottom, c);
 }
 
 bool GUI_v2::choiceDialog(int name, bool type) {

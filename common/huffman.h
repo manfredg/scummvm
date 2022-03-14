@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,18 @@
 
 namespace Common {
 
+/**
+ * @defgroup common_huffmann Huffman bit stream decoding
+ * @ingroup common
+ *
+ * @brief API for operations related to Huffman bit stream decoding.
+ *
+ * @details Used in engines:
+ *          - SCUMM
+ *
+ * @{
+ */
+
 inline uint32 REVERSEBITS(uint32 x) {
 	x = (((x & ~0x55555555) >> 1) | ((x & 0x55555555) << 1));
 	x = (((x & ~0x33333333) >> 2) | ((x & 0x33333333) << 2));
@@ -41,25 +52,23 @@ inline uint32 REVERSEBITS(uint32 x) {
 }
 
 /**
- * Huffman bitstream decoding
+ * Huffman bit stream decoding.
  *
- * Used in engines:
- *  - scumm
  */
 template<class BITSTREAM>
 class Huffman {
 public:
 	/** Construct a Huffman decoder.
 	 *
-	 *  @param maxLength Maximal code length. If 0, it's searched for.
+	 *  @param maxLength Maximal code length. If 0, it is searched for.
 	 *  @param codeCount Number of codes.
-	 *  @param codes The actual codes.
-	 *  @param lengths Lengths of the individual codes.
-	 *  @param symbols The symbols. If 0, assume they are identical to the code indices.
+	 *  @param codes     The actual codes.
+	 *  @param lengths   Lengths of the individual codes.
+	 *  @param symbols   The symbols. If 0, assume they are identical to the code indices.
 	 */
 	Huffman(uint8 maxLength, uint32 codeCount, const uint32 *codes, const uint8 *lengths, const uint32 *symbols = nullptr);
 
-	/** Return the next symbol in the bitstream. */
+	/** Return the next symbol in the bit stream. */
 	uint32 getSymbol(BITSTREAM &bits) const;
 
 private:
@@ -101,13 +110,13 @@ Huffman<BITSTREAM>::Huffman(uint8 maxLength, uint32 codeCount, const uint32 *cod
 
 	assert(maxLength <= 32);
 
-	// Codes that don't fit in the prefix table are stored in the _codes array
+	// Codes that do not fit in the prefix table are stored in the _codes array.
 	_codes.resize(MAX(maxLength - _prefixTableBits, 0));
 
 	for (uint i = 0; i < codeCount; i++) {
 		uint8 length = lengths[i];
 
-		// The symbol. If none were specified, just assume it's identical to the code index
+		// The symbol. If none was specified, assume it is identical to the code index.
 		uint32 symbol = symbols ? symbols[i] : i;
 
 		if (length <= _prefixTableBits) {
@@ -128,7 +137,7 @@ Huffman<BITSTREAM>::Huffman(uint8 maxLength, uint32 codeCount, const uint32 *cod
 				_prefixTable[index].length = length;
 			}
 		} else {
-			// Put the code and symbol into the correct list for the length
+			// Put the code and symbol into the correct list for the length.
 			_codes[lengths[i] - 1 - _prefixTableBits].push_back(Symbol(codes[i], symbol));
 		}
 	}
@@ -158,6 +167,8 @@ uint32 Huffman<BITSTREAM>::getSymbol(BITSTREAM &bits) const {
 	error("Unknown Huffman code");
 	return 0;
 }
+
+/** @} */
 
 } // End of namespace Common
 

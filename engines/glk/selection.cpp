@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,19 +32,14 @@ void Clipboard::clipboardStore(const Common::U32String &text) {
 }
 
 void Clipboard::clipboardSend(ClipSource source) {
-	// Convert unicode string to standard string, since that's all ScummVM supports
-	Common::String text;
-	for (uint idx = 0; idx < _text.size(); ++idx)
-		text += (_text[idx] <= 0x7f) ? (char)_text[idx] : '?';
-
-	g_system->setTextInClipboard(text);
+	g_system->setTextInClipboard(_text);
 }
 
 void Clipboard::clipboardReceive(ClipSource source) {
 	Windows &windows = *g_vm->_windows;
 
 	if (g_system->hasTextInClipboard()) {
-		Common::String text = g_system->getTextFromClipboard();
+		Common::U32String text = g_system->getTextFromClipboard();
 		for (uint idx = 0; idx < text.size(); ++idx) {
 			uint c = text[idx];
 			if (c != '\r' && c != '\n' && c != '\b' && c != '\t')

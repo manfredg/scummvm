@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -87,36 +86,6 @@ public:
 	bool getParameters(bool &stereo, bool &is_16bit, int32 &vol, int32 &pan) override {
 		stereo = false;
 		is_16bit = false;
-		vol = _volume;
-		pan = _pan;
-		return true;
-	}
-};
-
-class ImuseChannel : public SmushChannel {
-private:
-	int32 _srbufferSize;
-
-	int32 _bitsize;			///< the bitsize of the original data
-	int32 _rate;				///< the sampling rate of the original data
-	int32 _channels;			///< the number of channels of the original data
-
-protected:
-	void decode();
-	bool handleMap(byte *data);
-	bool handleSubTags(int32 &offset) override;
-
-public:
-	ImuseChannel(int32 track);
-	bool isTerminated() const override;
-	bool setParameters(int32 nbframes, int32 size, int32 track_flags, int32 unk1, int32) override;
-	bool checkParameters(int32 index, int32 nbframes, int32 size, int32 track_flags, int32 unk1) override;
-	bool appendData(Common::SeekableReadStream &b, int32 size) override;
-	byte *getSoundData() override;
-	int32 getRate() override { return _rate; }
-	bool getParameters(bool &stereo, bool &is_16bit, int32 &vol, int32 &pan) override {
-		stereo = (_channels == 2);
-		is_16bit = (_bitsize > 8);
 		vol = _volume;
 		pan = _pan;
 		return true;

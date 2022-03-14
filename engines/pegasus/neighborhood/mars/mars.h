@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,10 +39,16 @@
 
 namespace Pegasus {
 
+class CanyonChase;
 class InventoryItem;
 class Mars;
+class TunnelPod;
 
 enum MarsTimerCode {
+	kMarsPodCautionDisplayed,
+	kMarsPodCautionDismissed,
+	kMarsCanyonChaseExited,
+	kMarsCanyonChaseFaded,
 	kMarsLaunchTubeReached,
 	kMarsCanyonChaseFinished,
 	kMarsSpaceChaseFinished // Player ran out of time...
@@ -64,11 +69,14 @@ enum ShuttleWeaponSelection {
 };
 
 class Mars : public Neighborhood {
+friend class CanyonChase;
+friend class TunnelPod;
 friend struct MarsTimerEvent;
 public:
 	Mars(InputHandler *, PegasusEngine *);
 	~Mars() override;
 
+	GameInteraction *makeInteraction(const InteractionID) override;
 	void flushGameState() override;
 
 	uint16 getDateResID() const override;
@@ -94,6 +102,7 @@ public:
 	void checkContinuePoint(const RoomID, const DirectionConstant) override;
 
 	void setSoundFXLevel(const uint16) override;
+	void setAmbienceLevel(const uint16) override;
 
 	bool canSolve() override;
 	void doSolve() override;
@@ -133,12 +142,16 @@ protected:
 	CanOpenDoorReason canOpenDoor(DoorTable::Entry &) override;
 	void openDoor() override;
 	void closeDoorOffScreen(const RoomID, const DirectionConstant) override;
+	void startDoorOpenMovie(const TimeValue, const TimeValue) override;
+	void startExitMovie(const ExitTable::Entry &) override;
 	int16 getStaticCompassAngle(const RoomID, const DirectionConstant) override;
 	void getExitCompassMove(const ExitTable::Entry &, FaderMoveSpec &) override;
 	void getExtraCompassMove(const ExtraTable::Entry &, FaderMoveSpec &) override;
 	void turnTo(const DirectionConstant) override;
+	void startExtraSequence(const ExtraID, const NotificationFlags, const InputBits) override;
 	void receiveNotification(Notification *, const NotificationFlags) override;
 	void doorOpened() override;
+	void startUpFromFinishedTunnelPod();
 	void setUpReactorEnergyDrain();
 	Hotspot *getItemScreenSpot(Item *, DisplayElement *) override;
 	void lockThawed();
@@ -170,6 +183,7 @@ protected:
 	void launchMaze136Robot();
 	void launchMaze184Robot();
 	void timerExpired(const uint32) override;
+	void showRobotAtReactor();
 	void spotCompleted() override;
 
 	void doCanyonChase(void);
@@ -178,12 +192,16 @@ protected:
 	void throwAwayMarsShuttle();
 	void startUpFromFinishedSpaceChase();
 	void startUpFromSpaceChase();
-	void transportToRobotShip();
+	void transportOutFromSpaceChase(bool);
 	void spaceChaseClick(const Input &, const HotSpotID);
 	void updateCursor(const Common::Point, const Hotspot *) override;
+	void playSpaceAmbient();
 
 	Common::String getSoundSpotsName() override;
 	Common::String getNavMovieName() override;
+
+	Movie _extraMovie;
+	NotificationCallBack _extraMovieCallBack;
 
 	InventoryItem *_attackingItem;
 	FuseFunction _bombFuse;
@@ -202,6 +220,8 @@ protected:
 	Picture _shuttleInterface3;
 	Picture _shuttleInterface4;
 	Movie _canyonChaseMovie;
+	Sound _musicLoop;
+	SoundFader _musicFader;
 
 	MarsTimerEvent _marsEvent;
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,24 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/gumps/desktop_gump.h"
 #include "ultima/ultima8/graphics/render_surface.h"
-#include "ultima/ultima8/ultima8.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
-#include "ultima/ultima8/gumps/modal_gump.h"
+#include "ultima/ultima8/kernel/mouse.h"
 #include "ultima/ultima8/gumps/target_gump.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(DesktopGump, Gump)
+DEFINE_RUNTIME_CLASSTYPE_CODE(DesktopGump)
 
 bool DesktopGump::_fadedModal = true;
 
@@ -63,9 +58,9 @@ void DesktopGump::PaintChildren(RenderSurface *surf, int32 lerp_factor, bool sca
 		if (!g->IsClosing()) {
 			// If background blanking on modal is enabled...
 			// Background is partially transparent
-			if (_fadedModal && g->IsOfType<ModalGump>() &&
-			        !g->IsOfType<TargetGump>() && !g->IsHidden())
-				surf->FillBlended(0x7F000000, 0, 0, _dims.w, _dims.h);
+			if (_fadedModal && dynamic_cast<ModalGump *>(g) &&
+			        !dynamic_cast<TargetGump *>(g) && !g->IsHidden())
+				surf->FillBlended(0x7F000000, 0, 0, _dims.width(), _dims.height());
 
 			g->Paint(surf, lerp_factor, scaled);
 		}
@@ -95,8 +90,8 @@ void DesktopGump::RenderSurfaceChanged(RenderSurface *surf) {
 	// Resize the desktop gump to match the RenderSurface
 	Rect new_dims;
 	surf->GetSurfaceDims(new_dims);
-	_dims.w = new_dims.w;
-	_dims.h = new_dims.h;
+	_dims.setWidth(new_dims.width());
+	_dims.setHeight(new_dims.height());
 
 	Gump::RenderSurfaceChanged();
 }
@@ -105,17 +100,17 @@ void DesktopGump::RenderSurfaceChanged() {
 	// Resize the desktop gump to match the parent
 	Rect new_dims;
 	_parent->GetDims(new_dims);
-	_dims.w = new_dims.w;
-	_dims.h = new_dims.h;
+	_dims.setWidth(new_dims.width());
+	_dims.setHeight(new_dims.height());
 
 	Gump::RenderSurfaceChanged();
 }
 
-void DesktopGump::saveData(ODataSource *ods) {
+void DesktopGump::saveData(Common::WriteStream *ws) {
 	CANT_HAPPEN_MSG("Trying to save DesktopGump");
 }
 
-bool DesktopGump::loadData(IDataSource *ids, uint32 version) {
+bool DesktopGump::loadData(Common::ReadStream *rs, uint32 version) {
 	CANT_HAPPEN_MSG("Trying to save DesktopGump");
 
 	return false;

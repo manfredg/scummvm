@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,6 +40,7 @@
 // for the Android port
 #define FORBIDDEN_SYMBOL_EXCEPTION_printf
 
+#include <EGL/egl.h>
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/system_properties.h>
@@ -54,8 +54,10 @@
 #include "common/mutex.h"
 #include "common/events.h"
 #include "common/config-manager.h"
+#include "graphics/cursorman.h"
 
 #include "backends/audiocd/default/default-audiocd.h"
+#include "backends/events/default/default-events.h"
 #include "backends/mutex/pthread/pthread-mutex.h"
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
@@ -64,9 +66,10 @@
 #include "backends/keymapper/keymapper-defaults.h"
 #include "backends/keymapper/standard-actions.h"
 
+#include "backends/graphics/android/android-graphics.h"
+#include "backends/graphics3d/android/android-graphics3d.h"
 #include "backends/platform/android/jni-android.h"
 #include "backends/platform/android/android.h"
-#include "backends/platform/android/graphics.h"
 
 const char *android_log_tag = "ScummVM";
 
@@ -87,6 +90,42 @@ extern "C" {
 	}
 }
 
+#ifdef ANDROID_DEBUG_GL
+static const char *getGlErrStr(GLenum error) {
+	switch (error) {
+	case GL_INVALID_ENUM:
+		return "GL_INVALID_ENUM";
+	case GL_INVALID_VALUE:
+		return "GL_INVALID_VALUE";
+	case GL_INVALID_OPERATION:
+		return "GL_INVALID_OPERATION";
+	case GL_STACK_OVERFLOW:
+		return "GL_STACK_OVERFLOW";
+	case GL_STACK_UNDERFLOW:
+		return "GL_STACK_UNDERFLOW";
+	case GL_OUT_OF_MEMORY:
+		return "GL_OUT_OF_MEMORY";
+	}
+
+	static char buf[40];
+	snprintf(buf, sizeof(buf), "(Unknown GL error code 0x%x)", error);
+
+	return buf;
+}
+
+void checkGlError(const char *expr, const char *file, int line) {
+	GLenum error = glGetError();
+
+	if (error != GL_NO_ERROR)
+		LOGE("GL ERROR: %s on %s (%s:%d)", getGlErrStr(error), expr, file, line);
+}
+#endif
+
+void *androidGLgetProcAddress(const char *name) {
+	// This exists since Android 2.3 (API Level 9)
+	return (void *)eglGetProcAddress(name);
+}
+
 OSystem_Android::OSystem_Android(int audio_sample_rate, int audio_buffer_size) :
 	_audio_sample_rate(audio_sample_rate),
 	_audio_buffer_size(audio_buffer_size),
@@ -103,7 +142,10 @@ OSystem_Android::OSystem_Android(int audio_sample_rate, int audio_buffer_size) :
 	_touchpad_mode(true),
 	_touchpad_scale(66),
 	_dpad_scale(4),
-	_fingersDown(0),
+//	_fingersDown(0),
+	_firstPointerId(-1),
+	_secondPointerId(-1),
+	_thirdPointerId(-1),
 	_trackball_scale(2),
 	_joystick_scale(10) {
 
@@ -140,10 +182,13 @@ OSystem_Android::~OSystem_Android() {
 	delete _timerManager;
 	_timerManager = 0;
 
-	deleteMutex(_event_queue_lock);
+	delete _event_queue_lock;
 
 	delete _savefileManager;
 	_savefileManager = 0;
+
+	// Uninitialize surface now to avoid it to be done later when touch controls are destroyed
+	dynamic_cast<AndroidCommonGraphics *>(_graphicsManager)->deinitSurface();
 }
 
 void *OSystem_Android::timerThreadFunc(void *arg) {
@@ -301,57 +346,136 @@ void *OSystem_Android::audioThreadFunc(void *arg) {
 	return 0;
 }
 
+//
+// When launching ScummVM (from ScummVMActivity) order of business is as follows:
+// 1. scummvm_main() (base/main.cpp)
+// 1.1. call system.initBackend() (from scummvm_main() (base/main.cpp))
+//       According to comments in main.cpp:
+//         "Init the backend. Must take place after all config data (including the command line params) was read."
+// 1.2. call setupGraphics(system); (from scummvm_main() (base/main.cpp))
+// 1.3. call launcherDialog() (from scummvm_main() (base/main.cpp))
+//         Upon calling launcherDialog() the transient domain configuration options are cleared!
+//       According to comments in main.cpp:
+//         "Those that affect the graphics mode and the others (like bootparam etc.) should not blindly be passed to the first game launched from the launcher."
 void OSystem_Android::initBackend() {
 	ENTER();
 
 	_main_thread = pthread_self();
 
+	// TODO Setting debug level to 3, temporarily
+	//      only for catching the level 3 messages from the new (Apr 2021)
+	//      gui-scale (hidpi) code
+	gDebugLevel = 3;
+
+	// Warning: ConfMan.registerDefault() can be used for a Session of ScummVM
+	//          but:
+	//              1. The values will NOT persist to storage
+	//                 ie. they won't get saved to scummvm.ini
+	//              2. The values will NOT be reflected on the GUI
+	//                 and they cannot be recovered after exiting scummvm and re-launching
+	//          Also, if after a ConfMan.registerDefault(), we subsequently use ConfMan.hasKey()
+	//          here or anywhere else in ScummVM, it WILL NOT return true.
+	//			As noted in ConfigManager::hasKey() implementation: (common/config_manager.cpp)
+	//			// Search the domains in the following order:
+	//              // 1) the transient domain,
+	//              // 2) the active game domain (if any),
+	//              // 3) the application domain.
+	//         -->  // The defaults domain is explicitly *not* checked. <--
+	//
+	// So for at least some of these keys,
+	// we need to additionally check with hasKey() if they are persisted
+	// and set them explicitly that way.
+	// TODO Maybe the registerDefault only has meaning for "savepath"
+	//      and similar key/values retrieved from "Command Line"
+	//      so that they won't get "nuked"
+	//      and maintained for the duration ScummVM app session (until we exit the app)
 	ConfMan.registerDefault("fullscreen", true);
 	ConfMan.registerDefault("aspect_ratio", true);
-	ConfMan.registerDefault("touchpad_mouse_mode", true);
-	ConfMan.registerDefault("onscreen_control", true);
-	// The swap_menu_and_back is a legacy configuration key
+	ConfMan.registerDefault("filtering", false);
+	ConfMan.registerDefault("autosave_period", 0);
+
+	// explicitly set this, since fullscreen cannot be changed from GUI
+	// and for Android it should be persisted (and ConfMan.hasKey("fullscreen") check should return true for it)
+	// Also in Options::dialogBuild() (gui/options.cpp), since Android does not have kFeatureFullscreenMode (see hasFeature() below)
+	//      the state of the checkbox in the GUI is set to true (and disabled)
+	ConfMan.setBool("fullscreen", true);
+
+	// Aspect ratio can be changed from the GUI.
+	// However we set it explicitly here (in addition to the registerDefault command above)
+	//         if it's not already set in the persistent config file
+	if (!ConfMan.hasKey("aspect_ratio")) {
+		ConfMan.setBool("aspect_ratio", true);
+	}
+
+	if (!ConfMan.hasKey("filtering")) {
+		ConfMan.setBool("filtering", false);
+	}
+
+	// Note: About the stretch mode setting
+	//       If not explicitly set in the config file
+	//       the default used by OSystem::setStretchMode() (common/system.h)
+	//       is the one returned by getDefaultStretchMode() (backends/graphics/opengl-graphics.cpp)
+	//       which currently is STRETCH_FIT
+
+	if (!ConfMan.hasKey("autosave_period")) {
+		ConfMan.setInt("autosave_period", 0);
+	}
+
+	// The swap_menu_and_back is a deprecated configuration key
 	// It is no longer relevant, after introducing the keymapper functionality
 	// since the behaviour of the menu and back buttons is now handled by the keymapper.
-	// The key is thus registered to default to a "false" value
-	ConfMan.registerDefault("swap_menu_and_back", false);
+	// We now ignore it completely
 
-	ConfMan.setInt("autosave_period", 0);
 	ConfMan.setBool("FM_high_quality", false);
 	ConfMan.setBool("FM_medium_quality", true);
 
+	// We need a relaxed delay for the remapping timeout since handling touch interface and virtual keyboard can be slow
+	// and especially in some occasions when we need to pull down (hide) the keyboard and map a system key (like the AC_Back) button.
+	// 8 seconds should be enough
+	ConfMan.registerDefault("remap_timeout_delay_ms", 8000);
+	if (!ConfMan.hasKey("remap_timeout_delay_ms")) {
+		ConfMan.setInt("remap_timeout_delay_ms", 8000);
+	}
 
 	if (!ConfMan.hasKey("browser_lastpath")) {
-		// TODO remove the debug message eventually
-		LOGD("Setting Browser Lastpath to root");
 		ConfMan.set("browser_lastpath", "/");
 	}
 
-	if (ConfMan.hasKey("touchpad_mouse_mode"))
-		_touchpad_mode = ConfMan.getBool("touchpad_mouse_mode");
-	else
-		ConfMan.setBool("touchpad_mouse_mode", true);
-
-	if (ConfMan.hasKey("onscreen_control"))
-		JNI::showKeyboardControl(ConfMan.getBool("onscreen_control"));
-	else
-		ConfMan.setBool("onscreen_control", true);
+	if (!ConfMan.hasKey("gui_scale")) {
+		// Until a proper scale detection is done (especially post PR https://github.com/scummvm/scummvm/pull/3264/commits/8646dfca329b6fbfdba65e0dc0802feb1382dab2),
+		// set scale by default to large, if not set, and then let the user set it manually from the launcher -> Options -> Misc tab
+		// Otherwise the screen may default to very tiny and indiscernible text and be barely usable.
+		// TODO We need a proper scale detection for Android, see: (float) AndroidGraphicsManager::getHiDPIScreenFactor() in android/graphics.cpp
+		ConfMan.setInt("gui_scale", 125); // "Large" (see gui/options.cpp and guiBaseValues[])
+	}
 
 	// BUG: "transient" ConfMan settings get nuked by the options
 	// screen. Passing the savepath in this way makes it stick
-	// (via ConfMan.registerDefault)
+	// (via ConfMan.registerDefault() which is called from DefaultSaveFileManager constructor (backends/saves/default/default-saves.cpp))
+	// Note: The aforementioned bug is probably the one reported here:
+	//  https://bugs.scummvm.org/ticket/3712
+	//  and maybe here:
+	//  https://bugs.scummvm.org/ticket/7389
+	// However, we do NOT set the savepath key explicitly for ConfMan
+	//          and thus the savepath will only be persisted as "default" config
+	//          for the rest of the app session (until exit).
+	//          It will NOT be reflected on the GUI, if it's not set explicitly by the user there
+	// TODO Why do we need it not shown on the GUI though?
+	//      Btw, this is a ScummVM thing, the "defaults" do not show they values on our GUI)
 	_savefileManager = new DefaultSaveFileManager(ConfMan.get("savepath"));
 	// TODO remove the debug message eventually
 	LOGD("Setting DefaultSaveFileManager path to: %s", ConfMan.get("savepath").c_str());
 
-	_mutexManager = new PthreadMutexManager();
 	_timerManager = new DefaultTimerManager();
 
-	_event_queue_lock = createMutex();
+	_event_queue_lock = new Common::Mutex();
 
 	gettimeofday(&_startTime, 0);
 
-	_mixer = new Audio::MixerImpl(_audio_sample_rate);
+	// The division by four happens because the Mixer stores the size in frame units
+	// instead of bytes; this means that, since we have audio in stereo (2 channels)
+	// with a word size of 16 bit (2 bytes), we have to divide the effective size by 4.
+	_mixer = new Audio::MixerImpl(_audio_sample_rate, _audio_buffer_size / 4);
 	_mixer->setReady(true);
 
 	_timer_thread_exit = false;
@@ -368,18 +492,21 @@ void OSystem_Android::initBackend() {
 
 	JNI::setReadyForEvents(true);
 
-	ModularBackend::initBackend();
+	_eventManager = new DefaultEventManager(this);
+	_audiocdManager = new DefaultAudioCDManager();
+
+	BaseBackend::initBackend();
 }
 
 bool OSystem_Android::hasFeature(Feature f) {
+	if (f == kFeatureFullscreenMode)
+		return false;
 	if (f == kFeatureVirtualKeyboard ||
 			f == kFeatureOpenUrl ||
-			f == kFeatureTouchpadMode ||
-			f == kFeatureOnScreenControl ||
 			f == kFeatureClipboardSupport) {
 		return true;
 	}
-	return ModularBackend::hasFeature(f);
+	return ModularGraphicsBackend::hasFeature(f);
 }
 
 void OSystem_Android::setFeatureState(Feature f, bool enable) {
@@ -388,18 +515,10 @@ void OSystem_Android::setFeatureState(Feature f, bool enable) {
 	switch (f) {
 	case kFeatureVirtualKeyboard:
 		_virtkeybd_on = enable;
-		showVirtualKeyboard(enable);
-		break;
-	case kFeatureTouchpadMode:
-		ConfMan.setBool("touchpad_mouse_mode", enable);
-		_touchpad_mode = enable;
-		break;
-	case kFeatureOnScreenControl:
-		ConfMan.setBool("onscreen_control", enable);
-		JNI::showKeyboardControl(enable);
+		JNI::showVirtualKeyboard(enable);
 		break;
 	default:
-		ModularBackend::setFeatureState(f, enable);
+		ModularGraphicsBackend::setFeatureState(f, enable);
 		break;
 	}
 }
@@ -408,31 +527,64 @@ bool OSystem_Android::getFeatureState(Feature f) {
 	switch (f) {
 	case kFeatureVirtualKeyboard:
 		return _virtkeybd_on;
-	case kFeatureTouchpadMode:
-		return ConfMan.getBool("touchpad_mouse_mode");
-	case kFeatureOnScreenControl:
-		return ConfMan.getBool("onscreen_control");
 	default:
-		return ModularBackend::getFeatureState(f);
+		return ModularGraphicsBackend::getFeatureState(f);
 	}
+}
+
+// TODO Re-eval if we need this here
+Common::HardwareInputSet *OSystem_Android::getHardwareInputSet() {
+	using namespace Common;
+
+	CompositeHardwareInputSet *inputSet = new CompositeHardwareInputSet();
+	inputSet->addHardwareInputSet(new MouseHardwareInputSet(defaultMouseButtons));
+	inputSet->addHardwareInputSet(new KeyboardHardwareInputSet(defaultKeys, defaultModifiers));
+	inputSet->addHardwareInputSet(new JoystickHardwareInputSet(defaultJoystickButtons, defaultJoystickAxes));
+
+	return inputSet;
+}
+
+// TODO Re-eval if we need this here
+Common::KeymapArray OSystem_Android::getGlobalKeymaps() {
+	Common::KeymapArray globalMaps = BaseBackend::getGlobalKeymaps();
+	return globalMaps;
 }
 
 Common::KeymapperDefaultBindings *OSystem_Android::getKeymapperDefaultBindings() {
 	Common::KeymapperDefaultBindings *keymapperDefaultBindings = new Common::KeymapperDefaultBindings();
 
 	// The swap_menu_and_back is a legacy configuration key
-	// It is only checked here for compatibility with old config files
-	// where it may have been set as "true"
-	// TODO Why not just ignore it entirely anyway?
-	if (ConfMan.hasKey("swap_menu_and_back")  && ConfMan.getBool("swap_menu_and_back")) {
-		keymapperDefaultBindings->setDefaultBinding(Common::kGlobalKeymapName, "MENU", "AC_BACK");
-		keymapperDefaultBindings->setDefaultBinding("engine-default", Common::kStandardActionSkip, "MENU");
-		keymapperDefaultBindings->setDefaultBinding(Common::kGuiKeymapName, "CLOS", "MENU");
-	} else {
-		keymapperDefaultBindings->setDefaultBinding(Common::kGlobalKeymapName, "MENU", "MENU");
-		keymapperDefaultBindings->setDefaultBinding("engine-default", Common::kStandardActionSkip, "AC_BACK");
-		keymapperDefaultBindings->setDefaultBinding(Common::kGuiKeymapName, "CLOS", "AC_BACK");
-	}
+	// We now ignore it entirely (it as always false -- ie. back short press is AC_BACK)
+
+	//
+	// Note: setDefaultBinding maps a hw input to a keymapId_actionId combo.
+	//
+	// Clarifications/Quote by developer bgK (via Discord, Oct 3, 2020)
+	// bgK: [With the introduction of the ScummVM keymapper we have] "standard actions" defined in "standard-actions.h".
+	//      The engines use those as much as possible when defining keymaps.
+	//      Then, the backends can override the default bindings to make use of the platform specific keys.
+	//
+	//
+	keymapperDefaultBindings->setDefaultBinding(Common::kGlobalKeymapName, "MENU", "MENU");
+	//
+	// We want the AC_BACK key to be the default (until overridden explicitly by the user or a game engine)
+	// mapped key for the standard SKIP action.
+	//
+	// bgK: "engine-default" is for the default keymap used by games that don't define their own keymap.
+	//      [We] want Common::kStandardActionsKeymapName to override the action for all the keymaps
+	//      Common::kStandardActionsKeymapName is used as a fallback if there are no keymap specific bindings defined.
+	//      So it should be enough on its own.
+	// [ie. we don't have to set default binding for "engine-default", as well]
+	// ["engine-default" is used for to create a Keymap sequence of type kKeymapTypeGame in engines/metaengine.cpp initKeymaps() for an engine]
+	// [In initKeymaps() is where the default key Esc is mapped to Skip action for game engines]
+	//
+	// [kStandardActionsKeymapName is defined  as (constant char*) in ./backends/keymapper/keymap, and utilised in getActionDefaultMappings()]
+	// ["If no keymap-specific default mapping was found, look for a standard action binding"]
+	keymapperDefaultBindings->setDefaultBinding(Common::kStandardActionsKeymapName, Common::kStandardActionSkip, "AC_BACK");
+
+	// The "CLOS" action ID is not a typo.
+	// See: backends/keymapper/remap-widget.cpp:	kCloseCmd        = 'CLOS'
+	keymapperDefaultBindings->setDefaultBinding(Common::kGuiKeymapName, "CLOS", "AC_BACK");
 
 	return keymapperDefaultBindings;
 }
@@ -450,6 +602,10 @@ void OSystem_Android::delayMillis(uint msecs) {
 	usleep(msecs * 1000);
 }
 
+Common::MutexInternal *OSystem_Android::createMutex() {
+	return createPthreadMutexInternal();
+}
+
 void OSystem_Android::quit() {
 	ENTER();
 
@@ -462,16 +618,8 @@ void OSystem_Android::quit() {
 	pthread_join(_timer_thread, 0);
 }
 
-void OSystem_Android::setWindowCaption(const char *caption) {
-	ENTER("%s", caption);
-
+void OSystem_Android::setWindowCaption(const Common::U32String &caption) {
 	JNI::setWindowCaption(caption);
-}
-
-void OSystem_Android::showVirtualKeyboard(bool enable) {
-	ENTER("%d", enable);
-
-	JNI::showVirtualKeyboard(enable);
 }
 
 Audio::Mixer *OSystem_Android::getMixer() {
@@ -479,7 +627,7 @@ Audio::Mixer *OSystem_Android::getMixer() {
 	return _mixer;
 }
 
-void OSystem_Android::getTimeAndDate(TimeDate &td) const {
+void OSystem_Android::getTimeAndDate(TimeDate &td, bool skipRecord) const {
 	struct tm tm;
 	const time_t curTime = time(0);
 
@@ -526,18 +674,18 @@ Common::String OSystem_Android::getSystemLanguage() const {
 }
 
 bool OSystem_Android::openUrl(const Common::String &url) {
-	return JNI::openUrl(url.c_str());
+	return JNI::openUrl(url);
 }
 
 bool OSystem_Android::hasTextInClipboard() {
 	return JNI::hasTextInClipboard();
 }
 
-Common::String OSystem_Android::getTextFromClipboard() {
+Common::U32String OSystem_Android::getTextFromClipboard() {
 	return JNI::getTextFromClipboard();
 }
 
-bool OSystem_Android::setTextInClipboard(const Common::String &text) {
+bool OSystem_Android::setTextInClipboard(const Common::U32String &text) {
 	return JNI::setTextInClipboard(text);
 }
 
@@ -551,6 +699,93 @@ Common::String OSystem_Android::getSystemProperty(const char *name) const {
 	int len = __system_property_get(name, value);
 
 	return Common::String(value, len);
+}
+
+const OSystem::GraphicsMode *OSystem_Android::getSupportedGraphicsModes() const {
+	// We only support one mode
+	static const OSystem::GraphicsMode s_supportedGraphicsModes[] = {
+		{ "default", "Default", 0 },
+		{ 0, 0, 0 },
+	};
+
+	return s_supportedGraphicsModes;
+}
+
+int OSystem_Android::getDefaultGraphicsMode() const {
+	// We only support one mode
+	return 0;
+}
+
+bool OSystem_Android::setGraphicsMode(int mode, uint flags) {
+	bool render3d = flags & OSystem::kGfxModeRender3d;
+
+	// Very hacky way to set up the old graphics manager state, in case we
+	// switch from SDL->OpenGL or OpenGL->SDL.
+	//
+	// This is a probably temporary workaround to fix bugs like #5799
+	// "SDL/OpenGL: Crash when switching renderer backend".
+	//
+	// It's also used to restore state from 3D to 2D GFX manager
+	AndroidCommonGraphics *androidGraphicsManager = dynamic_cast<AndroidCommonGraphics *>(_graphicsManager);
+	AndroidCommonGraphics::State gfxManagerState = androidGraphicsManager->getState();
+	bool supports3D = _graphicsManager->hasFeature(kFeatureOpenGLForGame);
+
+	bool switchedManager = false;
+
+	// If the new mode and the current mode are not from the same graphics
+	// manager, delete and create the new mode graphics manager
+	debug(5, "requesting 3D: %d, supporting 3D: %d", render3d, supports3D);
+	if (render3d && !supports3D) {
+		debug(5, "switching to 3D graphics");
+		delete _graphicsManager;
+		AndroidGraphics3dManager *manager = new AndroidGraphics3dManager();
+		_graphicsManager = manager;
+		androidGraphicsManager = manager;
+		switchedManager = true;
+	} else if (!render3d && supports3D) {
+		debug(5, "switching to 2D graphics");
+		delete _graphicsManager;
+		AndroidGraphicsManager *manager = new AndroidGraphicsManager();
+		_graphicsManager = manager;
+		androidGraphicsManager = manager;
+		switchedManager = true;
+	}
+
+	if (switchedManager) {
+		// Setup the graphics mode and size first
+		// This is needed so that we can check the supported pixel formats when
+		// restoring the state.
+		_graphicsManager->beginGFXTransaction();
+		if (!_graphicsManager->setGraphicsMode(mode, flags))
+			return false;
+		_graphicsManager->initSize(gfxManagerState.screenWidth, gfxManagerState.screenHeight);
+		_graphicsManager->endGFXTransaction();
+
+		// This failing will probably have bad consequences...
+		if (!androidGraphicsManager->setState(gfxManagerState)) {
+			return false;
+		}
+
+		// Next setup the cursor again
+		CursorMan.pushCursor(0, 0, 0, 0, 0, 0);
+		CursorMan.popCursor();
+
+		// Next setup cursor palette if needed
+		if (_graphicsManager->getFeatureState(kFeatureCursorPalette)) {
+			CursorMan.pushCursorPalette(0, 0, 0);
+			CursorMan.popCursorPalette();
+		}
+
+		_graphicsManager->beginGFXTransaction();
+		return true;
+	} else {
+		return _graphicsManager->setGraphicsMode(mode, flags);
+	}
+}
+
+int OSystem_Android::getGraphicsMode() const {
+	// We only support one mode
+	return 0;
 }
 
 #endif

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,16 +63,16 @@ enum { INT32_MAX_VAL = 0x7fffffff };
 
 /* Switch:  SAVEMEM
    Purpose: Magnetic loads a complete graphics file into memory by default.
-            Setting this switch you tell Magnetic to load images on request
-            (saving memory, wasting load time)
+			Setting this switch you tell Magnetic to load images on request
+			(saving memory, wasting load time)
 
 #define SAVEMEM
 */
 
 /* Switch:  NO_ANIMATION
    Purpose: By default Magnetic plays animated graphics.
-            Setting this switch to ignore animations, Magnetic shows the
-            static parts of the images anyway!
+			Setting this switch to ignore animations, Magnetic shows the
+			static parts of the images anyway!
 
 #define NO_ANIMATION
 */

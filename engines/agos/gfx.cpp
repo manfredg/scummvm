@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -640,7 +639,7 @@ void AGOSEngine_Simon1::drawImage(VC10_state *state) {
 	if (!drawImage_clip(state))
 		return;
 
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = getBackendSurface();
 
 	if (getFeatures() & GF_32COLOR)
 		state->palette = 0xC0;
@@ -738,7 +737,7 @@ void AGOSEngine_Simon1::drawImage(VC10_state *state) {
 		drawVertImage(state);
 	}
 
-	 _system->unlockScreen();
+	updateBackendSurface();
 }
 
 void AGOSEngine::drawBackGroundImage(VC10_state *state) {
@@ -857,9 +856,9 @@ void AGOSEngine::drawImage(VC10_state *state) {
 	if (!drawImage_clip(state))
 		return;
 
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = getBackendSurface();
 
-	uint16 xoffs = 0, yoffs = 0;
+	uint16 xoffs = 0, yoffs = 0, xmax = 0, ymax = 0;
 	if (getGameType() == GType_WW) {
 		if (_windowNum == 4 || (_windowNum >= 10 && _windowNum <= 27)) {
 			state->surf_addr = (byte *)_window4BackScn->getPixels();
@@ -868,8 +867,8 @@ void AGOSEngine::drawImage(VC10_state *state) {
 			xoffs = ((vlut[0] - _videoWindows[16]) * 2 + state->x) * 8;
 			yoffs = (vlut[1] - _videoWindows[17] + state->y);
 
-			uint xmax = (xoffs + state->draw_width * 2);
-			uint ymax = (yoffs + state->draw_height);
+			xmax = (xoffs + state->draw_width * 2);
+			ymax = (yoffs + state->draw_height);
 			setMoveRect(xoffs, yoffs, xmax, ymax);
 
 			_window4Flag = 1;
@@ -879,6 +878,8 @@ void AGOSEngine::drawImage(VC10_state *state) {
 
 			xoffs = (vlut[0] * 2 + state->x) * 8;
 			yoffs = vlut[1] + state->y;
+			xmax = (xoffs + state->draw_width * 2);
+			ymax = (yoffs + state->draw_height);
 		}
 	} else if (getGameType() == GType_ELVIRA2) {
 		if (_windowNum == 4 || _windowNum >= 10) {
@@ -888,8 +889,8 @@ void AGOSEngine::drawImage(VC10_state *state) {
 			xoffs = ((vlut[0] - _videoWindows[16]) * 2 + state->x) * 8;
 			yoffs = (vlut[1] - _videoWindows[17] + state->y);
 
-			uint xmax = (xoffs + state->draw_width * 2);
-			uint ymax = (yoffs + state->draw_height);
+			xmax = (xoffs + state->draw_width * 2);
+			ymax = (yoffs + state->draw_height);
 			setMoveRect(xoffs, yoffs, xmax, ymax);
 
 			_window4Flag = 1;
@@ -899,6 +900,8 @@ void AGOSEngine::drawImage(VC10_state *state) {
 
 			xoffs = (vlut[0] * 2 + state->x) * 8;
 			yoffs = vlut[1] + state->y;
+			xmax = (xoffs + state->draw_width * 2);
+			ymax = (yoffs + state->draw_height);
 		}
 	} else if (getGameType() == GType_ELVIRA1) {
 		if (_windowNum == 6) {
@@ -907,12 +910,16 @@ void AGOSEngine::drawImage(VC10_state *state) {
 
 			xoffs = state->x * 8;
 			yoffs = state->y;
+			xmax = xoffs + vlut[2] * 16;
+			ymax = yoffs + vlut[3];
 		} else if (_windowNum == 2 || _windowNum == 3) {
 			state->surf_addr = (byte *)screen->getPixels();
 			state->surf_pitch = screen->pitch;
 
 			xoffs = (vlut[0] * 2 + state->x) * 8;
 			yoffs = vlut[1] + state->y;
+			xmax = xoffs + state->draw_width * 2;
+			ymax = yoffs + state->draw_height;
 		} else {
 			state->surf_addr = (byte *)_window4BackScn->getPixels();
 			state->surf_pitch = _videoWindows[18] * 16;
@@ -920,8 +927,8 @@ void AGOSEngine::drawImage(VC10_state *state) {
 			xoffs = ((vlut[0] - _videoWindows[16]) * 2 + state->x) * 8;
 			yoffs = (vlut[1] - _videoWindows[17] + state->y);
 
-			uint xmax = (xoffs + state->draw_width * 2);
-			uint ymax = (yoffs + state->draw_height);
+			xmax = (xoffs + state->draw_width * 2);
+			ymax = (yoffs + state->draw_height);
 			setMoveRect(xoffs, yoffs, xmax, ymax);
 
 			_window4Flag = 1;
@@ -932,12 +939,15 @@ void AGOSEngine::drawImage(VC10_state *state) {
 
 		xoffs = (vlut[0] * 2 + state->x) * 8;
 		yoffs = vlut[1] + state->y;
+		xmax = (xoffs + state->draw_width * 2);
+		ymax = (yoffs + state->draw_height);
 	}
 
 	state->surf_addr += xoffs + yoffs * state->surf_pitch;
 
 	if (getGameType() == GType_ELVIRA1 && (state->flags & kDFNonTrans) && yoffs > 133)
-		state->paletteMod = 16;
+		state->paletteMod = _paletteModNext;
+	_paletteModNext = 16;
 
 	if (getGameType() == GType_ELVIRA2 || getGameType() == GType_WW)
 		state->palette = state->surf_addr[0] & 0xF0;
@@ -951,7 +961,8 @@ void AGOSEngine::drawImage(VC10_state *state) {
 		drawVertImage(state);
 	}
 
-	 _system->unlockScreen();
+	Common::Rect dirtyRect(xoffs, yoffs, xmax, ymax);
+	updateBackendSurface(&dirtyRect);
 }
 
 void AGOSEngine::horizontalScroll(VC10_state *state) {
@@ -1023,6 +1034,61 @@ void AGOSEngine::verticalScroll(VC10_state *state) {
 	}
 }
 
+Graphics::Surface *AGOSEngine::getBackendSurface() const {
+	return (getGameId() == GID_ELVIRA1 && getPlatform() == Common::kPlatformPC98) ? _backBuf : _system->lockScreen();
+}
+
+void AGOSEngine::updateBackendSurface(Common::Rect *area) const {
+	if (getGameId() == GID_ELVIRA1 && getPlatform() == Common::kPlatformPC98) {
+		int x = 0;
+		int y = 0;
+		int w = _screenWidth;
+		int h = _screenHeight;
+
+		if (area) {
+			x = area->left;
+			y = area->top;
+			w = area->width();
+			h = area->height();
+		}
+
+		Graphics::Surface *screen = _system->lockScreen();
+
+		int src0Pitch = _backBuf->pitch;
+		int src1Pitch = _scaleBuf->pitch;
+		int dst1Pitch = screen->pitch;
+		const byte *src00 = (byte*)_backBuf->getBasePtr(x, y);
+		const byte *src10 = (byte*)_scaleBuf->getBasePtr(x << 1, y << 1);
+		const byte *src11 = src10 + src1Pitch;
+		byte *dst10 = (byte*)screen->getBasePtr(x << 1, y << 1);
+		byte *dst11 = dst10 + dst1Pitch;
+		src0Pitch -= w;
+		src1Pitch += (src1Pitch - (w << 1));
+		dst1Pitch += (dst1Pitch - (w << 1));
+
+		while (h--) {
+			for (int i = 0; i < w; ++i) {
+				uint8 v0 = *src00++;
+				uint8 v1 = *src10++;
+				*dst10++ = v1 ? v1 : v0;
+				v1 = *src10++;
+				*dst10++ = v1 ? v1 : v0;
+				v1 = *src11++;
+				*dst11++ = v1 ? v1 : v0;
+				v1 = *src11++;
+				*dst11++ = v1 ? v1 : v0;
+			}
+			src00 += src0Pitch;
+			src10 += src1Pitch;
+			src11 += src1Pitch;
+			dst10 += dst1Pitch;
+			dst11 += dst1Pitch;
+		}
+	}
+
+	_system->unlockScreen();
+}
+
 void AGOSEngine::paletteFadeOut(byte *palPtr, uint num, uint size) {
 	byte *p = palPtr;
 
@@ -1076,7 +1142,7 @@ void AGOSEngine::animate(uint16 windowNum, uint16 zoneNum, uint16 vgaSpriteId, i
 		vpe = &_vgaBufferPointers[zoneNum];
 		_curVgaFile1 = vpe->vgaFile1;
 		if (vgaScript) {
-			if (vpe->vgaFile1 != NULL)
+			if (vpe->vgaFile1 != nullptr)
 				break;
 			if (_zoneNumber != zoneNum)
 				_noOverWrite = _zoneNumber;
@@ -1085,7 +1151,7 @@ void AGOSEngine::animate(uint16 windowNum, uint16 zoneNum, uint16 vgaSpriteId, i
 			_noOverWrite = 0xFFFF;
 		} else {
 			_zoneNumber = zoneNum;
-			if (vpe->vgaFile1 != NULL)
+			if (vpe->vgaFile1 != nullptr)
 				break;
 			loadZone(zoneNum);
 		}
@@ -1164,7 +1230,7 @@ void AGOSEngine::setImage(uint16 vgaSpriteId, bool vgaScript) {
 		_curVgaFile2 = vpe->vgaFile2;
 
 		if (vgaScript) {
-			if (vpe->vgaFile1 != NULL)
+			if (vpe->vgaFile1 != nullptr)
 				break;
 			if (_zoneNumber != zoneNum)
 				_noOverWrite = _zoneNumber;
@@ -1176,7 +1242,7 @@ void AGOSEngine::setImage(uint16 vgaSpriteId, bool vgaScript) {
 			_curSfxFileSize = vpe->sfxFileEnd - vpe->sfxFile;
 			_zoneNumber = zoneNum;
 
-			if (vpe->vgaFile1 != NULL)
+			if (vpe->vgaFile1 != nullptr)
 				break;
 
 			loadZone(zoneNum);
@@ -1331,7 +1397,7 @@ void AGOSEngine::setWindowImage(uint16 mode, uint16 vgaSpriteId, bool specialCas
 	if (getGameType() == GType_PN) {
 		AnimTable *animTable = _screenAnim1;
 		while (animTable->srcPtr) {
-			animTable->srcPtr = 0;
+			animTable->srcPtr = nullptr;
 			animTable++;
 		}
 	}
@@ -1372,9 +1438,9 @@ void AGOSEngine::setWindowImage(uint16 mode, uint16 vgaSpriteId, bool specialCas
 		uint width = _videoWindows[updateWindow * 4 + 2] * 16;
 		uint height = _videoWindows[updateWindow * 4 + 3];
 
-		Graphics::Surface *screen = _system->lockScreen();
+		Graphics::Surface *screen = getBackendSurface();
 		byte *dst = (byte *)_backGroundBuf->getBasePtr(xoffs, yoffs);
-		byte *src = 0;
+		byte *src = nullptr;
 		uint srcWidth = 0;
 
 		if (getGameType() == GType_SIMON2) {
@@ -1389,7 +1455,7 @@ void AGOSEngine::setWindowImage(uint16 mode, uint16 vgaSpriteId, bool specialCas
 				src = (byte *)screen->getBasePtr(xoffs, yoffs);
 				srcWidth = screen->pitch;
 			} else {
-				_system->unlockScreen();
+				updateBackendSurface();
 				_videoLockOut &= ~0x20;
 				return;
 			}
@@ -1404,7 +1470,7 @@ void AGOSEngine::setWindowImage(uint16 mode, uint16 vgaSpriteId, bool specialCas
 				src = (byte *)screen->getBasePtr(xoffs, yoffs);
 				srcWidth = screen->pitch;
 			} else {
-				_system->unlockScreen();
+				updateBackendSurface();
 				_videoLockOut &= ~0x20;
 				return;
 			}
@@ -1416,7 +1482,7 @@ void AGOSEngine::setWindowImage(uint16 mode, uint16 vgaSpriteId, bool specialCas
 				src = (byte *)screen->getBasePtr(xoffs, yoffs);
 				srcWidth = screen->pitch;
 			} else {
-				_system->unlockScreen();
+				updateBackendSurface();
 				_videoLockOut &= ~0x20;
 				return;
 			}
@@ -1428,7 +1494,7 @@ void AGOSEngine::setWindowImage(uint16 mode, uint16 vgaSpriteId, bool specialCas
 				src = (byte *)screen->getBasePtr(xoffs, yoffs);
 				srcWidth = screen->pitch;
 			} else {
-				_system->unlockScreen();
+				updateBackendSurface();
 				_videoLockOut &= ~0x20;
 				return;
 			}
@@ -1472,9 +1538,15 @@ void AGOSEngine::setWindowImage(uint16 mode, uint16 vgaSpriteId, bool specialCas
 					dst[w] += 0x10;
 				dst += screen->pitch;
 			}
+
+			if (getPlatform() == Common::kPlatformPC98) {
+				Common::Rect dirtyRect(0, 133, _screenWidth, _screenHeight);
+				updateBackendSurface(&dirtyRect);
+			}
 		}
 
-		_system->unlockScreen();
+		Common::Rect dirtyRect(xoffs, yoffs, xoffs + width, yoffs + _boxStarHeight);
+		updateBackendSurface(&dirtyRect);
 	}
 
 	_videoLockOut &= ~0x20;
@@ -1485,7 +1557,7 @@ void AGOSEngine::drawEdging() {
 	byte *dst;
 	uint8 color = (getPlatform() == Common::kPlatformDOS) ? 7 : 15;
 
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = getBackendSurface();
 
 	dst = (byte *)screen->getBasePtr(0, 136);
 	uint8 len = 52;
@@ -1499,7 +1571,7 @@ void AGOSEngine::drawEdging() {
 	dst = (byte *)screen->getBasePtr(0, 187);
 	memset(dst, color, _screenWidth);
 
-	_system->unlockScreen();
+	updateBackendSurface();
 }
 
 } // End of namespace AGOS

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,9 +78,10 @@ void CharacterDrew::playStandingAnim() {
 
 	stopSpecialAnim();
 	_animationInstance->setAnimation(_walkAnim);
-	_animationInstance->setFrame(_facing * 2);
+	int standingFrames = _vm->isEnglishDemo() ? 3 : 2;
+	_animationInstance->setFrame(_facing * standingFrames);
 	_shadowAnimationInstance->setFrame(_facing);
-	_animationInstance->setAnimationRange(_facing * 2, _facing * 2);
+	_animationInstance->setAnimationRange(_facing * standingFrames, _facing * standingFrames);
 	_animationInstance->stopAnimation();
 	_animationInstance->setLooping(true);
 	//setVisible(true);
@@ -93,7 +93,8 @@ void CharacterDrew::playWalkAnim(int32 start, int32 end) {
 	stopSpecialAnim();
 	_animationInstance->setAnimation(_walkAnim);
 	_shadowAnimationInstance->setFrame(_facing);
-	_animationInstance->setAnimationRange(16 + _facing * 14, 16 + _facing * 14 + 13);
+	int walkAnimOffset = _vm->isEnglishDemo() ? 24 : 16;
+	_animationInstance->setAnimationRange(walkAnimOffset + _facing * 14, walkAnimOffset + _facing * 14 + 13);
 	_animationInstance->playAnimation();
 	_animationInstance->setFps(16);
 	_animationInstance->setLooping(true);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,21 +34,21 @@ public:
 	~WinCursor();
 
 	/** Return the cursor's width. */
-	uint16 getWidth() const;
+	uint16 getWidth() const override;
 	/** Return the cursor's height. */
-	uint16 getHeight() const;
+	uint16 getHeight() const override;
 	/** Return the cursor's hotspot's x coordinate. */
-	uint16 getHotspotX() const;
+	uint16 getHotspotX() const override;
 	/** Return the cursor's hotspot's y coordinate. */
-	uint16 getHotspotY() const;
+	uint16 getHotspotY() const override;
 	/** Return the cursor's transparent key. */
-	byte getKeyColor() const;
+	byte getKeyColor() const override;
 
-	const byte *getSurface() const { return _surface; }
+	const byte *getSurface() const override { return _surface; }
 
-	const byte *getPalette() const { return _palette; }
-	byte getPaletteStartIndex() const { return 0; }
-	uint16 getPaletteCount() const { return 256; }
+	const byte *getPalette() const override { return _palette; }
+	byte getPaletteStartIndex() const override { return 0; }
+	uint16 getPaletteCount() const override { return 256; }
 
 	/** Read the cursor's data out of a stream. */
 	bool readFromStream(Common::SeekableReadStream &stream);
@@ -127,9 +126,9 @@ bool WinCursor::readFromStream(Common::SeekableReadStream &stream) {
 	if (stream.readUint16LE() != 1)
 		return false;
 
-	// Only 1bpp and 8bpp supported
+	// Only 1bpp, 4bpp and 8bpp supported
 	uint16 bitsPerPixel = stream.readUint16LE();
-	if (bitsPerPixel != 1 && bitsPerPixel != 8)
+	if (bitsPerPixel != 1 && bitsPerPixel != 4 && bitsPerPixel != 8)
 		return false;
 
 	// Compression
@@ -179,6 +178,13 @@ bool WinCursor::readFromStream(Common::SeekableReadStream &stream) {
 					else
 						*rowDest = 0;
 				}
+			}
+		} else if (bitsPerPixel == 4) {
+			// 4bpp
+			for (uint16 j = 0; j < (_width / 2); j++) {
+				byte p = src[j];
+				*rowDest++ = p >> 4;
+				*rowDest++ = p & 0x0f;
 			}
 		} else {
 			// 8bpp
@@ -297,13 +303,13 @@ public:
 	DefaultWinCursor() {}
 	~DefaultWinCursor() {}
 
-	uint16 getWidth() const { return 12; }
-	uint16 getHeight() const { return 20; }
-	uint16 getHotspotX() const { return 0; }
-	uint16 getHotspotY() const { return 0; }
-	byte getKeyColor() const { return 0; }
+	uint16 getWidth() const override { return 12; }
+	uint16 getHeight() const override { return 20; }
+	uint16 getHotspotX() const override { return 0; }
+	uint16 getHotspotY() const override { return 0; }
+	byte getKeyColor() const override { return 0; }
 
-	const byte *getSurface() const {
+	const byte *getSurface() const override {
 		static const byte defaultCursor[] = {
 			1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -330,7 +336,7 @@ public:
 		return defaultCursor;
 	}
 
-	const byte *getPalette() const {
+	const byte *getPalette() const override {
 		static const byte bwPalette[] = {
 			0x00, 0x00, 0x00,	// Black
 			0xFF, 0xFF, 0xFF	// White
@@ -338,12 +344,76 @@ public:
 
 		return bwPalette;
 	}
-	byte getPaletteStartIndex() const { return 1; }
-	uint16 getPaletteCount() const { return 2; }
+	byte getPaletteStartIndex() const override { return 1; }
+	uint16 getPaletteCount() const override { return 2; }
 };
 
 Cursor *makeDefaultWinCursor() {
 	return new DefaultWinCursor();
+}
+
+/**
+ * The Windows busy cursor
+ */
+class BusyWinCursor : public Cursor {
+public:
+	BusyWinCursor() {}
+	~BusyWinCursor() {}
+
+	uint16 getWidth() const override { return 15; }
+	uint16 getHeight() const override { return 27; }
+	uint16 getHotspotX() const override { return 7; }
+	uint16 getHotspotY() const override { return 13; }
+	byte getKeyColor() const override { return 0; }
+
+	const byte *getSurface() const override {
+		static const byte busyCursor[] = {
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1,
+			0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+			0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0,
+			0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0,
+			0, 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 1, 0,
+			0, 1, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 1, 0,
+			0, 1, 1, 2, 2, 1, 2, 1, 2, 1, 2, 2, 1, 1, 0,
+			0, 0, 1, 1, 2, 2, 1, 2, 1, 2, 2, 1, 1, 0, 0,
+			0, 0, 0, 1, 1, 2, 2, 1, 2, 2, 1, 1, 0, 0, 0,
+			0, 0, 0, 0, 1, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 1, 1, 2, 1, 1, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 1, 1, 2, 1, 1, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 1, 1, 2, 1, 1, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 1, 1, 2, 2, 2, 1, 1, 0, 0, 0, 0,
+			0, 0, 0, 1, 1, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0,
+			0, 0, 1, 1, 2, 2, 2, 1, 2, 2, 2, 1, 1, 0, 0,
+			0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0,
+			0, 1, 1, 2, 2, 2, 2, 1, 2, 2, 2, 2, 1, 1, 0,
+			0, 1, 1, 2, 2, 2, 1, 2, 1, 2, 2, 2, 1, 1, 0,
+			0, 1, 1, 2, 2, 1, 2, 1, 2, 1, 2, 2, 1, 1, 0,
+			0, 1, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 1, 0,
+			0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+			1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+		};
+
+		return busyCursor;
+	}
+
+	const byte *getPalette() const override {
+		static const byte bwPalette[] = {
+			0x00, 0x00, 0x00,	// Black
+			0xFF, 0xFF, 0xFF	// White
+		};
+
+		return bwPalette;
+	}
+	byte getPaletteStartIndex() const override { return 1; }
+	uint16 getPaletteCount() const override { return 2; }
+};
+
+Cursor *makeBusyWinCursor() {
+	return new BusyWinCursor();
 }
 
 } // End of namespace Graphics

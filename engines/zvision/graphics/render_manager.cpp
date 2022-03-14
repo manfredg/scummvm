@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -192,8 +191,8 @@ void RenderManager::readImageToSurface(const Common::String &fileName, Graphics:
 	// Some files are true TGA, while others are TGZ
 	uint32 fileType = file.readUint32BE();
 
-	uint32 imageWidth;
-	uint32 imageHeight;
+	int imageWidth;
+	int imageHeight;
 	Image::TGADecoder tga;
 	uint16 *buffer;
 	// All Z-Vision images are in RGB 555
@@ -238,9 +237,7 @@ void RenderManager::readImageToSurface(const Common::String &fileName, Graphics:
 
 	// Flip the width and height if transposed
 	if (transposed) {
-		uint16 temp = imageHeight;
-		imageHeight = imageWidth;
-		imageWidth = temp;
+		SWAP(imageWidth, imageHeight);
 	}
 
 	// If the destination internal buffer is the same size as what we're copying into it,
@@ -254,10 +251,10 @@ void RenderManager::readImageToSurface(const Common::String &fileName, Graphics:
 	if (transposed) {
 		uint16 *dest = (uint16 *)destination.getPixels();
 
-		for (uint32 y = 0; y < imageHeight; ++y) {
+		for (int y = 0; y < imageHeight; ++y) {
 			uint32 columnIndex = y * imageWidth;
 
-			for (uint32 x = 0; x < imageWidth; ++x) {
+			for (int x = 0; x < imageWidth; ++x) {
 				dest[columnIndex + x] = buffer[x * imageHeight + y];
 			}
 		}
@@ -345,10 +342,10 @@ Graphics::Surface *RenderManager::tranposeSurface(const Graphics::Surface *surfa
 	const uint16 *source = (const uint16 *)surface->getPixels();
 	uint16 *dest = (uint16 *)tranposedSurface->getPixels();
 
-	for (uint32 y = 0; y < tranposedSurface->h; ++y) {
-		uint32 columnIndex = y * tranposedSurface->w;
+	for (int y = 0; y < tranposedSurface->h; ++y) {
+		int columnIndex = y * tranposedSurface->w;
 
-		for (uint32 x = 0; x < tranposedSurface->w; ++x) {
+		for (int x = 0; x < tranposedSurface->w; ++x) {
 			dest[columnIndex + x] = source[x * surface->w + y];
 		}
 	}
@@ -992,6 +989,7 @@ bool RenderManager::askQuestion(const Common::String &str) {
 				// Spanish: si/no
 				// French Nemesis: F4/any other key
 				// French ZGI: oui/non
+				// TODO: Handle this using the keymapper
 				switch (evnt.kbd.keycode) {
 				case Common::KEYCODE_y:
 					if (_engine->getLanguage() == Common::EN_ANY)

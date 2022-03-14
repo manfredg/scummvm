@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@ OverworldMonster::OverworldMonster(Shared::Game *game, Shared::Maps::MapBase *ma
 		const Point &pt, Shared::Maps::Direction dir) : OverworldWidget(game, map, tileNum, pt, dir),
 		Shared::Maps::Creature(game, map, hitPoints) {
 	_monsterId = (OverworldMonsterId)((tileNum - 19) / 2);
-	
+
 	Ultima1Game *g = static_cast<Ultima1Game *>(game);
 	_name = g->_res->OVERWORLD_MONSTER_NAMES[_monsterId];
 	_attackStrength = g->_res->OVERWORLD_MONSTER_DAMAGE[_monsterId];
@@ -64,6 +63,7 @@ void OverworldMonster::movement() {
 
 void OverworldMonster::attackParty() {
 	Ultima1Game *game = dynamic_cast<Ultima1Game *>(_game);
+	assert(game);
 	Point playerPos = _map->_playerWidget->_position;
 	Point diff = playerPos - _position;
 	Point delta(SGN(diff.x), SGN(diff.y));
@@ -74,7 +74,7 @@ void OverworldMonster::attackParty() {
 	//uint threshold, damage;
 
 	// Print out the monster attacking
-	
+
 	addInfoMsg(Common::String::format("%s %s %s", _name.c_str(), game->_res->ATTACKS, _name.c_str()), false);
 
 	/* TODO: Refactor to use attack effects

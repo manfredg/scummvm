@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,11 +40,6 @@
 
 namespace Ultima {
 namespace Nuvie {
-
-#define USE_BUTTON 1 /* FIXME: put this in a common location */
-#define ACTION_BUTTON 3
-#define DRAG_BUTTON 1
-
 
 ContainerWidget::ContainerWidget(Configuration *cfg, GUI_CallBack *callback): GUI_Widget(NULL, 0, 0, 0, 0) {
 	config = cfg;
@@ -263,10 +257,10 @@ Obj *ContainerWidget::get_obj_at_location(int x, int y) {
 }
 
 // change container, ready/unready object, activate arrows
-GUI_status ContainerWidget::MouseUp(int x, int y, Shared::MouseButton button) {
+GUI_status ContainerWidget::MouseUp(int /*x*/, int /*y*/, Shared::MouseButton button) {
 	if (button == USE_BUTTON) {
-		x -= area.left;
-		y -= area.top;
+		//x -= area.left;
+		//y -= area.top;
 
 		if (selected_obj) {
 			// only act now if objects can't be used with DoubleClick
@@ -427,12 +421,12 @@ bool ContainerWidget::drag_accept_drop(int x, int y, int message, void *data) {
 	return false;
 }
 
-void ContainerWidget::drag_perform_drop(int x, int y, int message, void *data) {
+void ContainerWidget::drag_perform_drop(int /*x*/, int /*y*/, int message, void *data) {
 	DEBUG(0, LEVEL_DEBUGGING, "ContainerWidget::drag_perform_drop()\n");
 	Obj *obj;
 
-	x -= area.left;
-	y -= area.top;
+	//x -= area.left;
+	//y -= area.top;
 
 	if (message == GUI_DRAG_OBJ) {
 		DEBUG(0, LEVEL_DEBUGGING, "Drop into inventory.\n");

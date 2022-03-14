@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -62,12 +61,12 @@ ResExtractor::CachedCursor *ResExtractor::findCachedCursor(int id) {
 		if (_cursorCache[i].valid && _cursorCache[i].id == id)
 			return &_cursorCache[i];
 
-	return NULL;
+	return nullptr;
 }
 
 ResExtractor::CachedCursor *ResExtractor::getCachedCursorSlot() {
 	uint32 minLastUsed = 0;
-	CachedCursor *r = NULL;
+	CachedCursor *r = nullptr;
 
 	for (int i = 0; i < MAX_CACHED_CURSORS; ++i) {
 		CachedCursor *cc = &_cursorCache[i];
@@ -90,7 +89,7 @@ ResExtractor::CachedCursor *ResExtractor::getCachedCursorSlot() {
 void ResExtractor::setCursor(int id) {
 	CachedCursor *cc = findCachedCursor(id);
 
-	if (cc != NULL) {
+	if (cc != nullptr) {
 		debug(7, "Found cursor %d in cache slot %lu", id, (long)(cc - _cursorCache));
 	} else {
 		cc = getCachedCursorSlot();
@@ -160,12 +159,12 @@ bool Win32ResExtractor::extractResource(int id, CachedCursor *cc) {
 }
 
 MacResExtractor::MacResExtractor(ScummEngine_v70he *scumm) : ResExtractor(scumm) {
-	_resMgr = NULL;
+	_resMgr = nullptr;
 }
 
 bool MacResExtractor::extractResource(int id, CachedCursor *cc) {
 	// Create the MacResManager if not created already
-	if (_resMgr == NULL) {
+	if (_resMgr == nullptr) {
 		_resMgr = new Common::MacResManager();
 		if (!_resMgr->open(_vm->generateFilename(-3)))
 			error("Cannot open file %s", _fileName.c_str());

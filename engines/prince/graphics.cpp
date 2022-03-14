@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,7 +44,7 @@ GraphicsMan::GraphicsMan(PrinceEngine *vm) : _vm(vm), _changed(false) {
 	_shadowTable70 = (byte *)malloc(256);
 	_shadowTable50 = (byte *)malloc(256);
 
-	_roomBackground = 0;
+	_roomBackground = nullptr;
 }
 
 GraphicsMan::~GraphicsMan() {
@@ -83,7 +82,7 @@ void GraphicsMan::draw(Graphics::Surface *screen, const Graphics::Surface *s) {
 	uint16 w = MIN(screen->w, s->w);
 	const byte *src = (const byte *)s->getBasePtr(0, 0);
 	byte *dst = (byte *)screen->getBasePtr(0, 0);
-	for (uint y = 0; y < s->h; y++) {
+	for (int y = 0; y < s->h; y++) {
 		if (y < screen->h) {
 			memcpy(dst, src, w);
 		}

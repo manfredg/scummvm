@@ -4,12 +4,6 @@
 #include "po_parser.h"
 #include <iostream>
 
-// HACK to allow building with the SDL backend on MinGW
-// see bug #1800764 "TOOLS: MinGW tools building broken"
-#ifdef main
-#undef main
-#endif // main
-
 // List of languages to look for. To add new languages you only need to change the array below
 // and add the supporting files:
 //   - 640x480 bitmap picture for the newpaper named 'img1-##.pbm' and 'img2-##.pbm'
@@ -18,7 +12,8 @@
 
 const char *lang[] = {
 	"en",
-	NULL
+	"it",
+	nullptr
 };
 
 void writeDatafile(File& outputFile, int fileNumber, const char* language, int part) {
@@ -51,7 +46,7 @@ void writeDatafile(File& outputFile, int fileNumber, const char* language, int p
 	}
 
 	// Write block size
-	
+
 	dataFile.seek(0, SEEK_END);
 	int length = dataFile.pos();
 	dataFile.seek(0, SEEK_SET);
@@ -100,7 +95,7 @@ void writeDocFile(File& outputFile, const char *fileExtension, const char* langu
 	}
 
 	// Write block size
-	
+
 	docFile.seek(0, SEEK_END);
 	int length = docFile.pos();
 	docFile.seek(0, SEEK_SET);
@@ -263,7 +258,7 @@ void writeStrings(File& outputFile, const char* language, int part) {
 	sprintf(fileName, "strings%d-%s.po", part, language);
 	PoMessageList* poList = parsePoFile(fileName);
 	if (!poList) {
-		printf("Cannot find strings file for language '%s'.\n", language);
+		printf("Cannot find strings%d file for language '%s'.\n", part, language);
 		return;
 	}
 

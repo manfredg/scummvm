@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -257,7 +256,7 @@ MinigameBbAirGuitar::Obj *MinigameBbAirGuitar::getFreeObject() {
 	for (int i = 0; i < kMaxObjectsCount; ++i)
 		if (_objects[i].kind == 0)
 			return &_objects[i];
-	return 0;
+	return nullptr;
 }
 
 void MinigameBbAirGuitar::initObjects() {
@@ -756,9 +755,9 @@ bool MinigameBbAirGuitar::run(bool fromMainGame) {
 	_btn3KindToggle = 0;
 	_currButtonNum = 27;
 	_actionStartTime = 0;
-	_currFrameIndex = 0;
-	_currPlayerButtonRect = 0;
-	_currPianoKeyArea = 0;
+	_currFrameIndex = nullptr;
+	_currPlayerButtonRect = nullptr;
+	_currPianoKeyArea = nullptr;
 	_trackCount = 0;
 	_trackIndex = 0;
 	_totalTrackLength = 0;
@@ -995,8 +994,8 @@ void MinigameBbAirGuitar::afterButtonReleased() {
 	}
 
 	_objects->frameIndex = 0;
-	_currPlayerButtonRect = 0;
-	_currPianoKeyArea = 0;
+	_currPlayerButtonRect = nullptr;
+	_currPianoKeyArea = nullptr;
 	_currButtonNum = 27;
 }
 
@@ -1217,7 +1216,7 @@ void MinigameBbAirGuitar::stopNote(int noteNum) {
 }
 
 bool MinigameBbAirGuitar::getLoadFilename(Common::String &filename) {
-	GUI::FileBrowserDialog browser(0, "air", GUI::kFBModeLoad);
+	GUI::FileBrowserDialog browser(nullptr, "air", GUI::kFBModeLoad);
 
 	if (browser.runModal() > 0) {
 		filename = browser.getResult();
@@ -1228,7 +1227,7 @@ bool MinigameBbAirGuitar::getLoadFilename(Common::String &filename) {
 }
 
 bool MinigameBbAirGuitar::getSaveFilename(Common::String &filename) {
-	GUI::FileBrowserDialog browser(0, "air", GUI::kFBModeSave);
+	GUI::FileBrowserDialog browser(nullptr, "air", GUI::kFBModeSave);
 
 	if (browser.runModal() > 0) {
 		filename = browser.getResult();

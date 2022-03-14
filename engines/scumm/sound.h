@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,16 @@
 #include "common/str.h"
 #include "audio/mididrv.h"
 #include "backends/audiocd/audiocd.h"
+#include "scumm/file.h"
+
+// The number of "ticks" (1/10th of a second) into the Overture that the
+// LucasFilm logo should appear. This corresponds to a timer value of 204.
+// The default value is selected to work well with the Ozawa recording.
+
+#define DEFAULT_LOOM_OVERTURE_TRANSITION 1160
+
+#define TICKS_TO_TIMER(x) ((((x) * 204) / _loomOvertureTransition) + 1)
+#define TIMER_TO_TICKS(x) ((((x) - 1) * _loomOvertureTransition) / 204)
 
 namespace Audio {
 class Mixer;
@@ -91,6 +100,11 @@ protected:
 	Audio::SoundHandle *_loomSteamCDAudioHandle;
 	bool _isLoomSteam;
 	AudioCDManager::Status _loomSteamCD;
+	bool _useReplacementAudioTracks;
+	int _musicTimer;
+	int _loomOvertureTransition;
+	uint32 _replacementTrackStartTime;
+	uint32 _replacementTrackPauseTime;
 
 public:
 	Audio::SoundHandle *_talkChannelHandle;	// Handle of mixer channel actor is talking on
@@ -102,7 +116,7 @@ public:
 	MidiDriverFlags _musicType;
 
 public:
-	Sound(ScummEngine *parent, Audio::Mixer *mixer);
+	Sound(ScummEngine *parent, Audio::Mixer *mixer, bool useReplacementAudioTracks);
 	~Sound() override;
 	virtual void addSoundToQueue(int sound, int heOffset = 0, int heChannel = 0, int heFlags = 0, int heFreq = 0, int hePan = 0, int heVol = 0);
 	virtual void addSoundToQueue2(int sound, int heOffset = 0, int heChannel = 0, int heFlags = 0, int heFreq = 0, int hePan = 0, int heVol = 0);
@@ -120,6 +134,9 @@ public:
 	void talkSound(uint32 a, uint32 b, int mode, int channel = 0);
 	virtual void setupSound();
 	void pauseSounds(bool pause);
+	bool isSfxFileCompressed();
+	bool hasSfxFile() const;
+	ScummFile *restoreDiMUSESpeechFile(const char *fileName);
 
 	void startCDTimer();
 	void stopCDTimer();
@@ -132,7 +149,13 @@ public:
 	AudioCDManager::Status getCDStatus();
 	int getCurrentCDSound() const { return _currentCDSound; }
 
+	bool isRolandLoom() const;
+	bool useReplacementAudioTracks() const { return _useReplacementAudioTracks; }
+	void updateMusicTimer();
+	int getMusicTimer() const { return _musicTimer; }
+
 	void saveLoadWithSerializer(Common::Serializer &ser) override;
+	void restoreAfterLoad();
 
 protected:
 	void setupSfxFile();
@@ -142,6 +165,8 @@ protected:
 	bool isSoundInQueue(int sound) const;
 
 	virtual void processSoundQueues();
+
+	int getReplacementAudioTrack(int soundID);
 };
 
 

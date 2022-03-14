@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/util.h"
 #include "common/stack.h"
 #include "common/system.h"
+#include "common/unicode-bidi.h"
 #include "graphics/primitives.h"
 
 #include "sci/sci.h"
@@ -30,10 +30,11 @@
 #include "sci/engine/kernel.h"
 #include "sci/engine/state.h"
 #include "sci/engine/selector.h"
+#include "sci/engine/tts.h"
 #include "sci/graphics/compare.h"
 #include "sci/graphics/ports.h"
 #include "sci/graphics/paint16.h"
-#include "sci/graphics/font.h"
+#include "sci/graphics/scifont.h"
 #include "sci/graphics/screen.h"
 #include "sci/graphics/text16.h"
 #include "sci/graphics/controls16.h"
@@ -92,8 +93,21 @@ void GfxControls16::drawListControl(Common::Rect rect, reg_t obj, int16 maxChars
 		_paint16->eraseRect(workerRect);
 		const Common::String &listEntry = entries[i];
 		if (listEntry[0]) {
-			_ports->moveTo(workerRect.left, workerRect.top);
-			_text16->Draw(listEntry.c_str(), 0, MIN<int16>(maxChars, listEntry.size()), oldFontId, oldPenColor);
+			Common::String textString = listEntry;
+			if (g_sci->isLanguageRTL())
+				textString = Common::convertBiDiString(textString, g_sci->getLanguage());
+
+			if (!g_sci->isLanguageRTL())
+				_ports->moveTo(workerRect.left, workerRect.top);
+			else {
+				// calc width, for right alignment
+				const char *textPtr = textString.c_str();
+				uint16 textWidth = 0;
+				while (*textPtr)
+					textWidth += _text16->_font->getCharWidth((byte)*textPtr++);
+				_ports->moveTo(workerRect.right - textWidth - 1, workerRect.top);
+			}
+			_text16->Draw(textString.c_str(), 0, MIN<int16>(maxChars, listEntry.size()), oldFontId, oldPenColor);
 			if ((!isAlias) && (i == cursorPos)) {
 				_paint16->invertRect(workerRect);
 			}
@@ -113,10 +127,16 @@ void GfxControls16::texteditCursorDraw(Common::Rect rect, const char *text, uint
 		for (i = 0; i < curPos; i++) {
 			textWidth += _text16->_font->getCharWidth((unsigned char)text[i]);
 		}
-		_texteditCursorRect.left = rect.left + textWidth;
+		if (!g_sci->isLanguageRTL())
+			_texteditCursorRect.left = rect.left + textWidth;
+		else
+			_texteditCursorRect.right = rect.right - textWidth;
 		_texteditCursorRect.top = rect.top;
 		_texteditCursorRect.bottom = _texteditCursorRect.top + _text16->_font->getHeight();
-		_texteditCursorRect.right = _texteditCursorRect.left + (text[curPos] == 0 ? 1 : _text16->_font->getCharWidth((unsigned char)text[curPos]));
+		if (!g_sci->isLanguageRTL())
+			_texteditCursorRect.right = _texteditCursorRect.left + (text[curPos] == 0 ? 1 : _text16->_font->getCharWidth((unsigned char)text[curPos]));
+		else
+			_texteditCursorRect.left = _texteditCursorRect.right - (text[curPos] == 0 ? 1 : _text16->_font->getCharWidth((unsigned char)text[curPos]));
 		_paint16->invertRect(_texteditCursorRect);
 		_paint16->bitsShow(_texteditCursorRect);
 		_texteditCursorVisible = true;
@@ -184,13 +204,25 @@ void GfxControls16::kernelTexteditChange(reg_t controlObject, reg_t eventObject)
 				cursorPos = textSize; textChanged = true;
 				break;
 			case kSciKeyLeft:
-				if (cursorPos > 0) {
-					cursorPos--; textChanged = true;
+				if (!g_sci->isLanguageRTL()) {
+					if (cursorPos > 0) {
+						cursorPos--; textChanged = true;
+					}
+				} else {
+					if (cursorPos + 1 <= textSize) {
+						cursorPos++; textChanged = true;
+					}
 				}
 				break;
 			case kSciKeyRight:
-				if (cursorPos + 1 <= textSize) {
-					cursorPos++; textChanged = true;
+				if (!g_sci->isLanguageRTL()) {
+					if (cursorPos + 1 <= textSize) {
+						cursorPos++; textChanged = true;
+					}
+				} else {
+					if (cursorPos > 0) {
+						cursorPos--; textChanged = true;
+					}
 				}
 				break;
 			case kSciKeyEtx:
@@ -280,6 +312,8 @@ int GfxControls16::getPicNotValid() {
 }
 
 void GfxControls16::kernelDrawButton(Common::Rect rect, reg_t obj, const char *text, uint16 languageSplitter, int16 fontId, int16 style, bool hilite) {
+	g_sci->_tts->button(text);
+
 	int16 sci0EarlyPen = 0, sci0EarlyBack = 0;
 	if (!hilite) {
 		if (getSciVersion() == SCI_VERSION_0_EARLY) {
@@ -318,6 +352,8 @@ void GfxControls16::kernelDrawButton(Common::Rect rect, reg_t obj, const char *t
 }
 
 void GfxControls16::kernelDrawText(Common::Rect rect, reg_t obj, const char *text, uint16 languageSplitter, int16 fontId, TextAlignment alignment, int16 style, bool hilite) {
+	g_sci->_tts->text(text);
+
 	if (!hilite) {
 		rect.grow(1);
 		_paint16->eraseRect(rect);

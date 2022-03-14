@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,8 +65,8 @@ void Cursor::addCursorFrames(uint16 id) {
 		info.tag = cursStream->readUint16BE();
 		info.hotspot.x = cursStream->readUint16BE();
 		info.hotspot.y = cursStream->readUint16BE();
-		info.surface = 0;
-		info.palette = 0;
+		info.surface = nullptr;
+		info.palette = nullptr;
 		info.colorCount = 0;
 		_info.push_back(info);
 	}
@@ -155,6 +154,7 @@ void Cursor::loadCursorImage(CursorInfo &cursorInfo) {
 
 	cursorInfo.surface = new Graphics::Surface();
 
+	// The CD version uses (only) lower color cicn images for its cursors
 	Common::SeekableReadStream *cicnStream = vm->_resFork->getResource(MKTAG('c', 'i', 'c', 'n'), cursorInfo.tag);
 
 	if (!cicnStream)

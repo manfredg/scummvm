@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,19 +37,12 @@
 #define SAMPLES_PER_SEC 44100
 #endif
 
-SdlMixerManager::SdlMixerManager()
-	:
-	_mixer(0),
-	_audioSuspended(false) {
-
-}
-
 SdlMixerManager::~SdlMixerManager() {
 	_mixer->setReady(false);
 
 	SDL_CloseAudio();
 
-	delete _mixer;
+	SDL_QuitSubSystem(SDL_INIT_AUDIO);
 }
 
 void SdlMixerManager::init() {
@@ -81,7 +73,7 @@ void SdlMixerManager::init() {
 		warning("Could not open audio device: %s", SDL_GetError());
 
 		// The mixer is not marked as ready
-		_mixer = new Audio::MixerImpl(desired.freq);
+		_mixer = new Audio::MixerImpl(desired.freq, desired.samples);
 		return;
 	}
 
@@ -92,11 +84,11 @@ void SdlMixerManager::init() {
 		debug(1, "SDL mixer sound format: %d differs from desired: %d", _obtained.format, desired.format);
 		SDL_CloseAudio();
 
-		if (SDL_OpenAudio(&fmt, NULL) != 0) {
+		if (SDL_OpenAudio(&fmt, nullptr) != 0) {
 			warning("Could not open audio device: %s", SDL_GetError());
 
 			// The mixer is not marked as ready
-			_mixer = new Audio::MixerImpl(desired.freq);
+			_mixer = new Audio::MixerImpl(desired.freq, desired.samples);
 			return;
 		}
 
@@ -118,7 +110,7 @@ void SdlMixerManager::init() {
 		error("SDL mixer output requires stereo output device");
 #endif
 
-	_mixer = new Audio::MixerImpl(_obtained.freq);
+	_mixer = new Audio::MixerImpl(_obtained.freq, desired.samples);
 	assert(_mixer);
 	_mixer->setReady(true);
 
@@ -146,14 +138,12 @@ static uint32 roundDownPowerOfTwo(uint32 samples) {
 SDL_AudioSpec SdlMixerManager::getAudioSpec(uint32 outputRate) {
 	SDL_AudioSpec desired;
 
-	const char *const appDomain = Common::ConfigManager::kApplicationDomain;
-
-	// There was once a GUI option for this, but it was never used;
-	// configurability is retained for advanced users only who wish to modify
-	// their ScummVM config file directly
+	// There was once a GUI option for this, which was removed. Configurability
+	// is retained for advanced users only who wish to use the commandline
+	// option (--output-rate) or modify their ScummVM config file directly.
 	uint32 freq = 0;
-	if (ConfMan.hasKey("output_rate", appDomain))
-		freq = ConfMan.getInt("output_rate", appDomain);
+	if (ConfMan.hasKey("output_rate"))
+		freq = ConfMan.getInt("output_rate");
 	if (freq <= 0)
 		freq = outputRate;
 
@@ -164,8 +154,8 @@ SDL_AudioSpec SdlMixerManager::getAudioSpec(uint32 outputRate) {
 	// characteristics which are not easily measured, so allow advanced users to
 	// tweak their audio buffer size if they are experience excess latency or
 	// drop-outs by setting this value in their ScummVM config file directly
-	if (ConfMan.hasKey("audio_buffer_size", appDomain))
-		samples = ConfMan.getInt("audio_buffer_size", appDomain);
+	if (ConfMan.hasKey("audio_buffer_size", Common::ConfigManager::kApplicationDomain))
+		samples = ConfMan.getInt("audio_buffer_size", Common::ConfigManager::kApplicationDomain);
 
 	// 256 is an arbitrary minimum; 32768 is the largest power-of-two value
 	// representable with uint16
@@ -213,7 +203,7 @@ void SdlMixerManager::suspendAudio() {
 int SdlMixerManager::resumeAudio() {
 	if (!_audioSuspended)
 		return -2;
-	if (SDL_OpenAudio(&_obtained, NULL) < 0) {
+	if (SDL_OpenAudio(&_obtained, nullptr) < 0) {
 		return -1;
 	}
 	SDL_PauseAudio(0);

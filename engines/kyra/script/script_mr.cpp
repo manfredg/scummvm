@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -170,8 +169,8 @@ int KyraEngine_MR::o3_addItemToCurScene(EMCState *script) {
 
 	if (y < 18)
 		y = 18;
-	else if (y > 187)
-		y = 187;
+	else if (y >= _interfaceCommandLineY1)
+		y = _interfaceCommandLineY1 - 1;
 
 	if (itemSlot >= 0) {
 		_itemList[itemSlot].x = x;
@@ -284,7 +283,7 @@ int KyraEngine_MR::o3_updateScore(EMCState *script) {
 
 int KyraEngine_MR::o3_makeSecondChanceSave(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_MR::o3_makeSecondChanceSave(%p) ()", (const void *)script);
-	saveGameStateIntern(999, "Autosave", 0);
+	saveGameStateIntern(999, "Autosave", nullptr);
 	return 0;
 }
 
@@ -731,27 +730,52 @@ int KyraEngine_MR::o3_daggerWarning(EMCState *script) {
 	int curPageBackUp = _screen->_curPage;
 	_screen->_curPage = 2;
 
+
+	int y1 = 0xAA;
+	int y2 = 0xBA;
+	if (_lang == 3) {
+		y1 -= 2;
+		y2 += 4;
+	}
+
 	_screen->drawFilledBox(0, 0, 0x13F, 0xC7, 0xB4, 0xB3, 0xB6);
-	_screen->drawFilledBox(0xF, 0xAA, 0x68, 0xBA, 0xB4, 0xB3, 0xB6);
-	_screen->drawFilledBox(0x73, 0xAA, 0xCC, 0xBA, 0xB4, 0xB3, 0xB6);
-	_screen->drawFilledBox(0xD6, 0xAA, 0x12F, 0xBA, 0xB4, 0xB3, 0xB6);
+	_screen->drawFilledBox(0xF, y1, 0x68, y2, 0xB4, 0xB3, 0xB6);
+	_screen->drawFilledBox(0x73, y1, 0xCC, y2, 0xB4, 0xB3, 0xB6);
+	_screen->drawFilledBox(0xD6, y1, 0x12F, y2, 0xB4, 0xB3, 0xB6);
 
 	int y = 15;
-	for (int i = 100; i <= 107; ++i) {
-		const char *str = (const char *)getTableEntry(_cCodeFile, i);
-		int x = _text->getCenterStringX(str, 0, 0x13F);
-		_text->printText(str, x, y, 0xFF, 0xF0, 0x00);
-		y += 10;
-	}
-	y += 15;
-	for (int i = 110; i <= 113; ++i) {
-		const char *str = (const char *)getTableEntry(_cCodeFile, i);
-		int x = _text->getCenterStringX(str, 0, 0x13F);
-		_text->printText(str, x, y, 0xFF, 0xF0, 0x00);
-		y += 10;
+	int last = 107;
+	int yInc = 10;
+
+	if (_lang == 3) {
+		y = 6;
+		last = 105;
+		yInc = 16;
 	}
 
-	const char *str = 0;
+	for (int i = 100; i <= last; ++i) {
+		const char *str = (const char *)getTableEntry(_cCodeFile, i);
+		int x = _text->getCenterStringX(str, 0, 0x13F);
+		_text->printText(str, x, y, 0xFF, 0xF0, 0x00);
+		y += yInc;
+	}
+
+	if (_lang == 3) {
+		y += 6;
+		last = 112;
+	} else {
+		y += 15;
+		last = 113;
+	}
+
+	for (int i = 110; i <= last; ++i) {
+		const char *str = (const char *)getTableEntry(_cCodeFile, i);
+		int x = _text->getCenterStringX(str, 0, 0x13F);
+		_text->printText(str, x, y, 0xFF, 0xF0, 0x00);
+		y += yInc;
+	}
+
+	const char *str = nullptr;
 	int x = 0;
 
 	str = (const char *)getTableEntry(_cCodeFile, 120);
@@ -773,7 +797,7 @@ int KyraEngine_MR::o3_daggerWarning(EMCState *script) {
 	_screen->showMouse();
 
 	while (!shouldQuit()) {
-		int keys = checkInput(0);
+		int keys = checkInput(nullptr);
 		removeInputTop();
 
 		if (keys == 198 || keys == 199) {
@@ -861,7 +885,7 @@ int KyraEngine_MR::o3_defineSceneAnim(EMCState *script) {
 		strcpy(anim.filename, filename);
 
 	if (flags & 8) {
-		_sceneAnimMovie[animId]->open(filename, 1, 0);
+		_sceneAnimMovie[animId]->open(filename, 1, nullptr);
 		if (_sceneAnimMovie[animId]->opened()) {
 			anim.wsaFlag = 1;
 			if (x2 == -1)
@@ -1055,7 +1079,7 @@ int KyraEngine_MR::o3_customChat(EMCState *script) {
 int KyraEngine_MR::o3_customChatFinish(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_MR::o3_customChatFinish(%p) ()", (const void *)script);
 	_text->restoreScreen();
-	_chatText = 0;
+	_chatText = "";
 	_chatObject = -1;
 	return 0;
 }
@@ -1125,7 +1149,7 @@ typedef Common::Functor1Mem<EMCState *, int, KyraEngine_MR> OpcodeV3;
 #define Opcode(x) table->push_back(new OpcodeV3(this, &KyraEngine_MR::x))
 #define OpcodeUnImpl() table->push_back(new OpcodeV3(this, 0))
 void KyraEngine_MR::setupOpcodeTable() {
-	Common::Array<const Opcode *> *table = 0;
+	Common::Array<const Opcode *> *table = nullptr;
 
 	_opcodes.reserve(176);
 	SetOpcodeTable(_opcodes);

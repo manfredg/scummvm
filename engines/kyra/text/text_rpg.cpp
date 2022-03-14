@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,11 +42,9 @@ TextDisplayer_rpg::TextDisplayer_rpg(KyraRpgEngine *engine, Screen *scr) : _vm(e
 		0x00, 0x06, 0x1d, 0x1b, 0x1a, 0x17, 0x18, 0x0e, 0x19, 0x1c, 0x1c, 0x1e, 0x13, 0x0a, 0x11, 0x1f
 	};
 
-	_dialogueBuffer = new char[kEoBTextBufferSize];
-	memset(_dialogueBuffer, 0, kEoBTextBufferSize);
+	_dialogueBuffer = new char[kEoBTextBufferSize]();
 
-	_currentLine = new char[85];
-	memset(_currentLine, 0, 85);
+	_currentLine = new char[85]();
 
 	if (_pc98TextMode)
 		_waitButtonFont = Screen::FID_SJIS_TEXTMODE_FNT;
@@ -74,10 +71,8 @@ TextDisplayer_rpg::TextDisplayer_rpg(KyraRpgEngine *engine, Screen *scr) : _vm(e
 		_textDimData[i].column = d->unkE;
 	}
 
-	_table1 = new char[128];
-	memset(_table1, 0, 128);
-	_table2 = new char[16];
-	memset(_table2, 0, 16);
+	_table1 = new char[128]();
+	_table2 = new char[16]();
 
 	_waitButtonSpace = 0;
 }
@@ -153,7 +148,7 @@ void TextDisplayer_rpg::displayText(char *str, ...) {
 	int sjisOffs = (sjisTextMode || _vm->game() != GI_LOL) ? 8 : 9;
 	Screen::FontId of = (_vm->game() == GI_EOB2 && _vm->gameFlags().platform == Common::kPlatformFMTowns) ? _screen->setFont(Screen::FID_8_FNT) : _screen->_currentFont;
 
-	uint16 charsPerLine = (sd->w << 3) / (_screen->getFontWidth() + _screen->_charWidth);
+	uint16 charsPerLine = (sd->w << 3) / (_screen->getFontWidth() + _screen->_charSpacing);
 
 	while (c) {
 		char a = tolower((unsigned char)_ctrl[1]);
@@ -163,7 +158,7 @@ void TextDisplayer_rpg::displayText(char *str, ...) {
 				strcpy(_scriptParaString, Common::String::format("%d", va_arg(args, int)).c_str());
 				_tempString2 = _scriptParaString;
 			} else if (a == 's') {
-				_tempString2 = va_arg(args, char *);
+				_tempString2 = va_arg(args, char*);
 			} else {
 				break;
 			}
@@ -191,11 +186,12 @@ void TextDisplayer_rpg::displayText(char *str, ...) {
 			}
 		}
 
-		uint16 dv = _textDimData[sdx].column / (_screen->getFontWidth() + _screen->_charWidth);
+		uint16 dv = _textDimData[sdx].column / (_screen->getFontWidth() + _screen->_charSpacing);
 
 		switch (c - 1) {
 		case 0:
 			printLine(_currentLine);
+			_screen->updateScreen();
 			textPageBreak();
 			_numCharsPrinted = 0;
 			break;
@@ -218,11 +214,11 @@ void TextDisplayer_rpg::displayText(char *str, ...) {
 
 		case 8:
 			printLine(_currentLine);
-			dv = _textDimData[sdx].column / (_screen->getFontWidth() + _screen->_charWidth);
+			dv = _textDimData[sdx].column / (_screen->getFontWidth() + _screen->_charSpacing);
 			dv = ((dv + 8) & 0xFFF8) - 1;
 			if (dv >= charsPerLine)
 				dv = 0;
-			_textDimData[sdx].column = (_screen->getFontWidth() + _screen->_charWidth) * dv;
+			_textDimData[sdx].column = (_screen->getFontWidth() + _screen->_charSpacing) * dv;
 			break;
 
 		case 12:
@@ -264,6 +260,7 @@ void TextDisplayer_rpg::displayText(char *str, ...) {
 		printLine(_currentLine);
 
 	_screen->setFont(of);
+	_screen->updateScreen();
 }
 
 char TextDisplayer_rpg::parseCommand() {
@@ -325,12 +322,13 @@ void TextDisplayer_rpg::printLine(char *str) {
 	bool sjisTextMode = _pc98TextMode && (sdx == 3 || sdx == 4 || sdx == 5 || sdx == 15) ? true : false;
 	int sjisOffs = (sjisTextMode || _vm->game() != GI_LOL) ? 8 : 9;
 
-	int fh = (_screen->_currentFont == Screen::FID_SJIS_TEXTMODE_FNT) ? 9 : (_screen->getFontHeight() + _screen->_charOffset);
-	int lines = (sd->h - _screen->_charOffset) / fh;
+	int fh = (_screen->_currentFont == Screen::FID_SJIS_TEXTMODE_FNT) ? 9 : (_screen->getFontHeight() + _screen->_lineSpacing);
+	int lines = (sd->h - _screen->_lineSpacing) / fh;
 
 	while (_textDimData[sdx].line >= lines) {
 		if ((lines - _waitButtonSpace) <= _lineCount && _allowPageBreak) {
 			_lineCount = 0;
+			_screen->updateScreen();
 			textPageBreak();
 			_numCharsPrinted = 0;
 		}
@@ -505,7 +503,6 @@ void TextDisplayer_rpg::printLine(char *str) {
 		_screen->printText(str, x1 & ~3, (y + 8) & ~7, col, 0);
 	} else {
 		_screen->printText(str, x1, y, col, _textDimData[sdx].color2);
-		_screen->updateScreen();
 	}
 
 	_textDimData[sdx].column += lw;
@@ -537,7 +534,7 @@ void TextDisplayer_rpg::printLine(char *str) {
 	printLine(str);
 }
 
-void TextDisplayer_rpg::printDialogueText(int stringId, const char *pageBreakString) {
+void TextDisplayer_rpg::printDialogueText(int stringId, const char *pageBreakString, const char*) {
 	const char *str = (const char *)(_screen->getCPagePtr(5) + READ_LE_UINT16(&_screen->getCPagePtr(5)[(stringId - 1) << 1]));
 	assert(strlen(str) < kEoBTextBufferSize);
 	Common::strlcpy(_dialogueBuffer, str, kEoBTextBufferSize);
@@ -578,7 +575,7 @@ void TextDisplayer_rpg::printMessage(const char *str, int textColor, ...) {
 	vsnprintf(_dialogueBuffer, kEoBTextBufferSize - 1, str, args);
 	va_end(args);
 
-	displayText(_dialogueBuffer);
+	displayText(_dialogueBuffer, textColor);
 
 	if (_vm->game() != GI_EOB1)
 		_textDimData[_screen->curDimIndex()].color1 = tc;
@@ -787,7 +784,7 @@ void TextDisplayer_rpg::convertString(char *str) {
 			if ((*str) == c[0])
 				*str = c[1];
 		}
-	}	
+	}
 }
 
 } // End of namespace Kyra

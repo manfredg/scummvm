@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,8 +48,8 @@ struct voccxdef;
 
 /* file contexts for the built-in file handling functions */
 struct biffildef {
-    osfildef *fp;                          /* underyling system file handle */
-    uint      flags;                                               /* flags */
+	osfildef *fp;                          /* underyling system file handle */
+	uint      flags;                                               /* flags */
 #define BIFFIL_F_BINARY    0x01                           /* file is binary */
 
 	biffildef() : fp(nullptr), flags(0) {}
@@ -58,20 +57,20 @@ struct biffildef {
 
 /* built-in execution context */
 struct bifcxdef {
-    errcxdef *bifcxerr;                           /* error-handling context */
-    runcxdef *bifcxrun;                           /* code execution context */
-    tiocxdef *bifcxtio;                                 /* text I/O context */
-    long      bifcxrnd;                               /* random number seed */
-    int       bifcxseed1;                   /* first seed for new generator */
-    int       bifcxseed2;                  /* second seed for new generator */
-    int       bifcxseed3;                   /* third seed for new generator */
-    int       bifcxrndset;                   /* randomize() has been called */
-    biffildef bifcxfile[BIFFILMAX];          /* file handles for fopen, etc */
-    int       bifcxsafetyr;                 /* file I/O safety level - read */
-    int       bifcxsafetyw;                /* file I/O safety level - write */
-    const char *bifcxsavext;      /* saved game extension (null by default) */
-    appctxdef *bifcxappctx;                     /* host application context */
-    re_context bifcxregex;          /* regular expression searching context */
+	errcxdef *bifcxerr;                           /* error-handling context */
+	runcxdef *bifcxrun;                           /* code execution context */
+	tiocxdef *bifcxtio;                                 /* text I/O context */
+	long      bifcxrnd;                               /* random number seed */
+	int       bifcxseed1;                   /* first seed for new generator */
+	int       bifcxseed2;                  /* second seed for new generator */
+	int       bifcxseed3;                   /* third seed for new generator */
+	int       bifcxrndset;                   /* randomize() has been called */
+	biffildef bifcxfile[BIFFILMAX];          /* file handles for fopen, etc */
+	int       bifcxsafetyr;                 /* file I/O safety level - read */
+	int       bifcxsafetyw;                /* file I/O safety level - write */
+	const char *bifcxsavext;      /* saved game extension (null by default) */
+	appctxdef *bifcxappctx;                     /* host application context */
+	re_context bifcxregex;          /* regular expression searching context */
 
 	bifcxdef() : bifcxerr(nullptr), bifcxrun(nullptr), bifcxtio(nullptr),
 		bifcxrnd(0), bifcxseed1(0), bifcxseed2(0), bifcxseed3(0), bifcxrndset(0),
@@ -81,7 +80,7 @@ struct bifcxdef {
 
 /*
  *   argument list checking routines - can be disabled for faster
- *   run-time 
+ *   run-time
  */
 
 /* check for proper number of arguments */

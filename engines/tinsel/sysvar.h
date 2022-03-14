@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * System variable handling.
  */
@@ -78,12 +77,16 @@ typedef enum {	SV_DEFAULT_INV,
 		SYS_Platform,			// Hardware platform     **READ ONLY**
 		SYS_Debug,			// TRUE for debug build/'cheat'**READ ONLY**
 
-		ISV_DIVERT_ACTOR,
+		//SV_SPRITER_SCENE_ID = 0x2f // Noir, loaded scene
+
+		ISV_DIVERT_ACTOR, // for DW2 = 0x28, for Noir = 0x32
 		ISV_NO_BLOCKING,
 		ISV_GHOST_ACTOR,
 		ISV_GHOST_BASE,
 		ISV_GHOST_COLOR,
 
+		//SV_SPRITER_SCALE = 0x37 // Noir, scale used for 3D rendering
+		//SV_SPRITER_OVERLAY = 0x38 // Noir, if additional model is loaded
 
 		SV_TOPVALID } SYSVARS;
 
@@ -120,6 +123,12 @@ typedef enum {
 	SS_SOUND_HEADING,
 	SS_CONTROLS_HEADING,
 	SS_LANGUAGE_SELECT,
+
+	// Noir only:
+	SS_NOIR1,
+	SS_NOIR2,
+	SS_NOIR3,
+	SS_NOIR4,
 
 	SS_MAX_VALID
 } BOLLOX;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/scummsys.h"
@@ -109,7 +108,7 @@ void ComposerEngine::runEvent(uint16 id, int16 param1, int16 param2, int16 param
 
 	Common::SeekableReadStream *stream = getResource(ID_EVNT, id);
 	if (stream->size() != 2)
-		error("bad EVNT size %d", stream->size());
+		error("bad EVNT size %d", (int)stream->size());
 	uint16 scriptId = stream->readUint16LE();
 	delete stream;
 
@@ -178,10 +177,10 @@ void ComposerEngine::runScript(uint16 id) {
 
 	Common::SeekableReadStream *stream = getResource(ID_SCRP, id);
 	if (stream->size() < 2)
-		error("SCRP was too small (%d)", stream->size());
+		error("SCRP was too small (%d)", (int)stream->size());
 	uint16 size = stream->readUint16LE();
-	if (stream->size() < 2 + 2*size)
-		error("SCRP was too small (%d, but claimed %d entries)", stream->size(), size);
+	if ((int)stream->size() < 2 + 2*size)
+		error("SCRP was too small (%d, but claimed %d entries)", (int)stream->size(), size);
 	uint16 *script = new uint16[size];
 	for (uint i = 0; i < size; i++)
 		script[i] = stream->readUint16LE();

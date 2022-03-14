@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -328,11 +327,11 @@ void AVISurface::copyMovieFrame(const Graphics::Surface &src, Graphics::ManagedS
 		assert(src.format.bytesPerPixel == 4 && dest.format.bytesPerPixel == 2);
 		uint16 transPixel = _videoSurface->getTransparencyColor();
 
-		for (uint y = 0; y < MIN(src.h, dest.h); ++y) {
+		for (uint y = 0; y < (uint)MIN(src.h, dest.h); ++y) {
 			const uint32 *pSrc = (const uint32 *)src.getBasePtr(0, y);
 			uint16 *pDest = (uint16 *)dest.getBasePtr(0, y);
 
-			for (uint x = 0; x < MIN(src.w, dest.w); ++x, ++pSrc, ++pDest) {
+			for (uint x = 0; x < (uint)MIN(src.w, dest.w); ++x, ++pSrc, ++pDest) {
 				src.format.colorToARGB(*pSrc, a, r, g, b);
 				assert(a == 0 || a == 0xff);
 

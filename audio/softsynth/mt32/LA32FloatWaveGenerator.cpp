@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2021 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -49,7 +49,7 @@ void LA32FloatWaveGenerator::initSynth(const bool useSawtoothWaveform, const Bit
 	wavePos = 0.0f;
 	lastFreq = 0.0f;
 
-	pcmWaveAddress = NULL;
+	pcmWaveAddress = nullptr;
 	active = true;
 }
 
@@ -278,7 +278,7 @@ bool LA32FloatWaveGenerator::isActive() const {
 }
 
 bool LA32FloatWaveGenerator::isPCMWave() const {
-	return pcmWaveAddress != NULL;
+	return pcmWaveAddress != nullptr;
 }
 
 void LA32FloatPartialPair::init(const bool useRingModulated, const bool useMixed) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -182,13 +181,13 @@ void LoLEngine::snd_playSoundEffect(int track, int volume) {
 
 	bool hasVocFile = false;
 	if (vocIndex != -1) {
-		if (scumm_stricmp(_ingameSoundList[vocIndex], "EMPTY"))
+		if (!_ingameSoundList[vocIndex].equalsIgnoreCase("EMPTY"))
 			hasVocFile = true;
 	}
 
 	if (hasVocFile) {
-		if (_sound->isVoicePresent(_ingameSoundList[vocIndex]))
-			_sound->voicePlay(_ingameSoundList[vocIndex], 0, volume, priority, true);
+		if (_sound->isVoicePresent(_ingameSoundList[vocIndex].c_str()))
+			_sound->voicePlay(_ingameSoundList[vocIndex].c_str(), 0, volume, priority, true);
 	} else if (_flags.platform == Common::kPlatformDOS) {
 		if (_sound->getSfxType() == Sound::kMidiMT32)
 			track = (track < _ingameMT32SoundIndexSize) ? (_ingameMT32SoundIndex[track] - 1) : -1;
@@ -246,19 +245,15 @@ void LoLEngine::snd_playQueuedEffects() {
 }
 
 void LoLEngine::snd_loadSoundFile(int track) {
-	if (_sound->musicEnabled()) {
-		if (_flags.platform == Common::kPlatformDOS) {
-			int t = (track - 250) * 3;
-			if (_curMusicFileIndex != _musicTrackMap[t] || _curMusicFileExt != (char)_musicTrackMap[t + 1]) {
-				snd_stopMusic();
-				_sound->loadSoundFile(Common::String::format("LORE%02d%c", _musicTrackMap[t], (char)_musicTrackMap[t + 1]));
-				_curMusicFileIndex = _musicTrackMap[t];
-				_curMusicFileExt = (char)_musicTrackMap[t + 1];
-			} else {
-				snd_stopMusic();
-			}
-		}
-	}
+	if (!_sound->musicEnabled() || _flags.platform != Common::kPlatformDOS)
+		return;
+	snd_stopMusic();
+	int t = (track - 250) * 3;
+	if (t < 0 || (_curMusicFileIndex == _musicTrackMap[t] && _curMusicFileExt == (char)_musicTrackMap[t + 1]))
+		return;
+	_sound->loadSoundFile(Common::String::format("LORE%02d%c", _musicTrackMap[t], (char)_musicTrackMap[t + 1]));
+	_curMusicFileIndex = _musicTrackMap[t];
+	_curMusicFileExt = (char)_musicTrackMap[t + 1];
 }
 
 int LoLEngine::snd_playTrack(int track) {

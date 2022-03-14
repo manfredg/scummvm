@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,6 +42,9 @@ VirtualMouse::VirtualMouse(EventDispatcher *eventDispatcher) :
 		_subPixelRemainderX(0.f),
 		_subPixelRemainderY(0.f),
 		_lastUpdateMillis(0) {
+	ConfMan.registerDefault("kbdmouse_speed", 3);
+	ConfMan.registerDefault("joystick_deadzone", 3);
+
 	_eventDispatcher->registerSource(this, false);
 	_eventDispatcher->registerObserver(this, 10, false);
 }
@@ -62,7 +64,7 @@ bool VirtualMouse::pollEvent(Event &event) {
 
 	// Adjust the speed of the cursor according to the virtual screen resolution
 	Common::Rect screenSize;
-	if (g_gui.isActive()) {
+	if (g_system->isOverlayVisible()) {
 		screenSize = Common::Rect(g_system->getOverlayWidth(), g_system->getOverlayHeight());
 	} else {
 		screenSize = Common::Rect(g_system->getWidth(), g_system->getHeight());
@@ -95,6 +97,9 @@ bool VirtualMouse::pollEvent(Event &event) {
 
 	event.mouse.x = CLIP<int16>(event.mouse.x, 0, screenSize.width());
 	event.mouse.y = CLIP<int16>(event.mouse.y, 0, screenSize.height());
+
+	event.relMouse.x = delta.x;
+	event.relMouse.y = delta.y;
 
 	g_system->warpMouse(event.mouse.x, event.mouse.y);
 
@@ -138,6 +143,8 @@ bool VirtualMouse::notifyEvent(const Event &event) {
 	case kCustomActionVirtualMouseSlow:
 		_slowModifier = 0.9f * (1.f - event.joystick.position / (float)JOYAXIS_MAX) + 0.1f;
 		return true;
+	default:
+		break;
 	}
 
 	return false;
@@ -180,7 +187,7 @@ void VirtualMouse::handleAxisMotion(int16 axisPositionX, int16 axisPositionY) {
 	float analogY  = (float)_inputAxisPositionY;
 	float deadZone = (float)ConfMan.getInt("joystick_deadzone") * 1000.0f;
 
-	float magnitude = sqrtf(analogX * analogX + analogY * analogY);
+	float magnitude = sqrt(analogX * analogX + analogY * analogY);
 
 	if (magnitude >= deadZone) {
 		float scalingFactor = 1.0f / magnitude * (magnitude - deadZone) / (JOYAXIS_MAX - deadZone);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -541,7 +540,7 @@ void CoktelDecoder::renderBlockSparse(Graphics::Surface &dstSurf, const byte *sr
 			if (pixCount & 0x80) { // Data
 				int16 copyCount;
 
-				pixCount  = MIN((pixCount & 0x7F) + 1, srcRect.width() - pixWritten);
+				pixCount  = MIN<int16>((pixCount & 0x7F) + 1, srcRect.width() - pixWritten);
 				copyCount = CLIP<int16>(rect.width() - pixWritten, 0, pixCount);
 				memcpy(dstRow, src, copyCount);
 
@@ -576,7 +575,7 @@ void CoktelDecoder::renderBlockSparse2Y(Graphics::Surface &dstSurf, const byte *
 			int16 pixCount = *src++;
 
 			if (pixCount & 0x80) { // Data
-				pixCount  = MIN((pixCount & 0x7F) + 1, srcRect.width() - pixWritten);
+				pixCount  = MIN<int16>((pixCount & 0x7F) + 1, srcRect.width() - pixWritten);
 				memcpy(dstRow                 , src, pixCount);
 				memcpy(dstRow + dstSurf.pitch, src, pixCount);
 
@@ -610,7 +609,7 @@ void CoktelDecoder::renderBlockRLE(Graphics::Surface &dstSurf, const byte *src, 
 			if (pixCount & 0x80) {
 				int16 copyCount;
 
-				pixCount  = MIN((pixCount & 0x7F) + 1, srcRect.width() - pixWritten);
+				pixCount  = MIN<int16>((pixCount & 0x7F) + 1, srcRect.width() - pixWritten);
 				copyCount = CLIP<int16>(rect.width() - pixWritten, 0, pixCount);
 
 				if (*src != 0xFF) { // Normal copy
@@ -742,9 +741,7 @@ bool PreIMDDecoder::loadStream(Common::SeekableReadStream *stream) {
 	_frameCount = _stream->readUint16LE();
 
 	_videoBufferSize = _width * _height;
-	_videoBuffer     = new byte[_videoBufferSize];
-
-	memset(_videoBuffer, 0, _videoBufferSize);
+	_videoBuffer     = new byte[_videoBufferSize]();
 
 	return true;
 }
@@ -1141,8 +1138,7 @@ bool IMDDecoder::assessVideoProperties() {
 	}
 
 	for (int i = 0; i < 2; i++) {
-		_videoBuffer[i] = new byte[_videoBufferSize];
-		memset(_videoBuffer[i], 0, _videoBufferSize);
+		_videoBuffer[i] = new byte[_videoBufferSize]();
 	}
 
 	return true;
@@ -1958,8 +1954,7 @@ bool VMDDecoder::assessVideoProperties() {
 		}
 
 		for (int i = 0; i < 3; i++) {
-			_videoBuffer[i] = new byte[_videoBufferSize];
-			memset(_videoBuffer[i], 0, _videoBufferSize);
+			_videoBuffer[i] = new byte[_videoBufferSize]();
 
 			_8bppSurface[i].init(_width * _bytesPerPixel, _height, _width * _bytesPerPixel,
 			                     _videoBuffer[i], Graphics::PixelFormat::createFormatCLUT8());

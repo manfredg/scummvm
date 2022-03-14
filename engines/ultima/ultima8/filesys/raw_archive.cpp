@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,21 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "common/memstream.h"
 #include "ultima/ultima8/misc/pent_include.h"
-
 #include "ultima/ultima8/filesys/raw_archive.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/archive_file.h"
 
 namespace Ultima {
 namespace Ultima8 {
-
-DEFINE_RUNTIME_CLASSTYPE_CODE(RawArchive, Archive)
 
 RawArchive::~RawArchive() {
 	Archive::uncache();
@@ -50,7 +45,7 @@ void RawArchive::uncache(uint32 index) {
 
 	if (_objects[index]) {
 		delete[] _objects[index];
-		_objects[index] = 0;
+		_objects[index] = nullptr;
 	}
 }
 
@@ -58,42 +53,48 @@ bool RawArchive::isCached(uint32 index) const {
 	if (index >= _count) return false;
 	if (_objects.empty()) return false;
 
-	return (_objects[index] != 0);
+	return (_objects[index] != nullptr);
 }
 
 const uint8 *RawArchive::get_object_nodel(uint32 index) {
-	if (index >= _count) return 0;
+	if (index >= _count)
+		return nullptr;
 	cache(index);
 	return _objects[index];
 }
 
 uint8 *RawArchive::get_object(uint32 index) {
-	if (index >= _count) return 0;
+	if (index >= _count)
+		return nullptr;
 
 	if (index < _objects.size() && _objects[index]) {
 		// already cached
 		uint32 size = getRawSize(index);
-		if (size == 0) return 0;
+		if (size == 0)
+			return nullptr;
 		uint8 *object = new uint8[size];
-		Std::memcpy(object, _objects[index], size);
+		memcpy(object, _objects[index], size);
 		return object;
 	}
 
 	return getRawObject(index);
 }
 
-uint32 RawArchive::get_size(uint32 index) {
-	if (index >= _count) return 0;
+uint32 RawArchive::get_size(uint32 index) const {
+	if (index >= _count)
+		return 0;
 	return getRawSize(index);
 }
 
-IDataSource *RawArchive::get_datasource(uint32 index) {
-	if (index >= _count) return 0;
+Common::SeekableReadStream *RawArchive::get_datasource(uint32 index) {
+	if (index >= _count)
+		return nullptr;
 	cache(index);
 
-	if (!_objects[index]) return 0;
+	if (!_objects[index])
+		return nullptr;
 
-	return new IBufferDataSource(_objects[index], getRawSize(index));
+	return new Common::MemoryReadStream(_objects[index], getRawSize(index));
 }
 
 } // End of namespace Ultima8

@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@
 #include "pegasus/pegasus.h"
 #include "pegasus/ai/ai_area.h"
 #include "pegasus/items/biochips/aichip.h"
+#include "pegasus/items/biochips/arthurchip.h"
 #include "pegasus/items/biochips/biochipitem.h"
 #include "pegasus/items/biochips/opticalchip.h"
 #include "pegasus/items/biochips/pegasuschip.h"
@@ -37,7 +37,7 @@
 
 namespace Pegasus {
 
-AIArea *g_AIArea = 0;
+AIArea *g_AIArea = nullptr;
 
 AIArea::AIArea(InputHandler *nextHandler) : InputHandler(nextHandler), _leftAreaMovie(kAILeftAreaID),
 		_middleAreaMovie(kAIMiddleAreaID), _rightAreaMovie(kAIRightAreaID), _AIMovie(kAIMovieID) {
@@ -50,6 +50,7 @@ AIArea::AIArea(InputHandler *nextHandler) : InputHandler(nextHandler), _leftArea
 	_middleBiochipTime = 0xffffffff;
 	_rightBiochipTime = 0xffffffff;
 	_lockCount = 0;
+	((PegasusEngine *)g_engine)->requestToggle(false);
 	startIdling();
 }
 
@@ -69,7 +70,7 @@ AIArea::~AIArea() {
 	for (AIRuleList::iterator it = _AIRules.begin(); it != _AIRules.end(); it++)
 		delete *it;
 
-	g_AIArea = 0;
+	g_AIArea = nullptr;
 }
 
 // Save last state of AI rules...
@@ -458,6 +459,10 @@ void AIArea::activateHotspots() {
 			case kOpticalBiochip:
 				((OpticalChip *)currentBiochip)->activateOpticalHotspots();
 				break;
+			case kArthurBiochip:
+				if (vm->isDVD())
+					((ArthurChip *)currentBiochip)->activateArthurHotspots();
+				break;
 			default:
 				break;
 			}
@@ -495,6 +500,12 @@ void AIArea::clickInHotspot(const Input &input, const Hotspot *hotspot) {
 			case kOpticalBiochip:
 				if ((hotspot->getHotspotFlags() & kOpticalBiochipSpotFlag) != 0) {
 					((OpticalChip *)currentBiochip)->clickInOpticalHotspot(hotspot->getObjectID());
+					handled = true;
+				}
+				break;
+			case kArthurBiochip:
+				if (vm->isDVD() && (hotspot->getHotspotFlags() & kArthurBiochipSpotFlag) != 0) {
+					((ArthurChip *)currentBiochip)->clickInArthurHotspot(hotspot->getObjectID());
 					handled = true;
 				}
 				break;

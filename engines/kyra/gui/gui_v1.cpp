@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@
 namespace Kyra {
 
 GUI_v1::GUI_v1(KyraEngine_v1 *kyra) : GUI(kyra), _text(kyra->text()) {
-	_menuButtonList = 0;
+	_menuButtonList = nullptr;
 
 	_redrawButtonFunctor = BUTTON_FUNCTOR(GUI_v1, this, &GUI_v1::redrawButtonCallback);
 	_redrawShadedButtonFunctor = BUTTON_FUNCTOR(GUI_v1, this, &GUI_v1::redrawShadedButtonCallback);
@@ -41,7 +40,7 @@ Button *GUI_v1::addButtonToList(Button *list, Button *newButton) {
 	if (!newButton)
 		return list;
 
-	newButton->nextButton = 0;
+	newButton->nextButton = nullptr;
 
 	if (list) {
 		Button *cur = list;
@@ -68,7 +67,7 @@ void GUI_v1::initMenuLayout(Menu &menu) {
 }
 
 void GUI_v1::initMenu(Menu &menu) {
-	_menuButtonList = 0;
+	_menuButtonList = nullptr;
 
 	int textX;
 	int textY;
@@ -107,7 +106,7 @@ void GUI_v1::initMenu(Menu &menu) {
 
 		if (i < 7) {
 			Button *menuButtonData = getButtonListData() + i;
-			menuButtonData->nextButton = 0;
+			menuButtonData->nextButton = nullptr;
 			menuButtonData->x = x1;
 			menuButtonData->y = y1;
 			menuButtonData->width  = menu.item[i].width - 1;
@@ -123,7 +122,7 @@ void GUI_v1::initMenu(Menu &menu) {
 		_screen->fillRect(x1, y1, x2, y2, menu.item[i].bkgdColor);
 		_screen->drawShadedBox(x1, y1, x2, y2, menu.item[i].color1, menu.item[i].color2);
 
-		if (getMenuItemTitle(menu.item[i])) {
+		if (!getMenuItemTitle(menu.item[i]).empty()) {
 			if (menu.item[i].titleX != -1)
 				textX = x1 + menu.item[i].titleX + 3;
 			else
@@ -139,7 +138,7 @@ void GUI_v1::initMenu(Menu &menu) {
 			} else {
 				Screen::FontId of = _screen->_currentFont;
 				if (menu.item[i].saveSlot > 0)
-					_screen->setFont(Screen::FID_8_FNT);
+					_screen->setFont((_vm->gameFlags().lang == Common::ZH_CHN || _vm->gameFlags().lang == Common::ZH_TWN) ? Screen::FID_CHINESE_FNT : Screen::FID_8_FNT);
 
 				if (_vm->gameFlags().platform != Common::kPlatformAmiga)
 					printMenuText(getMenuItemTitle(menu.item[i]), textX - 1, textY + 1, defaultColor1(), 0, 0);
@@ -155,7 +154,7 @@ void GUI_v1::initMenu(Menu &menu) {
 	}
 
 	for (int i = 0; i < menu.numberOfItems; ++i) {
-		if (getMenuItemLabel(menu.item[i])) {
+		if (!getMenuItemLabel(menu.item[i]).empty()) {
 			if (_vm->game() == GI_LOL) {
 				menu.item[i].labelX = menu.item[i].x - 1;
 				menu.item[i].labelY = menu.item[i].y + 3;
@@ -173,7 +172,7 @@ void GUI_v1::initMenu(Menu &menu) {
 		scrollUpButton->x = menu.scrollUpButtonX + menu.x;
 		scrollUpButton->y = menu.scrollUpButtonY + menu.y;
 		scrollUpButton->buttonCallback = getScrollUpButtonHandler();
-		scrollUpButton->nextButton = 0;
+		scrollUpButton->nextButton = nullptr;
 		scrollUpButton->mouseWheel = -1;
 
 		_menuButtonList = addButtonToList(_menuButtonList, scrollUpButton);
@@ -183,7 +182,7 @@ void GUI_v1::initMenu(Menu &menu) {
 		scrollDownButton->x = menu.scrollDownButtonX + menu.x;
 		scrollDownButton->y = menu.scrollDownButtonY + menu.y;
 		scrollDownButton->buttonCallback = getScrollDownButtonHandler();
-		scrollDownButton->nextButton = 0;
+		scrollDownButton->nextButton = nullptr;
 		scrollDownButton->mouseWheel = 1;
 
 		_menuButtonList = addButtonToList(_menuButtonList, scrollDownButton);
@@ -259,7 +258,7 @@ void GUI_v1::redrawText(const Menu &menu) {
 	} else {
 		Screen::FontId of = _screen->_currentFont;
 		if (menu.item[i].saveSlot > 0)
-			_screen->setFont(Screen::FID_8_FNT);
+			_screen->setFont((_vm->gameFlags().lang == Common::ZH_CHN || _vm->gameFlags().lang == Common::ZH_TWN) ? Screen::FID_CHINESE_FNT : Screen::FID_8_FNT);
 		if (_vm->gameFlags().platform != Common::kPlatformAmiga)
 			printMenuText(getMenuItemTitle(menu.item[i]), textX - 1, textY + 1, defaultColor1(), 0, 0);
 		printMenuText(getMenuItemTitle(menu.item[i]), textX, textY, menu.item[i].textColor, 0, 0);
@@ -289,7 +288,7 @@ void GUI_v1::redrawHighlight(const Menu &menu) {
 	} else {
 		Screen::FontId of = _screen->_currentFont;
 		if (menu.item[i].saveSlot > 0)
-			_screen->setFont(Screen::FID_8_FNT);
+			_screen->setFont((_vm->gameFlags().lang == Common::ZH_CHN || _vm->gameFlags().lang == Common::ZH_TWN) ? Screen::FID_CHINESE_FNT : Screen::FID_8_FNT);
 		if (_vm->gameFlags().platform != Common::kPlatformAmiga)
 			printMenuText(getMenuItemTitle(menu.item[i]), textX - 1, textY + 1, defaultColor1(), 0, 0);
 		printMenuText(getMenuItemTitle(menu.item[i]), textX, textY, menu.item[i].highlightColor, 0, 0);
@@ -386,7 +385,7 @@ void GUI_v1::checkTextfieldInput() {
 			_vm->_mouseX = pos.x;
 			_vm->_mouseY = pos.y;
 
-			_vm->_system->updateScreen();
+			_screen->updateBackendScreen(true);
 			_lastScreenUpdate = now;
 			} break;
 
@@ -396,7 +395,7 @@ void GUI_v1::checkTextfieldInput() {
 	}
 
 	if (now - _lastScreenUpdate > 50) {
-		_vm->_system->updateScreen();
+		_screen->updateBackendScreen(true);
 		_lastScreenUpdate = now;
 	}
 
@@ -404,17 +403,17 @@ void GUI_v1::checkTextfieldInput() {
 	_vm->_system->delayMillis(3);
 }
 
-void GUI_v1::printMenuText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 c2) {
-	_text->printText(str, x, y, c0, c1, c2);
+void GUI_v1::printMenuText(const Common::String &str, int x, int y, uint8 c0, uint8 c1, uint8 c2) {
+	_text->printText(str.c_str(), x, y, c0, c1, c2);
 }
 
-int GUI_v1::getMenuCenterStringX(const char *str, int x1, int x2) {
-	return _text->getCenterStringX(str, x1, x2);
+int GUI_v1::getMenuCenterStringX(const Common::String &str, int x1, int x2) {
+	return _text->getCenterStringX(str.c_str(), x1, x2);
 }
 
 #pragma mark -
 
-MainMenu::MainMenu(KyraEngine_v1 *vm) : _vm(vm), _screen(0) {
+MainMenu::MainMenu(KyraEngine_v1 *vm) : _vm(vm), _screen(nullptr) {
 	_screen = _vm->screen();
 	_nextUpdate = 0;
 	_system = g_system;
@@ -433,7 +432,7 @@ void MainMenu::updateAnimation() {
 		if (now > _nextUpdate) {
 			_nextUpdate = now + _anim.delay * _vm->tickLength();
 
-			_anim.anim->displayFrame(_animIntern.curFrame, 0, 0, 0, 0, 0, 0);
+			_anim.anim->displayFrame(_animIntern.curFrame, 0, 0, 0, 0, nullptr, nullptr);
 			_animIntern.curFrame += _animIntern.direction;
 			if (_animIntern.curFrame < _anim.startFrame) {
 				_animIntern.curFrame = _anim.startFrame;
@@ -469,7 +468,7 @@ bool MainMenu::getInput() {
 	}
 
 	if (updateScreen)
-		_system->updateScreen();
+		_screen->updateBackendScreen(true);
 	return false;
 }
 
@@ -481,10 +480,10 @@ int MainMenu::handle(int dim) {
 	_screen->setTextColorMap(colorMap);
 
 	Screen::FontId oldFont = _screen->setFont(_static.font);
-	int charWidthBackUp = _screen->_charWidth;
+	int charWidthBackUp = _screen->_charSpacing;
 
 	if (_vm->game() != GI_LOL)
-		_screen->_charWidth = -2;
+		_screen->_charSpacing = -2;
 	_screen->setScreenDim(dim);
 
 	int backUpX = _screen->_curDim->sx;
@@ -498,6 +497,13 @@ int MainMenu::handle(int dim) {
 	int width = _screen->_curDim->w << 3;
 	int height =  _screen->_curDim->h;
 
+	if (_static.boxCoords) {
+		x = _static.boxCoords[0];
+		y = _static.boxCoords[1];
+		width = _static.boxCoords[2];
+		height = _static.boxCoords[3];
+	}
+
 	drawBox(x, y, width, height, 1);
 	drawBox(x + 1, y + 1, width - 2, height - 2, 0);
 
@@ -508,10 +514,7 @@ int MainMenu::handle(int dim) {
 	while (!_screen->isMouseVisible())
 		_screen->showMouse();
 
-	int fh = _screen->getFontHeight();
-	if (_vm->gameFlags().lang == Common::JA_JPN)
-		fh++;
-
+	int fh = _screen->getFontHeight() + _static.lineSpacingAdjust;
 	int textPos = ((_screen->_curDim->w >> 1) + _screen->_curDim->sx) << 3;
 
 	Common::Rect menuRect(x + 16, y + 4, x + width - 16, y + 4 + fh * _static.menuTable[3]);
@@ -551,18 +554,16 @@ int MainMenu::handle(int dim) {
 		command = -1;
 
 	_screen->copyRegion(backUpX, backUpY, backUpX, backUpY, backUpWidth, backUpHeight, 3, 0);
-	_screen->_charWidth = charWidthBackUp;
+	_screen->_charSpacing = charWidthBackUp;
 	_screen->setFont(oldFont);
 
 	return command;
 }
 
 void MainMenu::draw(int select) {
-	int top = _screen->_curDim->sy;
+	int top = _static.boxCoords ? _static.boxCoords[1] : _screen->_curDim->sy;
 	top += _static.menuTable[1];
-	int fh = _screen->getFontHeight();
-	if (_vm->gameFlags().lang == Common::JA_JPN)
-		fh++;
+	int fh = _screen->getFontHeight() + _static.lineSpacingAdjust;
 
 	for (int i = 0; i < _static.menuTable[3]; ++i) {
 		int curY = top + i * fh;
@@ -595,26 +596,34 @@ void MainMenu::printString(const char *format, int x, int y, int col1, int col2,
 	Common::String string = Common::String::vformat(format, vaList);
 	va_end(vaList);
 
+	Common::String revBuffer;
+	const char *cstr = string.c_str();
+	if (_vm->gameFlags().lang == Common::HE_ISR) {
+		for (int i = string.size() - 1; i >= 0; --i)
+			revBuffer += string[i];
+		cstr = revBuffer.c_str();
+	}
+
 	if (flags & 1)
-		x -= _screen->getTextWidth(string.c_str()) >> 1;
+		x -= _screen->getTextWidth(cstr) >> 1;
 
 	if (flags & 2)
-		x -= _screen->getTextWidth(string.c_str());
+		x -= _screen->getTextWidth(cstr);
 
 	if (_vm->gameFlags().use16ColorMode)
 		flags &= 3;
 
 	if (flags & 4) {
-		_screen->printText(string.c_str(), x - 1, y, _static.altColor, col2);
-		_screen->printText(string.c_str(), x, y + 1, _static.altColor, col2);
+		_screen->printText(cstr, x - 1, y, _static.altColor, col2);
+		_screen->printText(cstr, x, y + 1, _static.altColor, col2);
 	}
 
 	if (flags & 8) {
-		_screen->printText(string.c_str(), x - 1, y, 227, col2);
-		_screen->printText(string.c_str(), x, y + 1, 227, col2);
+		_screen->printText(cstr, x - 1, y, 227, col2);
+		_screen->printText(cstr, x, y + 1, 227, col2);
 	}
 
-	_screen->printText(string.c_str(), x, y, col1, col2);
+	_screen->printText(cstr, x, y, col1, col2);
 }
 
 } // End of namespace Kyra

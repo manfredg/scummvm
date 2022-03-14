@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,10 +39,8 @@ namespace GUI {
  * EditTextWidget.
  */
 class EditableWidget : public Widget, public CommandSender {
-public:
-	typedef Common::String String;
 protected:
-	String		_editString;
+	Common::U32String _editString;
 
 	uint32		_cmd;
 
@@ -55,19 +52,22 @@ protected:
 
 	int			_editScrollOffset;
 
+	Graphics::TextAlign _align;
+	Graphics::TextAlign _drawAlign;
+
 	ThemeEngine::FontStyle  _font;
 
 	ThemeEngine::TextInversionState  _inversion;
 
 public:
-	EditableWidget(GuiObject *boss, int x, int y, int w, int h, const char *tooltip = nullptr, uint32 cmd = 0);
-	EditableWidget(GuiObject *boss, const String &name, const char *tooltip = nullptr, uint32 cmd = 0);
+	EditableWidget(GuiObject *boss, int x, int y, int w, int h, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
+	EditableWidget(GuiObject *boss, const Common::String &name, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
 	~EditableWidget() override;
 
 	void init();
 
-	virtual void setEditString(const String &str);
-	virtual const String &getEditString() const		{ return _editString; }
+	virtual void setEditString(const Common::U32String &str);
+	virtual const Common::U32String &getEditString() const	{ return _editString; }
 
 	void handleTickle() override;
 	bool handleKeyDown(Common::KeyState state) override;

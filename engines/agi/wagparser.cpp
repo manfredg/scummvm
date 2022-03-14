@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 #include "common/fs.h"
 #include "common/debug.h"
 #include "common/textconsole.h"
+#include "common/ini-file.h"
 
 #include "agi/wagparser.h"
 
@@ -54,8 +54,7 @@ void WagProperty::deepCopy(const WagProperty &other) {
 	_propNum  = other._propNum;
 	_propSize = other._propSize;
 
-	deleteData(); // Delete old data (If any) and set _propData to NULL
-	if (other._propData != NULL) {
+	if (other._propData != nullptr) {
 		_propData = new char[other._propSize + 1UL]; // Allocate space for property's data plus trailing zero
 		memcpy(_propData, other._propData, other._propSize + 1UL); // Copy the whole thing
 	}
@@ -63,8 +62,8 @@ void WagProperty::deepCopy(const WagProperty &other) {
 
 bool WagProperty::read(Common::SeekableReadStream &stream) {
 	// First read the property's header
-	_propCode = (enum WagPropertyCode) stream.readByte();
-	_propType = (enum WagPropertyType) stream.readByte();
+	_propCode = (enum WagPropertyCode)stream.readByte();
+	_propType = (enum WagPropertyType)stream.readByte();
 	_propNum  = stream.readByte();
 	_propSize = stream.readUint16LE();
 
@@ -74,7 +73,6 @@ bool WagProperty::read(Common::SeekableReadStream &stream) {
 	}
 
 	// Then read the property's data
-	deleteData(); // Delete old data (If any)
 	_propData = new char[_propSize + 1UL]; // Allocate space for property's data plus trailing zero
 	uint32 readBytes = stream.read(_propData, _propSize); // Read the data in
 	_propData[_propSize] = 0; // Set the trailing zero for easy C-style string access
@@ -94,12 +92,13 @@ void WagProperty::setDefaults() {
 	_propType = PT_UNDEFINED;
 	_propNum  = 0;
 	_propSize = 0;
-	_propData = NULL;
+	_propData = nullptr;
 }
 
 void WagProperty::deleteData() {
-	delete[] _propData;
-	_propData = NULL;
+	if (_propData)
+		delete[] _propData;
+	_propData = nullptr;
 }
 
 WagFileParser::WagFileParser() :
@@ -171,9 +170,19 @@ bool WagFileParser::checkWagVersion(Common::SeekableReadStream &stream) {
 	}
 }
 
+void WagFileParser::addPropFromIni(Common::INIFile *iniWagFile, Common::String section, Common::String key, Agi::WagProperty::WagPropertyCode code) {
+	WagProperty property;
+	property.setPropCode(code);
+	Common::String value;
+	if (iniWagFile->getKey(key, section, value)) {
+		property.setPropDataSize(value);
+		_propList.push_back(property);
+	}
+}
+
 bool WagFileParser::parse(const Common::FSNode &node) {
 	WagProperty property; // Temporary property used for reading
-	Common::SeekableReadStream *stream = NULL; // The file stream
+	Common::SeekableReadStream *stream = nullptr; // The file stream
 
 	_parsedOk = false; // We haven't parsed the file yet
 
@@ -199,8 +208,21 @@ bool WagFileParser::parse(const Common::FSNode &node) {
 
 			if (!_parsedOk) // Error parsing stream
 				warning("Error parsing WAG file (%s). WAG file ignored", node.getPath().c_str());
-		} else // Invalid WinAGI version string or it couldn't be read
-			warning("Invalid WAG file (%s) version or error reading it. WAG file ignored", node.getPath().c_str());
+		} else {
+			// Invalid WinAGI version string or it couldn't be read
+			// Let's try to read WAG file as newer INI format
+			Common::INIFile *iniWagFile = new Common::INIFile();
+			_parsedOk = iniWagFile->loadFromStream(*stream);
+			if (_parsedOk) {
+				addPropFromIni(iniWagFile, "General", "Interpreter", WagProperty::PC_INTVERSION);
+				addPropFromIni(iniWagFile, "General", "GameID", WagProperty::PC_GAMEID);
+				addPropFromIni(iniWagFile, "General", "Description", WagProperty::PC_GAMEDESC);
+				addPropFromIni(iniWagFile, "General", "GameVersion", WagProperty::PC_GAMEVERSION);
+				addPropFromIni(iniWagFile, "General", "LastEdit", WagProperty::PC_GAMELAST);
+			} else
+				warning("Invalid WAG file (%s) version or error reading it. WAG file ignored", node.getPath().c_str());
+		}
+
 	} else // Couldn't open file
 		warning("Couldn't open WAG file (%s). WAG file ignored", node.getPath().c_str());
 
@@ -211,11 +233,21 @@ bool WagFileParser::parse(const Common::FSNode &node) {
 const WagProperty *WagFileParser::getProperty(const WagProperty::WagPropertyCode code) const {
 	for (PropertyList::const_iterator iter = _propList.begin(); iter != _propList.end(); ++iter)
 		if (iter->getCode() == code) return iter;
-	return NULL;
+	return nullptr;
 }
 
 bool WagFileParser::endOfProperties(const Common::SeekableReadStream &stream) const {
 	return stream.pos() >= (stream.size() - WINAGI_VERSION_LENGTH);
+}
+
+
+void WagProperty::setPropCode(WagPropertyCode propCode) {
+	_propCode = propCode;
+}
+
+void WagProperty::setPropDataSize(Common::String str) {
+	_propData = scumm_strdup(str.c_str());
+	_propSize = str.size();
 }
 
 } // End of namespace Agi

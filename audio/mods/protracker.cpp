@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 #include "audio/mods/module.h"
 
 #include "common/textconsole.h"
+#include "common/util.h"
 
 namespace Modules {
 
@@ -57,7 +57,7 @@ private:
 
 	static const int16 sinetable[];
 
-	struct {
+	struct Track {
 		byte sample;
 		byte lastSample;
 		uint16 period;
@@ -97,7 +97,7 @@ public:
 	}
 
 private:
-	void interrupt();
+	void interrupt() override;
 
 	void doPorta(int track) {
 		if (_track[track].portaToNote && _track[track].portaToNoteSpeed) {
@@ -169,7 +169,7 @@ ProtrackerStream::ProtrackerStream(Common::SeekableReadStream *stream, int offs,
 
 	_patternDelay = 0;
 
-	memset(_track, 0, sizeof(_track));
+	ARRAYCLEAR(_track);
 
 	startPaula();
 }
@@ -456,7 +456,7 @@ void ProtrackerStream::interrupt() {
 			sample_t &sample = _module.sample[_track[track].sample - 1];
 			setChannelData(track,
 			               sample.data,
-			               sample.replen > 2 ? sample.data + sample.repeat : 0,
+			               sample.replen > 2 ? sample.data + sample.repeat : nullptr,
 			               sample.len,
 			               sample.replen);
 			setChannelOffset(track, _track[track].offset);

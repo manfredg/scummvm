@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -512,6 +511,8 @@ bool AdEntity::loadBuffer(char *buffer, bool complete) {
 				i = DI_NONE;
 			}
 			_walkToDir = (TDirection)i;
+			break;
+
 #ifdef ENABLE_FOXTAIL
 		case TOKEN_HINT_X:
 			parser.scanStr(params, "%d", &_hintX);
@@ -845,7 +846,7 @@ bool AdEntity::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisStack
 	// [WME Kinjal 1.4] SetBeforeEntity / SetAfterEntity
 	// Usage at HeroCraft games: ent.SetBeforeEntity("redDuskaEntity")
 	// Look for target entity (entity with given name, on the same layer as source entity)
-	// If target entity is not found, do nothing  
+	// If target entity is not found, do nothing
 	// Else shift nodes of the layer to put current entity behind/after target entity
 	//////////////////////////////////////////////////////////////////////////
 	else if (strcmp(name, "SetBeforeEntity") == 0 || strcmp(name, "SetAfterEntity") == 0) {
@@ -872,7 +873,7 @@ bool AdEntity::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisStack
 								k++;
 							}
 
-							// shift layer nodes array between source and target 
+							// shift layer nodes array between source and target
 							int32 delta = j <= k ? 1 : -1;
 							AdSceneNode *tmp = layer->_nodes[j];
 							for (int32 x = j; x != (int32)k; x += delta) {
@@ -1263,7 +1264,7 @@ bool AdEntity::persist(BasePersistenceManager *persistMgr) {
 	persistMgr->transferPtr(TMEMBER_PTR(_theora));
 
 #ifdef ENABLE_FOXTAIL
-    if (BaseEngine::instance().isFoxTail(FOXTAIL_1_2_527, FOXTAIL_LATEST_VERSION)) { 
+	if (BaseEngine::instance().isFoxTail(FOXTAIL_1_2_527, FOXTAIL_LATEST_VERSION)) {
 	    persistMgr->transferSint32(TMEMBER(_hintX));
 	    persistMgr->transferSint32(TMEMBER(_hintY));
 	}

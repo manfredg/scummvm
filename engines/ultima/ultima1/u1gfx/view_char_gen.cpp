@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -170,7 +169,7 @@ void ViewCharacterGeneration::drawRace(Shared::Gfx::VisualSurface &s) {
 	s.fillRect(TextRect(2, 16, 37, 21), game->_bgColor);
 
 	s.writeString(game->_res->CHAR_GEN_TEXT[6], TextPoint(3, 17));
-	s.writeString(Common::String::format(game->_res->CHAR_GEN_TEXT[4], 
+	s.writeString(Common::String::format(game->_res->CHAR_GEN_TEXT[4],
 		game->_res->RACE_NAMES[0], game->_res->RACE_NAMES[1],
 		game->_res->RACE_NAMES[2], game->_res->RACE_NAMES[3]),
 		TextPoint(12, 19));
@@ -272,46 +271,46 @@ void ViewCharacterGeneration::setClass(int classNum) {
 	setMode(FLAG_NAME | FLAG_ATTRIBUTES);
 }
 
-bool ViewCharacterGeneration::ShowMsg(CShowMsg &msg) {
+bool ViewCharacterGeneration::ShowMsg(CShowMsg *msg) {
 	Shared::Gfx::VisualItem::ShowMsg(msg);
 	setMode(FLAG_INITIAL);
 	return true;
 }
 
-bool ViewCharacterGeneration::HideMsg(CHideMsg &msg) {
+bool ViewCharacterGeneration::HideMsg(CHideMsg *msg) {
 	Shared::Gfx::VisualItem::HideMsg(msg);
 	getGame()->_textCursor->setVisible(false);
 	return true;
 }
 
-bool ViewCharacterGeneration::KeypressMsg(CKeypressMsg &msg) {
+bool ViewCharacterGeneration::KeypressMsg(CKeypressMsg *msg) {
 	Ultima1Game *game = static_cast<Ultima1Game *>(getGame());
 
 	if (_flags & FLAG_RACE) {
-		if (msg._keyState.keycode >= Common::KEYCODE_a && msg._keyState.keycode <= Common::KEYCODE_d)
-			setRace(msg._keyState.keycode - Common::KEYCODE_a);
+		if (msg->_keyState.keycode >= Common::KEYCODE_a && msg->_keyState.keycode <= Common::KEYCODE_d)
+			setRace(msg->_keyState.keycode - Common::KEYCODE_a);
 	} else if (_flags & FLAG_SEX) {
-		if (msg._keyState.keycode >= Common::KEYCODE_a && msg._keyState.keycode <= Common::KEYCODE_b)
-			setSex(msg._keyState.keycode - Common::KEYCODE_a);
+		if (msg->_keyState.keycode >= Common::KEYCODE_a && msg->_keyState.keycode <= Common::KEYCODE_b)
+			setSex(msg->_keyState.keycode - Common::KEYCODE_a);
 	} else if (_flags & FLAG_CLASS) {
-		if (msg._keyState.keycode >= Common::KEYCODE_a && msg._keyState.keycode <= Common::KEYCODE_d)
-			setClass(msg._keyState.keycode - Common::KEYCODE_a);
+		if (msg->_keyState.keycode >= Common::KEYCODE_a && msg->_keyState.keycode <= Common::KEYCODE_d)
+			setClass(msg->_keyState.keycode - Common::KEYCODE_a);
 	} else if (_flags & FLAG_NAME) {
 		// Shouldn't reach here, since during name entry, keypresses go to text input
 	} else if (_flags & FLAG_SAVE) {
-		if (msg._keyState.keycode == Common::KEYCODE_y) {
+		if (msg->_keyState.keycode == Common::KEYCODE_y) {
 			// Save the game
 			if (save())
 				setView("Game");
 			else
 				setView("Title");
-		} else if (msg._keyState.keycode == Common::KEYCODE_n) {
+		} else if (msg->_keyState.keycode == Common::KEYCODE_n) {
 			// Start at the beginning again
 			setMode(FLAG_INITIAL);
 		}
 	} else {
 		// Initial attributes allocation
-		switch (msg._keyState.keycode) {
+		switch (msg->_keyState.keycode) {
 		case Common::KEYCODE_UP:
 		case Common::KEYCODE_KP8:
 			_selectedAttribute = (_selectedAttribute == 0) ? ATTRIBUTE_COUNT - 1 : _selectedAttribute - 1;
@@ -366,11 +365,11 @@ bool ViewCharacterGeneration::KeypressMsg(CKeypressMsg &msg) {
 	return true;
 }
 
-bool ViewCharacterGeneration::TextInputMsg(CTextInputMsg &msg) {
-	if (!msg._escaped && !msg._text.empty()) {
+bool ViewCharacterGeneration::TextInputMsg(CTextInputMsg *msg) {
+	if (!msg->_escaped && !msg->_text.empty()) {
 		// Name provided
-		_character->_name = msg._text;
-		
+		_character->_name = msg->_text;
+
 		_textInput->hide();
 		setMode(FLAG_SAVE);
 	}

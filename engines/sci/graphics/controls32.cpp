@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@
 #include "sci/graphics/cache.h"
 #include "sci/graphics/compare.h"
 #include "sci/graphics/controls32.h"
-#include "sci/graphics/font.h"
+#include "sci/graphics/scifont.h"
 #include "sci/graphics/screen.h"
 #include "sci/graphics/text32.h"
 
@@ -907,31 +906,28 @@ void GfxControls32::destroyScrollWindow(const reg_t id) {
 #pragma mark -
 #pragma mark Message box
 
-int16 GfxControls32::showMessageBox(const Common::String &message, const char *const okLabel, const char *const altLabel, const int16 okValue, const int16 altValue) {
+int16 GfxControls32::showMessageBox(const Common::U32String &message, const Common::U32String &okLabel, const Common::U32String &altLabel, const int16 okValue, const int16 altValue) {
 	GUI::MessageDialog dialog(message, okLabel, altLabel);
 	return (dialog.runModal() == GUI::kMessageOK) ? okValue : altValue;
 }
 
 reg_t GfxControls32::kernelMessageBox(const Common::String &message, const Common::String &title, const uint16 style) {
+	PauseToken pt;
 	if (g_engine) {
-		g_engine->pauseEngine(true);
+		pt = g_engine->pauseEngine();
 	}
 
 	int16 result;
 
 	switch (style & 0xF) {
 	case kMessageBoxOK:
-		result = showMessageBox(message, _("OK"), NULL, 1, 1);
+		result = showMessageBox(message, _("OK"), Common::U32String(), 1, 1);
 	break;
 	case kMessageBoxYesNo:
 		result = showMessageBox(message, _("Yes"), _("No"), 6, 7);
 	break;
 	default:
 		error("Unsupported MessageBox style 0x%x", style & 0xF);
-	}
-
-	if (g_engine) {
-		g_engine->pauseEngine(false);
 	}
 
 	return make_reg(0, result);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -1225,7 +1224,7 @@ void LoLEngine::drawScene(int pageNum) {
 		SWAP(_sceneDrawPage1, _sceneDrawPage2);
 	}
 
-	updateEnvironmentalSfx(0);
+	snd_updateEnvironmentalSfx(0);
 	gui_drawCompass();
 
 	_sceneUpdateRequired = false;
@@ -1452,7 +1451,7 @@ void LoLEngine::drawDecorations(int index) {
 		uint8 d = (_currentDirection + _dscWalls[s]) & 3;
 		int8 l = _wllShapeMap[_visibleBlocks[index]->walls[d]];
 
-		uint8 *shapeData = 0;
+		const uint8 *shapeData = 0;
 
 		int x = 0;
 		int y = 0;

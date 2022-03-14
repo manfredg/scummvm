@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,8 +41,7 @@ void SceneScriptMA02::InitializeScene() {
 	Scene_Exit_Add_2D_Exit(kMA02ExitMA06, 538, 84, 639, 327, 1);
 	Scene_Exit_Add_2D_Exit(kMA02ExitMA04,  56, 98, 150, 260, 0);
 
-	if (Global_Variable_Query(kVariableChapter) >= 4
-	 && Global_Variable_Query(kVariableChapter) == 5
+	if (Global_Variable_Query(kVariableChapter) == 5
 	 && Game_Flag_Query(kFlagMcCoyIsHelpingReplicants)
 	) {
 		Actor_Set_Goal_Number(kActorMaggie, kGoalMaggieDead);
@@ -140,7 +138,7 @@ bool SceneScriptMA02::ClickedOnItem(int itemId, bool a2) {
 bool SceneScriptMA02::ClickedOnExit(int exitId) {
 	if (exitId == kMA02ExitMA06) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, 23.19f, -144.12f, 378.27f, 0, true, false, false)) {
-			Music_Stop(10);
+			Music_Stop(10u);
 			Game_Flag_Set(kFlagMA02toMA06);
 			Set_Enter(kSetMA06, kSceneMA06);
 		}
@@ -194,7 +192,11 @@ void SceneScriptMA02::PlayerWalkedIn() {
 	) {
 		if (Game_Flag_Query(kFlagMcCoyIsHelpingReplicants)) {
 			Actor_Says(kActorMcCoy, 2390, kAnimationModeIdle);
-			Music_Play(kMusicBRBlues, 25, 0, 3, -1, 0, 0);
+			if (_vm->_cutContent) {
+				Music_Play(kMusicBRBlues, 25, 0, 3, -1, kMusicLoopPlayOnceRandomStart, 0);
+			} else {
+				Music_Play(kMusicBRBlues, 25, 0, 3, -1, kMusicLoopPlayOnce, 0);
+			}
 		} else {
 			Actor_Says(kActorMcCoy, 2385,  kAnimationModeTalk);
 		}
@@ -204,8 +206,9 @@ void SceneScriptMA02::PlayerWalkedIn() {
 
 	if ( Global_Variable_Query(kVariableChapter) < 4
 	 && !Game_Flag_Query(kFlagMA04ToMA02)
-	 &&  Actor_Query_Goal_Number(kActorMaggie) != 2
-	) {
+	 &&  Actor_Query_Goal_Number(kActorMaggie) != kGoalMaggieMA02Intermediate02) {
+		// Note, clause Actor_Query_Goal_Number(kActorMaggie) != kGoalMaggieMA02Intermediate02 is always true,
+		// as kGoalMaggieMA02Intermediate02 is never set as Maggie's goal.
 		Actor_Set_Goal_Number(kActorMaggie, kGoalMaggieMA02WalkToEntrance);
 
 		if (!Game_Flag_Query(kFlagMA02MaggieIntroduced)) {
@@ -231,7 +234,7 @@ void SceneScriptMA02::PlayerWalkedIn() {
 
 void SceneScriptMA02::PlayerWalkedOut() {
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 }
 
 void SceneScriptMA02::DialogueQueueFlushed(int a1) {
@@ -243,7 +246,12 @@ void SceneScriptMA02::talkWithRajif() {
 	Actor_Says(kActorMcCoy, 2370, 13);
 	Actor_Says(kActorRajif, 10, 13);
 	Actor_Says(kActorMcCoy, 2375, 13);
-	Actor_Says(kActorRajif, 20, 13);
+	if (_vm->_cutContent) {
+		Actor_Says_With_Pause(kActorRajif, 20, 0.0f, 13);
+		Actor_Says(kActorRajif, 30, 13);
+	} else {
+		Actor_Says(kActorRajif, 20, 13);
+	}
 	Actor_Says(kActorMcCoy, 2380, 13);
 	Sound_Play(kSfxSHOTCOK1, 100, 0, 100, 50);
 	Actor_Says(kActorRajif, 40, 13);

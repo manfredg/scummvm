@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/misc/pent_include.h"
 
 #include "ultima/ultima8/usecode/usecode.h"
-#include "ultima/ultima8/kernel/core_app.h"
+#include "ultima/ultima8/ultima8.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -44,7 +43,7 @@ uint32 Usecode::get_class_event(uint32 classid, uint32 eventid) {
 		offset += data[12 + (eventid * 4) + 1] << 8;
 		offset += data[12 + (eventid * 4) + 2] << 16;
 		offset += data[12 + (eventid * 4) + 3] << 24;
-	} else if (GAME_IS_REMORSE) {
+	} else if (GAME_IS_CRUSADER) {
 		offset = data[20 + (eventid * 6) + 2];
 		offset += data[20 + (eventid * 6) + 3] << 8;
 		offset += data[20 + (eventid * 6) + 4] << 16;

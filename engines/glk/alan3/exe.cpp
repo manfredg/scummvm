@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,7 +64,7 @@ void print(Aword fpos, Aword len) {
 	int i;
 	long savfp = 0;     /* Temporary saved text file position */
 	bool savedPrintFlag = printFlag;
-	void *info = NULL;      /* Saved decoding info */
+	void *info = nullptr;      /* Saved decoding info */
 
 
 	if (len == 0) return;
@@ -172,7 +171,7 @@ void visits(Aword v) {
 
 /*----------------------------------------------------------------------*/
 static void sayUndoneCommand(char *words) {
-	static Parameter *messageParameters = NULL;
+	static Parameter *messageParameters = nullptr;
 	messageParameters = (Parameter *)ensureParameterArrayAllocated(messageParameters);
 
 	current.location = where(HERO, DIRECT);
@@ -213,17 +212,17 @@ void quitGame(CONTEXT) {
 		if (!flag)
 			CALL1(terminate, 0)
 
-		if (strcasecmp(buf, "restart") == 0) {
+		if (scumm_stricmp(buf, "restart") == 0) {
 			LONG_JUMP_LABEL("restart")
 
-		} else if (strcasecmp(buf, "restore") == 0) {
+		} else if (scumm_stricmp(buf, "restore") == 0) {
 			g_vm->loadGame();
 			return;
 
-		} else if (strcasecmp(buf, "quit") == 0) {
+		} else if (scumm_stricmp(buf, "quit") == 0) {
 			CALL1(terminate, 0)
 
-		} else if (strcasecmp(buf, "undo") == 0) {
+		} else if (scumm_stricmp(buf, "undo") == 0) {
 			if (gameStateChanged) {
 				rememberCommands();
 				rememberGameState();
@@ -284,7 +283,7 @@ void cancelEvent(Aword theEvent) {
 /*----------------------------------------------------------------------*/
 static void increaseEventQueue(void) {
 	eventQueue = (EventQueueEntry *)realloc(eventQueue, (eventQueueTop + 2) * sizeof(EventQueueEntry));
-	if (eventQueue == NULL) syserr("Out of memory in increaseEventQueue()");
+	if (eventQueue == nullptr) syserr("Out of memory in increaseEventQueue()");
 
 	eventQueueSize = eventQueueTop + 2;
 }
@@ -345,8 +344,8 @@ static char *stripCharsFromStringForwards(int count, char *initialString, char *
 		stripPosition = strlen(initialString);
 	else
 		stripPosition = count;
-	rest = strdup(&initialString[stripPosition]);
-	strippedString = strdup(initialString);
+	rest = scumm_strdup(&initialString[stripPosition]);
+	strippedString = scumm_strdup(initialString);
 	strippedString[stripPosition] = '\0';
 	*theRest = rest;
 	return strippedString;
@@ -362,8 +361,8 @@ static char *stripCharsFromStringBackwards(Aint count, char *initialString, char
 		stripPosition = 0;
 	else
 		stripPosition = strlen(initialString) - count;
-	strippedString = strdup(&initialString[stripPosition]);
-	rest = strdup(initialString);
+	strippedString = scumm_strdup(&initialString[stripPosition]);
+	rest = scumm_strdup(initialString);
 	rest[stripPosition] = '\0';
 	*theRest = rest;
 	return strippedString;
@@ -383,7 +382,7 @@ static int skipWordForwards(char *string, int position) {
 
 	uint i;
 
-	for (i = position; i <= strlen(string) && strchr(separators, string[i]) == NULL; i++)
+	for (i = position; i <= strlen(string) && strchr(separators, string[i]) == nullptr; i++)
 		;
 	return i;
 }
@@ -408,7 +407,7 @@ static char *stripWordsFromStringForwards(Aint count, char *initialString, char 
 	stripped[position] = '\0';
 
 	skippedChars = countLeadingBlanks(initialString, position);
-	*theRest = strdup(&initialString[position + skippedChars]);
+	*theRest = scumm_strdup(&initialString[position + skippedChars]);
 
 	return (stripped);
 }
@@ -419,7 +418,7 @@ static int skipWordBackwards(char *string, int position) {
 	char separators[] = " .,?";
 	int i;
 
-	for (i = position; i > 0 && strchr(separators, string[i - 1]) == NULL; i--)
+	for (i = position; i > 0 && strchr(separators, string[i - 1]) == nullptr; i--)
 		;
 	return i;
 }
@@ -465,7 +464,7 @@ static char *stripWordsFromStringBackwards(Aint count, char *initialString, char
 		skippedChars = countTrailingBlanks(initialString, position - 1);
 		position -= skippedChars;
 	}
-	*theRest = strdup(initialString);
+	*theRest = scumm_strdup(initialString);
 	(*theRest)[position] = '\0';
 	return (stripped);
 }
@@ -542,7 +541,7 @@ void use(CONTEXT, int actor, int script) {
 	admin[actor].script = script;
 	admin[actor].step = 0;
 	step = stepOf(actor);
-	if (step != NULL && step->after != 0) {
+	if (step != nullptr && step->after != 0) {
 		FUNC1(evaluate, admin[actor].waitCount, step->after)
 	}
 
@@ -584,9 +583,9 @@ int randomInteger(int from, int to) {
 		if (to == from)
 			return to;
 		else if (to > from)
-			return (rand() / 10) % (to - from + 1) + from;
+			return (g_vm->getRandomNumber(0x7fffffff) / 10) % (to - from + 1) + from;
 		else
-			return (rand() / 10) % (from - to + 1) + to;
+			return (g_vm->getRandomNumber(0x7fffffff) / 10) % (from - to + 1) + to;
 	}
 }
 
@@ -609,7 +608,7 @@ bool contains(Aptr string, Aptr substring) {
 	strlow((char *)fromAptr(string));
 	strlow((char *)fromAptr(substring));
 
-	found = (strstr((char *)fromAptr(string), (char *)fromAptr(substring)) != 0);
+	found = (strstr((char *)fromAptr(string), (char *)fromAptr(substring)) != nullptr);
 
 	return found;
 }
@@ -631,14 +630,14 @@ bool streq(char a[], char b[]) {
 
 /*======================================================================*/
 void startTranscript(void) {
-	if (logFile == NULL) {
+	if (logFile == nullptr) {
 		Common::String filename = g_vm->getTargetName() + ".log";
 
 		uint fileUsage = transcriptOption ? fileusage_Transcript : fileusage_InputRecord;
 		frefid_t logFileRef = g_vm->glk_fileref_create_by_name(fileUsage, filename.c_str(), 0);
 		logFile = g_vm->glk_stream_open_file(logFileRef, filemode_Write, 0);
 
-		if (logFile == NULL) {
+		if (logFile == nullptr) {
 			transcriptOption = FALSE;
 			logOption = FALSE;
 		} else {
@@ -650,11 +649,11 @@ void startTranscript(void) {
 
 /*======================================================================*/
 void stopTranscript(void) {
-	if (logFile != NULL) {
+	if (logFile != nullptr) {
 		if (transcriptOption || logOption)
 			delete logFile;
 
-		logFile = NULL;
+		logFile = nullptr;
 		transcriptOption = FALSE;
 		logOption = FALSE;
 	}

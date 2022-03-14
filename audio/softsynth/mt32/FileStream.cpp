@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2021 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -15,33 +15,34 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef MT32EMU_SHARED
-#include <locale>
+#if defined MT32EMU_SHARED && defined MT32EMU_INSTALL_DEFAULT_LOCALE
+#include <clocale>
 #endif
 
 #include "internals.h"
 
-// Disable MSVC STL exceptions
-#ifdef _MSC_VER
-#define _HAS_EXCEPTIONS 0
-#endif
 #include "FileStream.h"
 
 namespace MT32Emu {
 
+// This initialises C locale with the user-preferred system locale once facilitating access
+// to ROM files with localised pathnames. This is only necessary in rare cases e.g. when building
+// shared library statically linked with C runtime with old MS VC versions, so that the C locale
+// set by the client application does not have effect, and thus such ROM files cannot be opened.
 static inline void configureSystemLocale() {
-#ifdef MT32EMU_SHARED
+#if defined MT32EMU_SHARED && defined MT32EMU_INSTALL_DEFAULT_LOCALE
 	static bool configured = false;
 
 	if (configured) return;
 	configured = true;
-	std::locale::global(std::locale(""));
+
+	setlocale(LC_ALL, "");
 #endif
 }
 
 using std::ios_base;
 
-FileStream::FileStream() : ifsp(*new std::ifstream), data(NULL), size(0)
+FileStream::FileStream() : ifsp(*new std::ifstream), data(nullptr), size(0)
 {}
 
 FileStream::~FileStream() {
@@ -63,24 +64,24 @@ size_t FileStream::getSize() {
 }
 
 const Bit8u *FileStream::getData() {
-	if (data != NULL) {
+	if (data != nullptr) {
 		return data;
 	}
 	if (!ifsp.is_open()) {
-		return NULL;
+		return nullptr;
 	}
 	if (getSize() == 0) {
-		return NULL;
+		return nullptr;
 	}
 	Bit8u *fileData = new Bit8u[size];
-	if (fileData == NULL) {
-		return NULL;
+	if (fileData == nullptr) {
+		return nullptr;
 	}
 	ifsp.seekg(0);
 	ifsp.read(reinterpret_cast<char *>(fileData), std::streamsize(size));
 	if (size_t(ifsp.tellg()) != size) {
 		delete[] fileData;
-		return NULL;
+		return nullptr;
 	}
 	data = fileData;
 	close();

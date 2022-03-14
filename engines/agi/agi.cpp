@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -118,7 +117,7 @@ int AgiEngine::agiInit() {
 	// some scripts expect that the game strings remain unaffected after a
 	// restart. An example is script 98 in SQ2, which is not invoked on restart
 	// to ask Ego's name again. The name is supposed to be maintained in string 1.
-	// Fixes bug #3292784.
+	// Fixes bug #5673.
 	if (!_restartGame) {
 		for (i = 0; i < MAX_STRINGS; i++)
 			_game.strings[i][0] = 0;
@@ -167,14 +166,6 @@ int AgiEngine::agiInit() {
 	if (ec == errOK)
 		ec = _loader->loadResource(RESOURCETYPE_LOGIC, 0);
 
-#ifdef __DS__
-	// Normally, the engine loads the predictive text dictionary when the predictive dialog
-	// is shown.  On the DS version, the word completion feature needs the dictionary too.
-
-	// FIXME - loadDict() no long exists in AGI as this has been moved to within the
-	// GUI Predictive Dialog, but DS Word Completion is probably broken due to this...
-#endif
-
 	_keyHoldMode = false;
 	_keyHoldModeLastKey = Common::KEYCODE_INVALID;
 
@@ -183,8 +174,7 @@ int AgiEngine::agiInit() {
 	// Reset in-game timer
 	inGameTimerReset();
 
-	// Sync volume settings from ScummVM system settings
-	setVolumeViaSystemSetting();
+	applyVolumeToMixer();
 
 	return ec;
 }
@@ -265,7 +255,7 @@ AgiBase::AgiBase(OSystem *syst, const AGIGameDescription *gameDesc) : Engine(sys
 	_noSaveLoadAllowed = false;
 
 	_rnd = new Common::RandomSource("agi");
-	_sound = 0;
+	_sound = nullptr;
 
 	initFeatures();
 	initVersion();
@@ -351,17 +341,6 @@ AgiEngine::AgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBas
 	// Setup mixer
 	syncSoundSettings();
 
-	DebugMan.addDebugChannel(kDebugLevelMain, "Main", "Generic debug level");
-	DebugMan.addDebugChannel(kDebugLevelResources, "Resources", "Resources debugging");
-	DebugMan.addDebugChannel(kDebugLevelSprites, "Sprites", "Sprites debugging");
-	DebugMan.addDebugChannel(kDebugLevelInventory, "Inventory", "Inventory debugging");
-	DebugMan.addDebugChannel(kDebugLevelInput, "Input", "Input events debugging");
-	DebugMan.addDebugChannel(kDebugLevelMenu, "Menu", "Menu debugging");
-	DebugMan.addDebugChannel(kDebugLevelScripts, "Scripts", "Scripts debugging");
-	DebugMan.addDebugChannel(kDebugLevelSound, "Sound", "Sound debugging");
-	DebugMan.addDebugChannel(kDebugLevelText, "Text", "Text output debugging");
-	DebugMan.addDebugChannel(kDebugLevelSavegame, "Savegame", "Saving & restoring game debugging");
-
 	memset(&_debug, 0, sizeof(struct AgiDebug));
 
 	_game.mouseEnabled = true;
@@ -382,7 +361,7 @@ AgiEngine::AgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBas
 
 	_allowSynthetic = false;
 
-	_intobj = NULL;
+	_intobj = nullptr;
 
 	memset(&_stringdata, 0, sizeof(struct StringData));
 
@@ -392,12 +371,12 @@ AgiEngine::AgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : AgiBas
 
 	resetControllers();
 
-	_game._curLogic = NULL;
+	_game._curLogic = nullptr;
 	_veryFirstInitialCycle = true;
 	_instructionCounter = 0;
 	resetGetVarSecondsHeuristic();
 
-	_setVolumeBrokenFangame = false; // for further study see AgiEngine::setVolumeViaScripts()
+	_setVolumeBrokenFangame = false; // for further study see AgiEngine::applyVolumeToMixer()
 
 	_playTimeInSecondsAdjust = 0;
 	_lastUsedPlayTimeInCycles = 0;
@@ -453,7 +432,6 @@ void AgiEngine::initialize() {
 			_soundemu = SOUND_EMU_AMIGA;
 			break;
 		default:
-			debug(0, "DEF");
 			_soundemu = SOUND_EMU_MIDI;
 			break;
 		}
@@ -549,7 +527,7 @@ Common::Error AgiEngine::go() {
 void AgiEngine::syncSoundSettings() {
 	Engine::syncSoundSettings();
 
-	setVolumeViaSystemSetting();
+	applyVolumeToMixer();
 }
 
 // WORKAROUND:
@@ -699,6 +677,25 @@ void AgiEngine::artificialDelayTrigger_DrawPicture(int16 newPictureNr) {
 		}
 	}
 	_artificialDelayCurrentPicture = newPictureNr;
+}
+
+void AgiGame::setAppleIIgsSpeedLevel(int i) {
+	appleIIgsSpeedLevel = i;
+	_vm->setVar(VM_VAR_WINDOW_AUTO_CLOSE_TIMER, 6);
+	switch (i) {
+	case 0:
+		_vm->_text->messageBox("Fastest speed.");
+		break;
+	case 1:
+		_vm->_text->messageBox("Fast speed.");
+		break;
+	case 2:
+		_vm->_text->messageBox("Normal speed.");
+		break;
+	case 3:
+		_vm->_text->messageBox("Slow speed.");
+		break;
+	}
 }
 
 } // End of namespace Agi

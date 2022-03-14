@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Multi-part object definitions
  */
@@ -45,7 +44,6 @@ struct MULTI_INIT {
 	int32 mulZ;				///< multi-objects initial z position
 	uint32 otherFlags;		///< multi-objects Tinsel 2 - other flags
 } PACKED_STRUCT;
-typedef MULTI_INIT *PMULTI_INIT;
 
 #include "common/pack-end.h"	// END STRUCT PACKING
 
@@ -100,10 +98,6 @@ void MultiSetZPosition(		// Sets the z position of a multi-part object
 	OBJECT *pMultiObj,	// multi-part object to be adjusted
 	int newZ);		// new Z order
 
-void MultiMatchAniPoints(	// Matches a multi-parts pos and orientation to be the same as a reference object
-	OBJECT *pMoveObj,	// multi-part object to be moved
-	OBJECT *pRefObj);	// multi-part object to match with
-
 void MultiReshape(		// Reshape a multi-part object
 	OBJECT *pMultiObj);	// multi-part object to re-shape
 
@@ -120,10 +114,10 @@ int MultiLowest(		// Returns the lowest point of a multi-part object
 	OBJECT *pMulti);	// multi-part object
 
 bool MultiHasShape(		// Returns TRUE if the object currently has an image
-	POBJECT pMulti);	// multi-part object
+	OBJECT *pMulti);	// multi-part object
 
 void MultiForceRedraw(
-	POBJECT pMultiObj);	// multi-part object to be forced
+	OBJECT *pMultiObj);	// multi-part object to be forced
 
 } // End of namespace Tinsel
 

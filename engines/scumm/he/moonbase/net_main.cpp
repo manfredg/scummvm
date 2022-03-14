@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -187,7 +186,7 @@ int Net::joinSession(int sessionIndex) {
 	}
 
 	if (sessionIndex >= (int)_sessions->countChildren()) {
-		warning("Net::joinSession(): session number too big: %d >= %lu", sessionIndex, _sessions->countChildren());
+		warning("Net::joinSession(): session number too big: %d >= %d", sessionIndex, (int)_sessions->countChildren());
 		return 0;
 	}
 
@@ -327,13 +326,13 @@ int32 Net::startQuerySessions() {
 	if (!_sessions)
 		return 0;
 
-	debug(1, "Net::startQuerySessions(): got %lu", _sessions->countChildren());
+	debug(1, "Net::startQuerySessions(): got %d", (int)_sessions->countChildren());
 
 	return _sessions->countChildren();
 }
 
 void Net::startQuerySessionsCallback(Common::JSONValue *response) {
-	debug(1, "startQuerySessions: Got: '%s' which is %lu", response->stringify().c_str(), response->countChildren());
+	debug(1, "startQuerySessions: Got: '%s' which is %d", response->stringify().c_str(), (int)response->countChildren());
 
 	_sessionsBeingQueried = false;
 
@@ -557,7 +556,7 @@ void Net::getSessionName(int sessionNumber, char *buffer, int length) {
 
 	if (sessionNumber >= (int)_sessions->countChildren()) {
 		*buffer = '\0';
-		warning("Net::getSessionName(): session number too big: %d >= %lu", sessionNumber, _sessions->countChildren());
+		warning("Net::getSessionName(): session number too big: %d >= %d", sessionNumber, (int)_sessions->countChildren());
 		return;
 	}
 
@@ -573,7 +572,7 @@ int Net::getSessionPlayerCount(int sessionNumber) {
 	}
 
 	if (sessionNumber >= (int)_sessions->countChildren()) {
-		warning("Net::getSessionPlayerCount(): session number too big: %d >= %lu", sessionNumber, _sessions->countChildren());
+		warning("Net::getSessionPlayerCount(): session number too big: %d >= %d", sessionNumber, (int)_sessions->countChildren());
 		return 0;
 	}
 

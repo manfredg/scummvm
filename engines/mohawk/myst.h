@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 
 #include "mohawk/console.h"
 #include "mohawk/mohawk.h"
+#include "mohawk/myst_actions.h"
 #include "mohawk/resource_cache.h"
 #include "mohawk/video.h"
 
@@ -41,7 +41,8 @@ class MystGraphics;
 class MystScriptParser;
 class MystConsole;
 class MystGameState;
-class MystOptionsDialog;
+struct MystLanguage;
+class MystOptionsWidget;
 class MystSound;
 class MystArea;
 class MystAreaImageSwitch;
@@ -145,6 +146,7 @@ public:
 	uint16 getMainCursor() { return _mainCursor; }
 	void refreshCursor();
 	bool wait(uint32 duration, bool skippable = false);
+	bool addCdRomDelay;
 
 	/** Update the game state according to events and update the screen */
 	void doFrame();
@@ -184,7 +186,8 @@ public:
 	 * When the game is interactive, the user can interact with the game world
 	 * and perform other operations such as loading saved games, ...
 	 */
-	bool isInteractive();
+	bool isInteractive() const;
+	bool isGameStarted() const;
 	bool canLoadGameStateCurrently() override;
 	bool canSaveGameStateCurrently() override;
 	Common::Error loadGameState(int slot) override;
@@ -194,16 +197,23 @@ public:
 	}
 
 	bool hasFeature(EngineFeature f) const override;
+
+	void applyGameSettings() override;
 	static Common::Array<Common::Keymap *> initKeymaps(const char *target);
 
 	void resumeFromMainMenu();
 
-	void runLoadDialog();
-	void runSaveDialog();
 	void runOptionsDialog();
+	void runCredits();
+
+	bool canDoAction(MystEventAction action);
+	void doAction(MystEventAction action);
+	void scheduleAction(MystEventAction action);
+
+	static const MystLanguage *getLanguageDesc(Common::Language language);
+	Common::Language getLanguage() const override;
 
 private:
-	MystOptionsDialog *_optionsDialog;
 	ResourceCache _cache;
 
 	MystScriptParserPtr _prevStack;
@@ -215,7 +225,6 @@ private:
 	void pauseEngineIntern(bool pause) override;
 
 	void goToMainMenu();
-	bool isGameStarted() const;
 
 	void dropPage();
 
@@ -232,6 +241,9 @@ private:
 
 	uint16 _currentCursor;
 	uint16 _mainCursor; // Also defines the current page being held (white, blue, red, or none)
+
+	Common::Language _currentLanguage;
+	MystEventAction _scheduledAction;
 };
 
 } // End of namespace Mohawk

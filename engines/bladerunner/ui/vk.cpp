@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -239,7 +238,7 @@ void VK::addQuestion(int intensity, int sentenceId, int relatedSentenceId) {
 	}
 }
 
-void VK::playSpeechLine(int actorId, int sentenceId, float duration) {
+void VK::playSpeechLine(int actorId, int sentenceId, float pauseDuration) {
 	_vm->gameWaitForActive();
 
 	_vm->_mouse->disable();
@@ -258,9 +257,9 @@ void VK::playSpeechLine(int actorId, int sentenceId, float duration) {
 		}
 	}
 
-	if (duration > 0.0f && !_vm->_actorSpeakStopIsRequested) {
+	if (pauseDuration > 0.0f && !_vm->_actorSpeakStopIsRequested) {
 		uint32  timeStart = _vm->_time->current();
-		uint32  timeUntil = duration * 1000.0f;
+		uint32  timeUntil = pauseDuration * 1000.0f;
 		while ((_vm->_time->current() - timeStart < timeUntil) && _vm->_gameIsRunning) {
 			_vm->gameTick();
 		}
@@ -958,8 +957,8 @@ void VK::setAdjustmentFromMouse() {
 * It will search through all questions to find a related question Id and its intensity
 */
 void VK::findRelatedQuestionBySentenceId(int inSentenceId, int &outRelatedQuestionId, int &outRelatedIntensity) {
-    outRelatedQuestionId = -1;
-    outRelatedIntensity  = -1;
+	outRelatedQuestionId = -1;
+	outRelatedIntensity  = -1;
 
 	for (int intensity = 0; intensity < 3; ++intensity) {
 		for (int i = 0; i < (int)_questions[intensity].size(); ++i) {

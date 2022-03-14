@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,6 +52,7 @@ enum PegasusAction {
 	kPegasusActionSaveGameState,
 	kPegasusActionLoadGameState,
 	kPegasusActionEnableEasterEgg,
+	kPegasusActionToggleChattyAI,
 
 	kPegasusActionCount
 };
@@ -76,6 +76,7 @@ protected:
 	// Keep track of which keys are down (= true) or not
 	bool _keysDown[kPegasusActionCount];
 	InputBits _lastRawBits;
+	bool _AKeyWasDown;
 };
 
 enum {
@@ -297,7 +298,7 @@ enum {
 };
 
 static const InputBits kHintInterruption = kFilterAllInputNoAuto;
-static const InputBits kWarningInterruption = kFilterNoInput;
+static const InputBits kWarningInterruption = kFilterAllInputNoAuto;
 static const InputBits kOpticalInterruption = kFilterAllInputNoAuto;
 
 /*
@@ -496,7 +497,7 @@ public:
 
 	static bool isRaiseInventoryInput(const Input &input) { return input.leftFireButtonDown(); }
 	static bool isRaiseBiochipsInput(const Input &input) { return input.rightFireButtonDown(); }
-	static InputBits getItemPanelsInputFilter() { return kFilterLeftFireButton | kFilterRightFireButton; }
+	static InputBits getItemPanelsInputFilter() { return kFilterFourButton | kFilterLeftFireButton | kFilterRightFireButton; }
 
 	static bool isToggleAIMiddleInput(const Input &input) { return input.threeButtonDown(); }
 

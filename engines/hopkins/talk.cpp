@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,10 +36,10 @@ namespace Hopkins {
 
 TalkManager::TalkManager(HopkinsEngine *vm) {
 	_vm = vm;
-	_characterBuffer = NULL;
-	_characterPalette = NULL;
-	_characterSprite = NULL;
-	_characterAnim = NULL;
+	_characterBuffer = nullptr;
+	_characterPalette = nullptr;
+	_characterSprite = nullptr;
+	_characterAnim = nullptr;
 	_characterSize = 0;
 	_dialogueMesgId1 = _dialogueMesgId2 = _dialogueMesgId3 = _dialogueMesgId4 = 0;
 	_paletteBufferIdx = 0;
@@ -719,7 +718,7 @@ bool TalkManager::searchCharacterAnim(int idx, const byte *bufPerso, int animId,
 					loopCond = true;
 				if (bufIndx > bufferSize) {
 					_vm->_animMan->_animBqe[idx]._enabledFl = false;
-					_vm->_animMan->_animBqe[idx]._data = NULL;
+					_vm->_animMan->_animBqe[idx]._data = nullptr;
 					return false;
 				}
 				++bufIndx;
@@ -768,11 +767,11 @@ void TalkManager::handleAnswer(int zone, int verb) {
 	byte verbObj = verb;
 
 	bool outerLoopFl;
-	byte *ptr = NULL;
+	byte *ptr = nullptr;
 	do {
 		outerLoopFl = false;
 		bool tagFound = false;
-		if (_vm->_globals->_answerBuffer == NULL)
+		if (_vm->_globals->_answerBuffer == nullptr)
 			return;
 
 		byte *curAnswerBuf = _vm->_globals->_answerBuffer;
@@ -1019,7 +1018,7 @@ void TalkManager::animateObject(const Common::String &filename) {
 	searchCharacterPalette(_paletteBufferIdx, true);
 	startCharacterAnim0(_paletteBufferIdx, false);
 	byte *oldAnswerBufferPtr = _vm->_globals->_answerBuffer;
-	_vm->_globals->_answerBuffer = NULL;
+	_vm->_globals->_answerBuffer = nullptr;
 	_vm->_globals->_freezeCharacterFl = true;
 	_vm->_objectsMan->loadLinkFile(screenFilename);
 	_vm->_objectsMan->_charactersEnabledFl = true;

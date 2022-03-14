@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,10 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+#include "common/translation.h"
 
 namespace TsAGE {
 
@@ -38,19 +39,19 @@ static const tSageGameDescription gameDescriptions[] = {
 		GType_Ringworld,
 		GF_CD | GF_ALT_REGIONS
 	},
-	// Ringworld Spanish CD
+	// Ringworld Spanish Floppy and CD use the same files
 	{
 		{
 			"ringworld",
-			"CD",
+			"",
 			AD_ENTRY1s("ring.rlb", "cb8bba91b30cd172712371d7123bd763", 7427980),
 			Common::ES_ESP,
 			Common::kPlatformDOS,
-			ADGF_CD,
+			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSPEECH, GUIO_NOSFX)
 		},
 		GType_Ringworld,
-		GF_CD | GF_ALT_REGIONS
+		GF_FLOPPY | GF_ALT_REGIONS
 	},
 	// Ringworld English Floppy version
 	{
@@ -95,23 +96,22 @@ static const tSageGameDescription gameDescriptions[] = {
 		GType_Ringworld,
 		GF_FLOPPY | GF_DEMO | GF_ALT_REGIONS
 	},
-#if 0
-	// FIXME: Compute new MD5s based on 5000 bytes instead of 0 (unlimited)
-	// Blue Force floppy
+
+	// Blue Force floppy, uninstalled
 	{
 		{
 			"blueforce",
-			"Floppy",
-			AD_ENTRY1s("blue.rlb", "17c3993415e8a2cf93040eef7e88ec93", 1156508),
+			"Floppy, Uninstalled",
+			AD_ENTRY1s("blue.rlb", "0625e9f985e52bf221107f50672bd4c3", 1156508),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_UNSTABLE,
 			GUIO2(GUIO_NOSPEECH, GUIO_NOSFX)
 		},
 		GType_BlueForce,
-		GF_FLOPPY
+		GF_FLOPPY | GF_UNINSTALLED
 	},
-#endif
+
 	// Blue Force
 	{
 		{
@@ -140,23 +140,22 @@ static const tSageGameDescription gameDescriptions[] = {
 		GType_BlueForce,
 		GF_CD | GF_ALT_REGIONS
 	},
-#if 0
-	// Blue Force Spanish doesn't yet work
-	// Blue Force Spanish CD
+
+	// Blue Force Spanish Floppy and CD use the same files
 	{
 		{
 			"blueforce",
-			"CD",
+			"",
 			AD_ENTRY1s("blue.rlb", "5b2b35c51b62e82d82b0791540bfae2d", 10082565),
 			Common::ES_ESP,
 			Common::kPlatformDOS,
-			ADGF_CD | ADGF_UNSTABLE,
+			ADGF_NO_FLAGS,
 			GUIO2(GUIO_NOSPEECH, GUIO_NOSFX)
 		},
 		GType_BlueForce,
-		GF_CD | GF_ALT_REGIONS
+		GF_FLOPPY | GF_ALT_REGIONS
 	},
-#endif
+
 	// Return to Ringworld
 	{
 		{

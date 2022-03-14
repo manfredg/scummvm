@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,15 @@
 #include "common/str.h"
 
 namespace Common {
+
+/**
+ * @defgroup common_serializer Serializer
+ * @ingroup common
+ *
+ * @brief API for serializing data.
+ *
+ * @{
+ */
 
 #define VER(x) Common::Serializer::Version(x)
 
@@ -77,6 +85,10 @@ public:
 	SYNC_PRIMITIVE(Uint32BE)
 	SYNC_PRIMITIVE(Sint32LE)
 	SYNC_PRIMITIVE(Sint32BE)
+	SYNC_PRIMITIVE(FloatLE)
+	SYNC_PRIMITIVE(FloatBE)
+	SYNC_PRIMITIVE(DoubleLE)
+	SYNC_PRIMITIVE(DoubleBE)
 	SYNC_PRIMITIVE(Uint16LE)
 	SYNC_PRIMITIVE(Uint16BE)
 	SYNC_PRIMITIVE(Sint16LE)
@@ -102,8 +114,8 @@ public:
 	inline bool isSaving() { return (_saveStream != 0); }
 	inline bool isLoading() { return (_loadStream != 0); }
 
-	// WORKAROUND for bugs #2892515 "BeOS: tinsel does not compile" and
-	// #2892510 "BeOS: Cruise does not compile". gcc 2.95.3, which is used
+	// WORKAROUND for bugs #4698 "BeOS: tinsel does not compile" and
+	// #4697 "BeOS: Cruise does not compile". gcc 2.95.3, which is used
 	// for BeOS fails due to an internal compiler error, when we place the
 	// following function definitions in another place. Before this work-
 	// around the following SYNC_AS definitions were placed at the end
@@ -122,6 +134,10 @@ public:
 	SYNC_AS(Uint32BE, uint32, 4)
 	SYNC_AS(Sint32LE, int32, 4)
 	SYNC_AS(Sint32BE, int32, 4)
+	SYNC_AS(FloatLE, float, 4)
+	SYNC_AS(FloatBE, float, 4)
+	SYNC_AS(DoubleLE, double, 4)
+	SYNC_AS(DoubleBE, double, 4)
 
 	/**
 	 * Returns true if an I/O failure occurred.
@@ -255,6 +271,29 @@ public:
 		}
 	}
 
+	/**
+	 * Sync a U32-string
+	 */
+	void syncString32(U32String &str, Version minVersion = 0, Version maxVersion = kLastVersion) {
+		if (_version < minVersion || _version > maxVersion)
+			return; // Ignore anything which is not supposed to be present in this save game version
+
+		uint32 len = str.size();
+
+		syncAsUint32LE(len);
+
+		if (isLoading()) {
+			U32String::value_type *sl = new U32String::value_type[len];
+			for (uint i = 0; i < len; i++)
+				syncAsUint32LE(sl[i]);
+			str = U32String(sl, len);
+		} else {
+			for (uint i = 0; i < len; i++)
+				_saveStream->writeUint32LE(str[i]);
+			_bytesSynced += 4 * len;
+		}
+	}
+
 	template <typename T>
 	void syncArray(T *arr, size_t entries, void (*serializer)(Serializer &, T &), Version minVersion = 0, Version maxVersion = kLastVersion) {
 		if (_version < minVersion || _version > maxVersion)
@@ -280,6 +319,7 @@ public:
 	virtual void saveLoadWithSerializer(Serializer &ser) = 0;
 };
 
+/** @} */
 
 } // End of namespace Common
 

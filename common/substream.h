@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,15 @@
 #include "common/types.h"
 
 namespace Common {
+
+/**
+ * @defgroup common_substream Substreams
+ * @ingroup common_stream
+ *
+ * @brief API for managing readable data substreams.
+ *
+ * @{
+ */
 
 /**
  * SubReadStream provides access to a ReadStream restricted to the range
@@ -66,17 +74,17 @@ public:
  * Manipulating the parent stream directly /will/ mess up a substream.
  * @see SubReadStream
  */
-class SeekableSubReadStream : public SubReadStream, public SeekableReadStream {
+class SeekableSubReadStream : public SubReadStream, virtual public SeekableReadStream {
 protected:
 	SeekableReadStream *_parentStream;
 	uint32 _begin;
 public:
 	SeekableSubReadStream(SeekableReadStream *parentStream, uint32 begin, uint32 end, DisposeAfterUse::Flag disposeParentStream = DisposeAfterUse::NO);
 
-	virtual int32 pos() const { return _pos - _begin; }
-	virtual int32 size() const { return _end - _begin; }
+	virtual int64 pos() const { return _pos - _begin; }
+	virtual int64 size() const { return _end - _begin; }
 
-	virtual bool seek(int32 offset, int whence = SEEK_SET);
+	virtual bool seek(int64 offset, int whence = SEEK_SET);
 };
 
 /**
@@ -86,12 +94,20 @@ public:
  * Manipulating the parent stream directly /will/ mess up a substream.
  * @see SubReadStream
  */
-class SeekableSubReadStreamEndian : public SeekableSubReadStream, public ReadStreamEndian {
+class SeekableSubReadStreamEndian :  virtual public SeekableSubReadStream, virtual public SeekableReadStreamEndian {
 public:
 	SeekableSubReadStreamEndian(SeekableReadStream *parentStream, uint32 begin, uint32 end, bool bigEndian, DisposeAfterUse::Flag disposeParentStream = DisposeAfterUse::NO)
 		: SeekableSubReadStream(parentStream, begin, end, disposeParentStream),
+		  SeekableReadStreamEndian(bigEndian),
 		  ReadStreamEndian(bigEndian) {
 	}
+
+	int64 pos() const override { return SeekableSubReadStream::pos(); }
+	int64 size() const override { return SeekableSubReadStream::size(); }
+
+	bool seek(int64 offset, int whence = SEEK_SET) override { return SeekableSubReadStream::seek(offset, whence); }
+	void hexdump(int len, int bytesPerLine = 16, int startOffset = 0) { SeekableSubReadStream::hexdump(len, bytesPerLine, startOffset); }
+	bool skip(uint32 offset) override { return SeekableSubReadStream::seek(offset, SEEK_CUR); }
 };
 
 /**
@@ -116,6 +132,7 @@ public:
 	virtual uint32 read(void *dataPtr, uint32 dataSize);
 };
 
+/** @} */
 
 } // End of namespace Common
 

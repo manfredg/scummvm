@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,6 +34,7 @@
 #include "audio/decoders/adpcm.h"
 #include "audio/decoders/qdm2.h"
 #include "audio/decoders/raw.h"
+#include "audio/decoders/g711.h"
 
 namespace Audio {
 
@@ -47,14 +47,14 @@ class SilentAudioStream : public AudioStream {
 public:
 	SilentAudioStream(int rate, bool stereo) : _rate(rate), _isStereo(stereo) {}
 
-	int readBuffer(int16 *buffer, const int numSamples) {
+	int readBuffer(int16 *buffer, const int numSamples) override {
 		memset(buffer, 0, numSamples * 2);
 		return numSamples;
 	}
 
-	bool endOfData() const { return false; } // it never ends!
-	bool isStereo() const { return _isStereo; }
-	int getRate() const { return _rate; }
+	bool endOfData() const override { return false; } // it never ends!
+	bool isStereo() const override { return _isStereo; }
+	int getRate() const override { return _rate; }
 
 private:
 	int _rate;
@@ -75,7 +75,7 @@ public:
 				delete _parentStream;
 	}
 
-	int readBuffer(int16 *buffer, const int numSamples) {
+	int readBuffer(int16 *buffer, const int numSamples) override {
 		if (!_parentStream->isStereo())
 			return _parentStream->readBuffer(buffer, numSamples);
 
@@ -91,9 +91,9 @@ public:
 		return samples;
 	}
 
-	bool endOfData() const { return _parentStream->endOfData(); }
-	bool isStereo() const { return false; }
-	int getRate() const { return _parentStream->getRate(); }
+	bool endOfData() const override { return _parentStream->endOfData(); }
+	bool isStereo() const override { return false; }
+	int getRate() const override { return _parentStream->getRate(); }
 
 private:
 	AudioStream *_parentStream;
@@ -167,7 +167,7 @@ Common::QuickTimeParser::SampleDesc *QuickTimeAudioDecoder::readSampleDesc(Track
 		} else {
 			warning("Unsupported QuickTime STSD audio version %d", stsdVersion);
 			delete entry;
-			return 0;
+			return nullptr;
 		}
 
 		// Version 0 files don't have some variables set, so we'll do that here
@@ -182,7 +182,7 @@ Common::QuickTimeParser::SampleDesc *QuickTimeAudioDecoder::readSampleDesc(Track
 		return entry;
 	}
 
-	return 0;
+	return nullptr;
 }
 
 QuickTimeAudioDecoder::QuickTimeAudioTrack::QuickTimeAudioTrack(QuickTimeAudioDecoder *decoder, Common::QuickTimeParser::Track *parentTrack) {
@@ -581,7 +581,7 @@ QuickTimeAudioDecoder::AudioSampleDesc::AudioSampleDesc(Common::QuickTimeParser:
 	_samplesPerFrame = 0;
 	_bytesPerFrame = 0;
 	_bitsPerSample = 0;
-	_codec = 0;
+	_codec = nullptr;
 }
 
 QuickTimeAudioDecoder::AudioSampleDesc::~AudioSampleDesc() {
@@ -622,7 +622,7 @@ bool QuickTimeAudioDecoder::AudioSampleDesc::isAudioCodecSupported() const {
 
 AudioStream *QuickTimeAudioDecoder::AudioSampleDesc::createAudioStream(Common::SeekableReadStream *stream) const {
 	if (!stream)
-		return 0;
+		return nullptr;
 
 	if (_codec) {
 		// If we've loaded a codec, make sure we use first
@@ -638,22 +638,22 @@ AudioStream *QuickTimeAudioDecoder::AudioSampleDesc::createAudioStream(Common::S
 			flags |= FLAG_STEREO;
 		if (_bitsPerSample == 16)
 			flags |= FLAG_16BITS;
-		uint32 dataSize = stream->size();
-		byte *data = (byte *)malloc(dataSize);
-		stream->read(data, dataSize);
-		delete stream;
-		return makeRawStream(data, dataSize, _sampleRate, flags);
+		return makeRawStream(stream, _sampleRate, flags);
 	} else if (_codecTag == MKTAG('i', 'm', 'a', '4')) {
 		// Riven uses this codec (as do some Myst ME videos)
 		return makeADPCMStream(stream, DisposeAfterUse::YES, stream->size(), kADPCMApple, _sampleRate, _channels, 34);
+	} else if (_codecTag == MKTAG('a', 'l', 'a', 'w')) {
+		return makeALawStream(stream, DisposeAfterUse::YES, _sampleRate, _channels);
+	} else if (_codecTag == MKTAG('u', 'l', 'a', 'w')) {
+		return makeMuLawStream(stream, DisposeAfterUse::YES, _sampleRate, _channels);
 	}
 
 	error("Unsupported audio codec");
-	return NULL;
+	return nullptr;
 }
 
 void QuickTimeAudioDecoder::AudioSampleDesc::initCodec() {
-	delete _codec; _codec = 0;
+	delete _codec; _codec = nullptr;
 
 	switch (_codecTag) {
 	case MKTAG('Q', 'D', 'M', '2'):
@@ -689,7 +689,7 @@ public:
 	}
 
 	// AudioStream API
-	int readBuffer(int16 *buffer, const int numSamples) {
+	int readBuffer(int16 *buffer, const int numSamples) override {
 		int samples = 0;
 
 		while (samples < numSamples && !endOfData()) {
@@ -701,13 +701,13 @@ public:
 		return samples;
 	}
 
-	bool isStereo() const { return _audioTracks[0]->isStereo(); }
-	int getRate() const { return _audioTracks[0]->getRate(); }
-	bool endOfData() const { return _audioTracks[0]->endOfData(); }
+	bool isStereo() const override { return _audioTracks[0]->isStereo(); }
+	int getRate() const override { return _audioTracks[0]->getRate(); }
+	bool endOfData() const override { return _audioTracks[0]->endOfData(); }
 
 	// SeekableAudioStream API
-	bool seek(const Timestamp &where) { return _audioTracks[0]->seek(where); }
-	Timestamp getLength() const { return _audioTracks[0]->getLength(); }
+	bool seek(const Timestamp &where) override { return _audioTracks[0]->seek(where); }
+	Timestamp getLength() const override { return _audioTracks[0]->getLength(); }
 };
 
 SeekableAudioStream *makeQuickTimeStream(const Common::String &filename) {
@@ -715,7 +715,7 @@ SeekableAudioStream *makeQuickTimeStream(const Common::String &filename) {
 
 	if (!audioStream->openFromFile(filename)) {
 		delete audioStream;
-		return 0;
+		return nullptr;
 	}
 
 	return audioStream;
@@ -726,7 +726,7 @@ SeekableAudioStream *makeQuickTimeStream(Common::SeekableReadStream *stream, Dis
 
 	if (!audioStream->openFromStream(stream, disposeAfterUse)) {
 		delete audioStream;
-		return 0;
+		return nullptr;
 	}
 
 	return audioStream;

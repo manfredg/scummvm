@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,13 @@
 #include "kyra/graphics/screen_eob.h"
 #include "kyra/gui/gui_eob.h"
 #include "kyra/text/text_lol.h"
+
+#include "common/keyboard.h"
+#include "backends/keymapper/action.h"
+
+namespace {
+	class Action;
+}
 
 namespace Kyra {
 
@@ -82,6 +88,8 @@ struct EoBFlyingObject {
 
 struct KyraRpgGUISettings {
 	struct DialogueButtons {
+		const uint16 *posX;
+		const uint8 *posY;
 		uint8 labelColor1;
 		uint8 labelColor2;
 		uint16 width;
@@ -123,6 +131,29 @@ struct KyraRpgGUISettings {
 		uint8 guiColorDarkGreen;
 		uint8 guiColorBlack;
 	} colors;
+
+	struct CharacterBoxCoords {
+		int16 boxX[3];
+		int16 boxY[3];
+		uint8 boxWidth;
+		uint8 boxHeight;
+		int16 facePosX_1[3];
+		int16 facePosY_1[3];
+		int16 facePosX_2[3];
+		int16 facePosY_2[3];
+		int16 weaponSlotX[3];
+		int16 weaponSlotY[6];
+		int16 hpBarX_1[3];
+		int16 hpBarY_1[3];
+		uint8 hpBarWidth_1;
+		uint8 hpBarHeight_1;
+		int16 hpFoodBarX_2[3];
+		int16 hpFoodBarY_2[3];
+		uint8 hpFoodBarWidth_2;
+		uint8 hpFoodBarHeight_2;
+		int16 redSplatOffsetX;
+		int16 redSplatOffsetY;
+	} charBoxCoords;
 };
 
 class KyraRpgEngine : public KyraEngine_v1 {
@@ -142,12 +173,14 @@ protected:
 	// Init
 	void initStaticResource();
 
+	static void addKeymapAction(Common::Keymap *const keyMap, const char *actionId, const Common::U32String &actionDesc, const Common::Functor0Mem<void, Common::Action>::FuncType setEventProc, const Common::String &mapping1, const Common::String &mapping2);
+	static void addKeymapAction(Common::Keymap *const keyMap, const char *actionId, const Common::U32String &actionDesc, Common::KeyState eventKeyState, const Common::String &mapping1, const Common::String &mapping2);
+
 	const uint8 **_itemIconShapes;
-	const uint8 **_amigaBlueItemIconShapes;
 
 	// Main loop
 	virtual void update() = 0;
-	void updateEnvironmentalSfx(int soundId);
+	void snd_updateEnvironmentalSfx(int soundId);
 
 	// timers
 	void setupTimers() override = 0;
@@ -188,10 +221,6 @@ protected:
 	// Level
 	virtual void addLevelItems() = 0;
 	virtual void loadBlockProperties(const char *file) = 0;
-
-	virtual void drawScene(int pageNum) = 0;
-	virtual void drawSceneShapes(int start) = 0;
-	virtual void drawDecorations(int index) = 0;
 
 	virtual const uint8 *getBlockFileData(int levelIndex) = 0;
 	void setLevelShapesDim(int index, int16 &x1, int16 &x2, int dim);
@@ -246,6 +275,7 @@ protected:
 	void processDoorSwitch(uint16 block, int openClose);
 	void openCloseDoor(int block, int openClose);
 	void completeDoorOperations();
+	bool isSpecialDoor(int block);
 
 	uint8 *_wllVmpMap;
 	int8 *_wllShapeMap;
@@ -260,7 +290,7 @@ protected:
 	LevelDecorationProperty *_levelDecorationData;
 	uint16 _levelDecorationDataSize;
 	LevelDecorationProperty *_levelDecorationProperties;
-	uint8 **_levelDecorationShapes;
+	const uint8 **_levelDecorationShapes;
 	uint16 _decorationCount;
 	int16 _mappedDecorationsCount;
 	uint16 *_vmpPtr;
@@ -324,6 +354,10 @@ protected:
 	const uint8 *_dscDoorFrameIndex1;
 	const uint8 *_dscDoorFrameIndex2;
 
+	const uint16 *_vmpVisOffs;
+	static const uint16 _vmpOffsetsDefault[9];
+	static const uint16 _vmpOffsetsSegaCD[9];
+
 	// Script
 	virtual void runLevelScript(int block, int flags) = 0;
 
@@ -361,7 +395,7 @@ protected:
 	static const uint8 _dropItemDirIndex[];
 
 	// text
-	void drawDialogueButtons();
+	virtual void drawDialogueButtons();
 	uint16 processDialogue();
 
 	TextDisplayer_rpg *_txt;
@@ -374,6 +408,7 @@ protected:
 	const char *_dialogueButtonString[9];
 	const uint16 *_dialogueButtonPosX;
 	const uint8 *_dialogueButtonPosY;
+	int16 _dialogueButtonXoffs;
 	int16 _dialogueButtonYoffs;
 	uint16 _dialogueButtonWidth;
 	int _dialogueNumButtons;
@@ -384,6 +419,9 @@ protected:
 	uint8 _dialogueButtonLabelColor2;
 
 	const char *const *_moreStrings;
+
+	static const uint16 _dlgButtonPosX_Def[14];
+	static const uint8 _dlgButtonPosY_Def[14];
 
 	// misc
 	void delay(uint32 millis, bool doUpdate = false, bool isMainLoop = false) override = 0;

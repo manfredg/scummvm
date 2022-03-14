@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -288,7 +287,7 @@ void MickeyEngine::drawMenu(MSA_MENU &menu, int sel0, int sel1) {
 
 void MickeyEngine::getMouseMenuSelRow(MSA_MENU &menu, int *sel0, int *sel1, int iRow, int x, int y) {
 	int iWord;
-	int *sel = 0;
+	int *sel = nullptr;
 
 	switch (iRow) {
 	case 0:
@@ -315,7 +314,7 @@ void MickeyEngine::getMouseMenuSelRow(MSA_MENU &menu, int *sel0, int *sel1, int 
 
 bool MickeyEngine::getMenuSelRow(MSA_MENU &menu, int *sel0, int *sel1, int iRow) {
 	Common::Event event;
-	int *sel = 0;
+	int *sel = nullptr;
 	int nWords;
 	int x, y;
 	int goIndex = -1, northIndex = -1, southIndex = -1, eastIndex = -1, westIndex = -1;
@@ -361,7 +360,7 @@ bool MickeyEngine::getMenuSelRow(MSA_MENU &menu, int *sel0, int *sel1, int iRow)
 	while (!shouldQuit()) {
 		while (_system->getEventManager()->pollEvent(event)) {
 			switch (event.type) {
-			case Common::EVENT_RTL:
+			case Common::EVENT_RETURN_TO_LAUNCHER:
 			case Common::EVENT_QUIT:
 				return 0;
 			case Common::EVENT_MOUSEMOVE:
@@ -701,7 +700,7 @@ void MickeyEngine::playSound(ENUM_MSA_SOUND iSound) {
 			if (iSound == IDI_MSA_SND_THEME) {
 				while (_system->getEventManager()->pollEvent(event)) {
 					switch (event.type) {
-					case Common::EVENT_RTL:
+					case Common::EVENT_RETURN_TO_LAUNCHER:
 					case Common::EVENT_QUIT:
 					case Common::EVENT_LBUTTONUP:
 					case Common::EVENT_RBUTTONUP:
@@ -2208,7 +2207,7 @@ void MickeyEngine::waitAnyKey(bool anim) {
 	while (!shouldQuit()) {
 		while (_system->getEventManager()->pollEvent(event)) {
 			switch (event.type) {
-			case Common::EVENT_RTL:
+			case Common::EVENT_RETURN_TO_LAUNCHER:
 			case Common::EVENT_QUIT:
 			case Common::EVENT_KEYDOWN:
 			case Common::EVENT_LBUTTONUP:

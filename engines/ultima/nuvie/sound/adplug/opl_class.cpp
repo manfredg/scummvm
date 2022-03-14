@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -289,12 +288,12 @@ static const uint8 mul_tab[16] = {
 
    Length: 210 elements.
 
-    Each of the elements has to be repeated
-    exactly 64 times (on 64 consecutive samples).
-    The whole table takes: 64 * 210 = 13440 samples.
+	Each of the elements has to be repeated
+	exactly 64 times (on 64 consecutive samples).
+	The whole table takes: 64 * 210 = 13440 samples.
 
-    When AM = 1 data is used directly
-    When AM = 0 data is divided by 4 before being used (loosing precision is important)
+	When AM = 1 data is used directly
+	When AM = 0 data is divided by 4 before being used (loosing precision is important)
 */
 
 #define LFO_AM_TAB_ELEMENTS 210
@@ -707,9 +706,9 @@ INLINE void OplClass::OPL_CALC_CH(OPL_CH *CH) {
 }
 
 /*
-    operators used in the rhythm sounds generation process:
+	operators used in the rhythm sounds generation process:
 
-    Envelope Generator:
+	Envelope Generator:
 
 channel  operator  register number   Bass  High  Snare Tom  Top
 / slot   number    TL ARDR SLRR Wave Drum  Hat   Drum  Tom  Cymbal
@@ -720,7 +719,7 @@ channel  operator  register number   Bass  High  Snare Tom  Top
  8 / 0   14        52  72   92   f2                    +
  8 / 1   17        55  75   95   f5                          +
 
-    Phase Generator:
+	Phase Generator:
 
 channel  operator  register number   Bass  High  Snare Tom  Top
 / slot   number    MULTIPLE          Drum  Hat   Drum  Tom  Cymbal

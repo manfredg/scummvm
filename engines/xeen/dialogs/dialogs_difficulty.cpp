@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,11 +51,11 @@ int DifficultyDialog::execute() {
 		events.pollEventsAndWait();
 		checkEvents(_vm);
 
-		if (_buttonValue == Common::KEYCODE_a)
+		if (Res.KeyConstants.DialogsDifficulty.KEY_ADVENTURER == _buttonValue)
 			result = ADVENTURER;
-		else if (_buttonValue == Common::KEYCODE_w)
+		else if (Res.KeyConstants.DialogsDifficulty.KEY_WARRIOR == _buttonValue)
 			result = WARRIOR;
-		else if (_buttonValue != Common::KEYCODE_ESCAPE)
+		else if (Common::KEYCODE_ESCAPE != _buttonValue)
 			continue;
 
 		break;
@@ -68,8 +67,9 @@ int DifficultyDialog::execute() {
 
 void DifficultyDialog::loadButtons() {
 	_sprites.load("choice.icn");
-	addButton(Common::Rect(68, 167, 158, 187), Common::KEYCODE_a, &_sprites);
-	addButton(Common::Rect(166, 167, 256, 187), Common::KEYCODE_w, &_sprites);
+
+	addButton(Common::Rect(68, 167, 158, 187),  Res.KeyConstants.DialogsDifficulty.KEY_ADVENTURER, &_sprites);
+	addButton(Common::Rect(166, 167, 256, 187), Res.KeyConstants.DialogsDifficulty.KEY_WARRIOR, &_sprites);
 }
 
 } // End of namespace Xeen

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -400,7 +399,7 @@ void DrasculaEngine::centerText(const char *message, int textX, int textY) {
 	*tmpMessageCurLine = 0;
 	// Get a word from the message
 	char* curWord = strtok(msg, " ");
-	while (curWord != NULL) {
+	while (curWord != nullptr) {
 		// Check if the word and the current line fit on screen
 		if (tmpMessageCurLine[0] != '\0')
 			Common::strlcat(tmpMessageCurLine, " ", 50);
@@ -416,8 +415,8 @@ void DrasculaEngine::centerText(const char *message, int textX, int textY) {
 		}
 
 		// Get next word
-		curWord = strtok(NULL, " ");
-		if (curWord == NULL) {
+		curWord = strtok(nullptr, " ");
+		if (curWord == nullptr) {
 			// The original has an interesting bug that if we split the text on several lines
 			// a space is added at the end (which impacts the alignment, and may even cause the line
 			// to become too long).

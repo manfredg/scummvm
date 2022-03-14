@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,40 +27,25 @@
 
 namespace Graphics {
 
-struct SelectedText {
-	int startX, startY;
-	int endX, endY;
-	int startRow, startCol;
-	int endRow, endCol;
-
-	SelectedText() {
-		startX = startY = -1;
-		endX = endY = -1;
-		startRow = startCol = -1;
-		endRow = endCol = -1;
-	}
-
-	bool needsRender() {
-		return startX != endX || startY != endY;
-	}
-};
-
 class MacTextWindow : public MacWindow {
 public:
 	MacTextWindow(MacWindowManager *wm, const MacFont *font, int fgcolor, int bgcolor, int maxWidth, TextAlign textAlignment, MacMenu *menu, bool cursorHandler = true);
+	MacTextWindow(MacWindowManager *wm, const Font *font, int fgcolor, int bgcolor, int maxWidth, TextAlign textAlignment, MacMenu *menu, bool cursorHandler = true);
 	virtual ~MacTextWindow();
 
-	virtual void resize(int w, int h);
+	virtual void resize(int w, int h, bool inner = false);
 
 	virtual bool processEvent(Common::Event &event);
 
 	virtual bool draw(ManagedSurface *g, bool forceRedraw = false);
+	virtual bool draw(bool forceRedraw = false);
+	virtual void blit(ManagedSurface *g, Common::Rect &dest);
 
 	void setTextWindowFont(const MacFont *macFont);
 	const MacFont *getTextWindowFont();
 
-	void appendText(Common::U32String str, const MacFont *macFont, bool skipAdd = false);
-	void appendText(const Common::String &str, const MacFont *macFont, bool skipAdd = false);
+	void appendText(const Common::U32String &str, const MacFont *macFont = nullptr, bool skipAdd = false);
+	void appendText(const Common::String &str, const MacFont *macFont = nullptr, bool skipAdd = false);
 	void clearText();
 
 	void setEditable(bool editable) { _editable = editable; }
@@ -69,20 +53,29 @@ public:
 
 	void undrawCursor();
 
-	const Common::U32String getInput() { return _inputText; }
+	const Common::U32String &getInput() { return _inputText; }
 	void clearInput();
-	void appendInput(Common::U32String str);
+	void appendInput(const Common::U32String &str);
 	void appendInput(const Common::String &str);
 
 	Common::U32String getSelection(bool formatted = false, bool newlines = true);
 	void clearSelection();
 	Common::U32String cutSelection();
 	const SelectedText *getSelectedText() { return &_selectedText; }
+	int getTextHeight() { return _mactext->getTextHeight(); }
+
+	/**
+	 * if we want to draw the text which color is not black, then we need to set _textColorRGB
+	 * @param rgb text color you want to draw
+	 */
+	void setTextColorRGB (uint32 rgb) { _textColorRGB = rgb; }
 
 private:
+	void init(bool cursorHandler);
 	bool isCutAllowed();
 
 	void scroll(int delta);
+	void calcScrollBar();
 
 	void undrawInput();
 	void drawInput();
@@ -120,6 +113,9 @@ private:
 	bool _inputIsDirty;
 
 	MacMenu *_menu;
+
+	int _bgcolor;
+	int _textColorRGB;
 };
 
 } // End of namespace Graphics

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,6 +46,7 @@ void SceneScriptNR01::InitializeScene() {
 	} else if (Game_Flag_Query(kFlagNotUsed545)) {
 		Setup_Scene_Information( -170.0f,  24.0f,  -574.0f, 768);
 	} else {
+		// eg. when thrown out
 		Setup_Scene_Information(   76.0f, 23.88f,  -109.0f, 966);
 	}
 
@@ -88,8 +88,8 @@ void SceneScriptNR01::InitializeScene() {
 	 && !Game_Flag_Query(kFlagArrivedFromSpinner1)
 	) {
 		if ((!Game_Flag_Query(kFlagNR01VisitedFirstTimeWithSpinner) && Global_Variable_Query(kVariableChapter) == 3)
-		     || Random_Query(1, 3) == 1)
-		{
+		    || Random_Query(1, 3) == 1
+		) {
 			// enhancement: don't always play after first visit
 			Scene_Loop_Start_Special(kSceneLoopModeLoseControl, kNR01LoopInshot, false);
 		}
@@ -136,7 +136,7 @@ bool SceneScriptNR01::ClickedOnExit(int exitId) {
 				Actor_Says(kActorMcCoy, 8522, 12);
 			} else {
 				Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-				Ambient_Sounds_Remove_All_Looping_Sounds(1);
+				Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 				Game_Flag_Set(kFlagNR01toNR03);
 				Set_Enter(kSetNR03, kSceneNR03);
 			}
@@ -149,7 +149,7 @@ bool SceneScriptNR01::ClickedOnExit(int exitId) {
 			Actor_Face_Heading(kActorMcCoy, 45, false);
 			Loop_Actor_Travel_Stairs(kActorMcCoy, 3, false, kAnimationModeIdle);
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagNR01toUG06);
 			Set_Enter(kSetUG06, kSceneUG06);
 		}
@@ -159,7 +159,7 @@ bool SceneScriptNR01::ClickedOnExit(int exitId) {
 	if (exitId == 2) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, 312.0f, 31.66f, -901.0f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagNR01toNR02);
 			Set_Enter(kSetNR02, kSceneNR02);
 		}
@@ -330,7 +330,13 @@ void SceneScriptNR01::PlayerWalkedIn() {
 			Game_Flag_Reset(kFlagNR08TouchedDektora);
 		}
 		Game_Flag_Reset(kFlagNR03McCoyThrownOut);
+#if BLADERUNNER_ORIGINAL_BUGS
+		// This is an extra call Player_Gains_Control() (McCoy should gain control by his AI script - goal kGoalMcCoyNR01GetUp)
+		// or when he's drugged the goal kGoalMcCoyNR01LayDrugged ensures gaining control
+		// It causes buggy behavior since it enables control, and by clicking fast the player can skip McCoy's AI script handling
+		// of his goal change to kGoalMcCoyNR01ThrownOut, and he can stay invisible, and also spawn at the bottom right of the scene
 		Player_Gains_Control();
+#endif
 		//return true;
 		return;
 	}
@@ -455,7 +461,7 @@ void SceneScriptNR01::PlayerWalkedIn() {
 
 void SceneScriptNR01::PlayerWalkedOut() {
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 	if (!Game_Flag_Query(kFlagNR01toUG06)
 	 && !Game_Flag_Query(kFlagNR01toNR02)
 	 && !Game_Flag_Query(kFlagNR01toNR03)

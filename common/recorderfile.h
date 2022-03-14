@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,21 +37,40 @@ namespace Common {
 
 enum RecorderEventType {
 	kRecorderEventTypeNormal = 0,
-	kRecorderEventTypeTimer = 1
+	kRecorderEventTypeTimer = 1,
+	kRecorderEventTypeTimeDate = 2,
+	kRecorderEventTypeScreenUpdate = 3,
 };
 
 struct RecorderEvent : Event {
 	RecorderEventType recordedtype;
-	uint32 time;
+	union {
+		uint32 time;
+		TimeDate timeDate;
+	};
 
 	RecorderEvent() {
 		recordedtype = kRecorderEventTypeNormal;
 		time = 0;
+		timeDate.tm_sec = 0;
+		timeDate.tm_min = 0;
+		timeDate.tm_hour = 0;
+		timeDate.tm_mday = 0;
+		timeDate.tm_mon = 0;
+		timeDate.tm_year = 0;
+		timeDate.tm_wday = 0;
 	}
 
 	RecorderEvent(const Event &e) : Event(e) {
 		recordedtype = kRecorderEventTypeNormal;
 		time = 0;
+		timeDate.tm_sec = 0;
+		timeDate.tm_min = 0;
+		timeDate.tm_hour = 0;
+		timeDate.tm_mday = 0;
+		timeDate.tm_mon = 0;
+		timeDate.tm_year = 0;
+		timeDate.tm_wday = 0;
 	}
 };
 
@@ -84,7 +102,7 @@ class PlaybackFile {
 		kHashSectionTag = MKTAG('H','A','S','H'),
 		kRandomSectionTag = MKTAG('R','A','N','D'),
 		kEventTag = MKTAG('E','V','N','T'),
-		kScreenShotTag = MKTAG('B','M','H','T'),
+		kScreenShotTag = MKTAG('T','H','M','B'),
 		kSettingsSectionTag = MKTAG('S','E','T','T'),
 		kAuthorTag = MKTAG('H','A','U','T'),
 		kCommentsTag = MKTAG('H','C','M','T'),
@@ -127,6 +145,7 @@ public:
 	bool openRead(const String &fileName);
 	void close();
 
+	bool hasNextEvent() const;
 	RecorderEvent getNextEvent();
 	void writeEvent(const RecorderEvent &event);
 
@@ -138,7 +157,10 @@ public:
 	PlaybackFileHeader &getHeader() {return _header;}
 	void updateHeader();
 	void addSaveFile(const String &fileName, InSaveFile *saveStream);
+
+	uint32 getVersion() const {return _version;}
 private:
+	Array<byte> _tmpBuffer;
 	WriteStream *_recordFile;
 	WriteStream *_writeStream;
 	WriteStream *_screenshotsFile;
@@ -150,9 +172,9 @@ private:
 	bool _headerDumped;
 	int _recordCount;
 	uint32 _eventsSize;
-	byte _tmpBuffer[kRecordBuffSize];
 	PlaybackFileHeader _header;
 	PlaybackFileState _playbackParseState;
+	uint32 _version;
 
 	void skipHeader();
 	bool parseHeader();

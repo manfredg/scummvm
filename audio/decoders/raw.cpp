@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,15 +29,6 @@
 
 namespace Audio {
 
-// This used to be an inline template function, but
-// buggy template function handling in MSVC6 forced
-// us to go with the macro approach. So far this is
-// the only template function that MSVC6 seemed to
-// compile incorrectly. Knock on wood.
-#define READ_ENDIAN_SAMPLE(is16Bit, isUnsigned, ptr, isLE) \
-	((is16Bit ? (isLE ? READ_LE_UINT16(ptr) : READ_BE_UINT16(ptr)) : (*ptr << 8)) ^ (isUnsigned ? 0x8000 : 0))
-
-
 #pragma mark -
 #pragma mark --- RawStream ---
 #pragma mark -
@@ -46,32 +36,32 @@ namespace Audio {
 /**
  * This is a stream, which allows for playing raw PCM data from a stream.
  */
-template<bool is16Bit, bool isUnsigned, bool isLE>
+template<int bytesPerSample, bool isUnsigned, bool isLE>
 class RawStream : public SeekableAudioStream {
 public:
 	RawStream(int rate, bool stereo, DisposeAfterUse::Flag disposeStream, Common::SeekableReadStream *stream)
-		: _rate(rate), _isStereo(stereo), _playtime(0, rate), _stream(stream, disposeStream), _endOfData(false), _buffer(0) {
+		: _rate(rate), _isStereo(stereo), _playtime(0, rate), _stream(stream, disposeStream), _endOfData(false), _buffer(nullptr) {
 		// Setup our buffer for readBuffer
-		_buffer = new byte[kSampleBufferLength * (is16Bit ? 2 : 1)];
+		_buffer = new byte[kSampleBufferLength * bytesPerSample];
 		assert(_buffer);
 
 		// Calculate the total playtime of the stream
-		_playtime = Timestamp(0, _stream->size() / (_isStereo ? 2 : 1) / (is16Bit ? 2 : 1), rate);
+		_playtime = Timestamp(0, _stream->size() / (_isStereo ? 2 : 1) / bytesPerSample, rate);
 	}
 
 	~RawStream() {
 		delete[] _buffer;
 	}
 
-	int readBuffer(int16 *buffer, const int numSamples);
+	int readBuffer(int16 *buffer, const int numSamples) override;
 
-	bool isStereo() const  { return _isStereo; }
-	bool endOfData() const { return _endOfData; }
+	bool isStereo() const override  { return _isStereo; }
+	bool endOfData() const override { return _endOfData; }
 
-	int getRate() const         { return _rate; }
-	Timestamp getLength() const { return _playtime; }
+	int getRate() const override         { return _rate; }
+	Timestamp getLength() const override { return _playtime; }
 
-	bool seek(const Timestamp &where);
+	bool seek(const Timestamp &where) override;
 private:
 	const int _rate;                                           ///< Sample rate of stream
 	const bool _isStereo;                                      ///< Whether this is an stereo stream
@@ -99,8 +89,8 @@ private:
 	int fillBuffer(int maxSamples);
 };
 
-template<bool is16Bit, bool isUnsigned, bool isLE>
-int RawStream<is16Bit, isUnsigned, isLE>::readBuffer(int16 *buffer, const int numSamples) {
+template<int bytesPerSample, bool isUnsigned, bool isLE>
+int RawStream<bytesPerSample, isUnsigned, isLE>::readBuffer(int16 *buffer, const int numSamples) {
 	int samplesLeft = numSamples;
 
 	while (samplesLeft > 0) {
@@ -118,16 +108,22 @@ int RawStream<is16Bit, isUnsigned, isLE>::readBuffer(int16 *buffer, const int nu
 		// Copy the data to the caller's buffer.
 		const byte *src = _buffer;
 		while (len-- > 0) {
-			*buffer++ = READ_ENDIAN_SAMPLE(is16Bit, isUnsigned, src, isLE);
-			src += (is16Bit ? 2 : 1);
+			if (bytesPerSample == 1)
+				*buffer++ = (*src << 8) ^ (isUnsigned ? 0x8000 : 0);
+			else if (bytesPerSample == 2)
+				*buffer++ = ((isLE ? READ_LE_UINT16(src) : READ_BE_UINT16(src)) ^ (isUnsigned ? 0x8000 : 0));
+			else // if (bytesPerSample == 3)
+				*buffer++ = (((int16)((isLE ? READ_LE_UINT24(src) : READ_BE_UINT24(src)) >> 8)) ^ (isUnsigned ? 0x8000 : 0));
+
+			src += bytesPerSample;
 		}
 	}
 
 	return numSamples - samplesLeft;
 }
 
-template<bool is16Bit, bool isUnsigned, bool isLE>
-int RawStream<is16Bit, isUnsigned, isLE>::fillBuffer(int maxSamples) {
+template<int bytesPerSample, bool isUnsigned, bool isLE>
+int RawStream<bytesPerSample, isUnsigned, isLE>::fillBuffer(int maxSamples) {
 	int bufferedSamples = 0;
 	byte *dst = _buffer;
 
@@ -140,11 +136,11 @@ int RawStream<is16Bit, isUnsigned, isLE>::fillBuffer(int maxSamples) {
 	while (maxSamples > 0 && !endOfData()) {
 		// Try to read all the sample data and update the
 		// destination pointer.
-		const int bytesRead = _stream->read(dst, maxSamples * (is16Bit ? 2 : 1));
+		const int bytesRead = _stream->read(dst, maxSamples * bytesPerSample);
 		dst += bytesRead;
 
 		// Calculate how many samples we actually read.
-		const int samplesRead = bytesRead / (is16Bit ? 2 : 1);
+		const int samplesRead = bytesRead / bytesPerSample;
 
 		// Update all status variables
 		bufferedSamples += samplesRead;
@@ -159,15 +155,15 @@ int RawStream<is16Bit, isUnsigned, isLE>::fillBuffer(int maxSamples) {
 	return bufferedSamples;
 }
 
-template<bool is16Bit, bool isUnsigned, bool isLE>
-bool RawStream<is16Bit, isUnsigned, isLE>::seek(const Timestamp &where) {
+template<int bytesPerSample, bool isUnsigned, bool isLE>
+bool RawStream<bytesPerSample, isUnsigned, isLE>::seek(const Timestamp &where) {
 	_endOfData = true;
 
 	if (where > _playtime)
 		return false;
 
 	const uint32 seekSample = convertTimeToStreamPos(where, getRate(), isStereo()).totalNumberOfFrames();
-	_stream->seek(seekSample * (is16Bit ? 2 : 1), SEEK_SET);
+	_stream->seek(seekSample * bytesPerSample, SEEK_SET);
 
 	// In case of an error we will not continue stream playback.
 	if (!_stream->err() && !_stream->eos() && _stream->pos() != _stream->size())
@@ -190,23 +186,28 @@ bool RawStream<is16Bit, isUnsigned, isLE>::seek(const Timestamp &where) {
  */
 
 #define MAKE_RAW_STREAM(UNSIGNED) \
-		if (is16Bit) { \
+		if (bytesPerSample == 3) { \
 			if (isLE) \
-				return new RawStream<true, UNSIGNED, true>(rate, isStereo, disposeAfterUse, stream); \
+				return new RawStream<3, UNSIGNED, true>(rate, isStereo, disposeAfterUse, stream); \
 			else  \
-				return new RawStream<true, UNSIGNED, false>(rate, isStereo, disposeAfterUse, stream); \
+				return new RawStream<3, UNSIGNED, false>(rate, isStereo, disposeAfterUse, stream); \
+		} else if (bytesPerSample == 2) { \
+			if (isLE) \
+				return new RawStream<2, UNSIGNED, true>(rate, isStereo, disposeAfterUse, stream); \
+			else  \
+				return new RawStream<2, UNSIGNED, false>(rate, isStereo, disposeAfterUse, stream); \
 		} else \
-			return new RawStream<false, UNSIGNED, false>(rate, isStereo, disposeAfterUse, stream)
+			return new RawStream<1, UNSIGNED, false>(rate, isStereo, disposeAfterUse, stream)
 
 SeekableAudioStream *makeRawStream(Common::SeekableReadStream *stream,
-                                   int rate, byte flags,
-                                   DisposeAfterUse::Flag disposeAfterUse) {
-	const bool isStereo   = (flags & Audio::FLAG_STEREO) != 0;
-	const bool is16Bit    = (flags & Audio::FLAG_16BITS) != 0;
-	const bool isUnsigned = (flags & Audio::FLAG_UNSIGNED) != 0;
-	const bool isLE       = (flags & Audio::FLAG_LITTLE_ENDIAN) != 0;
+								   int rate, byte flags,
+								   DisposeAfterUse::Flag disposeAfterUse) {
+	const bool isStereo      = (flags & Audio::FLAG_STEREO) != 0;
+	const int bytesPerSample = (flags & Audio::FLAG_24BITS ? 3 : (flags & Audio::FLAG_16BITS ? 2 : 1));
+	const bool isUnsigned    = (flags & Audio::FLAG_UNSIGNED) != 0;
+	const bool isLE          = (flags & Audio::FLAG_LITTLE_ENDIAN) != 0;
 
-	assert(stream->size() % ((is16Bit ? 2 : 1) * (isStereo ? 2 : 1)) == 0);
+	assert(stream->size() % (bytesPerSample * (isStereo ? 2 : 1)) == 0);
 
 	if (isUnsigned) {
 		MAKE_RAW_STREAM(true);
@@ -216,8 +217,8 @@ SeekableAudioStream *makeRawStream(Common::SeekableReadStream *stream,
 }
 
 SeekableAudioStream *makeRawStream(const byte *buffer, uint32 size,
-                                   int rate, byte flags,
-                                   DisposeAfterUse::Flag disposeAfterUse) {
+								   int rate, byte flags,
+								   DisposeAfterUse::Flag disposeAfterUse) {
 	return makeRawStream(new Common::MemoryReadStream(buffer, size, disposeAfterUse), rate, flags, DisposeAfterUse::YES);
 }
 
@@ -227,7 +228,7 @@ public:
 		StatelessPacketizedAudioStream(rate, ((flags & FLAG_STEREO) != 0) ? 2 : 1), _flags(flags) {}
 
 protected:
-	AudioStream *makeStream(Common::SeekableReadStream *data);
+	AudioStream *makeStream(Common::SeekableReadStream *data) override;
 
 private:
 	byte _flags;

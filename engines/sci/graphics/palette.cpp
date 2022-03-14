@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,8 +23,6 @@
 #include "common/timer.h"
 #include "common/util.h"
 #include "common/system.h"
-
-#include "graphics/palette.h"
 
 #include "sci/sci.h"
 #include "sci/engine/state.h"
@@ -84,7 +81,7 @@ GfxPalette::GfxPalette(ResourceManager *resMan, GfxScreen *screen)
 
 	palVaryInit();
 
-	_macClut = 0;
+	_macClut = nullptr;
 	loadMacIconBarPalette();
 
 	switch (_resMan->getViewType()) {
@@ -161,14 +158,20 @@ void GfxPalette::createFromData(const SciSpan<const byte> &data, Palette *palett
 		// SCI0/SCI1 palette
 		palFormat = SCI_PAL_FORMAT_VARIABLE; // CONSTANT;
 		palOffset = 260;
-		palColorStart = 0; palColorCount = 256;
-		//memcpy(&paletteOut->mapping, data, 256);
+		palColorStart = 0;
+		palColorCount = 256;
 	} else {
 		// SCI1.1 palette
 		palFormat = data[32];
 		palOffset = 37;
 		palColorStart = data[25];
-		palColorCount = data.getUint16SEAt(29);
+		if (g_sci->getGameId() != GID_HOYLE4) {
+			palColorCount = data.getUint16SEAt(29);
+		} else {
+			// HOYLE4's SCI1.1 palettes are little endian even in
+			// the Mac version, unlike every other SCI1.1 Mac game.
+			palColorCount = data.getUint16LEAt(29);
+		}
 	}
 
 	switch (palFormat) {
@@ -231,7 +234,7 @@ bool GfxPalette::setAmiga() {
 		}
 
 		// Directly set the palette, because setOnScreen() wont do a thing for amiga
-		copySysPaletteToScreen();
+		copySysPaletteToScreen(true);
 		return true;
 	}
 
@@ -257,7 +260,7 @@ void GfxPalette::modifyAmigaPalette(const SciSpan<const byte> &data) {
 		}
 	}
 
-	copySysPaletteToScreen();
+	copySysPaletteToScreen(true);
 }
 
 static byte blendColors(byte c1, byte c2) {
@@ -312,10 +315,16 @@ void GfxPalette::set(Palette *newPalette, bool force, bool forceRealMerge, bool 
 	if (force || newPalette->timestamp != systime) {
 		// SCI1.1+ doesn't do real merging anymore, but simply copying over the used colors from other palettes
 		//  There are some games with inbetween SCI1.1 interpreters, use real merging for them (e.g. laura bow 2 demo)
-		if ((forceRealMerge) || (_useMerging))
+		if (forceRealMerge || _useMerging) {
 			_sysPaletteChanged |= merge(newPalette, force, forceRealMerge);
-		else
-			_sysPaletteChanged |= insert(newPalette, &_sysPalette, includeFirstColor && (_palVaryResourceId == -1));
+		} else {
+			// SCI 1.1 has several functions which write to the system palette but
+			//  some include the first color and others don't. The first color is
+			//  always excluded when Pal-vary is active.
+			includeFirstColor &= (_palVaryResourceId == -1);
+
+			_sysPaletteChanged |= insert(newPalette, &_sysPalette, includeFirstColor);
+		}
 
 		// Adjust timestamp on newPalette, so it wont get merged/inserted w/o need
 		newPalette->timestamp = _sysPalette.timestamp;
@@ -439,14 +448,14 @@ void GfxPalette::drewPicture(GuiResourceId pictureId) {
 	}
 }
 
-uint16 GfxPalette::matchColor(byte matchRed, byte matchGreen, byte matchBlue) {
+uint16 GfxPalette::matchColor(byte matchRed, byte matchGreen, byte matchBlue, bool force16BitColorMatch) {
 	int16 colorNr;
 	int16 differenceRed, differenceGreen, differenceBlue;
 	int16 differenceTotal = 0;
 	int16 bestDifference = 0x7FFF;
 	uint16 bestColorNr = 255;
 
-	if (_use16bitColorMatch) {
+	if (_use16bitColorMatch || force16BitColorMatch) {
 		// used by SCI0 to SCI1, also by the first few SCI1.1 games
 		for (colorNr = 0; colorNr < 256; colorNr++) {
 			if ((!_sysPalette.colors[colorNr].used))
@@ -487,20 +496,20 @@ void GfxPalette::getSys(Palette *pal) {
 		memcpy(pal, &_sysPalette,sizeof(Palette));
 }
 
-void GfxPalette::setOnScreen() {
-	copySysPaletteToScreen();
+void GfxPalette::setOnScreen(bool update) {
+	copySysPaletteToScreen(update);
 }
 
 static byte convertMacGammaToSCIGamma(int comp) {
 	return (byte)sqrt(comp * 255.0f);
 }
 
-void GfxPalette::copySysPaletteToScreen() {
+void GfxPalette::copySysPaletteToScreen(bool update) {
 	// just copy palette to system
 	byte bpal[3 * 256];
 
 	// Get current palette, update it and put back
-	g_system->getPaletteManager()->grabPalette(bpal, 0, 256);
+	_screen->grabPalette(bpal, 0, 256);
 
 	for (int16 i = 0; i < 256; i++) {
 		if (colorIsFromMacClut(i)) {
@@ -519,7 +528,7 @@ void GfxPalette::copySysPaletteToScreen() {
 	if (g_sci->_gfxRemap16)
 		g_sci->_gfxRemap16->updateRemapping();
 
-	g_system->getPaletteManager()->setPalette(bpal, 0, 256);
+	_screen->setPalette(bpal, 0, 256, update);
 }
 
 bool GfxPalette::kernelSetFromResource(GuiResourceId resourceId, bool force) {
@@ -553,16 +562,11 @@ void GfxPalette::kernelSetIntensity(uint16 fromColor, uint16 toColor, uint16 int
 	memset(&_sysPalette.intensity[0] + fromColor, intensity, toColor - fromColor);
 	if (setPalette) {
 		setOnScreen();
-		EngineState *state = g_sci->getEngineState();
-		// Call speed throttler from here as well just in case we need it
-		//  At least in kq6 intro the scripts call us in a tight loop for fadein/fadeout
-		state->speedThrottler(30);
-		state->_throttleTrigger = true;
 	}
 }
 
-int16 GfxPalette::kernelFindColor(uint16 r, uint16 g, uint16 b) {
-	return matchColor(r, g, b) & SCI_PALETTE_MATCH_COLORMASK;
+int16 GfxPalette::kernelFindColor(uint16 r, uint16 g, uint16 b, bool force16BitColorMatch) {
+	return matchColor(r, g, b, force16BitColorMatch) & SCI_PALETTE_MATCH_COLORMASK;
 }
 
 // Returns true, if palette got changed
@@ -658,7 +662,9 @@ void GfxPalette::kernelRestore(reg_t memoryHandle) {
 			restoredPalette.colors[colorNr].b = *memoryPtr++;
 		}
 
-		set(&restoredPalette, true);
+		// restoring excludes the first color, unlike most
+		//  operations on the system palette.
+		set(&restoredPalette, true, false, false);
 	}
 }
 
@@ -674,9 +680,8 @@ void GfxPalette::kernelAssertPalette(GuiResourceId resourceId) {
 void GfxPalette::kernelSyncScreenPalette() {
 	// just copy palette to system
 	byte bpal[3 * 256];
+	_screen->grabPalette(bpal, 0, 256);
 
-	// Get current palette, update it and put back
-	g_system->getPaletteManager()->grabPalette(bpal, 0, 256);
 	for (int16 i = 1; i < 255; i++) {
 		_sysPalette.colors[i].r = bpal[i * 3];
 		_sysPalette.colors[i].g = bpal[i * 3 + 1];
@@ -735,7 +740,7 @@ bool GfxPalette::palVaryLoadTargetPalette(GuiResourceId resourceId) {
 void GfxPalette::palVaryInstallTimer() {
 	// Remove any possible leftover palVary timer callbacks.
 	// This happens for example in QFG1VGA, when sleeping at Erana's place
-	// (bug #3439240) - the nighttime to daytime effect clashes with the
+	// (bug #5900) - the nighttime to daytime effect clashes with the
 	// scene transition effect, as we load scene images too quickly for
 	// the SCI scripts in that case (also refer to kernelPalVaryInit).
 	palVaryRemoveTimer();
@@ -921,7 +926,7 @@ void GfxPalette::palVaryProcess(int signal, bool setPalette) {
 	// Calculate inbetween palette
 	Color inbetween;
 	int16 color;
-	for (int colorNr = 1; colorNr < 255; colorNr++) {
+	for (int colorNr = 0; colorNr < 256; colorNr++) {
 		inbetween.used = _sysPalette.colors[colorNr].used;
 		color = _palVaryTargetPalette.colors[colorNr].r - _palVaryOriginPalette.colors[colorNr].r;
 		inbetween.r = ((color * _palVaryStep) / 64) + _palVaryOriginPalette.colors[colorNr].r;

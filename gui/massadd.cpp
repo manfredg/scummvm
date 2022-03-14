@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,7 +63,7 @@ MassAddDialog::MassAddDialog(const Common::FSNode &startDir)
 	_dirProgressText(nullptr),
 	_gameProgressText(nullptr) {
 
-	StringArray l;
+	Common::U32StringArray l;
 
 	// The dir we start our scan at
 	_scanStack.push(startDir);
@@ -73,10 +72,10 @@ MassAddDialog::MassAddDialog(const Common::FSNode &startDir)
 	// new StaticTextWidget(this, "massadddialog_caption", "Mass Add Dialog");
 
 	_dirProgressText = new StaticTextWidget(this, "MassAdd.DirProgressText",
-	                                       _("... progress ..."));
+						_("... progress ..."));
 
 	_gameProgressText = new StaticTextWidget(this, "MassAdd.GameProgressText",
-	                                         _("... progress ..."));
+						_("... progress ..."));
 
 	_dirProgressText->setAlign(Graphics::kTextAlignCenter);
 	_gameProgressText->setAlign(Graphics::kTextAlignCenter);
@@ -86,24 +85,15 @@ MassAddDialog::MassAddDialog(const Common::FSNode &startDir)
 	_list->setNumberingMode(kListNumberingOff);
 	_list->setList(l);
 
-	_okButton = new ButtonWidget(this, "MassAdd.Ok", _("OK"), nullptr, kOkCmd, Common::ASCII_RETURN);
+	_okButton = new ButtonWidget(this, "MassAdd.Ok", _("OK"), Common::U32String(), kOkCmd, Common::ASCII_RETURN);
 	_okButton->setEnabled(false);
 
-	new ButtonWidget(this, "MassAdd.Cancel", _("Cancel"), nullptr, kCancelCmd, Common::ASCII_ESCAPE);
+	new ButtonWidget(this, "MassAdd.Cancel", _("Cancel"), Common::U32String(), kCancelCmd, Common::ASCII_ESCAPE);
 
 	// Build a map from all configured game paths to the targets using them
 	const Common::ConfigManager::DomainMap &domains = ConfMan.getGameDomains();
 	Common::ConfigManager::DomainMap::const_iterator iter;
 	for (iter = domains.begin(); iter != domains.end(); ++iter) {
-
-#ifdef __DS__
-		// DS port uses an extra section called 'ds'.  This prevents the section from being
-		// detected as a game.
-		if (iter->_key == "ds") {
-			continue;
-		}
-#endif
-
 		Common::String path(iter->_value.getVal("path"));
 		// Remove trailing slash, so that "/foo" and "/foo/" match.
 		// This works around a bug in the POSIX FS code (and others?)
@@ -187,8 +177,8 @@ void MassAddDialog::handleTickle() {
 		DetectionResults detectionResults = EngineMan.detectGames(files);
 
 		if (detectionResults.foundUnknownGames()) {
-			Common::String report = detectionResults.generateUnknownGameReport(false, 80);
-			g_system->logMessage(LogMessageType::kInfo, report.c_str());
+			Common::U32String report = detectionResults.generateUnknownGameReport(false, 80);
+			g_system->logMessage(LogMessageType::kInfo, report.encode().c_str());
 		}
 
 		// Just add all detected games / game variants. If we get more than one,
@@ -213,16 +203,16 @@ void MassAddDialog::handleTickle() {
 				Common::String resultLanguageCode = Common::getLanguageCode(result.language);
 
 				bool duplicate = false;
-				const StringArray &targets = _pathToTargets[path];
-				for (StringArray::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
+				const Common::StringArray &targets = _pathToTargets[path];
+				for (Common::StringArray::const_iterator iter = targets.begin(); iter != targets.end(); ++iter) {
 					// If the engineid, gameid, platform and language match -> skip it
 					Common::ConfigManager::Domain *dom = ConfMan.getDomain(*iter);
 					assert(dom);
 
 					if ((*dom)["engineid"] == result.engineId &&
 						(*dom)["gameid"] == result.gameId &&
-					    (*dom)["platform"] == resultPlatformCode &&
-					    (*dom)["language"] == resultLanguageCode) {
+					    dom->getValOrDefault("platform") == resultPlatformCode &&
+					    dom->getValOrDefault("language") == resultLanguageCode) {
 						duplicate = true;
 						break;
 					}
@@ -257,7 +247,7 @@ void MassAddDialog::handleTickle() {
 
 
 	// Update the dialog
-	Common::String buf;
+	Common::U32String buf;
 
 	if (_scanStack.empty()) {
 		// Enable the OK button
@@ -266,14 +256,14 @@ void MassAddDialog::handleTickle() {
 		buf = _("Scan complete!");
 		_dirProgressText->setLabel(buf);
 
-		buf = Common::String::format(_("Discovered %d new games, ignored %d previously added games."), _games.size(), _oldGamesCount);
+		buf = Common::U32String::format(_("Discovered %d new games, ignored %d previously added games."), _games.size(), _oldGamesCount);
 		_gameProgressText->setLabel(buf);
 
 	} else {
-		buf = Common::String::format(_("Scanned %d directories ..."), _dirsScanned);
+		buf = Common::U32String::format(_("Scanned %d directories ..."), _dirsScanned);
 		_dirProgressText->setLabel(buf);
 
-		buf = Common::String::format(_("Discovered %d new games, ignored %d previously added games ..."), _games.size(), _oldGamesCount);
+		buf = Common::U32String::format(_("Discovered %d new games, ignored %d previously added games ..."), _games.size(), _oldGamesCount);
 		_gameProgressText->setLabel(buf);
 	}
 

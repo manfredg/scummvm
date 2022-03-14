@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,41 +24,6 @@
 
 #include "common/scummsys.h"
 #include "graphics/surface.h"
-
-extern void InitScalers(uint32 BitFormat);
-extern void DestroyScalers();
-
-typedef void ScalerProc(const uint8 *srcPtr, uint32 srcPitch,
-							uint8 *dstPtr, uint32 dstPitch, int width, int height);
-
-#define DECLARE_SCALER(x)	\
-	extern void x(const uint8 *srcPtr, uint32 srcPitch, uint8 *dstPtr, \
-					uint32 dstPitch, int width, int height)
-
-
-DECLARE_SCALER(Normal1x);
-
-#ifdef USE_SCALERS
-
-DECLARE_SCALER(Normal2x);
-DECLARE_SCALER(Normal3x);
-
-DECLARE_SCALER(_2xSaI);
-DECLARE_SCALER(Super2xSaI);
-DECLARE_SCALER(SuperEagle);
-
-DECLARE_SCALER(AdvMame2x);
-DECLARE_SCALER(AdvMame3x);
-
-DECLARE_SCALER(TV2x);
-DECLARE_SCALER(DotMatrix);
-
-#ifdef USE_HQ_SCALERS
-DECLARE_SCALER(HQ2x);
-DECLARE_SCALER(HQ3x);
-#endif
-
-#endif // #ifdef USE_SCALERS
 
 // creates a 160x100 thumbnail for 320x200 games
 // and 160x120 thumbnail for 320x240 and 640x480 games

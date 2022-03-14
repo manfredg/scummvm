@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -289,11 +288,8 @@ SavePartSprite::SavePartSprite(uint32 width, uint32 height, bool trueColor) {
 		//          width + height + color +    sprite   + palette
 	_header.setSize(4   +   4    +   1   + _spriteSize + 768);
 
-	_dataSprite  = new byte[_spriteSize];
-	_dataPalette = new byte[768];
-
-	memset(_dataSprite,  0, _spriteSize);
-	memset(_dataPalette, 0, 768);
+	_dataSprite  = new byte[_spriteSize]();
+	_dataPalette = new byte[768]();
 }
 
 SavePartSprite::~SavePartSprite() {
@@ -457,8 +453,7 @@ SavePartInfo::SavePartInfo(uint32 descMaxLength, uint32 gameID,
 	_endian = endian;
 	_varCount = varCount;
 
-	_desc = new char[_descMaxLength + 1];
-	memset(_desc, 0, _descMaxLength + 1);
+	_desc = new char[_descMaxLength + 1]();
 }
 
 SavePartInfo::~SavePartInfo() {
@@ -608,7 +603,7 @@ void SaveContainer::clear() {
 		Part *&p = *it;
 
 		delete p;
-		p = 0;
+		p = nullptr;
 	}
 }
 
@@ -630,7 +625,7 @@ bool SaveContainer::writePart(uint32 partN, const SavePart *part) {
 	// Write
 	if (!part->write(*pStream)) {
 		delete p;
-		p = 0;
+		p = nullptr;
 
 		delete pStream;
 		return false;
@@ -771,7 +766,7 @@ bool SaveContainer::write(Common::WriteStream &stream) const {
 }
 
 Common::Array<SaveContainer::PartInfo> *SaveContainer::getPartsInfo(Common::SeekableReadStream &stream) {
-	Common::Array<PartInfo> *parts = 0;
+	Common::Array<PartInfo> *parts = nullptr;
 
 	// Remember the stream's position to seek back to
 	uint32 startPos = stream.pos();
@@ -785,7 +780,7 @@ Common::Array<SaveContainer::PartInfo> *SaveContainer::getPartsInfo(Common::Seek
 	if (!header.verifyReadSize(stream)) {
 		// Seek back
 		stream.seek(startPos);
-		return 0;
+		return nullptr;
 	}
 
 	// Read the part count
@@ -811,7 +806,7 @@ Common::Array<SaveContainer::PartInfo> *SaveContainer::getPartsInfo(Common::Seek
 			// Seek back
 			stream.seek(startPos);
 			delete parts;
-			return 0;
+			return nullptr;
 		}
 
 		// Fill in the ID
@@ -823,7 +818,7 @@ Common::Array<SaveContainer::PartInfo> *SaveContainer::getPartsInfo(Common::Seek
 
 	if (stream.err()) {
 		delete parts;
-		parts = 0;
+		parts = nullptr;
 	}
 
 	// Seek back
@@ -853,7 +848,7 @@ bool SaveContainer::isSave(Common::SeekableReadStream &stream) {
 SaveReader::SaveReader(uint32 partCount, uint32 slot, const Common::String &fileName) :
 	SaveContainer(partCount, slot), _fileName(fileName) {
 
-	_stream = 0;
+	_stream = nullptr;
 
 	_loaded = false;
 }
@@ -872,7 +867,7 @@ SaveReader::~SaveReader() {
 // Open the save and read it
 bool SaveReader::load() {
 
-	Common::InSaveFile *in = 0;
+	Common::InSaveFile *in = nullptr;
 	Common::SeekableReadStream *stream;
 
 	if (!_fileName.empty()) {
@@ -918,7 +913,7 @@ bool SaveReader::readPart(uint32 partN, SavePart *part) const {
 
 Common::InSaveFile *SaveReader::openSave(const Common::String &fileName) {
 	if (fileName.empty())
-		return 0;
+		return nullptr;
 
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	return saveMan->openForLoading(fileName);
@@ -1028,7 +1023,7 @@ bool SaveWriter::canSave() const {
 
 Common::OutSaveFile *SaveWriter::openSave(const Common::String &fileName) {
 	if (fileName.empty())
-		return 0;
+		return nullptr;
 
 	Common::SaveFileManager *saveMan = g_system->getSavefileManager();
 	return saveMan->openForSaving(fileName);

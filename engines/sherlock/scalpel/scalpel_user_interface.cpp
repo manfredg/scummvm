@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,10 +31,7 @@
 #include "sherlock/scalpel/scalpel.h"
 #include "sherlock/sherlock.h"
 #include "common/config-manager.h"
-
-#ifdef USE_TTS
 #include "common/text-to-speech.h"
-#endif
 
 namespace Sherlock {
 
@@ -517,7 +513,7 @@ void ScalpelUserInterface::clearInfo() {
 void ScalpelUserInterface::clearWindow() {
 	if (_windowOpen) {
 		_vm->_screen->vgaBar(Common::Rect(3, CONTROLS_Y + 11, SHERLOCK_SCREEN_WIDTH - 2,
-			SHERLOCK_SCREEN_HEIGHT - 2), INV_BACKGROUND);
+			SHERLOCK_SCREEN_HEIGHT - 1), INV_BACKGROUND);
 	}
 }
 
@@ -536,6 +532,13 @@ void ScalpelUserInterface::examine() {
 	Scene &scene = *_vm->_scene;
 	Talk &talk = *_vm->_talk;
 	Common::Point pt = events.mousePos();
+
+	if (_invLookFlag) {
+		// Don't close the inventory window when starting an examine display, since its
+		// window will slide up to replace the inventory display
+		_windowOpen = false;
+		_menuMode = LOOK_MODE;
+	}
 
 	if (pt.y < (CONTROLS_Y + 9)) {
 		Object &obj = scene._bgShapes[_bgFound];
@@ -562,13 +565,6 @@ void ScalpelUserInterface::examine() {
 		_cAnimStr = inv[_selector]._examine;
 		if (inv[_selector]._lookFlag)
 			_vm->setFlags(inv[_selector]._lookFlag);
-	}
-
-	if (_invLookFlag) {
-		// Don't close the inventory window when starting an examine display, since its
-		// window will slide up to replace the inventory display
-		_windowOpen = false;
-		_menuMode = LOOK_MODE;
 	}
 
 	if (!talk._talkToAbort) {
@@ -844,7 +840,7 @@ void ScalpelUserInterface::doEnvControl() {
 				if (saves.promptForDescription(_selector)) {
 					saves.saveGame(_selector, saves._savegames[_selector]);
 
-					banishWindow(1);
+					banishWindow();
 					_windowBounds.top = CONTROLS_Y1;
 					_key = _oldKey = -1;
 					_keyPress = '\0';
@@ -998,7 +994,7 @@ void ScalpelUserInterface::doEnvControl() {
 				return;
 			} else {
 				screen.buttonPrint(Common::Point(184, CONTROLS_Y), COMMAND_HIGHLIGHTED, true, saves._fixedTextQuitGameNo);
-				banishWindow(1);
+				banishWindow();
 				_windowBounds.top = CONTROLS_Y1;
 				_key = -1;
 			}
@@ -1269,17 +1265,18 @@ void ScalpelUserInterface::doLookControl() {
 	_keyboardInput = (_keyPress != '\0');
 
 	if (events._released || events._rightReleased || _keyboardInput) {
+		// Is there any remaining text to display?
+		if (!_descStr.empty()) {
+			printObjectDesc(_descStr, false);
+		}
 		// Is an inventory object being looked at?
-		if (!_invLookFlag) {
-			// Is there any remaining text to display?
-			if (!_descStr.empty()) {
-				printObjectDesc(_descStr, false);
-			} else if (!_lookHelp) {
+		else if (!_invLookFlag) {
+			if (!_lookHelp) {
 				// Need to close the window and depress the Look button
 				Common::Point pt(MENU_POINTS[0][0], MENU_POINTS[0][1]);
 				offsetButton3DO(pt, 0);
 				screen._backBuffer2.SHblitFrom((*_controls)[0], pt);
-				banishWindow(true);
+				banishWindow();
 
 				_windowBounds.top = CONTROLS_Y1;
 				_key = _oldKey = _hotkeyLook;
@@ -1291,7 +1288,7 @@ void ScalpelUserInterface::doLookControl() {
 				drawInterface();
 			} else {
 				events.setCursor(ARROW);
-				banishWindow(true);
+				banishWindow();
 				_windowBounds.top = CONTROLS_Y1;
 				_key = _oldKey = -1;
 				_temp = _oldTemp = 0;
@@ -1306,7 +1303,7 @@ void ScalpelUserInterface::doLookControl() {
 				Common::Rect(0, CONTROLS_Y1, SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_HEIGHT));
 
 			inv.drawInventory(INVENTORY_DONT_DISPLAY);
-			banishWindow(true);
+			banishWindow();
 
 			// Restore the ui
 			screen._backBuffer2.SHblitFrom(tempSurface, Common::Point(0, CONTROLS_Y1));
@@ -1933,7 +1930,7 @@ void ScalpelUserInterface::printObjectDesc(const Common::String &str, bool first
 					Common::Rect(pt.x, pt.y, pt.x + tempSurface.width(), pt.y + tempSurface.height()));
 				screen._backBuffer2.SHtransBlitFrom((*_controls)[0], pt);
 
-				banishWindow(1);
+				banishWindow();
 				events.setCursor(MAGNIFY);
 				_windowBounds.top = CONTROLS_Y1;
 				_key = _oldKey = _hotkeyLook;
@@ -1944,7 +1941,7 @@ void ScalpelUserInterface::printObjectDesc(const Common::String &str, bool first
 				screen._backBuffer2.SHblitFrom(tempSurface, pt);
 			} else {
 				events.setCursor(ARROW);
-				banishWindow(true);
+				banishWindow();
 				_windowBounds.top = CONTROLS_Y1;
 				_key = _oldKey = -1;
 				_temp = _oldTemp = 0;
@@ -1960,7 +1957,7 @@ void ScalpelUserInterface::printObjectDesc(const Common::String &str, bool first
 			inv.loadInv();
 			inv.putInv(SLAM_SECONDARY_BUFFER);
 			inv.freeInv();
-			banishWindow(1);
+			banishWindow();
 
 			_windowBounds.top = CONTROLS_Y1;
 			_key = _oldKey = _hotkeyInventory;
@@ -1993,7 +1990,7 @@ void ScalpelUserInterface::printObjectDesc(const Common::String &str, bool first
 
 	// Clear background
 	bb.fillRect(Common::Rect(2, CONTROLS_Y + 10, SHERLOCK_SCREEN_WIDTH - 2,
-		SHERLOCK_SCREEN_HEIGHT - 2), INV_BACKGROUND);
+		SHERLOCK_SCREEN_HEIGHT - 1), INV_BACKGROUND);
 
 	_windowBounds.top = CONTROLS_Y;
 	events.clearEvents();
@@ -2064,13 +2061,13 @@ void ScalpelUserInterface::printObjectDesc(const Common::String &str, bool first
 			SHERLOCK_SCREEN_HEIGHT));
 	}
 
-        #ifdef USE_TTS
 	if (ConfMan.getBool("tts_narrator")) {
-            Common::TextToSpeechManager *_ttsMan = g_system->getTextToSpeechManager();
-            _ttsMan->stop();
-            _ttsMan->say(str.c_str());
+		Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+		if (ttsMan != nullptr) {
+			ttsMan->stop();
+			ttsMan->say(str.c_str());
+		}
 	}
-        #endif 
 }
 
 void ScalpelUserInterface::printObjectDesc() {
@@ -2107,6 +2104,8 @@ void ScalpelUserInterface::summonWindow(const Surface &bgSurface, bool slideUp) 
 			events.delay(10);
 		}
 	}
+
+	events.clearEvents();
 
 	// Final display of the entire window
 	screen.getBackBuffer()->SHblitFrom(bgSurface, Common::Point(0, SHERLOCK_SCREEN_HEIGHT - bgSurface.height()),
@@ -2190,6 +2189,8 @@ void ScalpelUserInterface::banishWindow(bool slideUp) {
 				Common::Rect(0, CONTROLS_Y1, SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_HEIGHT));
 			screen.slamRect(Common::Rect(0, CONTROLS_Y1, SHERLOCK_SCREEN_WIDTH, SHERLOCK_SCREEN_HEIGHT));
 		}
+
+		events.clearEvents();
 
 		_infoFlag = false;
 		_windowOpen = false;

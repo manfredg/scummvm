@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,10 +43,10 @@ using Shared::CTextInputMsg;
  */
 class ViewCharacterGeneration : public Shared::Gfx::VisualItem {
 	DECLARE_MESSAGE_MAP;
-	bool KeypressMsg(CKeypressMsg &msg);
-	bool ShowMsg(CShowMsg &msg);
-	bool HideMsg(CHideMsg &msg);
-	bool TextInputMsg(CTextInputMsg &msg);
+	bool KeypressMsg(CKeypressMsg *msg);
+	bool ShowMsg(CShowMsg *msg);
+	bool HideMsg(CHideMsg *msg);
+	bool TextInputMsg(CTextInputMsg *msg);
 private:
 	enum Flag {
 		FLAG_FRAME = 1, FLAG_POINTS = 2, FLAG_ATTRIBUTES = 4, FLAG_ATTR_POINTERS = 8, FLAG_HELP = 16,
@@ -142,7 +141,7 @@ public:
 	 * Constructor
 	 */
 	ViewCharacterGeneration(Shared::TreeItem *parent = nullptr);
-	
+
 	/**
 	 * Destructor
 	 */

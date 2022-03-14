@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "common/file.h"
 #include "common/savefile.h"
 #include "common/keyboard.h"
+#include "common/mutex.h"
 #include "common/random.h"
 #include "common/rect.h"
 #include "common/rendermode.h"
@@ -63,6 +63,9 @@ namespace Common {
 class SeekableReadStream;
 class WriteStream;
 }
+namespace Graphics {
+class FontSJIS;
+}
 
 /**
  * This is the namespace of the SCUMM engine.
@@ -90,6 +93,7 @@ class Player_Towns;
 class ScummEngine;
 class ScummDebugger;
 class Sound;
+class Localizer;
 
 struct Box;
 struct BoxCoords;
@@ -102,61 +106,6 @@ extern ScummEngine *g_scumm;
 enum {
 	NUM_SENTENCE = 6,
 	NUM_SHADOW_PALETTE = 8
-};
-
-/**
- * SCUMM feature flags define for every game which specific set of engine
- * features are used by that game.
- * Note that some of them could be replaced by checks for the SCUMM version.
- */
-enum GameFeatures {
-	/** A demo, not a full blown game. */
-	GF_DEMO                = 1 << 0,
-
-	/** Games with the AKOS costume system (ScummEngine_v7 and subclasses, HE games). */
-	GF_NEW_COSTUMES        = 1 << 2,
-
-	/** Games using XOR encrypted data files. */
-	GF_USE_KEY             = 1 << 4,
-
-	/** Small header games (ScummEngine_v4 and subclasses). */
-	GF_SMALL_HEADER        = 1 << 5,
-
-	/** Old bundle games (ScummEngine_v3old and subclasses). */
-	GF_OLD_BUNDLE          = 1 << 6,
-
-	/** EGA games. */
-	GF_16COLOR             = 1 << 7,
-
-	/** VGA versions of V3 games.  Equivalent to (version == 3 && not GF_16COLOR) */
-	GF_OLD256              = 1 << 8,
-
-	/** Games which have Audio CD tracks. */
-	GF_AUDIOTRACKS         = 1 << 9,
-
-	/**
-	 * Games using only very few local variables in scripts.
-	 * Apparently that is only the case for 256 color version of Indy3.
-	 */
-	GF_FEW_LOCALS          = 1 << 11,
-
-	/** HE games for which localized versions exist */
-	GF_HE_LOCALIZED        = 1 << 13,
-
-	/**
-	 *  HE games with more global scripts and different sprite handling
-	 *  i.e. read it as HE version 9.85. Used for HE98 only.
-	 */
-	GF_HE_985             = 1 << 14,
-
-	/** HE games with 16 bit color */
-	GF_16BIT_COLOR         = 1 << 15,
-
-	/**
-	 * SCUMM v5-v7 Mac games stored in a container file
-	 * Used to differentiate between m68k and PPC versions of Indy4
-	 */
-	GF_MAC_CONTAINER       = 1 << 16
 };
 
 /* SCUMM Debug Channels */
@@ -217,48 +166,6 @@ enum {
 	MBS_RIGHT_CLICK = 0x4000,
 	MBS_MOUSE_MASK = (MBS_LEFT_CLICK | MBS_RIGHT_CLICK),
 	MBS_MAX_KEY	= 0x0200
-};
-
-enum ScummGameId {
-	GID_CMI,
-	GID_DIG,
-	GID_FT,
-	GID_INDY3,
-	GID_INDY4,
-	GID_LOOM,
-	GID_MANIAC,
-	GID_MONKEY_EGA,
-	GID_MONKEY_VGA,
-	GID_MONKEY,
-	GID_MONKEY2,
-	GID_PASS,
-	GID_SAMNMAX,
-	GID_TENTACLE,
-	GID_ZAK,
-
-	GID_HEGAME,      // Generic name for all HE games with default behavior
-	GID_PUTTDEMO,
-	GID_FBEAR,
-	GID_PUTTMOON,
-	GID_FUNPACK,
-	GID_PUTTZOO,
-	GID_FREDDI3,
-	GID_BIRTHDAYRED,
-	GID_BIRTHDAYYELLOW,
-	GID_TREASUREHUNT,
-	GID_PUTTRACE,
-	GID_FUNSHOP,	// Used for all three funshops
-	GID_FOOTBALL,
-	GID_FOOTBALL2002,
-	GID_SOCCER,
-	GID_SOCCERMLS,
-	GID_SOCCER2004,
-	GID_BASEBALL2001,
-	GID_BASEBALL2003,
-	GID_BASKETBALL,
-	GID_MOONBASE,
-	GID_PJGAMES,
-	GID_HECUP		// CUP demos
 };
 
 struct SentenceTab {
@@ -436,26 +343,23 @@ public:
 	bool canLoadGameStateCurrently() override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 	bool canSaveGameStateCurrently() override;
-	bool canSaveAutosaveCurrently() override {
-		// Keep base engine autosave code disabled in favour of engine's autosave code
-		return false;
-	}
 
 	void pauseEngineIntern(bool pause) override;
 
 protected:
-	virtual void setupScumm();
+	virtual void setupScumm(const Common::String &macResourceFile);
 	virtual void resetScumm();
 
 	virtual void setupScummVars();
 	virtual void resetScummVars();
 
-	void setupCharsetRenderer();
+	void setupCharsetRenderer(const Common::String &macFontFile);
 	void setupCostumeRenderer();
 
-	virtual void loadLanguageBundle() {}
+	virtual void loadLanguageBundle();
 	void loadCJKFont();
-	void setupMusic(int midi);
+	void loadKorFont();
+	void setupMusic(int midi, const Common::String &macInstrumentFile);
 	void setTalkSpeed(int talkspeed);
 	int getTalkSpeed();
 
@@ -497,11 +401,10 @@ protected:
 	Dialog *_messageDialog;
 	Dialog *_versionDialog;
 
-	int runDialog(Dialog &dialog) override;
 	void confirmExitDialog();
 	void confirmRestartDialog();
 	void pauseDialog();
-	void messageDialog(const char *message);
+	void messageDialog(const Common::U32String &message);
 	void versionDialog();
 
 public:
@@ -734,6 +637,7 @@ protected:
 public:
 	/** The name of the (macintosh/rescumm style) container file, if any. */
 	Common::String _containerFile;
+	Common::String _macCursorFile;
 
 	bool openFile(BaseScummFile &file, const Common::String &filename, bool resourceFile = false);
 
@@ -771,6 +675,10 @@ public:
 	void ensureResourceLoaded(ResType type, ResId idx);
 
 protected:
+	Common::Mutex _resourceAccessMutex; // Used in getResourceSize(), getResourceAddress() and findResource()
+										// to avoid race conditions between the audio thread of Digital iMUSE
+										// and the main SCUMM thread
+
 	int readSoundResource(ResId idx);
 	int readSoundResourceSmallHeader(ResId idx);
 	bool isResourceInUse(ResType type, ResId idx) const;
@@ -794,6 +702,11 @@ protected:
 public:
 	const byte *findResourceData(uint32 tag, const byte *ptr);
 	const byte *findResource(uint32 tag, const byte *ptr);
+	void applyWorkaroundIfNeeded(ResType type, int idx);
+	bool verifyMI2MacBootScript();
+	bool verifyMI2MacBootScript(byte *buf, int size);
+	bool tryPatchMI1CannibalScript(byte *buf, int size);
+
 	int getResourceDataSize(const byte *ptr) const;
 	void dumpResource(const char *tag, int index, const byte *ptr, int length = -1);
 
@@ -1050,7 +963,14 @@ protected:
 
 	virtual void drawDirtyScreenParts();
 	void updateDirtyScreen(VirtScreenNumber slot);
-	void drawStripToScreen(VirtScreen *vs, int x, int w, int t, int b);
+	void drawStripToScreen(VirtScreen *vs, int x, int width, int top, int bottom);
+	void mac_drawStripToScreen(VirtScreen *vs, int top, int x, int y, int width, int height);
+	void mac_drawLoomPracticeMode();
+	void mac_createIndy3TextBox(Actor *a);
+	void mac_drawIndy3TextBox();
+	void mac_undrawIndy3TextBox();
+	void mac_undrawIndy3CreditsText();
+
 	void ditherCGA(byte *dst, int dstPitch, int x, int y, int width, int height) const;
 
 public:
@@ -1067,9 +987,15 @@ protected:
 	void dissolveEffect(int width, int height);
 	void scrollEffect(int dir);
 
+	void updateScreenShakeEffect();
+
 protected:
 	bool _shakeEnabled;
 	uint _shakeFrame;
+	uint32 _shakeNextTick;
+	uint32 _shakeTickCounter;
+	const uint32 _shakeTimerRate;
+
 	void setShake(int mode);
 
 	int _drawObjectQueNr;
@@ -1192,6 +1118,8 @@ public:
 	 */
 	Graphics::Surface _textSurface;
 	int _textSurfaceMultiplier;
+	Graphics::Surface *_macScreen;
+	Graphics::Surface *_macIndy3TextBox;
 
 protected:
 	byte _charsetColor;
@@ -1205,6 +1133,8 @@ protected:
 
 	int _nextLeft, _nextTop;
 
+	Localizer *_localizer;
+
 	void restoreCharsetBg();
 	void clearCharsetMask();
 	void clearTextSurface();
@@ -1217,7 +1147,7 @@ protected:
 	virtual void CHARSET_1();
 	bool newLine();
 	void drawString(int a, const byte *msg);
-	void fakeBidiString(byte *ltext, bool ignoreVerb);
+	void fakeBidiString(byte *ltext, bool ignoreVerb) const;
 	void debugMessage(const byte *msg);
 	void showMessageDialog(const byte *msg);
 
@@ -1232,16 +1162,59 @@ public:
 
 	// Used by class ScummDialog:
 	virtual void translateText(const byte *text, byte *trans_buff);
+	// Old Hebrew games require reversing the dialog text.
+	bool reverseIfNeeded(const byte *text, byte *reverseBuf) const;
+	// Returns codepage that matches the game for languages that require it.
+	Common::CodePage getDialogCodePage() const;
 
 	// Somewhat hackish stuff for 2 byte support (Chinese/Japanese/Korean)
 	bool _useCJKMode;
+	bool _useMultiFont;
+	int _numLoadedFont;
+	int _currentFont;
+	int _2byteShadow;
+
 	int _2byteHeight;
 	int _2byteWidth;
+	int _krStrPost;
 	byte _newLineCharacter;
 	byte *get2byteCharPtr(int idx);
 
-protected:
+	bool isScummvmKorTarget();
+
+//protected:
 	byte *_2byteFontPtr;
+	byte *_2byteMultiFontPtr[20];
+	int _2byteMultiHeight[20];
+	int _2byteMultiWidth[20];
+	int _2byteMultiShadow[20];
+
+private:
+	struct TranslatedLine {
+		uint32 originalTextOffset;
+		uint32 translatedTextOffset;
+	};
+
+	struct TranslationRange {
+		uint32 left;
+		uint32 right;
+
+		TranslationRange(uint32 left_, uint32 right_) : left(left_), right(right_) {}
+		TranslationRange() : left(0), right(0) {}
+	};
+
+	struct TranslationRoom {
+		Common::HashMap<uint32, TranslationRange> scriptRanges;
+	};
+
+	bool _existLanguageFile;
+	byte *_languageBuffer;
+	int _numTranslatedLines;
+	TranslatedLine *_translatedLines;
+	uint16 *_languageLineIndex;
+	Common::HashMap<byte, TranslationRoom> _roomIndex;
+
+	const byte *searchTranslatedLine(const byte *text, const TranslationRange &range, bool useIndex);
 
 public:
 
@@ -1403,6 +1376,7 @@ public:
 
 protected:
 	void towns_drawStripToScreen(VirtScreen *vs, int dstX, int dstY, int srcX, int srcY, int w, int h);
+	void towns_clearStrip(int strip);
 #ifdef USE_RGB_COLOR
 	void towns_setPaletteFromPtr(const byte *ptr, int numcolor = -1);
 	void towns_setTextPaletteFromPtr(const byte *ptr);
@@ -1411,9 +1385,25 @@ protected:
 	void towns_processPalCycleField();
 	void towns_resetPalCycleFields();
 	void towns_restoreCharsetBg();
+	void towns_scriptScrollEffect(int dir);
 
-	Common::Rect _cyclRects[16];
+	void requestScroll(int dir);
+	void scrollLeft() {	requestScroll(-1); }
+	void scrollRight() { requestScroll(1); }
+	void towns_waitForScroll(int waitForDirection, int threshold = 0);
+	void towns_updateGfx();
+
+	Common::Rect _cyclRects[10];
 	int _numCyclRects;
+	int _scrollRequest;
+	int _scrollDeltaAdjust;
+	int _refreshDuration[20];
+	int _refreshArrayPos;
+	bool _refreshNeedCatchUp;
+	bool _enableSmoothScrolling;
+	uint32 _scrollTimer;
+	uint32 _scrollDestOffset;
+	uint16 _scrollFeedStrips[3];
 
 	Common::Rect _curStringRect;
 
@@ -1424,6 +1414,11 @@ protected:
 	static const uint8 _townsLayer2Mask[];
 
 	TownsScreen *_townsScreen;
+#else
+	void scrollLeft() { redrawBGStrip(_gdi->_numStrips - 1, 1); }
+	void scrollRight() { redrawBGStrip(0, 1); }
+	void towns_updateGfx() {}
+	void towns_waitForScroll(int waitForDirection, int threshold = 0) {}
 #endif // DISABLE_TOWNS_DUAL_LAYER_MODE
 };
 

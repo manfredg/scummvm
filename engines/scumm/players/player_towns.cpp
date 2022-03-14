@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 
 namespace Scumm {
 
-Player_Towns::Player_Towns(ScummEngine *vm, bool isVersion2) : _vm(vm), _v2(isVersion2), _intf(0), _numSoundMax(isVersion2 ? 256 : 200), _unkFlags(0x33) {
+Player_Towns::Player_Towns(ScummEngine *vm, bool isVersion2) : _vm(vm), _v2(isVersion2), _intf(nullptr), _numSoundMax(isVersion2 ? 256 : 200), _unkFlags(0x33) {
 	memset(_pcmCurrentSound, 0, sizeof(_pcmCurrentSound));
 }
 
@@ -188,7 +187,7 @@ int Player_Towns::allocatePcmChannel(int sound, int sfxChanRelIndex, uint32 prio
 }
 
 Player_Towns_v1::Player_Towns_v1(ScummEngine *vm, Audio::Mixer *mixer) : Player_Towns(vm, false) {
-	_soundOverride = 0;
+	_soundOverride = nullptr;
 	_cdaCurrentSound = _eupCurrentSound = _cdaNumLoops = 0;
 	_cdaForceRestart = 0;
 	_cdaVolLeft = _cdaVolRight = 0;
@@ -197,12 +196,11 @@ Player_Towns_v1::Player_Towns_v1(ScummEngine *vm, Audio::Mixer *mixer) : Player_
 	_eupLooping = false;
 
 	if (_vm->_game.version == 3) {
-		_soundOverride = new SoundOvrParameters[_numSoundMax];
-		memset(_soundOverride, 0, _numSoundMax * sizeof(SoundOvrParameters));
+		_soundOverride = new SoundOvrParameters[_numSoundMax]();
 	}
 
 	_player = new EuphonyPlayer(mixer);
-	_intf = new TownsAudioInterface(mixer, 0);
+	_intf = new TownsAudioInterface(mixer, nullptr);
 }
 
 Player_Towns_v1::~Player_Towns_v1() {
@@ -583,15 +581,14 @@ void Player_Towns_v1::playCdaTrack(int sound, const uint8 *data, bool skipTrackV
 	_cdaCurrentSound = sound;
 }
 
-Player_Towns_v2::Player_Towns_v2(ScummEngine *vm, Audio::Mixer *mixer, IMuse *imuse, bool disposeIMuse) : Player_Towns(vm, true), _imuse(imuse), _imuseDispose(disposeIMuse), _sblData(0) {
-	_soundOverride = new SoundOvrParameters[_numSoundMax];
-	memset(_soundOverride, 0, _numSoundMax * sizeof(SoundOvrParameters));
-	_intf = new TownsAudioInterface(mixer, 0, true);
+Player_Towns_v2::Player_Towns_v2(ScummEngine *vm, Audio::Mixer *mixer, IMuse *imuse, bool disposeIMuse) : Player_Towns(vm, true), _imuse(imuse), _imuseDispose(disposeIMuse), _sblData(nullptr) {
+	_soundOverride = new SoundOvrParameters[_numSoundMax]();
+	_intf = new TownsAudioInterface(mixer, nullptr, true);
 }
 
 Player_Towns_v2::~Player_Towns_v2() {
 	delete _intf;
-	_intf = 0;
+	_intf = nullptr;
 
 	if (_imuseDispose)
 		delete _imuse;
@@ -660,7 +657,7 @@ void Player_Towns_v2::stopAllSounds() {
 
 int32 Player_Towns_v2::doCommand(int numargs, int args[]) {
 	int32 res = -1;
-	uint8 *ptr = 0;
+	uint8 *ptr = nullptr;
 
 	switch (args[0]) {
 	case 8:

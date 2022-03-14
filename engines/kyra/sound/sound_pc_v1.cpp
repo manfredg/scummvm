@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,10 +40,10 @@ const int SoundPC_v1::_kyra1SoundTriggers[] = {
 const int SoundPC_v1::_kyra1NumSoundTriggers = ARRAYSIZE(SoundPC_v1::_kyra1SoundTriggers);
 
 SoundPC_v1::SoundPC_v1(KyraEngine_v1 *vm, Audio::Mixer *mixer, kType type)
-	: Sound(vm, mixer), _driver(0), _trackEntries(), _soundDataPtr(0), _type(type) {
+	: Sound(vm, mixer), _driver(nullptr), _trackEntries(), _soundDataPtr(nullptr), _type(type) {
 	memset(_trackEntries, 0, sizeof(_trackEntries));
 
-	_soundTriggers = 0;
+	_soundTriggers = nullptr;
 	_numSoundTriggers = 0;
 	_sfxPlayingSound = -1;
 	_soundFileLoaded.clear();
@@ -53,7 +52,7 @@ SoundPC_v1::SoundPC_v1(KyraEngine_v1 *vm, Audio::Mixer *mixer, kType type)
 
 	switch (vm->game()) {
 	case GI_LOL:
-		_version = _vm->gameFlags().isDemo ? 3 : 4;
+		_version = (_vm->gameFlags().isDemo && !_vm->gameFlags().isTalkie) ? 3 : 4;
 		break;
 	case GI_KYRA2:
 		_version = 4;
@@ -89,7 +88,7 @@ SoundPC_v1::~SoundPC_v1() {
 	delete _driver;
 	delete[] _soundDataPtr;
 	for (int i = 0; i < 3; i++)
-		initAudioResourceInfo(i, 0);
+		initAudioResourceInfo(i, nullptr);
 }
 
 bool SoundPC_v1::init() {
@@ -153,7 +152,7 @@ bool SoundPC_v1::isPlaying() const {
 	return _driver->isChannelPlaying(0);
 }
 
-void SoundPC_v1::playSoundEffect(uint8 track, uint8 volume) {
+void SoundPC_v1::playSoundEffect(uint16 track, uint8 volume) {
 	if (_sfxEnabled)
 		play(track, volume);
 }
@@ -187,7 +186,7 @@ void SoundPC_v1::resetTrigger() {
 void SoundPC_v1::initAudioResourceInfo(int set, void *info) {
 	if (set >= kMusicIntro && set <= kMusicFinale) {
 		delete _resInfo[set];
-		_resInfo[set] = info ? new SoundResourceInfo_PC(*(SoundResourceInfo_PC*)info) : 0;
+		_resInfo[set] = info ? new SoundResourceInfo_PC(*(SoundResourceInfo_PC*)info) : nullptr;
 	}
 }
 
@@ -200,7 +199,7 @@ void SoundPC_v1::selectAudioResourceSet(int set) {
 
 bool SoundPC_v1::hasSoundFile(uint file) const {
 	if (file < res()->fileListSize)
-		return (res()->fileList[file] != 0);
+		return (res()->fileList[file] != nullptr);
 	return false;
 }
 
@@ -223,7 +222,7 @@ void SoundPC_v1::internalLoadFile(Common::String file) {
 	if (_soundDataPtr)
 		haltTrack();
 
-	uint8 *fileData = 0; uint32 fileSize = 0;
+	uint8 *fileData = nullptr; uint32 fileSize = 0;
 
 	fileData = _vm->resource()->fileData(file.c_str(), &fileSize);
 	if (!fileData) {
@@ -235,7 +234,6 @@ void SoundPC_v1::internalLoadFile(Common::String file) {
 	playSoundEffect(0);
 
 	_driver->stopAllChannels();
-	_soundDataPtr = 0;
 
 	int soundDataSize = fileSize;
 	uint8 *p = fileData;
@@ -250,16 +248,15 @@ void SoundPC_v1::internalLoadFile(Common::String file) {
 		soundDataSize -= 120;
 	}
 
+	uint8 *oldData = _soundDataPtr;
 	_soundDataPtr = new uint8[soundDataSize];
 	assert(_soundDataPtr);
 
 	memcpy(_soundDataPtr, p, soundDataSize);
+	_driver->setSoundData(_soundDataPtr, soundDataSize);
 
 	delete[] fileData;
-	fileData = p = 0;
-	fileSize = 0;
-
-	_driver->setSoundData(_soundDataPtr, soundDataSize);
+	delete[] oldData;
 
 	_soundFileLoaded = file;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -484,7 +483,7 @@ void ToucheEngine::op_updateRoom() {
 	int16 area = _script.readNextWord();
 	updateRoomAreas(area, 0);
 
-	// Workaround for bug #1618700. Beggar sign (area 25) should be displayed even
+	// Workaround for bug #2952. Beggar sign (area 25) should be displayed even
 	// if Henri isn't present in the room.
 	//
 	//  [00B3] (1D) ST[0] = FLAGS[2]
@@ -551,7 +550,7 @@ void ToucheEngine::op_initKeyCharScript() {
 	setKeyCharTextColor(keyChar, color);
 	initKeyCharScript(keyChar, f1, f2, f3);
 
-	// Workaround for bug #1622114. KeyChar 3 script must be running in order to complete the
+	// Workaround for bug #2962. KeyChar 3 script must be running in order to complete the
 	// rope+torch puzzle.
 	//
 	// FLAG[500] : 1 if Cardinal cutscene has already been played
@@ -782,7 +781,7 @@ void ToucheEngine::op_addItemToInventoryAndRedraw() {
 		keyChar = _currentKeyCharNum;
 	}
 
-	// Workaround for bug #1623356. The original script allows you to either use the
+	// Workaround for bug #2966. The original script allows you to either use the
 	// "waxy knife" (object 72) or the dagger (object 7) on the rope. But in both
 	// situations, only the dagger is put back in the inventory.
 	//
@@ -842,7 +841,7 @@ void ToucheEngine::op_fadePalette() {
 	debugC(9, kDebugOpcodes, "ToucheEngine::op_fadePalette()");
 	int16 fadeOut = _script.readNextWord();
 	int colorsCount = 240;
-	// Workaround for bug #1751149. Script triggers a palette fading, but some
+	// Workaround for bug #3305. Script triggers a palette fading, but some
 	// of the room graphics use palette colors >= 240.
 	if (_currentEpisodeNum == 104 && _currentRoomNum == 68) {
 		colorsCount = 256;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,20 +28,20 @@
 
 namespace Cine {
 
+// Size of AnimHeaderStruct payload in bytes
+#define ANIM_HEADER_SIZE 0x16
+
 struct AnimHeaderStruct {
-	byte field_0;
-	byte field_1;
-	byte field_2;
-	byte field_3;
-	uint16 frameWidth;
-	uint16 frameHeight;
+	char idString[4];
+	int16 frameWidth;
+	int16 frameHeight;
 	byte field_8;
 	byte field_9;
 	byte field_A;
 	byte field_B;
 	byte field_C;
 	byte field_D;
-	uint16 numFrames;
+	int16 numFrames;
 	byte field_10;
 	byte field_11;
 	byte field_12;
@@ -53,6 +52,11 @@ struct AnimHeaderStruct {
 struct AnimDataEntry {
 	char name[9];
 	byte color;
+};
+
+struct AnimDataMapping {
+	char from[9];
+	char to[9];
 };
 
 #define ANIM_RAW 0 // memcpy
@@ -84,6 +88,8 @@ public:
 
 	AnimData &operator=(const AnimData &src);
 
+	int size() { return _size; }
+	int16 frameIndex() { return _frameIdx; }
 	const byte *data() const { return _data; } ///< Image data
 	const byte *mask() const { return _mask; } ///< Image mask (may be NULL)
 	byte getColor(int x, int y);

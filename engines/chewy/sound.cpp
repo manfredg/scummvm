@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "audio/audiostream.h"
 #include "audio/mixer.h"
 #include "audio/decoders/raw.h"
+#include "common/config-manager.h"
 #include "common/system.h"
-
 #include "chewy/resource.h"
 #include "chewy/sound.h"
+#include "chewy/types.h"
+#include "chewy/globals.h"
 
 namespace Chewy {
 
@@ -41,23 +42,23 @@ Sound::~Sound() {
 	delete _speechRes;
 }
 
-void Sound::playSound(int num, bool loop, uint channel) {
+void Sound::playSound(int num, uint channel, bool loop) {
 	SoundChunk *sound = _soundRes->getSound(num);
-	byte *data = (byte *)malloc(sound->size);
+	uint8 *data = (uint8 *)MALLOC(sound->size);
 	memcpy(data, sound->data, sound->size);
 
-	playSound(data, sound->size, loop, channel);
+	playSound(data, sound->size, channel, loop);
 
 	delete[] sound->data;
 	delete sound;
 }
 
-void Sound::playSound(byte *data, uint32 size, bool loop, uint channel, DisposeAfterUse::Flag dispose) {
+void Sound::playSound(uint8 *data, uint32 size, uint channel, bool loop, DisposeAfterUse::Flag dispose) {
 	Audio::AudioStream *stream = Audio::makeLoopingAudioStream(
-		Audio::makeRawStream(data,
-		size, 22050, Audio::FLAG_UNSIGNED,
-		dispose),
-		loop ? 0 : 1);
+	                                 Audio::makeRawStream(data,
+	                                         size, 22050, Audio::FLAG_UNSIGNED,
+	                                         dispose),
+	                                 loop ? 0 : 1);
 
 	_mixer->playStream(Audio::Mixer::kSFXSoundType, &_soundHandle[channel], stream);
 }
@@ -75,6 +76,11 @@ void Sound::resumeSound(uint channel) {
 void Sound::stopSound(uint channel) {
 	assert(channel < MAX_SOUND_EFFECTS);
 	_mixer->stopHandle(_soundHandle[channel]);
+}
+
+void Sound::stopAllSounds() {
+	for (int i = 4; i < 8; i++)
+		stopSound(i);
 }
 
 bool Sound::isSoundActive(uint channel) {
@@ -99,7 +105,7 @@ void Sound::setSoundChannelBalance(uint channel, uint balance) {
 void Sound::playMusic(int num, bool loop) {
 	uint32 musicNum = _soundRes->getChunkCount() - 1 - num;
 	Chunk *chunk = _soundRes->getChunk(musicNum);
-	byte *data = _soundRes->getChunkData(musicNum);
+	uint8 *data = _soundRes->getChunkData(musicNum);
 
 	playMusic(data, chunk->size, loop);
 
@@ -107,23 +113,20 @@ void Sound::playMusic(int num, bool loop) {
 	delete chunk;
 }
 
-void Sound::playMusic(byte *data, uint32 size, bool loop, DisposeAfterUse::Flag dispose) {
-	byte *modData = nullptr;
+void Sound::playMusic(uint8 *data, uint32 size, bool loop, DisposeAfterUse::Flag dispose) {
+	uint8 *modData = nullptr;
 	uint32 modSize;
 
-	// TODO: TMF music files are similar to MOD files. With the following
-	// incorrect implementation, the PCM parts of these files can be played
 	warning("The current music playing implementation is wrong");
 	modSize = size;
-	modData = (byte *)malloc(modSize);
+	modData = (uint8 *)MALLOC(modSize);
 	memcpy(modData, data, size);
-	//convertTMFToMod(data, size, modData, modSize);
 
 	Audio::AudioStream *stream = Audio::makeLoopingAudioStream(
-		Audio::makeRawStream(modData,
-		modSize, 22050, Audio::FLAG_UNSIGNED,
-		dispose),
-		loop ? 0 : 1);
+	                                 Audio::makeRawStream(modData,
+	                                         modSize, 22050, Audio::FLAG_UNSIGNED,
+	                                         dispose),
+	                                 loop ? 0 : 1);
 
 	_mixer->playStream(Audio::Mixer::kMusicSoundType, &_musicHandle, stream);
 }
@@ -148,21 +151,30 @@ void Sound::setMusicVolume(uint volume) {
 	_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, volume);
 }
 
-void Sound::playSpeech(int num) {
+void Sound::playSpeech(int num, bool waitForFinish) {
+	// Get the speech data
 	SoundChunk *sound = _speechRes->getSound(num);
-	byte *data = (byte *)malloc(sound->size);
-	memcpy(data, sound->data, sound->size);
-
-	Audio::AudioStream *stream = Audio::makeLoopingAudioStream(
-		Audio::makeRawStream(data,
-		sound->size, 22050, Audio::FLAG_UNSIGNED,
-		DisposeAfterUse::YES),
-		1);
-
-	_mixer->playStream(Audio::Mixer::kSpeechSoundType, &_speechHandle, stream);
+	size_t size = sound->size;
+	uint8 *data = (uint8 *)MALLOC(size);
+	memcpy(data, sound->data, size);
 
 	delete[] sound->data;
 	delete sound;
+
+	// Play it
+	Audio::AudioStream *stream = Audio::makeLoopingAudioStream(
+	    Audio::makeRawStream(data, size, 22050, Audio::FLAG_UNSIGNED,
+		DisposeAfterUse::YES), 1);
+
+	_mixer->playStream(Audio::Mixer::kSpeechSoundType,
+		&_speechHandle, stream);
+
+	if (waitForFinish) {
+		// Wait for speech to finish
+		while (isSpeechActive() && !SHOULD_QUIT) {
+			setupScreen(DO_SETUP);
+		}
+	}
 }
 
 void Sound::pauseSpeech() {
@@ -189,22 +201,22 @@ void Sound::stopAll() {
 	_mixer->stopAll();
 }
 
-void Sound::convertTMFToMod(byte *tmfData, uint32 tmfSize, byte *modData, uint32 &modSize) {
-	// Convert the TMF stream back to a regular Protracker MOD stream
-	const int maxInstruments = 31;
-	// Extra bytes needed: 20 bytes song name, 31 * 22 instrument names, 4 magic bytes "M.K."
-	modSize = tmfSize + 20 + maxInstruments * 22 + 4;
-	modData = (byte *)malloc(modSize);
-	byte *tmfPtr = tmfData;
-	byte *modPtr = modData;
+void Sound::convertTMFToMod(uint8 *tmfData, uint32 tmfSize, uint8 *modData, uint32 &modSize) {
 
-	const byte songName[20] = {
+	const int maxInstruments = 31;
+
+	modSize = tmfSize + 20 + maxInstruments * 22 + 4;
+	modData = (uint8 *)MALLOC(modSize);
+	uint8 *tmfPtr = tmfData;
+	uint8 *modPtr = modData;
+
+	const uint8 songName[20] = {
 		'S', 'C', 'U', 'M', 'M',
 		'V', 'M', ' ', 'M', 'O',
 		'D', 'U', 'L', 'E', '\0',
 		'\0', '\0', '\0', '\0', '\0'
 	};
-	const byte instrumentName[22] = {
+	const uint8 instrumentName[22] = {
 		'S', 'C', 'U', 'M', 'M',
 		'V', 'M', ' ', 'I', 'N',
 		'S', 'T', 'R', 'U', 'M',
@@ -219,41 +231,62 @@ void Sound::convertTMFToMod(byte *tmfData, uint32 tmfSize, byte *modData, uint32
 	memcpy(modPtr, songName, 20);
 	modPtr += 20;
 
-	byte fineTune, instVolume;
+	uint8 fineTune, instVolume;
 	uint16 repeatPoint, repeatLength, sampleLength;
 
 	for (int i = 0; i < maxInstruments; i++) {
 		fineTune = *tmfPtr++;
 		instVolume = *tmfPtr++;
-		repeatPoint = READ_BE_UINT16(tmfPtr);	tmfPtr += 2;
-		repeatLength = READ_BE_UINT16(tmfPtr);	tmfPtr += 2;
-		sampleLength = READ_BE_UINT16(tmfPtr);	tmfPtr += 2;
+		repeatPoint = READ_BE_UINT16(tmfPtr);
+		tmfPtr += 2;
+		repeatLength = READ_BE_UINT16(tmfPtr);
+		tmfPtr += 2;
+		sampleLength = READ_BE_UINT16(tmfPtr);
+		tmfPtr += 2;
 
-		// Instrument name
-		memcpy(modPtr, instrumentName, 18);	modPtr += 18;
+		memcpy(modPtr, instrumentName, 18);
+		modPtr += 18;
 		*modPtr++ = ' ';
 		*modPtr++ = i / 10;
 		*modPtr++ = i % 10;
 		*modPtr++ = '\0';
 
-		WRITE_BE_UINT16(modPtr, sampleLength / 2);	modPtr += 2;
+		WRITE_BE_UINT16(modPtr, sampleLength / 2);
+		modPtr += 2;
 		*modPtr++ = fineTune;
 		*modPtr++ = instVolume;
-		WRITE_BE_UINT16(modPtr, repeatPoint / 2);	modPtr += 2;
-		WRITE_BE_UINT16(modPtr, repeatLength / 2);	modPtr += 2;
+		WRITE_BE_UINT16(modPtr, repeatPoint / 2);
+		modPtr += 2;
+		WRITE_BE_UINT16(modPtr, repeatLength / 2);
+		modPtr += 2;
 	}
 
-	*modPtr++ = *tmfPtr++;	// song length
-	*modPtr++ = *tmfPtr++;	// undef
+	*modPtr++ = *tmfPtr++;
+	*modPtr++ = *tmfPtr++;
 	memcpy(modPtr, tmfPtr, 128);
 	modPtr += 128;
 	tmfPtr += 128;
-	WRITE_BE_UINT32(modPtr, MKTAG('M', '.', 'K', '.'));	modPtr += 4;
-	// TODO: 31 bytes instrument positions
-
-	// TODO: notes
+	WRITE_BE_UINT32(modPtr, MKTAG('M', '.', 'K', '.'));
+	modPtr += 4;
 
 	free(modData);
 }
 
-} // End of namespace Chewy
+void Sound::waitForSpeechToFinish() {
+	if (_G(spieler).SpeechSwitch) {
+		while (g_engine->_sound->isSpeechActive() && !SHOULD_QUIT) {
+			setupScreen(DO_SETUP);
+		}
+	}
+}
+
+DisplayMode Sound::getSpeechSubtitlesMode() const {
+	if (!ConfMan.getBool("subtitles"))
+		return DISPLAY_VOC;
+	else if (!ConfMan.getBool("speech_mute"))
+		return DISPLAY_ALL;
+	else
+		return DISPLAY_TXT;
+}
+
+} // namespace Chewy

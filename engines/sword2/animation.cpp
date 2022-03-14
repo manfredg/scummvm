@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "common/file.h"
@@ -471,7 +470,7 @@ MoviePlayer *makeMoviePlayer(const char *name, Sword2Engine *vm, OSystem *system
 	// The demo tries to play some cutscenes that aren't there, so make those warnings more discreet.
 	// In addition, some of the later re-releases of the game don't have the "eye" Virgin logo movie.
 	if (!vm->_logic->readVar(DEMO) && strcmp(name, "eye") != 0) {
-		Common::String buf = Common::String::format(_("Cutscene '%s' not found"), name);
+		Common::U32String buf = Common::U32String::format(_("Cutscene '%s' not found"), name);
 		GUI::MessageDialog dialog(buf, _("OK"));
 		dialog.runModal();
 	} else

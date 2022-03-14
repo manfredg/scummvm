@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,7 +56,7 @@ namespace TADS2 {
 #define OPCGETP     18      /* get property */
 #define OPCGETPDATA 19      /* get a property, allowing only data values */
 #define OPCGETLCL   20      /* get a local variable's value */
-#define OPCPTRGETPDATA 21   /* get property via pointer; only allow data */   
+#define OPCPTRGETPDATA 21   /* get property via pointer; only allow data */
 #define OPCRETURN   22      /* return without a value */
 #define OPCRETVAL   23      /* return a value */
 #define OPCENTER    24      /* enter a function */
@@ -110,8 +109,8 @@ namespace TADS2 {
 #define OPCGETPSELF 60      /* get property of the 'self' object */
 #define OPCGETPSLFD 61      /* get property of 'self' and discard result */
 #define OPCGETPOBJ  62      /* get property of a given object */
-                            /*  note: differs from GETP in that object is */
-                            /*  encoded into the instruction */
+							/*  note: differs from GETP in that object is */
+							/*  encoded into the instruction */
 #define OPCGETPOBJD 63      /* get property of an object and discard result */
 #define OPCINDEX    64      /* get an indexed entry from a list */
 
@@ -152,30 +151,30 @@ namespace TADS2 {
 
 /*
 ASSIGNMENT OPERATIONS
-    When (opcode & 0xc0 == 0xc0), we have an assignment operation.
-    (Note that this means that opcodes from 0xc0 up are all reserved
-    for assignment operations.)  The low six bits of the opcode
-    specify exactly what kind of operation is to be performed:
-    
-    bits 0-1:  specifies destination type:
-               00    2-byte operand is local number
-               01    2-byte operand is property to set in obj at tos
-               10    tos is index, [sp-1] is list to be indexed and set
-               11    tos is property pointer, [sp-1] is object
-    
-    bits 2-4:  specifies assignment operation:
-               000   := (direct assignment)
-               001   += (add tos to destination)
-               010   -= (subtract tos from destination)
-               011   *= (multiply destination by tos)
-               100   /= (divide destination by tos)
-               101   ++ (increment tos)
-               110   -- (decrement tos)
-               111   *reserved*
-               
-    bit 5:     specifies what to do with value computed by assignment
-               0     leave on stack (implies pre increment/decrement)
-               1     discard (implies post increment/decrement)
+	When (opcode & 0xc0 == 0xc0), we have an assignment operation.
+	(Note that this means that opcodes from 0xc0 up are all reserved
+	for assignment operations.)  The low six bits of the opcode
+	specify exactly what kind of operation is to be performed:
+
+	bits 0-1:  specifies destination type:
+			   00    2-byte operand is local number
+			   01    2-byte operand is property to set in obj at tos
+			   10    tos is index, [sp-1] is list to be indexed and set
+			   11    tos is property pointer, [sp-1] is object
+
+	bits 2-4:  specifies assignment operation:
+			   000   := (direct assignment)
+			   001   += (add tos to destination)
+			   010   -= (subtract tos from destination)
+			   011   *= (multiply destination by tos)
+			   100   /= (divide destination by tos)
+			   101   ++ (increment tos)
+			   110   -- (decrement tos)
+			   111   *reserved*
+
+	bit 5:     specifies what to do with value computed by assignment
+			   0     leave on stack (implies pre increment/decrement)
+			   1     discard (implies post increment/decrement)
 */
 #define OPCASI_MASK      0xc0                     /* assignment instruction */
 

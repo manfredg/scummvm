@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,19 +29,19 @@
 namespace BladeRunner {
 
 const Color256 UISlider::kColors[] = {
-	{ 0, 0, 0 },
-	{ 16, 8, 8 },
-	{ 32, 24, 8 },
-	{ 56, 32, 16 },
-	{ 72, 48, 16 },
-	{ 88, 56, 24 },
-	{ 104, 72, 32 },
-	{ 128, 80, 40 },
-	{ 136, 96, 48 },
-	{ 152, 112, 56 },
-	{ 168, 128, 72 },
-	{ 184, 144, 88 },
-	{ 200, 160, 96 },
+	{   0,   0,   0 }, // Black - unpressed (framing rectange)
+	{  16,   8,   8 },
+	{  32,  24,   8 },
+	{  56,  32,  16 },
+	{  72,  48,  16 },
+	{  88,  56,  24 }, // Mouse-over (framing rectange)
+	{ 104,  72,  32 },
+	{ 128,  80,  40 },
+	{ 136,  96,  48 },
+	{ 152, 112,  56 },
+	{ 168, 128,  72 }, // Pressed (framing rectange)
+	{ 184, 144,  88 },
+	{ 200, 160,  96 },
 	{ 216, 184, 112 },
 	{ 232, 200, 128 },
 	{ 240, 224, 144 }
@@ -79,10 +78,12 @@ void UISlider::draw(Graphics::Surface &surface) {
 		frameColor = 0;
 	}
 
+	// Ensures animated transition of the frame's (outlining rectangle's) color to the new one
 	if (_currentFrameColor < frameColor) {
 		++_currentFrameColor;
 	}
 
+	// Ensures animated transition of the frame's (outlining rectangle's) color to the new one
 	if (_currentFrameColor > frameColor) {
 		--_currentFrameColor;
 	}

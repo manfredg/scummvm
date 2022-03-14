@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * MIT License:
  *
@@ -111,7 +110,7 @@ void Design::paint(Graphics::ManagedSurface *surface, Graphics::MacPatterns &pat
 	PlotData pd(_surface, &patterns, 8, 1, this);
 	int x1 = 50, y1 = 50, x2 = 200, y2 = 200, borderThickness = 30;
 	Common::Rect inn(x1-5, y1-5, x2+5, y2+5);
-	drawRoundRect(inn, 6, kColorGray, false, drawPixelPlain, &pd);
+	drawRoundRect(inn, 6, kColorGray80, false, drawPixelPlain, &pd);
 
 	drawThickLine(x1, y1, x2-borderThickness, y1, borderThickness, kColorBlack, drawPixel, &pd);
 	drawThickLine(x2-borderThickness, y1, x2-borderThickness, y2, borderThickness, kColorBlack, drawPixel, &pd);
@@ -133,8 +132,10 @@ void Design::paint(Graphics::ManagedSurface *surface, Graphics::MacPatterns &pat
 		render(patterns);
 
 	if (_bounds->width() && _bounds->height()) {
-		const int padding = 3;
-		Common::Rect from(padding, padding, _bounds->width() - 2 * padding, _bounds->height() - 2 * padding);
+		const int padding = 14;
+//		Common::Rect from(padding, padding, _bounds->width() - 2 * padding, _bounds->height() - 2 * padding);
+		// in order to restore the design, we just cut the left and top part of that
+		Common::Rect from(padding, padding, _bounds->width(), _bounds->height());
 		Common::Rect to(from);
 		to.moveTo(x, y);
 		surface->transBlitFrom(*_surface, from, to, kColorGreen);

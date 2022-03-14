@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -253,9 +252,9 @@ private:
 
 // half mpeg encoding window (full precision)
 const int32 ff_mpa_enwindow[257] = {
-     0,    -1,    -1,    -1,    -1,    -1,    -1,    -2,
-    -2,    -2,    -2,    -3,    -3,    -4,    -4,    -5,
-    -5,    -6,    -7,    -7,    -8,    -9,   -10,   -11,
+	 0,    -1,    -1,    -1,    -1,    -1,    -1,    -2,
+	-2,    -2,    -2,    -3,    -3,    -4,    -4,    -5,
+	-5,    -6,    -7,    -7,    -8,    -9,   -10,   -11,
    -13,   -14,   -16,   -17,   -19,   -21,   -24,   -26,
    -29,   -31,   -35,   -38,   -41,   -45,   -49,   -53,
    -58,   -63,   -68,   -73,   -79,   -85,   -91,   -97,
@@ -278,7 +277,7 @@ const int32 ff_mpa_enwindow[257] = {
  -9727, -9838, -9916, -9959, -9966, -9935, -9863, -9750,
  -9592, -9389, -9139, -8840, -8492, -8092, -7640, -7134,
   6574,  5959,  5288,  4561,  3776,  2935,  2037,  1082,
-    70,  -998, -2122, -3300, -4533, -5818, -7154, -8540,
+	70,  -998, -2122, -3300, -4533, -5818, -7154, -8540,
  -9975,-11455,-12980,-14548,-16155,-17799,-19478,-21189,
 -22929,-24694,-26482,-28289,-30112,-31947,-33791,-35640,
 -37489,-39336,-41176,-43006,-44821,-46617,-48390,-50137,
@@ -595,9 +594,9 @@ static void dct32(int32 *out, int32 *tab) {
 // 32 samples.
 // XXX: optimize by avoiding ring buffer usage
 void ff_mpa_synth_filter(int16 *synth_buf_ptr, int *synth_buf_offset,
-                         int16 *window, int *dither_state,
-                         int16 *samples, int incr,
-                         int32 sb_samples[32])
+						 int16 *window, int *dither_state,
+						 int16 *samples, int incr,
+						 int32 sb_samples[32])
 {
 	int16 *synth_buf;
 	const int16 *w, *w2, *p;
@@ -733,11 +732,11 @@ static int allocTable(VLC *vlc, int size, int use_static) {
 }
 
 static int build_table(VLC *vlc, int table_nb_bits,
-                       int nb_codes,
-                       const void *bits, int bits_wrap, int bits_size,
-                       const void *codes, int codes_wrap, int codes_size,
-                       const void *symbols, int symbols_wrap, int symbols_size,
-                       int code_prefix, int n_prefix, int flags)
+					   int nb_codes,
+					   const void *bits, int bits_wrap, int bits_size,
+					   const void *codes, int codes_wrap, int codes_size,
+					   const void *symbols, int symbols_wrap, int symbols_size,
+					   int code_prefix, int n_prefix, int flags)
 {
 	int i, j, k, n, table_size, table_index, nb, n1, index, code_prefix2, symbol;
 	uint32 code;
@@ -1479,8 +1478,8 @@ void QDM2Stream::fill_tone_level_array(int flag) {
  * @param cm_table_select      q->cm_table_select
  */
 void QDM2Stream::fill_coding_method_array(sb_int8_array tone_level_idx, sb_int8_array tone_level_idx_temp,
-                sb_int8_array coding_method, int nb_channels,
-                int c, int superblocktype_2_3, int cm_table_select) {
+				sb_int8_array coding_method, int nb_channels,
+				int c, int superblocktype_2_3, int cm_table_select) {
 	int ch, sb, j;
 	int tmp, acc, esp_40, comp;
 	int add1, add2, add3, add4;
@@ -2160,7 +2159,7 @@ void QDM2Stream::qdm2_decode_super_block(void) {
 }
 
 void QDM2Stream::qdm2_fft_init_coefficient(int sub_packet, int offset, int duration,
-                                           int channel, int exp, int phase) {
+										   int channel, int exp, int phase) {
 	if (_fftCoefsMinIndex[duration] < 0)
 	    _fftCoefsMinIndex[duration] = _fftCoefsIndex;
 
@@ -2482,7 +2481,7 @@ void QDM2Stream::qdm2_synthesis_filter(uint8 index)
 }
 
 bool QDM2Stream::qdm2_decodeFrame(Common::SeekableReadStream &in, QueuingAudioStream *audioStream) {
-	debug(1, "QDM2Stream::qdm2_decodeFrame in.pos(): %d in.size(): %d", in.pos(), in.size());
+	debug(1, "QDM2Stream::qdm2_decodeFrame in.pos(): %ld in.size(): %ld", in.pos(), in.size());
 	int ch, i;
 	const int frame_size = (_sFrameSize * _channels);
 
@@ -2499,7 +2498,7 @@ bool QDM2Stream::qdm2_decodeFrame(Common::SeekableReadStream &in, QueuingAudioSt
 	}
 
 	if ((in.size() - in.pos()) < _packetSize) {
-		debug(1, "QDM2Stream::qdm2_decodeFrame Insufficient Packet Data in Input Stream Found: %d Need: %d", in.size() - in.pos(), _packetSize);
+		debug(1, "QDM2Stream::qdm2_decodeFrame Insufficient Packet Data in Input Stream Found: %ld Need: %d", in.size() - in.pos(), _packetSize);
 		return false;
 	}
 

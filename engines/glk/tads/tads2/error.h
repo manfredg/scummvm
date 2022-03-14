@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
  * handle exceptions.A macro is provided which signals an error, which
  * does a non - local goto to the innermost enclosing exception handler.
  * A set of macros sets up exception handling code.
- * 
+ *
  * To catch exceptions that occur inside a block of code(i.e., in the
  * code or in any subroutines called by the code), begin the block with
  * ERRBEGIN.At the end of the protected code, place the exception
@@ -33,7 +32,7 @@
  * handler, place ERREND.If no exception occurs, execution goes
  * through the protected code, then resumes at the code following
  * the ERREND.
- * 
+ *
  * The exception handler can signal another error, which will cause
  * the next enclosing frame to catch the error.Alternatively, if
  * the exception handler doesn't signal an error or return, execution
@@ -41,14 +40,14 @@
  * signalled during exception handling will be caught by the next
  * enclosing frame, unless the exception handler code is itself
  * protected by another ERRBEGIN - ERREND block.
- * 
+ *
  * To signal an error, use errsig().
- * 
+ *
  * To use a string argument in a signalled error, cover the string
  * with errstr(ctx, str, len); for example:
- * 
+ *
  * errsig1(ctx, ERR_XYZ, ERRTSTR, errstr(ctx, buf, strlen(buf)));
- * 
+ *
  * This copies the string into a buffer that is unaffected by
  * stack resetting during error signalling.
  */
@@ -64,7 +63,7 @@ namespace TADS2 {
 
 /*
  *   for compatility with old facility-free mechanism, signal with
- *   facility "TADS" 
+ *   facility "TADS"
  */
 #define errsig(ctx, err) errsigf(ctx, "TADS", err)
 #define errsig1(c, e, t, a) errsigf1(c,"TADS",e,t,a)
@@ -378,7 +377,7 @@ namespace TADS2 {
 /*
  *   Special error flag - this is returned from execmd() when preparseCmd
  *   returns a command list.  This indicates to voc1cmd that it should try
- *   the command over again, using the words in the new list. 
+ *   the command over again, using the words in the new list.
  */
 #define ERR_PREPRSCMDREDO  30000             /* preparseCmd returned a list */
 #define ERR_PREPRSCMDCAN   30001    /* preparseCmd returned 'nil' to cancel */

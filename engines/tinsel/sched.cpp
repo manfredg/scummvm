@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Process scheduler.
  */
@@ -43,18 +42,26 @@ struct PROCESS_STRUC {
 
 //----------------- LOCAL GLOBAL DATA --------------------
 
-// FIXME: Avoid non-const global vars
+// These vars are reset upon engine destruction
 
-static uint32 g_numSceneProcess;
-static SCNHANDLE g_hSceneProcess;
+static uint32 g_numSceneProcess = 0;
+static SCNHANDLE g_hSceneProcess = 0;
 
-static uint32 g_numGlobalProcess;
-static PROCESS_STRUC *g_pGlobalProcess;
+static uint32 g_numGlobalProcess = 0;
+static PROCESS_STRUC *g_pGlobalProcess = nullptr;
 
 
 /**************************************************************************\
 |***********    Stuff to do with scene and global processes    ************|
 \**************************************************************************/
+
+void ResetVarsSched() {
+	g_numSceneProcess = 0;
+	g_hSceneProcess = 0;
+
+	g_numGlobalProcess = 0;
+	g_pGlobalProcess = nullptr;
+}
 
 /**
  * The code for for restored scene processes.
@@ -67,7 +74,7 @@ static void RestoredProcessProcess(CORO_PARAM, const void *param) {
 	CORO_BEGIN_CODE(_ctx);
 
 	// get the stuff copied to process when it was created
-	_ctx->pic = *(const PINT_CONTEXT *)param;
+	_ctx->pic = *(INT_CONTEXT **)param;
 
 	_ctx->pic = RestoreInterpretContext(_ctx->pic);
 	AttachInterpret(_ctx->pic, CoroScheduler.getCurrentProcess());
@@ -81,7 +88,7 @@ static void RestoredProcessProcess(CORO_PARAM, const void *param) {
  * Process Tinsel Process
  */
 static void ProcessTinselProcess(CORO_PARAM, const void *param) {
-	const PINT_CONTEXT *pPic = (const PINT_CONTEXT *)param;
+	INT_CONTEXT **pPic = (INT_CONTEXT **)param;
 
 	CORO_BEGIN_CONTEXT;
 	CORO_END_CONTEXT(_ctx);
@@ -107,7 +114,7 @@ void RestoreSceneProcess(INT_CONTEXT *pic) {
 	uint32 i;
 	PROCESS_STRUC	*pStruc;
 
-	pStruc = (PROCESS_STRUC *)LockMem(g_hSceneProcess);
+	pStruc = (PROCESS_STRUC *)_vm->_handle->LockMem(g_hSceneProcess);
 	for (i = 0; i < g_numSceneProcess; i++) {
 		if (FROM_32(pStruc[i].hProcessCode) == pic->hCode) {
 			CoroScheduler.createProcess(PID_PROCESS + i, RestoredProcessProcess,
@@ -130,12 +137,12 @@ void SceneProcessEvent(CORO_PARAM, uint32 procID, TINSEL_EVENT event, bool bWait
 	CORO_BEGIN_CONTEXT;
 		PROCESS_STRUC *pStruc;
 		Common::PPROCESS pProc;
-		PINT_CONTEXT pic;
+		INT_CONTEXT * pic;
 	CORO_END_CONTEXT(_ctx);
 
 	CORO_BEGIN_CODE(_ctx);
 
-	_ctx->pStruc = (PROCESS_STRUC *)LockMem(g_hSceneProcess);
+	_ctx->pStruc = (PROCESS_STRUC *)_vm->_handle->LockMem(g_hSceneProcess);
 	for (i = 0; i < g_numSceneProcess; i++) {
 		if (FROM_32(_ctx->pStruc[i].processId) == procID) {
 			assert(_ctx->pStruc[i].hProcessCode);		// Must have some code to run
@@ -174,7 +181,7 @@ void KillSceneProcess(uint32 procID) {
 	uint32 i;		// Loop counter
 	PROCESS_STRUC	*pStruc;
 
-	pStruc = (PROCESS_STRUC *) LockMem(g_hSceneProcess);
+	pStruc = (PROCESS_STRUC *)_vm->_handle->LockMem(g_hSceneProcess);
 	for (i = 0; i < g_numSceneProcess; i++) {
 		if (FROM_32(pStruc[i].processId) == procID) {
 			CoroScheduler.killMatchingProcess(PID_PROCESS + i, -1);
@@ -228,7 +235,7 @@ void KillGlobalProcesses() {
  */
 bool GlobalProcessEvent(CORO_PARAM, uint32 procID, TINSEL_EVENT event, bool bWait, int myEscape) {
 	CORO_BEGIN_CONTEXT;
-		PINT_CONTEXT	pic;
+		INT_CONTEXT *pic;
 		Common::PPROCESS	pProc;
 	CORO_END_CONTEXT(_ctx);
 

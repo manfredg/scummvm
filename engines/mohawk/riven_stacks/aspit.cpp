@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,7 +78,7 @@ struct MenuItemText {
 	{ Common::DE_DEU, { "SETUP",      "SPIELEN",         "SPIELSTAND LADEN",     "SPIEL SPEICHERN", "FORTSETZEN", "OPTIONEN", "BEENDEN" } },
 	{ Common::ES_ESP, { "IMAGEN",     "IR A RIVEN",      "CARGAR JUEGO",         "GUARDAR JUEGO",   "CONTINUAR",  "OPCIONES", "SALIR" } },
 	{ Common::FR_FRA, { "CONFIG",     "NOUVELLE PARTIE", "CHARGER",              "ENREGISTRER",     "REPRENDRE",  "OPTIONS",  "QUITTER" } },
-	{ Common::IT_ITA, { "CONF.",      "GIOCA",           "CARICA GIOCO",         "SALVA IL GIOCO",  "SEGUITARE",  "OPZIONI",  "ECSI" } },
+	{ Common::IT_ITA, { "CONF.",      "GIOCA",           "CARICA GIOCO",         "SALVA IL GIOCO",  "SEGUITARE",  "OPZIONI",  "ESCI" } },
 	{ Common::RU_RUS, { "УСТАНОВКИ",  "СТАРТ",           "ПРОДОЛЖИТЬ ИГРУ",      "СОХРАНИТЬ ИГРУ",  "ПРОДОЛЖИТЬ", "ОПЦИИ",    "ВЫЙТИ" } },
 	{ Common::JA_JPN, { "セットアップ", "RIVENを演奏する",   "保存したゲームを開始する", "ゲームを保存する",  "持続する",     "オプション","やめる" } },
 	{ Common::PL_POL, { "USTAWIENIA", "GRAJ W RIVEN",    "ZAŁADUJ GRĘ",          "ZAPISZ GRĘ",      "POWRÓT",     "OPCJE",    "WYJŚCIE" } },
@@ -90,7 +89,7 @@ void ASpit::xastartupbtnhide(const ArgumentArray &args) {
 	// The original game hides the start/setup buttons depending on an ini entry.
 	// It's safe to ignore this command.
 
-	if (!(_vm->getFeatures() & GF_25TH))
+	if (!_vm->isGameVariant(GF_25TH))
 		return;
 
 	int lang = -1;
@@ -202,7 +201,7 @@ void ASpit::xaatrusbooknextpage(const ArgumentArray &args) {
 	// Keep turning pages while the mouse is pressed
 	while (keepTurningPages()) {
 		// Check for the last page
-		if (((_vm->getFeatures() & GF_DEMO) && page == 6) || page == 10)
+		if ((_vm->isGameVariant(GF_DEMO) && page == 6) || page == 10)
 			return;
 
 		// Update the page number
@@ -352,11 +351,11 @@ void ASpit::xarestoregame(const ArgumentArray &args) {
 	}
 
 	// Launch the load game dialog
-	_vm->runLoadDialog();
+	_vm->loadGameDialog();
 }
 
 void ASpit::xaSaveGame(const ArgumentArray &args) {
-	_vm->runSaveDialog();
+	_vm->saveGameDialog();
 }
 
 void ASpit::xaResumeGame(const ArgumentArray &args) {
@@ -387,14 +386,14 @@ void ASpit::xaNewGame(const ArgumentArray &args) {
 	_vm->_scriptMan->runScript(script, false);
 }
 
-bool ASpit::showConfirmationDialog(const char *message, const char *confirmButton, const char *cancelButton) {
+bool ASpit::showConfirmationDialog(const Common::U32String &message, const Common::U32String &confirmButton, const Common::U32String &cancelButton) {
 	if (!_vm->isGameStarted()) {
 		return true;
 	}
 
 	GUI::MessageDialog dialog(message, confirmButton, cancelButton);
 
-	return dialog.runModal() !=0;
+	return dialog.runModal() == GUI::kMessageOK;
 }
 
 void ASpit::xadisablemenureturn(const ArgumentArray &args) {

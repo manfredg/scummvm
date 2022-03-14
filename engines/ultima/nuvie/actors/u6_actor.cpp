@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -923,21 +922,21 @@ void U6Actor::setup_walk_to_location() {
 
  if(NUVIE_RAND()%8 == 1)
    {
-    new_direction = NUVIE_RAND()%4;
+	new_direction = NUVIE_RAND()%4;
 
-    switch(new_direction)
-      {
-       case NUVIE_DIR_N : rel_y = -1; break;
-       case NUVIE_DIR_E : rel_x = 1; break;
-       case NUVIE_DIR_S : rel_y = 1; break;
-       case NUVIE_DIR_W : rel_x = -1; break;
-      }
+	switch(new_direction)
+	  {
+	   case NUVIE_DIR_N : rel_y = -1; break;
+	   case NUVIE_DIR_E : rel_x = 1; break;
+	   case NUVIE_DIR_S : rel_y = 1; break;
+	   case NUVIE_DIR_W : rel_x = -1; break;
+	  }
 
-    if(obj_manager->get_obj_of_type_from_location(OBJ_U6_FENCE,x + rel_x, y + rel_y, z) == NULL)
-        {
-         if(moveRelative(rel_x,rel_y))
-            set_direction(new_direction);
-        }
+	if(obj_manager->get_obj_of_type_from_location(OBJ_U6_FENCE,x + rel_x, y + rel_y, z) == NULL)
+		{
+		 if(moveRelative(rel_x,rel_y))
+			set_direction(new_direction);
+		}
 
    }
  else set_moves_left(moves - 5);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -77,7 +76,7 @@ void playVideo(Video::VideoDecoder &videoDecoder) {
 
 	if (videoDecoder.hasDirtyPalette()) {
 		const byte *palette = videoDecoder.getPalette();
-		g_system->getPaletteManager()->setPalette(palette, 0, 255);
+		g_sci->_gfxScreen->setPalette(palette, 0, 255);
 	}
 
 	while (!g_engine->shouldQuit() && !videoDecoder.endOfVideo() && !skipVideo) {
@@ -85,18 +84,19 @@ void playVideo(Video::VideoDecoder &videoDecoder) {
 			const Graphics::Surface *frame = videoDecoder.decodeNextFrame();
 
 			if (frame) {
+				Common::Rect rect(x, y, x+width, y+height);
 				if (scaleBuffer) {
 					const SciSpan<const byte> input((const byte *)frame->getPixels(), frame->w * frame->h * bytesPerPixel);
 					// TODO: Probably should do aspect ratio correction in KQ6
 					g_sci->_gfxScreen->scale2x(input, *scaleBuffer, videoDecoder.getWidth(), videoDecoder.getHeight(), bytesPerPixel);
-					g_system->copyRectToScreen(scaleBuffer->getUnsafeDataAt(0, pitch * height), pitch, x, y, width, height);
+					g_sci->_gfxScreen->copyVideoFrameToScreen(scaleBuffer->getUnsafeDataAt(0, pitch * height), pitch, rect, bytesPerPixel == 1);
 				} else {
-					g_system->copyRectToScreen(frame->getPixels(), frame->pitch, x, y, width, height);
+					g_sci->_gfxScreen->copyVideoFrameToScreen((const byte *)frame->getPixels(), frame->pitch, rect, bytesPerPixel == 1);
 				}
 
 				if (videoDecoder.hasDirtyPalette()) {
 					const byte *palette = videoDecoder.getPalette();
-					g_system->getPaletteManager()->setPalette(palette, 0, 255);
+					g_sci->_gfxScreen->setPalette(palette, 0, 255);
 				}
 
 				g_system->updateScreen();
@@ -127,6 +127,8 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 
 	Common::ScopedPtr<Video::VideoDecoder> videoDecoder;
 
+	bool switchedGraphicsMode = false;
+
 	if (argv[0].isPointer()) {
 		Common::String filename = s->_segMan->getString(argv[0]);
 
@@ -135,7 +137,10 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 			// The only argument is the string for the video
 
 			// HACK: Switch to 16bpp graphics for Cinepak.
-			initGraphics(screenWidth, screenHeight, nullptr);
+			if (g_system->getScreenFormat().bytesPerPixel == 1) {
+				initGraphics(screenWidth, screenHeight, nullptr);
+				switchedGraphicsMode = true;
+			}
 
 			if (g_system->getScreenFormat().bytesPerPixel == 1) {
 				warning("This video requires >8bpp color to be displayed, but could not switch to RGB color mode");
@@ -177,13 +182,15 @@ reg_t kShowMovie(EngineState *s, int argc, reg_t *argv) {
 	}
 
 	if (videoDecoder) {
+		bool is8bit = videoDecoder->getPixelFormat().bytesPerPixel == 1;
+
 		playVideo(*videoDecoder);
 
 		// HACK: Switch back to 8bpp if we played a true color video.
 		// We also won't be copying the screen to the SCI screen...
-		if (g_system->getScreenFormat().bytesPerPixel != 1)
+		if (switchedGraphicsMode)
 			initGraphics(screenWidth, screenHeight);
-		else {
+		else if (is8bit) {
 			g_sci->_gfxScreen->kernelSyncWithFramebuffer();
 			g_sci->_gfxPalette16->kernelSyncScreenPalette();
 		}
@@ -202,7 +209,11 @@ reg_t kShowMovie32(EngineState *s, int argc, reg_t *argv) {
 	const int16 x = argc > 3 ? argv[2].toSint16() : 0;
 	const int16 y = argc > 3 ? argv[3].toSint16() : 0;
 
-	g_sci->_video32->getSEQPlayer().play(fileName, numTicks, x, y);
+	if (g_sci->getPlatform() == Common::kPlatformMacintosh) {
+		g_sci->_video32->getQuickTimePlayer().play(fileName);
+	} else {
+		g_sci->_video32->getSEQPlayer().play(fileName, numTicks, x, y);
+	}
 
 	return s->r_acc;
 }

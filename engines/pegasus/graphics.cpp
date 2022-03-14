@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ GraphicsManager::GraphicsManager(PegasusEngine *vm) : _vm(vm) {
 
 	_backLayer = kMinAvailableOrder;
 	_frontLayer = kMaxAvailableOrder;
-	_firstDisplayElement = _lastDisplayElement = 0;
+	_firstDisplayElement = _lastDisplayElement = nullptr;
 	_workArea.create(640, 480, _vm->_system->getScreenFormat());
 	_curSurface = &_workArea;
 	_erase = false;
@@ -77,7 +76,7 @@ void GraphicsManager::addDisplayElement(DisplayElement *newElement) {
 
 	if (_firstDisplayElement) {
 		DisplayElement *runner = _firstDisplayElement;
-		DisplayElement *lastRunner = 0;
+		DisplayElement *lastRunner = nullptr;
 
 		// Search for first element whose display order is greater than
 		// the new element's and add the new element just before it.
@@ -116,8 +115,8 @@ void GraphicsManager::removeDisplayElement(DisplayElement *oldElement) {
 
 	if (oldElement == _firstDisplayElement) {
 		if (oldElement == _lastDisplayElement) {
-			_firstDisplayElement = 0;
-			_lastDisplayElement = 0;
+			_firstDisplayElement = nullptr;
+			_lastDisplayElement = nullptr;
 		} else {
 			_firstDisplayElement = oldElement->_nextElement;
 		}
@@ -146,7 +145,7 @@ void GraphicsManager::removeDisplayElement(DisplayElement *oldElement) {
 		}
 	}
 
-	oldElement->_nextElement = 0;
+	oldElement->_nextElement = nullptr;
 	oldElement->_elementIsDisplaying = false;
 }
 
@@ -156,7 +155,7 @@ void GraphicsManager::updateDisplay() {
 		if (_erase)
 			_workArea.fillRect(_dirtyRect, _workArea.format.RGBToColor(0, 0, 0));
 
-		for (DisplayElement *runner = _firstDisplayElement; runner != 0; runner = runner->_nextElement) {
+		for (DisplayElement *runner = _firstDisplayElement; runner != nullptr; runner = runner->_nextElement) {
 			Common::Rect bounds;
 			runner->getBounds(bounds);
 
@@ -187,7 +186,7 @@ DisplayElement *GraphicsManager::findDisplayElement(const DisplayElementID id) {
 		runner = runner->_nextElement;
 	}
 
-	return 0;
+	return nullptr;
 }
 
 void GraphicsManager::doFadeOutSync(const TimeValue time, const TimeScale scale, bool isBlack) {

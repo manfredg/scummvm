@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,16 +33,16 @@
 namespace ZVision {
 
 const char *CursorManager::_cursorNames[NUM_CURSORS] = { "active", "arrow", "backward", "downarrow", "forward", "handpt", "handpu", "hdown", "hleft",
-                                                         "hright", "hup", "idle", "leftarrow", "rightarrow", "suggest_surround", "suggest_tilt", "turnaround", "zuparrow"
-                                                       };
+														 "hright", "hup", "idle", "leftarrow", "rightarrow", "suggest_surround", "suggest_tilt", "turnaround", "zuparrow"
+													   };
 
 const char *CursorManager::_zgiCursorFileNames[NUM_CURSORS] = { "g0gbc011.zcr", "g0gac011.zcr", "g0gac021.zcr", "g0gac031.zcr", "g0gac041.zcr", "g0gac051.zcr", "g0gac061.zcr", "g0gac071.zcr", "g0gac081.zcr",
-                                                                "g0gac091.zcr", "g0gac101.zcr", "g0gac011.zcr", "g0gac111.zcr", "g0gac121.zcr", "g0gac131.zcr", "g0gac141.zcr", "g0gac151.zcr", "g0gac161.zcr"
-                                                              };
+																"g0gac091.zcr", "g0gac101.zcr", "g0gac011.zcr", "g0gac111.zcr", "g0gac121.zcr", "g0gac131.zcr", "g0gac141.zcr", "g0gac151.zcr", "g0gac161.zcr"
+															  };
 
 const char *CursorManager::_zNemCursorFileNames[NUM_CURSORS] = { "00act", "arrow", "back", "down", "forw", "handpt", "handpu", "hdown", "hleft",
-                                                                 "hright", "hup", "00idle", "left", "right", "ssurr", "stilt", "turn", "up"
-                                                               };
+																 "hright", "hup", "00idle", "left", "right", "ssurr", "stilt", "turn", "up"
+															   };
 
 CursorManager::CursorManager(ZVision *engine, const Graphics::PixelFormat pixelFormat)
 	: _engine(engine),

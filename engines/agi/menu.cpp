@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,10 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
+#include "common/config-manager.h"
 
 #include "agi/agi.h"
 #include "agi/graphics.h"
@@ -39,7 +40,10 @@ GfxMenu::GfxMenu(AgiEngine *vm, GfxMgr *gfx, PictureMgr *picture, TextMgr *text)
 	_delayedExecuteViaKeyboard = false;
 	_delayedExecuteViaMouse = false;
 
-	_setupMenuColumn = 1;
+	if (!_vm->isLanguageRTL())
+		_setupMenuColumn = 1;
+	else
+		_setupMenuColumn = FONT_COLUMN_CHARACTERS - 2;
 	_setupMenuItemColumn = 1;
 
 	_lastSelectedMenuNr = 0;
@@ -73,28 +77,40 @@ void GfxMenu::addMenu(const char *menuText) {
 	GuiMenuEntry *menuEntry = new GuiMenuEntry();
 
 	menuEntry->text = menuText;
+	// WORKAROUND: Apple II gs Goldrush! Speed menu exceeds screen width, because of a redundant space at 'Special' menu, remove it
+	if (_vm->getPlatform() == Common::kPlatformApple2GS && ConfMan.getBool("apple2gs_speedmenu") && _vm->getGameID() == GID_GOLDRUSH)
+		if (menuEntry->text == " Special ")
+			menuEntry->text = "Special ";
+
 	menuEntry->textLen = menuEntry->text.size();
 
-	// Cut menu name in case menu bar is full
-	// Happens in at least the fan game Get Outta Space Quest
-	// Original interpreter had graphical issues in this case
-	// TODO: this whole code needs to get reworked anyway to support different types of menu bars depending on platform
-	curColumnEnd += menuEntry->textLen;
-	while ((menuEntry->textLen) && (curColumnEnd > 40)) {
-		menuEntry->text.deleteLastChar();
-		menuEntry->textLen--;
-		curColumnEnd--;
+	if (!_vm->isLanguageRTL()) {
+		// Cut menu name in case menu bar is full
+		// Happens in at least the fan game Get Outta Space Quest
+		// Original interpreter had graphical issues in this case
+		// TODO: this whole code needs to get reworked anyway to support different types of menu bars depending on platform
+		curColumnEnd += menuEntry->textLen;
+		while ((menuEntry->textLen) && (curColumnEnd > 40)) {
+			menuEntry->text.deleteLastChar();
+			menuEntry->textLen--;
+			curColumnEnd--;
+		}
 	}
 
 	menuEntry->row = 0;
 	menuEntry->column = _setupMenuColumn;
+	if (_vm->isLanguageRTL())
+		menuEntry->column -= menuEntry->textLen;
 	menuEntry->itemCount = 0;
 	menuEntry->firstItemNr = _itemArray.size();
 	menuEntry->selectedItemNr = menuEntry->firstItemNr;
 	menuEntry->maxItemTextLen = 0;
 	_array.push_back(menuEntry);
 
-	_setupMenuColumn += menuEntry->textLen + 1;
+	if (!_vm->isLanguageRTL())
+		_setupMenuColumn += menuEntry->textLen + 1;
+	else
+		_setupMenuColumn -= menuEntry->textLen + 1;
 }
 
 void GfxMenu::addMenuItem(const char *menuItemText, uint16 controllerSlot) {
@@ -125,11 +141,17 @@ void GfxMenu::addMenuItem(const char *menuItemText, uint16 controllerSlot) {
 	}
 
 	if (curMenuEntry->itemCount == 0) {
-		// for first menu item of menu calculated column
-		if (menuItemEntry->textLen + curMenuEntry->column < (FONT_COLUMN_CHARACTERS - 1)) {
-			_setupMenuItemColumn = curMenuEntry->column;
+		if (!_vm->isLanguageRTL()) {
+			// for first menu item of menu calculated column
+			if (menuItemEntry->textLen + curMenuEntry->column < (FONT_COLUMN_CHARACTERS - 1)) {
+				_setupMenuItemColumn = curMenuEntry->column;
+			} else {
+				_setupMenuItemColumn = (FONT_COLUMN_CHARACTERS - 1) - menuItemEntry->textLen;
+			}
 		} else {
-			_setupMenuItemColumn = (FONT_COLUMN_CHARACTERS - 1) - menuItemEntry->textLen;
+			_setupMenuItemColumn = curMenuEntry->column + curMenuEntry->textLen - menuItemEntry->textLen;
+			if (_setupMenuItemColumn < 2)
+				_setupMenuItemColumn = 2;
 		}
 	}
 
@@ -151,6 +173,28 @@ void GfxMenu::submit() {
 
 	if ((_array.size() == 0) || (_itemArray.size() == 0))
 		return;
+
+	// WORKAROUND: For Apple II gs we add a Speed menu
+	if (_vm->getPlatform() == Common::kPlatformApple2GS && ConfMan.getBool("apple2gs_speedmenu")) {
+		uint16 maxControllerSlot = 0;
+		for (GuiMenuItemArray::iterator menuIter = _itemArray.begin(); menuIter != _itemArray.end(); ++menuIter)
+			if ((*menuIter)->controllerSlot > maxControllerSlot)
+				maxControllerSlot = (*menuIter)->controllerSlot;
+		for (uint16 curMapping = 0; curMapping < MAX_CONTROLLER_KEYMAPPINGS; curMapping++)
+			if (_vm->_game.controllerKeyMapping[curMapping].controllerSlot > maxControllerSlot)
+				maxControllerSlot = _vm->_game.controllerKeyMapping[curMapping].controllerSlot;
+
+		if (maxControllerSlot >= 0xff - 4)
+			warning("GfxMenu::submit : failed to add 'Speed' menu");
+		else {
+			_vm->_game.appleIIgsSpeedControllerSlot = maxControllerSlot + 1;
+			addMenu("Speed");
+			addMenuItem("Normal", _vm->_game.appleIIgsSpeedControllerSlot + 2);
+			addMenuItem("Slow", _vm->_game.appleIIgsSpeedControllerSlot + 3);
+			addMenuItem("Fast", _vm->_game.appleIIgsSpeedControllerSlot + 1);
+			addMenuItem("Fastest", _vm->_game.appleIIgsSpeedControllerSlot + 0);
+		}
+	}
 
 	_submitted = true;
 
@@ -466,7 +510,7 @@ void GfxMenu::keyPress(uint16 newKey) {
 			return;
 
 		// Trigger controller
-		_vm->_game.controllerOccured[itemEntry->controllerSlot] = true;
+		_vm->_game.controllerOccurred[itemEntry->controllerSlot] = true;
 
 		_vm->cycleInnerLoopInactive(); // exit execute-loop
 		break;
@@ -491,10 +535,16 @@ void GfxMenu::keyPress(uint16 newKey) {
 		break;
 
 	case AGI_KEY_LEFT:
-		newMenuNr--;
+		if (!_vm->isLanguageRTL())
+			newMenuNr--;
+		else
+			newMenuNr++;
 		break;
 	case AGI_KEY_RIGHT:
-		newMenuNr++;
+		if (!_vm->isLanguageRTL())
+			newMenuNr++;
+		else
+			newMenuNr--;
 		break;
 	case AGI_KEY_HOME:
 		// select first menu
@@ -571,7 +621,7 @@ void GfxMenu::mouseEvent(uint16 newKey) {
 				return;
 
 			// Trigger controller
-			_vm->_game.controllerOccured[itemEntry->controllerSlot] = true;
+			_vm->_game.controllerOccurred[itemEntry->controllerSlot] = true;
 
 			_vm->cycleInnerLoopInactive(); // exit execute-loop
 			return;
@@ -624,7 +674,7 @@ void GfxMenu::mouseEvent(uint16 newKey) {
 			GuiMenuItemEntry *itemEntry = _itemArray[activeItemNr];
 			if (itemEntry->enabled) {
 				// Trigger controller
-				_vm->_game.controllerOccured[itemEntry->controllerSlot] = true;
+				_vm->_game.controllerOccurred[itemEntry->controllerSlot] = true;
 			}
 		}
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/debug.h"
@@ -48,7 +47,7 @@ Actor *ActorManager::loadActor(uint32 resourceId, uint32 sequenceId, int16 x, in
 }
 
 Actor *ActorManager::loadActor(uint32 resourceId, uint32 sequenceId, int16 x, int16 y) {
-	debug("Load actor: resourceId: %d, SequenceId: %d, position: (%d,%d)", resourceId, sequenceId, x, y);
+	debug(1, "Load actor: resourceId: %d, SequenceId: %d, position: (%d,%d)", resourceId, sequenceId, x, y);
 	ActorResource *resource = _actorResourceLoader->load(resourceId);
 	//Actor *actor = new Actor(_actorResourceLoader->load(resourceId), x, y, sequenceId);
 	Actor *actor = findFreeActor((int16)resourceId);
@@ -73,7 +72,7 @@ Actor *ActorManager::findFreeActor(int16 resourceId) {
 			return actor;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 Actor *ActorManager::getActor(uint16 actorId) {
@@ -133,9 +132,9 @@ Actor *ActorManager::getActorByDisplayOrder(uint16 position) {
 }
 
 Actor::Actor(uint16 id) : _actorID(id) {
-	_actorResource = NULL;
+	_actorResource = nullptr;
 	_resourceID = -1;
-	_seqCodeIp = 0;
+	_seqCodeIp = nullptr;
 	_priorityLayer = 3;
 	_x_pos = 160;
 	_y_pos = 110;
@@ -144,8 +143,23 @@ Actor::Actor(uint16 id) : _actorID(id) {
 	_walkSpeed = 0;
 	_flags = 0;
 	_frame_flags = 0;
-	_frame = NULL;
-	_surface = NULL;
+	_frame = nullptr;
+	_surface = nullptr;
+
+	_actorFileDictionaryIndex = 0;
+	_sequenceTimerMaxValue = 0;
+	_scale = 0x100;
+	_sequenceTimer = 0;
+	_sequenceID = 0;
+	_direction = 0;
+	_xShl16 = 0;
+	_yShl16 = 0;
+	_walkSlopeX = 0;
+	_walkSlopeY = 0;
+	_walkPointsIndex = 0;
+	_finalWalkDestX = 0;
+	_finalWalkDestY = 0;
+	_field_7a = 0;
 }
 
 void Actor::init(ActorResource *resource, int16 x, int16 y, uint32 sequenceID) {
@@ -188,7 +202,7 @@ void Actor::loadFrame(uint16 frameOffset) {
 		_frame_flags &= ~ACTOR_FRAME_FLAG_2;
 	}
 
-	_surface = _actorResource->loadFrame(*_frame, NULL); // TODO paletteId == 0xf1 ? getEngine()->getBackgroundPalette() : NULL);
+	_surface = _actorResource->loadFrame(*_frame, nullptr); // TODO paletteId == 0xf1 ? getEngine()->getBackgroundPalette() : nullptr);
 
 	debug(5, "ActorId: %d load frame header: (%d,%d)", _actorID, _frame->width, _frame->height);
 
@@ -199,8 +213,8 @@ void Actor::loadFrame(uint16 frameOffset) {
 void Actor::freeFrame() {
 	delete _frame;
 	delete _surface;
-	_frame = NULL;
-	_surface = NULL;
+	_frame = nullptr;
+	_surface = nullptr;
 }
 
 byte *Actor::getSeqIpAtOffset(uint32 offset) {
@@ -212,7 +226,7 @@ void Actor::reset_maybe() {
 	//TODO actor_find_by_resourceId_and_remove_resource_from_mem_maybe(resourceID);
 	freeFrame();
 	delete _actorResource;
-	_actorResource = NULL;
+	_actorResource = nullptr;
 }
 
 uint32 calcDistance(int32 x1, int32 y1, int32 x2, int32 y2) {
@@ -235,7 +249,7 @@ bool Actor::startWalk(int16 destX, int16 destY, uint16 flags) {
 		0, 0, 1, -1, 1, 1, -1, -1
 	};
 
-	debug("startWalk(%d, %d, %d)", _actorID, destX, destY);
+	debug(1, "startWalk(%d, %d, %d)", _actorID, destX, destY);
 	bool wasAlreadyWalking = isFlagSet(ACTOR_FLAG_10);
 
 	clearFlag(ACTOR_FLAG_10);
@@ -480,7 +494,7 @@ void Actor::stopWalk() {
 }
 
 void Actor::waitUntilFlag4IsSet() {
-	while (!isFlagSet(ACTOR_FLAG_4)) {
+	while (!isFlagSet(ACTOR_FLAG_4) && !Engine::shouldQuit()) {
 		getEngine()->waitForFrames(1);
 	}
 }
@@ -490,7 +504,7 @@ void Actor::waitUntilFlag8IsSet() {
 		return;
 	}
 
-	while (!(_flags & ACTOR_FLAG_8)) {
+	while (!(_flags & ACTOR_FLAG_8) && !Engine::shouldQuit()) {
 		getEngine()->waitForFrames(1);
 	}
 }
@@ -767,7 +781,7 @@ bool Actor::actorSetSequenceAndWaitAllowSkip(uint16 newSequenceID) {
 }
 
 bool Actor::waitUntilFlag4IsSetAllowSkip() {
-	while (!isFlagSet(ACTOR_FLAG_4)) {
+	while (!isFlagSet(ACTOR_FLAG_4) && !Engine::shouldQuit()) {
 		getEngine()->waitForFrames(1);
 		if (getEngine()->checkForActionButtonRelease()) {
 			return true;
@@ -799,7 +813,7 @@ void Actor::waitForWalkToFinish() {
 	DragonsEngine *vm = getEngine();
 	do {
 		vm->waitForFrames(1);
-	} while (isFlagSet(ACTOR_FLAG_10));
+	} while (!Engine::shouldQuit() && isFlagSet(ACTOR_FLAG_10));
 }
 
 } // End of namespace Dragons

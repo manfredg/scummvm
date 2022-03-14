@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,28 +15,31 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include "common/scummsys.h"
 #include "common/config-manager.h"
-#include "common/debug.h"
 #include "common/debug-channels.h"
 #include "common/error.h"
+#include "common/random.h"
 
 #include "sludge/cursors.h"
 #include "sludge/event.h"
+#include "sludge/fileset.h"
 #include "sludge/fonttext.h"
 #include "sludge/floor.h"
 #include "sludge/graphics.h"
+#include "sludge/language.h"
 #include "sludge/main_loop.h"
 #include "sludge/newfatal.h"
+#include "sludge/objtypes.h"
 #include "sludge/people.h"
 #include "sludge/region.h"
 #include "sludge/sludge.h"
 #include "sludge/sound.h"
 #include "sludge/speech.h"
+#include "sludge/statusba.h"
+#include "sludge/timing.h"
 
 namespace Sludge {
 
@@ -51,17 +54,10 @@ SludgeEngine::SludgeEngine(OSystem *syst, const SludgeGameDescription *gameDesc)
 	// register your random source
 	_rnd = new Common::RandomSource("sludge");
 
-	// Add debug channels
-	DebugMan.addDebugChannel(kSludgeDebugFatal, "Script", "Script debug level");
-	DebugMan.addDebugChannel(kSludgeDebugDataLoad, "Data Load", "Data loading debug level");
-	DebugMan.addDebugChannel(kSludgeDebugStackMachine, "Stack Machine", "Stack Machine debug level");
-	DebugMan.addDebugChannel(kSludgeDebugBuiltin, "Built-in", "Built-in debug level");
-	DebugMan.addDebugChannel(kSludgeDebugGraphics, "Graphics", "Graphics debug level");
-	DebugMan.addDebugChannel(kSludgeDebugZBuffer, "ZBuffer", "ZBuffer debug level");
-	DebugMan.addDebugChannel(kSludgeDebugSound, "Sound", "Sound debug level");
+	//DebugMan.enableDebugChannel("loading");
+	//DebugMan.enableDebugChannel("builtin");
 
-	DebugMan.enableDebugChannel("Data Load");
-	DebugMan.enableDebugChannel("Built-in");
+	_dumpScripts = ConfMan.getBool("dump_scripts");
 
 	// init graphics
 	_origFormat = new Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
@@ -74,6 +70,7 @@ SludgeEngine::SludgeEngine(OSystem *syst, const SludgeGameDescription *gameDesc)
 	gamePath = "";
 
 	// Init managers
+	_timer = new Timer();
 	_fatalMan = new FatalMsgManager();
 	_peopleMan = new PeopleManager(this);
 	_resMan = new ResourceManager();
@@ -87,6 +84,7 @@ SludgeEngine::SludgeEngine(OSystem *syst, const SludgeGameDescription *gameDesc)
 	_speechMan = new SpeechManager(this);
 	_regionMan = new RegionManager(this);
 	_floorMan = new FloorManager(this);
+	_statusBar = new StatusBarManager(this);
 }
 
 SludgeEngine::~SludgeEngine() {
@@ -94,9 +92,6 @@ SludgeEngine::~SludgeEngine() {
 	// Dispose resources
 	delete _rnd;
 	_rnd = nullptr;
-
-	// Remove debug levels
-	DebugMan.clearAllDebugChannels();
 
 	// Dispose pixel formats
 	delete _origFormat;
@@ -131,14 +126,13 @@ SludgeEngine::~SludgeEngine() {
 	_floorMan = nullptr;
 	delete _fatalMan;
 	_fatalMan = nullptr;
+	delete _statusBar;
+	delete _timer;
 }
 
 Common::Error SludgeEngine::run() {
 	// set global variable
 	g_sludge = this;
-
-	// create console
-	setDebugger(new SludgeConsole(this));
 
 	// debug log
 	main_loop(getGameFile());
@@ -147,4 +141,3 @@ Common::Error SludgeEngine::run() {
 }
 
 } // End of namespace Sludge
-

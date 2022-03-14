@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -131,7 +130,7 @@ void Events::clear() {
 }
 
 bool Events::init(ObjManager *om, MapWindow *mw, MsgScroll *ms, Player *p, Magic *mg,
-                 GameClock *gc, ViewManager *vm, UseCode *uc, GUI *g, KeyBinder *kb) {
+				 GameClock *gc, ViewManager *vm, UseCode *uc, GUI *g, KeyBinder *kb) {
 	clear();
 
 	gui = g;
@@ -409,9 +408,9 @@ void Events::get_target(const MapCoord &init, const char *prompt) {
 
 /* Switch focus to MsgScroll and start getting user input. */
 void Events::get_scroll_input(const char *allowed,
-                             bool can_escape,
-                             bool using_target_cursor,
-                             bool set_numbers_only_to_true) {
+							 bool can_escape,
+							 bool using_target_cursor,
+							 bool set_numbers_only_to_true) {
 	assert(scroll);
 	if (!using_target_cursor) {
 		assert(mode != INPUT_MODE);
@@ -3684,9 +3683,9 @@ void Events::display_not_aboard_vehicle(bool show_prompt) {
 }
 
 bool Events::can_move_obj_between_actors(Obj *obj,
-                                        Actor *src_actor,
-                                        Actor *target_actor,
-                                        bool display_name) { // exchange inventory
+										Actor *src_actor,
+										Actor *target_actor,
+										bool display_name) { // exchange inventory
 	MapCoord from = src_actor->get_location();
 
 	if (target_actor) {

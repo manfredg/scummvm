@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,6 @@ class Font;
 
 // This is TTF_Font struct
 typedef struct _TTF_Font TTF_Font;
-class IDataSource;
 
 class TTFont;
 
@@ -65,11 +63,10 @@ private:
 
 	typedef Std::map<TTFId, Graphics::Font *, TTFHash, TTFEqual> TTFFonts;
 	TTFFonts _ttfFonts;
-	bool _ttfAntialiasing;
 
 	//! Get a (possibly cached) TTF_Font structure for filename/pointsize,
 	//! loading it if necessary.
-	Graphics::Font *getTTF_Font(const Std::string &filename, int pointsize);
+	Graphics::Font *getTTF_Font(const Std::string &filename, int pointsize, bool antialiasing);
 
 	//! Override fontnum with specified font
 	void setOverride(unsigned int fontnum, Font *newFont);
@@ -80,7 +77,7 @@ private:
 
 	static FontManager *_fontManager;
 public:
-	FontManager(bool ttf_antialiasing);
+	FontManager();
 	~FontManager();
 
 	static FontManager *get_instance() {

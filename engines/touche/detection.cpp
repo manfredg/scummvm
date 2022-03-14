@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,23 +15,28 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/config-manager.h"
 #include "engines/advancedDetector.h"
-#include "common/savefile.h"
-#include "common/system.h"
 
 #include "base/plugins.h"
-
 #include "touche/touche.h"
 
 static const PlainGameDescriptor toucheGames[] = {
 	{ "touche", "Touche: The Adventures of the Fifth Musketeer" },
 	{ 0, 0 }
+};
+
+static const DebugChannelDef debugFlagList[] = {
+	{Touche::kDebugEngine,   "Engine",   "Engine debug level"},
+	{Touche::kDebugGraphics, "Graphics", "Graphics debug level"},
+	{Touche::kDebugResource, "Resource", "Resource debug level"},
+	{Touche::kDebugOpcodes,  "Opcodes",  "Opcodes debug level"},
+	{Touche::kDebugMenu,     "Menu",     "Menu debug level"},
+	{Touche::kDebugCharset,  "Charset",   "Charset debug level"},
+	DEBUG_CHANNEL_END
 };
 
 namespace Touche {
@@ -46,7 +51,7 @@ static const ADGameDescription gameDescriptions[] = {
 		ADGF_NO_FLAGS,
 		GUIO0()
 	},
-	{ // retail version - tracker item #1601818
+	{ // retail version - tracker item #2923
 		"touche",
 		"",
 		AD_ENTRY1s("touche.dat", "95967f0b51d2e813e99ca00325098340", 26350190),
@@ -64,7 +69,7 @@ static const ADGameDescription gameDescriptions[] = {
 		ADGF_NO_FLAGS,
 		GUIO0()
 	},
-	{ // retail version - tracker item #1598643
+	{ // retail version - tracker item #2912
 		"touche",
 		"",
 		AD_ENTRY1s("touche.dat", "be2ae6454b3325e410946f2322547cd4", 26625537),
@@ -73,7 +78,7 @@ static const ADGameDescription gameDescriptions[] = {
 		ADGF_NO_FLAGS,
 		GUIO0()
 	},
-	{ // retail version - tracker item #1681643
+	{ // retail version - tracker item #3121
 		"touche",
 		"",
 		AD_ENTRY1s("touche.dat", "64e95ba1decf5a5a60f8fa1840f40c62", 26529523),
@@ -82,7 +87,7 @@ static const ADGameDescription gameDescriptions[] = {
 		ADGF_NO_FLAGS,
 		GUIO0()
 	},
-	{ // fan-made translation (http://www.iagtg.net/) - tracker item #1602360
+	{ // fan-made translation (http://www.iagtg.net/) - tracker item #2927
 		"touche",
 		"",
 		AD_ENTRY1s("touche.dat", "1f442331d4b327c3488a9f6ffe9bdd25", 26367792),
@@ -91,7 +96,7 @@ static const ADGameDescription gameDescriptions[] = {
 		ADGF_NO_FLAGS,
 		GUIO0()
 	},
-	{ // retail version - tracker item #1800500
+	{ // retail version - tracker item #3409
 		"touche",
 		"",
 		AD_ENTRY1s("touche.dat", "42d19a0bef65465109020440a9caa228", 26487370),
@@ -124,16 +129,16 @@ static const char *directoryGlobs[] = {
 	0
 };
 
-class ToucheMetaEngine : public AdvancedMetaEngine {
+class ToucheMetaEngineDetection : public AdvancedMetaEngineDetection {
 public:
-	ToucheMetaEngine() : AdvancedMetaEngine(Touche::gameDescriptions, sizeof(ADGameDescription), toucheGames) {
+	ToucheMetaEngineDetection() : AdvancedMetaEngineDetection(Touche::gameDescriptions, sizeof(ADGameDescription), toucheGames) {
 		_md5Bytes = 4096;
 		_maxScanDepth = 2;
 		_directoryGlobs = directoryGlobs;
 	}
 
-	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const override {
-		return detectGameFilebased(allFiles, fslist, Touche::fileBasedFallback);
+	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist, ADDetectedGameExtraInfo **extra) const override {
+		return detectGameFilebased(allFiles, Touche::fileBasedFallback);
 	}
 
 	const char *getEngineId() const override {
@@ -148,75 +153,9 @@ public:
 		return "Touche: The Adventures of the Fifth Musketeer (C) Clipper Software";
 	}
 
-	bool hasFeature(MetaEngineFeature f) const override;
-	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
-	SaveStateList listSaves(const char *target) const override;
-	int getMaximumSaveSlot() const override;
-	void removeSaveState(const char *target, int slot) const override;
+	const DebugChannelDef *getDebugChannels() const override {
+		return debugFlagList;
+	}
 };
 
-bool ToucheMetaEngine::hasFeature(MetaEngineFeature f) const {
-	return
-		(f == kSupportsListSaves) ||
-		(f == kSupportsLoadingDuringStartup) ||
-		(f == kSupportsDeleteSave);
-}
-
-bool Touche::ToucheEngine::hasFeature(EngineFeature f) const {
-	return
-		(f == kSupportsRTL) ||
-		(f == kSupportsLoadingDuringRuntime) ||
-		(f == kSupportsSavingDuringRuntime) ||
-		(f == kSupportsSubtitleOptions);
-}
-
-bool ToucheMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	if (desc) {
-		*engine = new Touche::ToucheEngine(syst, desc->language);
-	}
-	return desc != 0;
-}
-
-SaveStateList ToucheMetaEngine::listSaves(const char *target) const {
-	Common::String pattern = Touche::generateGameStateFileName(target, 0, true);
-	Common::StringArray filenames = g_system->getSavefileManager()->listSavefiles(pattern);
-	bool slotsTable[Touche::kMaxSaveStates];
-	memset(slotsTable, 0, sizeof(slotsTable));
-	SaveStateList saveList;
-	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
-		int slot = Touche::getGameStateFileSlot(file->c_str());
-		if (slot >= 0 && slot < Touche::kMaxSaveStates) {
-			slotsTable[slot] = true;
-		}
-	}
-	for (int slot = 0; slot < Touche::kMaxSaveStates; ++slot) {
-		if (slotsTable[slot]) {
-			Common::String file = Touche::generateGameStateFileName(target, slot);
-			Common::InSaveFile *in = g_system->getSavefileManager()->openForLoading(file);
-			if (in) {
-				char description[64];
-				Touche::readGameStateDescription(in, description, sizeof(description) - 1);
-				if (description[0]) {
-					saveList.push_back(SaveStateDescriptor(slot, description));
-				}
-				delete in;
-			}
-		}
-	}
-	return saveList;
-}
-
-int ToucheMetaEngine::getMaximumSaveSlot() const {
-	return Touche::kMaxSaveStates - 1;
-}
-
-void ToucheMetaEngine::removeSaveState(const char *target, int slot) const {
-	Common::String filename = Touche::generateGameStateFileName(target, slot);
-	g_system->getSavefileManager()->removeSavefile(filename);
-}
-
-#if PLUGIN_ENABLED_DYNAMIC(TOUCHE)
-	REGISTER_PLUGIN_DYNAMIC(TOUCHE, PLUGIN_TYPE_ENGINE, ToucheMetaEngine);
-#else
-	REGISTER_PLUGIN_STATIC(TOUCHE, PLUGIN_TYPE_ENGINE, ToucheMetaEngine);
-#endif
+REGISTER_PLUGIN_STATIC(TOUCHE_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, ToucheMetaEngineDetection);

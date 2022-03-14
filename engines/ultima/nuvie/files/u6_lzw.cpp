@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,7 +53,7 @@ U6Lzw::~U6Lzw() {
  * compressed, it just makes it suitable to be read by an LZW decoder.
  */
 unsigned char *U6Lzw::compress_buffer(unsigned char *src, uint32 src_len,
-                                      uint32 &dest_len) {
+									  uint32 &dest_len) {
 	// FIXME - didnt bother fixing this since its output will be larger than
 	//         the uncompressed data
 	uint32 blocks = 0; //, block = 0, b = 0, d = 0, rshift = 0;
@@ -284,7 +283,7 @@ unsigned char *U6Lzw::decompress_file(Std::string filename, uint32 &destination_
 //       destination_buffer_size = this->get_uncompressed_file_size(input_file);
 
 		// create the buffers
-		source_buffer = (unsigned char *)malloc(sizeof(unsigned char *) * source_buffer_size);
+		source_buffer = (unsigned char *)malloc(sizeof(unsigned char) * source_buffer_size);
 //       destination_buffer = (unsigned char *)malloc(sizeof(unsigned char *) * destination_buffer_size);
 
 		// read the input file into the source buffer

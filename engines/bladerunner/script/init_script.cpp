@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -559,7 +558,7 @@ void InitScript::Init_Clues2() {
 
 #define IMPORT_CLUE_TABLE(a, arr) \
 	for (int i = 0; i != ARRAYSIZE(arr); ++i) {\
-		Actor_Clue_Add_To_Database( a, arr[i].clue, arr[i].weight, 0, 0, -1);\
+		Actor_Clue_Add_To_Database( a, arr[i].clue, arr[i].weight, false, false, -1);\
 	}
 
 	IMPORT_CLUE_TABLE(kActorSteele, ClueWeightsForSteele);
@@ -2361,26 +2360,26 @@ void InitScript::Init_SDB() {
 	SDB_Add_Identity_Clue(kSuspectLucy, kClueDektoraInterview4);
 	SDB_Add_Photo_Clue(kSuspectLucy, kClueLucy, 5);
 
-	SDB_Set_Actor(kSuspectDekora, kActorDektora);
-	SDB_Add_MO_Clue(kSuspectDekora, kClueScorpions);
-	SDB_Add_Replicant_Clue(kSuspectDekora, kClueVKDektoraReplicant);
-	SDB_Add_Replicant_Clue(kSuspectDekora, kClueEarlyQInterview);
-	SDB_Add_Replicant_Clue(kSuspectDekora, kClueDragonflyBelt);
-	SDB_Add_Replicant_Clue(kSuspectDekora, kClueDektoraInterview4);
-	SDB_Add_Non_Replicant_Clue(kSuspectDekora, kClueVKDektoraHuman);
-	SDB_Add_Non_Replicant_Clue(kSuspectDekora, kClueDektoraInterview2);
-	SDB_Add_Non_Replicant_Clue(kSuspectDekora, kClueDektoraInterview3);
-	SDB_Add_Non_Replicant_Clue(kSuspectDekora, kClueDektorasCard);
-	SDB_Add_Non_Replicant_Clue(kSuspectDekora, kClueDektoraInterview1);
-	SDB_Add_Other_Clue(kSuspectDekora, kClueDragonflyBelt);
-	SDB_Add_Other_Clue(kSuspectDekora, kClueWomanInAnimoidRow);
-	SDB_Add_Other_Clue(kSuspectDekora, kClueChinaBar);
-	SDB_Add_Other_Clue(kSuspectDekora, kClueCarRegistration1);
-	SDB_Add_Identity_Clue(kSuspectDekora, kClueDektoraInterview2);
-	SDB_Add_Identity_Clue(kSuspectDekora, kClueDektoraInterview3);
-	SDB_Add_Identity_Clue(kSuspectDekora, kClueEarlyQInterview);
-	SDB_Add_Photo_Clue(kSuspectDekora, kClueWomanInAnimoidRow, 21);
-	SDB_Add_Photo_Clue(kSuspectDekora, kClueChinaBar, 19);
+	SDB_Set_Actor(kSuspectDektora, kActorDektora);
+	SDB_Add_MO_Clue(kSuspectDektora, kClueScorpions);
+	SDB_Add_Replicant_Clue(kSuspectDektora, kClueVKDektoraReplicant);
+	SDB_Add_Replicant_Clue(kSuspectDektora, kClueEarlyQInterview);
+	SDB_Add_Replicant_Clue(kSuspectDektora, kClueDragonflyBelt);
+	SDB_Add_Replicant_Clue(kSuspectDektora, kClueDektoraInterview4);
+	SDB_Add_Non_Replicant_Clue(kSuspectDektora, kClueVKDektoraHuman);
+	SDB_Add_Non_Replicant_Clue(kSuspectDektora, kClueDektoraInterview2);
+	SDB_Add_Non_Replicant_Clue(kSuspectDektora, kClueDektoraInterview3);
+	SDB_Add_Non_Replicant_Clue(kSuspectDektora, kClueDektorasCard);
+	SDB_Add_Non_Replicant_Clue(kSuspectDektora, kClueDektoraInterview1);
+	SDB_Add_Other_Clue(kSuspectDektora, kClueDragonflyBelt);
+	SDB_Add_Other_Clue(kSuspectDektora, kClueWomanInAnimoidRow);
+	SDB_Add_Other_Clue(kSuspectDektora, kClueChinaBar);
+	SDB_Add_Other_Clue(kSuspectDektora, kClueCarRegistration1);
+	SDB_Add_Identity_Clue(kSuspectDektora, kClueDektoraInterview2);
+	SDB_Add_Identity_Clue(kSuspectDektora, kClueDektoraInterview3);
+	SDB_Add_Identity_Clue(kSuspectDektora, kClueEarlyQInterview);
+	SDB_Add_Photo_Clue(kSuspectDektora, kClueWomanInAnimoidRow, 21);
+	SDB_Add_Photo_Clue(kSuspectDektora, kClueChinaBar, 19);
 
 	SDB_Set_Actor(kSuspectGordo, kActorGordo);
 	SDB_Set_Sex(kSuspectGordo, 1);
@@ -2623,6 +2622,7 @@ void InitScript::Init_CDB() {
 	CDB_Set_Clue_Asset_Type(kClueDektoraInterview3, kClueTypeAudioRecording);
 	CDB_Set_Clue_Asset_Type(kClueDektorasCard, kClueTypeObject);
 	CDB_Set_Clue_Asset_Type(kClueGrigoriansNote, kClueTypeObject);
+	CDB_Set_Clue_Asset_Type(kClueCrazysInvolvement, kClueTypeObject); // Restored Content
 	CDB_Set_Clue_Asset_Type(kClueCollectionReceipt, kClueTypeObject);
 	CDB_Set_Clue_Asset_Type(kClueSpecialIngredient, kClueTypeAudioRecording);
 	CDB_Set_Clue_Asset_Type(kClueStolenCheese, kClueTypeAudioRecording);
@@ -2682,7 +2682,7 @@ void InitScript::Init_CDB() {
 	CDB_Set_Clue_Asset_Type(kCluePhotoOfMcCoy1, kClueTypePhotograph);
 	CDB_Set_Clue_Asset_Type(kCluePhotoOfMcCoy2, kClueTypePhotograph);
 	CDB_Set_Clue_Asset_Type(kClueEarlyQAndLucy, kClueTypePhotograph);
-	CDB_Set_Clue_Asset_Type(kClueClovisflowers, kClueTypePhotograph);
+	CDB_Set_Clue_Asset_Type(kClueClovisFlowers, kClueTypePhotograph);
 	CDB_Set_Clue_Asset_Type(kClueLucyWithDektora, kClueTypePhotograph);
 	CDB_Set_Clue_Asset_Type(kClueWomanInAnimoidRow, kClueTypePhotograph);
 	CDB_Set_Clue_Asset_Type(kClueScorpions, kClueTypePhotograph);
@@ -2726,8 +2726,16 @@ void InitScript::Init_CDB() {
 	CDB_Set_Clue_Asset_Type(kClueEarlyInterviewB1, kClueTypeAudioRecording);
 	CDB_Set_Clue_Asset_Type(kClueEarlyInterviewB2, kClueTypeAudioRecording);
 	CDB_Set_Clue_Asset_Type(kClueCrazylegsInterview3, kClueTypeAudioRecording);
-	CDB_Set_Clue_Asset_Type(kClueCrazylegGgrovels, kClueTypeAudioRecording);
+	CDB_Set_Clue_Asset_Type(kClueCrazylegGrovels, kClueTypeAudioRecording);
 	CDB_Set_Clue_Asset_Type(kClueFolder, kClueTypeObject);
+	if (_vm->_cutContent) {
+		// These clues had no asset type assigned, so they defaulted to "Intangible"
+		// and therefore they would not appear in McCoy's KIA
+		CDB_Set_Clue_Asset_Type(kClueGuzzasCash, kClueTypeAudioRecording);
+		CDB_Set_Clue_Asset_Type(kClueDragonflyCollection, kClueTypeAudioRecording);
+		CDB_Set_Clue_Asset_Type(kClueDragonflyBelt, kClueTypeObject);
+		CDB_Set_Clue_Asset_Type(kClueEarlyQInterview, kClueTypeAudioRecording);
+	}
 }
 
 void InitScript::Init_Spinner() {

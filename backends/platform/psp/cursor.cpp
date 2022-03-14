@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -272,7 +271,13 @@ void Cursor::setSizeAndScummvmPixelFormat(uint32 width, uint32 height, const Gra
 	PSP_DEBUG_PRINT("palette pixel format[%u]\n", paletteType);
 
 	if (paletteType == PSPPixelFormat::Type_None) {
-		setRendererModePalettized(false);	// use palettized mechanism
+		setRendererModePalettized(false);	// use non-palettized mechanism
+		if (format) {
+			if (format->aBits() == 0)
+				_fakeAlpha = true;		// we are treating e.g. 555 as 5551
+			else
+				_fakeAlpha = false;		// we have a genuine alpha channel
+		}
 	} else {	// We have a palette
 		_palette.setPixelFormats(paletteType, bufferType);
 		setRendererModePalettized(true);	// use palettized mechanism
@@ -312,9 +317,9 @@ inline void Cursor::setRendererModePalettized(bool palettized) {
 		_renderer.setAlphaBlending(true);
 
 		// Pixel formats without alpha (5650) are considered to have their alpha set.
-		// Since pixel formats with alpha don't have their alpha bits set, we reverse
+		// Since pixel formats like 555 are treated as 5551 on PSP, we reverse
 		// the alpha format for them so that 0 alpha is 1.
-		if (_buffer.getPixelFormat() != PSPPixelFormat::Type_5650)
+		if (_buffer.getPixelFormat() != PSPPixelFormat::Type_5650 && _fakeAlpha)
 			_renderer.setAlphaReverse(true);
 		else
 			_renderer.setAlphaReverse(false);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -81,12 +80,8 @@ bool CIdleSummoner::TimerMsg(CTimerMsg *msg) {
 		if (!compareRoomNameTo("TopOfWell") && !compareRoomNameTo("EmbLobby"))
 			return true;
 
-		// WORKAROUND: To benefit the players, don't allow the bots to turn up
-		// when at the Embarkation SuccUBus, in front of the Deskbot's desk,
-		// or when in the Gondola, since it just looks weird
-		CString fullName = getFullViewName();
-		if (fullName == "EmbLobby.Node 2.W" || fullName == "EmbLobby.Node 4.E" ||
-				fullName == "TopOfWell.Node 29.N")
+		// WORKAROUND: Handle special disallowed locations
+		if (isBotDisallowedLocation())
 			return true;
 
 		int region = talkGetDialRegion("BellBot", 1);

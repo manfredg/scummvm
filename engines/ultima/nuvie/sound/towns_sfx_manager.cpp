@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,8 +59,9 @@ static const TownsSfxLookup sfx_lookup_tbl[] = {
 	{NUVIE_SFX_ATTACK_SWING, 2}
 };
 
-TownsSfxManager::TownsSfxManager(Configuration *cfg, Audio::Mixer *m) : SfxManager(cfg, m) {
-	config->pathFromValue("config/ultima6/townsdir", "sounds2.dat", sounds2dat_filepath);
+TownsSfxManager::TownsSfxManager(Configuration *cfg, Audio::Mixer *m) : SfxManager(cfg, m),
+		fireStream(nullptr) {
+	config->pathFromValue("config/townsdir", "sounds2.dat", sounds2dat_filepath);
 	loadSound1Dat();
 }
 
@@ -78,7 +78,7 @@ void TownsSfxManager::loadSound1Dat() {
 	NuvieIOBuffer iobuf;
 	uint32 slib32_len = 0;
 
-	config->pathFromValue("config/ultima6/townsdir", "sounds1.dat", filename);
+	config->pathFromValue("config/townsdir", "sounds1.dat", filename);
 	unsigned char *slib32_data = decompressor.decompress_file(filename, slib32_len);
 
 	if (slib32_len == 0)
@@ -96,7 +96,7 @@ void TownsSfxManager::loadSound1Dat() {
 		sounds1_dat[i].len = lib.get_item_size(i);
 	}
 
-	//Fire SFX is made up of three individual samples played in a random sequence
+	// Fire SFX is made up of three individual samples played in a random sequence
 	Std::vector<Audio::RewindableAudioStream *> streams;
 	streams.push_back(new FMtownsDecoderStream(sounds1_dat[6].buf, sounds1_dat[6].len));
 	streams.push_back(new FMtownsDecoderStream(sounds1_dat[7].buf, sounds1_dat[7].len));
@@ -125,7 +125,8 @@ void TownsSfxManager::playSoundSample(uint8 sample_num, Audio::SoundHandle *loop
 	Audio::AudioStream *stream = NULL;
 	Audio::SoundHandle handle;
 
-	if (sample_num > 5 && sample_num < 9) { //fire samples
+	if (sample_num > 5 && sample_num < 9) {
+		// Fire samples
 		mixer->playStream(Audio::Mixer::kPlainSoundType, looping_handle ? looping_handle : &handle, fireStream, -1, volume, 0, DisposeAfterUse::NO);
 		return;
 	}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,8 +36,6 @@
 #include "engines/wintermute/base/gfx/base_renderer.h"
 #include "engines/wintermute/base/scriptables/script_value.h"
 #include "engines/wintermute/base/scriptables/script_stack.h"
-#include "graphics/transform_tools.h"
-#include "graphics/transform_struct.h"
 
 namespace Wintermute {
 
@@ -267,16 +264,7 @@ bool BaseSubFrame::draw(int x, int y, BaseObject *registerOwner, float zoomX, fl
 	}
 
 	if (rotate != Graphics::kDefaultAngle) {
-		Point32 boxOffset, rotatedHotspot, hotspotOffset;
-		Common::Point origin(x, y);
-		Common::Point newOrigin;
-		Rect32 oldRect1 = getRect();
-		Common::Rect oldRect(oldRect1.left, oldRect1.top, oldRect1.right, oldRect1.bottom);
-		Common::Point newHotspot;
-		Graphics::TransformStruct transform = Graphics::TransformStruct(zoomX, zoomY, (uint32)rotate, _hotspotX, _hotspotY, blendMode, alpha, _mirrorX, _mirrorY, 0, 0);
-		Rect32 newRect = Graphics::TransformTools::newRect(oldRect, transform, &newHotspot);
-		newOrigin = origin - newHotspot;
-		res = _surface->displayTransform(newOrigin.x, newOrigin.y, oldRect, newRect, transform);
+		res = _surface->displayTransRotate(x, y, (uint32)rotate, _hotspotX, _hotspotY, getRect(), zoomX, zoomY, alpha, blendMode, _mirrorX, _mirrorY);
 	} else {
 		if (zoomX == Graphics::kDefaultZoomX && zoomY == Graphics::kDefaultZoomY) {
 			res = _surface->displayTrans(x - _hotspotX, y - _hotspotY, getRect(), alpha, blendMode, _mirrorX, _mirrorY);

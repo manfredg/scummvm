@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,6 +36,7 @@
 #include "backends/audiocd/audiocd.h"
 
 #include "graphics/surface.h"
+#include "graphics/sjis.h"
 
 #include "audio/mididrv.h"
 
@@ -126,12 +126,12 @@ AGOSEngine_Waxworks::AGOSEngine_Waxworks(OSystem *system, const AGOSGameDescript
 	memset(_boxBuffer, 0, sizeof(_boxBuffer));
 	_boxBufferPtr = _boxBuffer;
 
-	_linePtrs[0] = 0;
-	_linePtrs[1] = 0;
-	_linePtrs[2] = 0;
-	_linePtrs[3] = 0;
-	_linePtrs[4] = 0;
-	_linePtrs[5] = 0;
+	_linePtrs[0] = nullptr;
+	_linePtrs[1] = nullptr;
+	_linePtrs[2] = nullptr;
+	_linePtrs[3] = nullptr;
+	_linePtrs[4] = nullptr;
+	_linePtrs[5] = nullptr;
 	memset(_lineCounts, 0, sizeof(_lineCounts));
 }
 
@@ -140,25 +140,37 @@ AGOSEngine_Elvira2::AGOSEngine_Elvira2(OSystem *system, const AGOSGameDescriptio
 }
 
 AGOSEngine_Elvira1::AGOSEngine_Elvira1(OSystem *system, const AGOSGameDescription *gd)
-	: AGOSEngine(system, gd) {
+	: AGOSEngine(system, gd), _sjisCurChar(0), _sjisFont(nullptr) {
+}
+
+AGOSEngine_Elvira1::~AGOSEngine_Elvira1() {
+	delete _sjisFont;
+}
+
+Common::Error AGOSEngine_Elvira1::init() {
+	Common::Error ret = AGOSEngine::init();
+	if (ret.getCode() == Common::kNoError && getPlatform() == Common::kPlatformPC98) {
+		_sjisFont = Graphics::FontSJIS::createFont(Common::kPlatformPC98);
+		if (_sjisFont)
+			_sjisFont->toggleFatPrint(true);
+		else
+			error("AGOSEngine_Elvira1::init(): Failed to load SJIS font.");
+	}
+	return ret;
 }
 
 AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	: Engine(system), _rnd("agos"), _gameDescription(gd) {
 
-	DebugMan.addDebugChannel(kDebugOpcode, "opcode", "Opcode debug level");
-	DebugMan.addDebugChannel(kDebugVGAOpcode, "vga_opcode", "VGA Opcode debug level");
-	DebugMan.addDebugChannel(kDebugSubroutine, "subroutine", "Subroutine debug level");
-	DebugMan.addDebugChannel(kDebugVGAScript, "vga_script", "VGA Script debug level");
 	//Image dumping command disabled as it doesn't work well
 #if 0
 	DebugMan.addDebugChannel(kDebugImageDump, "image_dump", "Enable dumping of images to files");
 #endif
-	_vcPtr = 0;
+	_vcPtr = nullptr;
 	_vcGetOutOfCode = 0;
-	_gameOffsetsPtr = 0;
+	_gameOffsetsPtr = nullptr;
 
-	_gameFile = 0;
+	_gameFile = nullptr;
 	_opcode = 0;
 
 	_itemMemSize = 0;
@@ -185,49 +197,49 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	_vgaBaseDelay = 0;
 	_vgaPeriod = 0;
 
-	_strippedTxtMem = 0;
-	_textMem = 0;
+	_strippedTxtMem = nullptr;
+	_textMem = nullptr;
 	_textSize = 0;
 	_stringTabNum = 0;
 	_stringTabPos = 0;
 	_stringTabSize = 0;
-	_stringTabPtr = 0;
+	_stringTabPtr = nullptr;
 
-	_itemArrayPtr = 0;
+	_itemArrayPtr = nullptr;
 	_itemArraySize = 0;
 	_itemArrayInited = 0;
 
-	_iconFilePtr = 0;
+	_iconFilePtr = nullptr;
 
-	_codePtr = 0;
+	_codePtr = nullptr;
 
-	_localStringtable = 0;
+	_localStringtable = nullptr;
 	_stringIdLocalMin = 0;
 	_stringIdLocalMax = 0;
 
-	_roomStates = 0;
+	_roomStates = nullptr;
 	_numRoomStates = 0;
 
-	_menuBase = 0;
-	_roomsList = 0;
-	_roomsListPtr = 0;
+	_menuBase = nullptr;
+	_roomsList = nullptr;
+	_roomsListPtr = nullptr;
 
-	_xtblList = 0;
-	_xtablesHeapPtrOrg = 0;
+	_xtblList = nullptr;
+	_xtablesHeapPtrOrg = nullptr;
 	_xtablesHeapCurPosOrg = 0;
-	_xsubroutineListOrg = 0;
+	_xsubroutineListOrg = nullptr;
 
-	_tblList = 0;
-	_tablesHeapPtr = 0;
-	_tablesHeapPtrOrg = 0;
-	_tablesheapPtrNew = 0;
+	_tblList = nullptr;
+	_tablesHeapPtr = nullptr;
+	_tablesHeapPtrOrg = nullptr;
+	_tablesheapPtrNew = nullptr;
 	_tablesHeapSize = 0;
 	_tablesHeapCurPos = 0;
 	_tablesHeapCurPosOrg = 0;
 	_tablesHeapCurPosNew = 0;
-	_subroutineListOrg = 0;
+	_subroutineListOrg = nullptr;
 
-	_subroutineList = 0;
+	_subroutineList = nullptr;
 
 	_recursionDepth = 0;
 
@@ -262,7 +274,7 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	_mouseAnim = 0;
 	_mouseAnimMax = 0;
 	_mouseCursor = 0;
-	_mouseData = 0;
+	_mouseData = nullptr;
 	_oldMouseCursor = 0;
 	_currentMouseCursor = 0;
 	_currentMouseAnim = 0;
@@ -279,7 +291,7 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	_scrollFlag = 0;
 	_scrollHeight = 0;
 	_scrollWidth = 0;
-	_scrollImage = 0;
+	_scrollImage = nullptr;
 	_boxStarHeight = 0;
 
 	_scriptVerb = 0;
@@ -289,23 +301,23 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	_scriptAdj2 = 0;
 
 	_curWindow = 0;
-	_textWindow = 0;
+	_textWindow = nullptr;
 
-	_subjectItem = 0;
-	_objectItem = 0;
-	_currentPlayer = 0;
+	_subjectItem = nullptr;
+	_objectItem = nullptr;
+	_currentPlayer = nullptr;
 
 	_iOverflow = false;
 	_nameLocked = false;
-	_hitAreaObjectItem = 0;
-	_lastHitArea = 0;
-	_lastNameOn = 0;
-	_lastHitArea3 = 0;
-	_hitAreaSubjectItem = 0;
-	_currentBox = 0;
+	_hitAreaObjectItem = nullptr;
+	_lastHitArea = nullptr;
+	_lastNameOn = nullptr;
+	_lastHitArea3 = nullptr;
+	_hitAreaSubjectItem = nullptr;
+	_currentBox = nullptr;
 	_currentBoxNum = 0;
-	_currentVerbBox = 0;
-	_lastVerbOn = 0;
+	_currentVerbBox = nullptr;
+	_lastVerbOn = nullptr;
 	_needHitAreaRecalc = 0;
 	_verbHitArea = 0;
 	_defaultVerb = 0;
@@ -316,7 +328,7 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	_dragFlag = false;
 	_dragMode = false;
 	_dragCount = 0;
-	_lastClickRem = 0;
+	_lastClickRem = nullptr;
 
 	_windowNum = 0;
 
@@ -330,8 +342,8 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	_lastTime = 0;
 	_lastMinute = 0;
 
-	_firstTimeStruct = 0;
-	_pendingDeleteTimeEvent = 0;
+	_firstTimeStruct = nullptr;
+	_pendingDeleteTimeEvent = nullptr;
 
 	_initMouse = 0;
 	_leftButtonDown = false;
@@ -379,18 +391,18 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	_copyScnFlag = 0;
 	_vgaSpriteChanged = 0;
 
-	_block = 0;
-	_blockEnd = 0;
-	_vgaMemPtr = 0;
-	_vgaMemEnd = 0;
-	_vgaMemBase = 0;
-	_vgaFrozenBase = 0;
-	_vgaRealBase = 0;
-	_zoneBuffers = 0;
+	_block = nullptr;
+	_blockEnd = nullptr;
+	_vgaMemPtr = nullptr;
+	_vgaMemEnd = nullptr;
+	_vgaMemBase = nullptr;
+	_vgaFrozenBase = nullptr;
+	_vgaRealBase = nullptr;
+	_zoneBuffers = nullptr;
 
-	_curVgaFile1 = 0;
-	_curVgaFile2 = 0;
-	_curSfxFile = 0;
+	_curVgaFile1 = nullptr;
+	_curVgaFile2 = nullptr;
+	_curSfxFile = nullptr;
 	_curSfxFileSize = 0;
 
 	_syncCount = 0;
@@ -418,20 +430,20 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	_scaleWidth = 0;
 	_scaleHeight = 0;
 
-	_nextVgaTimerToProcess = 0;
+	_nextVgaTimerToProcess = nullptr;
 
 	_opcode177Var1 = 1;
 	_opcode177Var2 = 0;
 	_opcode178Var1 = 1;
 	_opcode178Var2 = 0;
 
-	_classLine = 0;
+	_classLine = nullptr;
 	_classMask = 0;
 	_classMode1 = 0;
 	_classMode2 = 0;
-	_currentLine = 0;
-	_currentTable = 0;
-	_findNextPtr = 0;
+	_currentLine = nullptr;
+	_currentTable = nullptr;
+	_findNextPtr = nullptr;
 
 	_agosMenu = 0;
 	_currentRoom = 0;
@@ -452,9 +464,9 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	memset(_bitArrayTwo, 0, sizeof(_bitArrayTwo));
 	memset(_bitArrayThree, 0, sizeof(_bitArrayThree));
 
-	_variableArray = 0;
-	_variableArray2 = 0;
-	_variableArrayPtr = 0;
+	_variableArray = nullptr;
+	_variableArray2 = nullptr;
+	_variableArrayPtr = nullptr;
 
 	memset(_windowArray, 0, sizeof(_windowArray));
 
@@ -462,12 +474,12 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	memset(_fcsData2, 0, sizeof(_fcsData2));
 
 	_awaitTwoByteToken = 0;
-	_byteTokens = 0;
-	_byteTokenStrings = 0;
-	_twoByteTokens = 0;
-	_twoByteTokenStrings = 0;
-	_secondTwoByteTokenStrings = 0;
-	_thirdTwoByteTokenStrings = 0;
+	_byteTokens = nullptr;
+	_byteTokenStrings = nullptr;
+	_twoByteTokens = nullptr;
+	_twoByteTokenStrings = nullptr;
+	_secondTwoByteTokenStrings = nullptr;
+	_thirdTwoByteTokenStrings = nullptr;
 	memset(_textBuffer, 0, sizeof(_textBuffer));
 	_textCount = 0;
 
@@ -496,13 +508,15 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 
 	memset(_lettersToPrintBuf, 0, sizeof(_lettersToPrintBuf));
 
-	_planarBuf = 0;
+	_planarBuf = nullptr;
+	_pak98Buf = nullptr;
+	_paletteModNext = 16;
 
 	_midiEnabled = false;
 
 	_vgaTickCounter = 0;
 
-	_sound = 0;
+	_sound = nullptr;
 
 	_effectsPaused = false;
 	_ambientPaused = false;
@@ -525,11 +539,11 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	_oracleMaxScrollY = 0;
 	_noOracleScroll = 0;
 
-	_backGroundBuf = 0;
-	_backBuf = 0;
-	_scaleBuf = 0;
-	_window4BackScn = 0;
-	_window6BackScn = 0;
+	_backGroundBuf = nullptr;
+	_backBuf = nullptr;
+	_scaleBuf = nullptr;
+	_window4BackScn = nullptr;
+	_window6BackScn = nullptr;
 
 	_window3Flag = 0;
 	_window4Flag = 0;
@@ -540,10 +554,11 @@ AGOSEngine::AGOSEngine(OSystem *system, const AGOSGameDescription *gd)
 	_moveXMax = 0;
 	_moveYMax = 0;
 
-	_vc10BasePtrOld = 0;
+	_forceAscii = false;
+
+	_vc10BasePtrOld = nullptr;
 	memcpy (_hebrewCharWidths,
 		"\x5\x5\x4\x6\x5\x3\x4\x5\x6\x3\x5\x5\x4\x6\x5\x3\x4\x6\x5\x6\x6\x6\x5\x5\x5\x6\x5\x6\x6\x6\x6\x6", 32);
-
 
 	const Common::FSNode gameDataDir(ConfMan.get("path"));
 
@@ -575,18 +590,24 @@ Common::Error AGOSEngine::init() {
 		_screenHeight = 200;
 	}
 
-	initGraphics(_screenWidth, _screenHeight);
+	_internalWidth = _screenWidth;
+	_internalHeight = _screenHeight;
+
+	if (getPlatform() == Common::kPlatformPC98) {
+		_internalWidth <<= 1;
+		_internalHeight <<= 1;
+	}
+
+	initGraphics(_internalWidth, _internalHeight);
 
 	_midi = new MidiPlayer();
 
 	if ((getGameType() == GType_SIMON2 && getPlatform() == Common::kPlatformWindows) ||
 		(getGameType() == GType_SIMON1 && getPlatform() == Common::kPlatformWindows) ||
 		((getFeatures() & GF_TALKIE) && getPlatform() == Common::kPlatformAcorn) ||
-		(getPlatform() == Common::kPlatformDOS)) {
+		(getPlatform() == Common::kPlatformDOS || getPlatform() == Common::kPlatformPC98)) {
 
-		bool isDemo = (getFeatures() & GF_DEMO) ? true : false;
-
-		int ret = _midi->open(getGameType(), isDemo);
+		int ret = _midi->open(getGameType(), getPlatform(), (getFeatures() & GF_DEMO));
 		if (ret)
 			warning("MIDI Player init failed: \"%s\"", MidiDriver::getErrorName(ret));
 
@@ -602,11 +623,11 @@ Common::Error AGOSEngine::init() {
 	_backGroundBuf = new Graphics::Surface();
 	_backGroundBuf->create(_screenWidth, _screenHeight, Graphics::PixelFormat::createFormatCLUT8());
 
-	if (getGameType() == GType_FF || getGameType() == GType_PP) {
+	if (getGameType() == GType_FF || getGameType() == GType_PP || (getGameType() == GType_ELVIRA1 && getPlatform() == Common::kPlatformPC98)) {
 		_backBuf = new Graphics::Surface();
 		_backBuf->create(_screenWidth, _screenHeight, Graphics::PixelFormat::createFormatCLUT8());
 		_scaleBuf = new Graphics::Surface();
-		_scaleBuf->create(_screenWidth, _screenHeight, Graphics::PixelFormat::createFormatCLUT8());
+		_scaleBuf->create(_internalWidth, _internalHeight, Graphics::PixelFormat::createFormatCLUT8());
 	}
 
 	if (getGameType() == GType_SIMON2) {
@@ -945,6 +966,7 @@ AGOSEngine::~AGOSEngine() {
 		_backBuf->free();
 	delete _backBuf;
 	free(_planarBuf);
+	delete[] _pak98Buf;
 	if (_scaleBuf)
 		_scaleBuf->free();
 	delete _scaleBuf;
@@ -992,12 +1014,12 @@ void AGOSEngine::pauseEngineIntern(bool pauseIt) {
 }
 
 void AGOSEngine::pause() {
-	pauseEngine(true);
+	PauseToken pt = pauseEngine();
 
 	while (_pause && !shouldQuit()) {
 		delay(1);
 		if (_keyPressed.keycode == Common::KEYCODE_PAUSE) {
-			pauseEngine(false);
+			pt.clear();
 			_keyPressed.reset();
 		}
 	}
@@ -1012,17 +1034,17 @@ Common::Error AGOSEngine::go() {
 
 	addTimeEvent(0, 1);
 
-	if (getFileName(GAME_GMEFILE) != NULL) {
+	if (getFileName(GAME_GMEFILE) != nullptr) {
 		openGameFile();
 	}
 
 	if (getGameType() == GType_FF) {
 		loadIconData();
-	} else if (getFileName(GAME_ICONFILE) != NULL) {
+	} else if (getFileName(GAME_ICONFILE) != nullptr) {
 		loadIconFile();
 	}
 
-	if (getFileName(GAME_MENUFILE) != NULL) {
+	if (getFileName(GAME_MENUFILE) != nullptr) {
 		loadMenuFile();
 	}
 
@@ -1030,7 +1052,7 @@ Common::Error AGOSEngine::go() {
 
 	if (getGameType() != GType_PP && getGameType() != GType_FF) {
 		uint16 count = (getGameType() == GType_SIMON2) ? 5 : _frameCount;
-		addVgaEvent(count, ANIMATE_INT, NULL, 0, 0);
+		addVgaEvent(count, ANIMATE_INT, nullptr, 0, 0);
 	}
 
 	if (getGameType() == GType_ELVIRA1 && getPlatform() == Common::kPlatformAtariST &&

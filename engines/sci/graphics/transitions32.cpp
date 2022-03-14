@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -207,7 +206,20 @@ void GfxTransitions32::kernelSetShowStyle(const uint16 argc, const reg_t planeOb
 		color = back;
 	} else {
 		isFadeUp = true;
-		color = 0;
+		color = g_sci->_gfxPalette32->getPlatformBlack();
+	}
+
+	// HACK: Swap Mac black/white colors to PC palette for kShowStyleDissolve.
+	// We perform most SCI32 Mac palette conversions while drawing pics, views, and color CelObjs.
+	// That doesn't work for kShowStyleDisolve, it uses a CelObjMem that's initialized from the
+	// current frameout buffer after Mac palette conversions have already taken place.
+	// Example: GK1 room 471 which dissolves from an already black screen to black.
+	if (type == kShowStyleDissolve && g_sci->getPlatform() == Common::kPlatformMacintosh) {
+		if (color == 0) {
+			color = 255;
+		} else if (color == 255) {
+			color = 0;
+		}
 	}
 
 	Plane *plane = g_sci->_gfxFrameout->getPlanes().findByObject(planeObj);
@@ -247,15 +259,12 @@ void GfxTransitions32::kernelSetShowStyle(const uint16 argc, const reg_t planeOb
 
 		// Do not add kShowStyleNone types to the showStyles list.
 		//
-		// HACK: Hoyle 5 does a fade out in some screens, and then makes a
-		// kShowStyleNone call to enter the new screen, without a fade in,
-		// thus leaving the whole screen black. By removing ths return,
-		// the code for queuing the kShowStyleNone calls is enabled, and this
-		// wrong behavior is fixed, as the screen palette is restored in the
-		// processNone() call inside processShowStyle(). I wasn't able to find
-		// any other notable difference in the graphics code of the Hoyle 5
-		// interpreter, and disabling this return has no other ill effects for
-		// this game, so this will suffice for now.
+		// This return was removed in some interpreters, notably the Windows
+		// version of Hoyle 5. In this version, a fade out is done and then
+		// kShowStyleNone is called to enter the new screen without a fade in.
+		// In such cases, we should not return here, so that the code for
+		// queuing kShowStyleNone calls is enabled and the screen palette is
+		// restored in the processNone() call inside processShowStyle().
 		if (g_sci->getGameId() != GID_HOYLE5)
 			return;
 	}

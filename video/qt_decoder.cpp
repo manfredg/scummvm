@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@
 //
 
 #include "video/qt_decoder.h"
+#include "video/qt_data.h"
 
 #include "audio/audiostream.h"
 
@@ -50,13 +50,14 @@ namespace Video {
 QuickTimeDecoder::QuickTimeDecoder() {
 	_scaledSurface = 0;
 	_width = _height = 0;
+	_enableEditListBoundsCheckQuirk = false;
 }
 
 QuickTimeDecoder::~QuickTimeDecoder() {
 	close();
 }
 
-bool QuickTimeDecoder::loadFile(const Common::String &filename) {
+bool QuickTimeDecoder::loadFile(const Common::Path &filename) {
 	if (!Common::QuickTimeParser::parseFile(filename))
 		return false;
 
@@ -151,8 +152,7 @@ Common::QuickTimeParser::SampleDesc *QuickTimeDecoder::readSampleDesc(Common::Qu
 		// if the depth is 2, 4, or 8 bpp, file is palettized
 		if (colorDepth == 2 || colorDepth == 4 || colorDepth == 8) {
 			// Initialize the palette
-			entry->_palette = new byte[256 * 3];
-			memset(entry->_palette, 0, 256 * 3);
+			entry->_palette = new byte[256 * 3]();
 
 			if (colorGreyscale) {
 				debug(0, "Greyscale palette");
@@ -171,7 +171,13 @@ Common::QuickTimeParser::SampleDesc *QuickTimeDecoder::readSampleDesc(Common::Qu
 				// if flag bit 3 is set, use the default palette
 				//uint16 colorCount = 1 << colorDepth;
 
-				warning("Predefined palette! %dbpp", colorDepth);
+				debug(0, "Predefined palette! %dbpp", colorDepth);
+				if (colorDepth == 2)
+					memcpy(entry->_palette, quickTimeDefaultPalette4, 4 * 3);
+				else if (colorDepth == 4)
+					memcpy(entry->_palette, quickTimeDefaultPalette16, 16 * 3);
+				else if (colorDepth == 8)
+					memcpy(entry->_palette, quickTimeDefaultPalette256, 256 * 3);
 			} else {
 				debug(0, "Palette from file");
 
@@ -193,6 +199,8 @@ Common::QuickTimeParser::SampleDesc *QuickTimeDecoder::readSampleDesc(Common::Qu
 					_fd->readByte();
 				}
 			}
+
+			entry->_bitsPerSample &= 0x1f; // clear grayscale bit
 		}
 
 		return entry;
@@ -264,7 +272,7 @@ QuickTimeDecoder::VideoSampleDesc::~VideoSampleDesc() {
 }
 
 void QuickTimeDecoder::VideoSampleDesc::initCodec() {
-	_videoCodec = Image::createQuickTimeCodec(_codecTag, _parentTrack->width, _parentTrack->height, _bitsPerSample & 0x1f);
+	_videoCodec = Image::createQuickTimeCodec(_codecTag, _parentTrack->width, _parentTrack->height, _bitsPerSample);
 }
 
 QuickTimeDecoder::AudioTrackHandler::AudioTrackHandler(QuickTimeDecoder *decoder, QuickTimeAudioTrack *audioTrack) :
@@ -285,12 +293,14 @@ Audio::SeekableAudioStream *QuickTimeDecoder::AudioTrackHandler::getSeekableAudi
 }
 
 QuickTimeDecoder::VideoTrackHandler::VideoTrackHandler(QuickTimeDecoder *decoder, Common::QuickTimeParser::Track *parent) : _decoder(decoder), _parent(parent) {
-	checkEditListBounds();
+	if (decoder->_enableEditListBoundsCheckQuirk) {
+		checkEditListBounds();
+	}
 
 	_curEdit = 0;
-	enterNewEditList(false);
-
 	_curFrame = -1;
+	enterNewEditListEntry(true); // might set _curFrame
+
 	_durationOverride = -1;
 	_scaledSurface = 0;
 	_curPalette = 0;
@@ -301,6 +311,12 @@ QuickTimeDecoder::VideoTrackHandler::VideoTrackHandler(QuickTimeDecoder *decoder
 	_ditherFrame = 0;
 }
 
+// FIXME: This check breaks valid QuickTime movies, such as the KQ6 Mac opening.
+// It doesn't take media rate into account and mixes up units that are in movie
+// time scale and media time scale, which is easy to do since they're often the
+// same value. Other decoder bugs have been fixed since this was written, so it
+// would be good to re-evaluate what the problem was with the Riven Spanish video.
+// It's now disabled for everything except Riven.
 void QuickTimeDecoder::VideoTrackHandler::checkEditListBounds() {
 	// Check all the edit list entries are within the bounds of the media
 	// In the Spanish version of Riven, the last edit of the video ogk.mov
@@ -373,12 +389,12 @@ bool QuickTimeDecoder::VideoTrackHandler::seek(const Audio::Timestamp &requested
 			_curEdit++;
 
 		if (!atLastEdit())
-			enterNewEditList(true);
+			enterNewEditListEntry(true);
 
 		return true;
 	}
 
-	enterNewEditList(false);
+	enterNewEditListEntry(false);
 
 	// One extra check for the end of a track
 	if (atLastEdit()) {
@@ -396,7 +412,7 @@ bool QuickTimeDecoder::VideoTrackHandler::seek(const Audio::Timestamp &requested
 			_nextFrameStartTime += _durationOverride;
 			_durationOverride = -1;
 		} else {
-			_nextFrameStartTime += getFrameDuration();
+			_nextFrameStartTime += getCurFrameDuration();
 		}
 	}
 
@@ -498,7 +514,10 @@ const Graphics::Surface *QuickTimeDecoder::VideoTrackHandler::decodeNextFrame() 
 		if (atLastEdit())
 			return 0;
 
-		enterNewEditList(true);
+		enterNewEditListEntry(true);
+
+		if (isEmptyEdit())
+			return 0;
 	}
 
 	const Graphics::Surface *frame = bufferNextFrame();
@@ -510,7 +529,7 @@ const Graphics::Surface *QuickTimeDecoder::VideoTrackHandler::decodeNextFrame() 
 			_durationOverride = -1;
 		} else {
 			// Just need to subtract the time
-			_nextFrameStartTime -= getFrameDuration();
+			_nextFrameStartTime -= getCurFrameDuration();
 		}
 	} else {
 		if (_durationOverride >= 0) {
@@ -518,7 +537,7 @@ const Graphics::Surface *QuickTimeDecoder::VideoTrackHandler::decodeNextFrame() 
  			_nextFrameStartTime += _durationOverride;
 			_durationOverride = -1;
 		} else {
-			_nextFrameStartTime += getFrameDuration();
+			_nextFrameStartTime += getCurFrameDuration();
 		}
 	}
 
@@ -658,7 +677,7 @@ Common::SeekableReadStream *QuickTimeDecoder::VideoTrackHandler::getNextFramePac
 	return stream->readStream(_parent->sampleSizes[_curFrame]);
 }
 
-uint32 QuickTimeDecoder::VideoTrackHandler::getFrameDuration() {
+uint32 QuickTimeDecoder::VideoTrackHandler::getCurFrameDuration() {
 	uint32 curFrameIndex = 0;
 	for (int32 i = 0; i < _parent->timeToSampleCount; i++) {
 		curFrameIndex += _parent->timeToSample[i].count;
@@ -682,13 +701,21 @@ uint32 QuickTimeDecoder::VideoTrackHandler::findKeyFrame(uint32 frame) const {
 	return frame;
 }
 
-void QuickTimeDecoder::VideoTrackHandler::enterNewEditList(bool bufferFrames) {
-	// Bypass all empty edit lists first
-	while (!atLastEdit() && _parent->editList[_curEdit].mediaTime == -1)
-		_curEdit++;
+bool QuickTimeDecoder::VideoTrackHandler::isEmptyEdit() const {
+	return (_parent->editList[_curEdit].mediaTime == -1);
+}
 
+void QuickTimeDecoder::VideoTrackHandler::enterNewEditListEntry(bool bufferFrames) {
 	if (atLastEdit())
 		return;
+
+	// if this is an empty edit then the only thing to do is set the
+	// time for the next frame, which is the duration of this edit.
+	if (isEmptyEdit()) {
+		_curFrame = -1;
+		_nextFrameStartTime = getCurEditTimeOffset() + getCurEditTrackDuration();
+		return;
+	}
 
 	uint32 mediaTime = _parent->editList[_curEdit].mediaTime;
 	uint32 frameNum = 0;
@@ -777,8 +804,12 @@ const Graphics::Surface *QuickTimeDecoder::VideoTrackHandler::bufferNextFrame() 
 }
 
 uint32 QuickTimeDecoder::VideoTrackHandler::getRateAdjustedFrameTime() const {
-	// Figure out what time the next frame is at taking the edit list rate into account
-	Common::Rational offsetFromEdit = Common::Rational(_nextFrameStartTime - getCurEditTimeOffset()) / _parent->editList[_curEdit].mediaRate;
+	// Figure out what time the next frame is at taking the edit list rate into account,
+	// unless this is an empty edit, in which case the rate isn't applicable.
+	Common::Rational offsetFromEdit = Common::Rational(_nextFrameStartTime - getCurEditTimeOffset());
+	if (!isEmptyEdit()) {
+		offsetFromEdit /= _parent->editList[_curEdit].mediaRate;
+	}
 	uint32 convertedTime = offsetFromEdit.toInt();
 
 	if ((offsetFromEdit.getNumerator() % offsetFromEdit.getDenominator()) > (offsetFromEdit.getDenominator() / 2))
@@ -805,7 +836,7 @@ uint32 QuickTimeDecoder::VideoTrackHandler::getCurEditTimeOffset() const {
 }
 
 uint32 QuickTimeDecoder::VideoTrackHandler::getCurEditTrackDuration() const {
-	// Need to convert to the track scale
+	// convert from movie time scale to the track's media time scale
 	return _parent->editList[_curEdit].trackDuration * _parent->timeScale / _decoder->_timeScale;
 }
 

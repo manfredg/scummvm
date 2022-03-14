@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,7 +53,7 @@ void SceneScriptRC03::InitializeScene() {
 #if BLADERUNNER_ORIGINAL_BUGS
 		Scene_Exit_Add_2D_Exit(2, 524, 350, 573, 359, 2);
 #else
-	// prevent Izo's corpse from blocking the exit hot-spot area
+		// prevent Izo's corpse from blocking the exit hot-spot area
 		Scene_Exit_Add_2D_Exit(2, 524, 340, 573, 359, 2);
 #endif // BLADERUNNER_ORIGINAL_BUGS
 	}
@@ -65,10 +64,10 @@ void SceneScriptRC03::InitializeScene() {
 	Ambient_Sounds_Add_Sound(kSfxRCCARBY1,  5,  30, 40,  70, -100, 100, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxRCCARBY2,  5,  30, 40,  75, -100, 100, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxRCCARBY3,  5,  30, 40,  70, -100, 100, -101, -101, 0, 0);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy,  0, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 20, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 40, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 50, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy,  0, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 20, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 40, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 50, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
 	Ambient_Sounds_Add_Sound(kSfxSPIN2B,   60, 180, 16,  25,    0,   0, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxSPIN3A,   60, 180, 16,  25,    0,   0, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxTHNDER2,  60, 180, 50, 100,    0,   0, -101, -101, 0, 0);
@@ -91,6 +90,9 @@ void SceneScriptRC03::InitializeScene() {
 
 	if (Game_Flag_Query(kFlagHC04toRC03)
 	 && Actor_Query_Goal_Number(kActorIzo) != kGoalIzoWaitingAtRC03
+#if !BLADERUNNER_ORIGINAL_BUGS
+	 && Actor_Query_Goal_Number(kActorIzo) != kGoalIzoEscape
+#endif // !BLADERUNNER_ORIGINAL_BUGS
 	) {
 		if (Random_Query(1, 3) == 1) {
 			// enhancement: don't always play this scene when exiting Hawker's Circle
@@ -283,20 +285,23 @@ void SceneScriptRC03::ActorChangedGoal(int actorId, int newGoal, int oldGoal, bo
 
 void SceneScriptRC03::talkWithSteele() {
 	Actor_Face_Actor(kActorSteele, kActorMcCoy, true);
-	Actor_Says(kActorSteele, 1820, 3);
+	Actor_Says(kActorSteele, 1820, kAnimationModeTalk);
 	Actor_Face_Actor(kActorMcCoy, kActorSteele, true);
 	Actor_Says(kActorMcCoy, 4815, 14);
-	Actor_Says(kActorSteele, 1830, 3);
-	Actor_Says(kActorSteele, 1840, 3);
+	Actor_Says(kActorSteele, 1830, kAnimationModeTalk);
+	Actor_Says(kActorSteele, 1840, kAnimationModeTalk);
 	Actor_Says(kActorMcCoy, 4820, 12);
-	Actor_Says(kActorSteele, 1850, 3);
-	Actor_Says(kActorSteele, 1950, 3);
+	Actor_Says(kActorSteele, 1850, kAnimationModeTalk);
+	if (_vm->_cutContent) {
+		Actor_Says(kActorMcCoy, 4825, 13);
+	}
+	Actor_Says(kActorSteele, 1950, kAnimationModeTalk);
 	Actor_Says(kActorMcCoy, 4835, 14);
-	Actor_Says(kActorSteele, 1960, 3);
-	Actor_Says(kActorSteele, 1980, 3);
+	Actor_Says(kActorSteele, 1960, kAnimationModeTalk);
+	Actor_Says(kActorSteele, 1980, kAnimationModeTalk);
 	Actor_Says(kActorMcCoy, 4840, 15);
-	Actor_Says(kActorSteele, 1990, 3);
-	Actor_Says(kActorSteele, 2000, 3);
+	Actor_Says(kActorSteele, 1990, kAnimationModeTalk);
+	Actor_Says(kActorSteele, 2000, kAnimationModeTalk);
 }
 
 void SceneScriptRC03::PlayerWalkedIn() {
@@ -376,7 +381,7 @@ void SceneScriptRC03::PlayerWalkedIn() {
 		}
 		talkWithSteele();
 		Async_Actor_Walk_To_Waypoint(kActorSteele, 174, 0, false);
-		Actor_Set_Goal_Number(kActorIzo, 200);
+		Actor_Set_Goal_Number(kActorIzo, kGoalIzoEscapedSteeleKnows);
 		Player_Gains_Control();
 	}
 	Game_Flag_Reset(kFlagUG01toRC03);
@@ -396,7 +401,7 @@ void SceneScriptRC03::PlayerWalkedOut() {
 		Actor_Set_Goal_Number(kActorIzo, kGoalIzoDieHidden);
 	}
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 }
 
 void SceneScriptRC03::DialogueQueueFlushed(int a1) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@ namespace TADS2 {
 struct runcxdef;
 
 /*
- *   Run-time version number 
+ *   Run-time version number
  */
 #define  TADS_RUNTIME_VERSION   "2.5.17"
 
@@ -49,18 +48,18 @@ extern int G_tads_oem_copyright_prefix;
  *   Main run-time subsystem entrypoint.  Runs the game specified in the
  *   argument vector; does not return until the game terminates.  The
  *   application container context is optional; pass null if no context is
- *   required.  
+ *   required.
  */
 int trdmain(int argc, char **argv, appctxdef *appctx, const char *save_ext);
 
 /*
  *   Main debugger subsystem entrypoint.  Works like trdmain(), but starts
- *   the game under the debugger.  
+ *   the game under the debugger.
  */
 int tddmain(int argc, char **argv, appctxdef *appctx, const char *save_ext);
 
 /*
- *   close and delete the swap file 
+ *   close and delete the swap file
  */
 void trd_close_swapfile(struct runcxdef *runctx);
 
@@ -99,7 +98,7 @@ void trd_close_swapfile(struct runcxdef *runctx);
  *   messages, set up a dummy list.  The usage display routine will show
  *   messages starting from the lower number up to and including the higher
  *   number; by default we'll make the ending number lower than the starting
- *   number so that we don't display any messages at all.  
+ *   number so that we don't display any messages at all.
  */
 #ifndef ERR_TRUS_OS_FIRST
 # define ERR_TRUS_OS_FIRST    100

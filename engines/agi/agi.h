@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,6 +43,7 @@
 #include "agi/picture.h"
 #include "agi/logic.h"
 #include "agi/sound.h"
+#include "agi/detection.h"
 
 namespace Common {
 class RandomSource;
@@ -103,58 +103,6 @@ typedef signed int Err;
 #define ADD_VIEW 2
 
 #define CMD_BSIZE 12
-
-enum AgiGameID {
-	GID_AGIDEMO,
-	GID_BC,
-	GID_DDP,
-	GID_GOLDRUSH,
-	GID_KQ1,
-	GID_KQ2,
-	GID_KQ3,
-	GID_KQ4,
-	GID_LSL1,
-	GID_MH1,
-	GID_MH2,
-	GID_MIXEDUP,
-	GID_PQ1,
-	GID_SQ1,
-	GID_SQ2,
-	GID_XMASCARD,
-	GID_FANMADE,
-	GID_GETOUTTASQ, // Fanmade
-	GID_MICKEY,     // PreAGI
-	GID_WINNIE,     // PreAGI
-	GID_TROLL       // PreAGI
-};
-
-enum AgiGameType {
-	GType_PreAGI = 0,
-	GType_V1 = 1,
-	GType_V2 = 2,
-	GType_V3 = 3
-};
-
-enum BooterDisks {
-	BooterDisk1 = 0,
-	BooterDisk2 = 1
-};
-
-//
-// GF_OLDAMIGAV20 means that the interpreter is an old Amiga AGI interpreter that
-// uses value 20 for the computer type (v20 i.e. vComputer) rather than the usual value 5.
-//
-enum AgiGameFeatures {
-	GF_AGIMOUSE    = (1 << 0), // this disables "Click-to-walk mouse interface"
-	GF_AGDS        = (1 << 1),
-	GF_AGI256      = (1 << 2), // marks fanmade AGI-256 games
-	GF_MACGOLDRUSH = (1 << 3), // use "grdir" instead of "dir" for volume loading
-	GF_FANMADE     = (1 << 4), // marks fanmade games
-	GF_OLDAMIGAV20 = (1 << 5),
-	GF_2GSOLDSOUND = (1 << 6)
-};
-
-struct AGIGameDescription;
 
 enum {
 	NO_GAMEDIR = 0,
@@ -451,7 +399,7 @@ struct AgiGame {
 
 	unsigned int numObjects;
 
-	bool controllerOccured[MAX_CONTROLLERS];  /**< keyboard keypress events */
+	bool controllerOccurred[MAX_CONTROLLERS];  /**< keyboard keypress events */
 	AgiControllerKeyMapping controllerKeyMapping[MAX_CONTROLLER_KEYMAPPINGS];
 
 	char strings[MAX_STRINGS + 1][MAX_STRINGLEN]; /**< strings */
@@ -500,6 +448,11 @@ struct AgiGame {
 
 	bool automaticRestoreGame;
 
+	uint16 appleIIgsSpeedControllerSlot;
+	int appleIIgsSpeedLevel;
+
+	void setAppleIIgsSpeedLevel(int appleIIgsSpeedLevel);
+
 	AgiGame() {
 		_vm = nullptr;
 
@@ -541,8 +494,8 @@ struct AgiGame {
 
 		numObjects = 0;
 
-		for (uint16 i = 0; i < ARRAYSIZE(controllerOccured); i++) {
-			controllerOccured[i] = false;
+		for (uint16 i = 0; i < ARRAYSIZE(controllerOccurred); i++) {
+            controllerOccurred[i] = false;
 		}
 
 		// controllerKeyMapping defaulted by AgiControllerKeyMapping constructor
@@ -591,6 +544,9 @@ struct AgiGame {
 		nonBlockingTextCyclesLeft = 0;
 
 		automaticRestoreGame = false;
+
+		appleIIgsSpeedControllerSlot = 0xffff;	// we didn't add yet speed menu
+		appleIIgsSpeedLevel = 2;  // normal speed
 	}
 };
 
@@ -777,6 +733,7 @@ public:
 	uint16 getVersion() const;
 	uint16 getGameType() const;
 	Common::Language getLanguage() const;
+	bool isLanguageRTL() const;
 	Common::Platform getPlatform() const;
 	const char *getGameMD5() const;
 	void initFeatures();
@@ -917,8 +874,7 @@ public:
 	void setVar(int16 varNr, byte newValue);
 
 private:
-	void setVolumeViaScripts(byte newVolume);
-	void setVolumeViaSystemSetting();
+	void applyVolumeToMixer();
 
 public:
 	void syncSoundSettings() override;
@@ -1077,8 +1033,6 @@ public:
 
 	void inGameTimerReset(uint32 newPlayTime = 0);
 	void inGameTimerResetPassedCycles();
-	void inGameTimerPause();
-	void inGameTimerResume();
 	uint32 inGameTimerGet();
 	uint32 inGameTimerGetPassedCycles();
 

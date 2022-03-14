@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,11 +33,11 @@ BEGIN_MESSAGE_MAP(Move, Action)
 	ON_MESSAGE(MoveMsg)
 END_MESSAGE_MAP()
 
-bool Move::MoveMsg(CMoveMsg &msg) {
+bool Move::MoveMsg(CMoveMsg *msg) {
 	Maps::Ultima1Map *map = getMap();
-	
+
 	if (map->_mapType == Maps::MAP_DUNGEON) {
-		switch (msg._direction) {
+		switch (msg->_direction) {
 		case Shared::Maps::DIR_LEFT:
 			dungeonTurnLeft();
 			break;
@@ -58,7 +57,7 @@ bool Move::MoveMsg(CMoveMsg &msg) {
 
 		// Figure out the new position
 		Point delta;
-		switch (msg._direction) {
+		switch (msg->_direction) {
 		case Shared::Maps::DIR_WEST:
 			delta = Point(-1, 0);
 			break;
@@ -81,7 +80,7 @@ bool Move::MoveMsg(CMoveMsg &msg) {
 
 			// Move to the new position
 			player->moveTo(newPos);
-			addInfoMsg(getRes()->DIRECTION_NAMES[msg._direction - 1]);
+			addInfoMsg(getRes()->DIRECTION_NAMES[msg->_direction - 1]);
 		} else {
 			// Nope, so show a blocked message
 			addInfoMsg(getRes()->BLOCKED);

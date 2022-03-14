@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,25 +15,22 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/misc/pent_include.h"
 
 #include "ultima/ultima8/audio/music_flex.h"
-#include "ultima/ultima8/filesys/idata_source.h"
+#include "common/memstream.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(MusicFlex, Archive)
-
-
-MusicFlex::MusicFlex(IDataSource *ds) : Archive(ds) {
-	_songs = 0;
-	Std::memset(_info, 0, sizeof(SongInfo *) * 128);
+MusicFlex::MusicFlex(Common::SeekableReadStream *rs) : Archive(rs) {
+	memset(_info, 0, sizeof(SongInfo *) * 128);
+	_songs = new XMidiData *[_count];
+	memset(_songs, 0, sizeof(XMidiData *) * _count);
 	loadSongInfo();
 }
 
@@ -41,44 +38,66 @@ MusicFlex::~MusicFlex() {
 	uint32 i;
 	for (i = 0; i < 128; i++) {
 		delete _info[i];
-		_info[i] = 0;
 	}
-
-	Archive::uncache();
+	for (i = 0; i < _count; i++) {
+		delete _songs[i];
+	}
 	delete [] _songs;
 }
 
 MusicFlex::SongInfo::SongInfo() : _numMeasures(0), _loopJump(0) {
-	Std::memset(_filename, 0, 16);
-	Std::memset(_transitions, 0, 128 * sizeof(int *));
+	memset(_filename, 0, 17);
+	memset(_transitions, 0, 128 * sizeof(int *));
 }
 
 MusicFlex::SongInfo::~SongInfo() {
 	for (int i = 0; i < 128; i++) {
 		delete [] _transitions[i];
-		_transitions[i] = 0;
 	}
 }
 
+MusicFlex::XMidiData *MusicFlex::getXMidi(uint32 index) {
+	if (index >= _count)
+		return nullptr;
+	cache(index);
+	return _songs[index];
+}
+
+const MusicFlex::SongInfo *MusicFlex::getSongInfo(uint32 index) const {
+	if (index > 127)
+		return nullptr;
+	return _info[index];
+}
+
 void MusicFlex::cache(uint32 index) {
-	// Caching not currently supported
+	if (index >= _count) return;
+	uint32 size;
+	uint8 *data = getRawObject(index, &size);
+	if (!data) {
+		// Note: multiple sorcerer scenes (such as MALCHIR::03F2)
+		// request track 122, which is blank in the Gold Edition
+		// music flex.
+		warning("Unable to cache song %d from sound/music.flx", index);
+		return;
+	}
+	_songs[index] = new XMidiData(data, size);
 }
 
 void MusicFlex::uncache(uint32 index) {
-	// Caching not currently supported
+	if (index >= _count) return;
+	delete _songs[index];
+	_songs[index] = nullptr;
 }
 
 bool MusicFlex::isCached(uint32 index) const {
 	if (index >= _count) return false;
-	if (!_songs) return false;
-
-	return (_songs[index] != 0);
+	return (_songs[index] != nullptr);
 }
 
-IDataSource *MusicFlex::getAdlibTimbres() {
+Common::SeekableReadStream *MusicFlex::getAdlibTimbres() {
 	uint32 size;
 	const uint8 *data = getRawObject(259, &size);
-	return new IBufferDataSource(data, size, false, true);
+	return new Common::MemoryReadStream(data, size, DisposeAfterUse::YES);
 }
 
 void MusicFlex::loadSongInfo() {
@@ -86,14 +105,14 @@ void MusicFlex::loadSongInfo() {
 	const uint8 *buf = getRawObject(0, &size);
 
 	if (!buf || !size) {
-		error("Unable to load song _info from sound/music.flx");
+		error("Unable to load song info from sound/music.flx");
 	}
-	IBufferDataSource ds(buf, size);
+	Common::MemoryReadStream ds(buf, size);
 	Std::string line;
 
 	// Read first section till we hit a #
 	for (;;) {
-		ds.readline(line);
+		line = ds.readLine();
 
 		// We have hit the end of the section
 		if (line.at(0) == '#') break;
@@ -113,12 +132,12 @@ void MusicFlex::loadSongInfo() {
 		// Now number of measures
 		begIdx = line.findFirstNotOf(' ', endIdx);
 		endIdx = line.findFirstOf(' ', begIdx);
-		int measures = Std::atoi(line.substr(begIdx, endIdx - begIdx).c_str());
+		int measures = atoi(line.substr(begIdx, endIdx - begIdx).c_str());
 
 		// Now finally _loopJump
 		begIdx = line.findFirstNotOf(' ', endIdx);
 		endIdx = line.findFirstOf(' ', begIdx);
-		int loopJump = Std::atoi(line.substr(begIdx, endIdx - begIdx).c_str());
+		int loopJump = atoi(line.substr(begIdx, endIdx - begIdx).c_str());
 
 		// Uh oh
 		if (num < 0 || num > 127)
@@ -129,7 +148,7 @@ void MusicFlex::loadSongInfo() {
 
 		_info[num] = new SongInfo();
 
-		Std::strncpy(_info[num]->_filename, name.c_str(), 16);
+		strncpy(_info[num]->_filename, name.c_str(), 16);
 		_info[num]->_numMeasures = measures;
 		_info[num]->_loopJump = loopJump;
 	};
@@ -137,7 +156,7 @@ void MusicFlex::loadSongInfo() {
 	// Read 'Section2', or more like skip it, since it's only trans.xmi
 	// Read first section till we hit a #
 	for (;;) {
-		ds.readline(line);
+		line = ds.readLine();
 
 		// We have hit the end of the section
 		if (line.at(0) == '#') break;
@@ -145,7 +164,7 @@ void MusicFlex::loadSongInfo() {
 
 	// Skip 'Section3'
 	for (;;) {
-		ds.readline(line);
+		line = ds.readLine();
 
 		// We have hit the end of the section
 		if (line.at(0) == '#') break;
@@ -153,7 +172,7 @@ void MusicFlex::loadSongInfo() {
 
 	// Read 'Section4' (trans _info)
 	for (;;) {
-		ds.readline(line);
+		line = ds.readLine();
 
 		// We have hit the end of the section
 		if (line.at(0) == '#') break;
@@ -207,9 +226,9 @@ void MusicFlex::loadSongInfo() {
 
 			// Overlayed
 			if (*str == '!')
-				num = -1 - atoi(str + 1);
+				num = 0 - atoi(str + 1);
 			else
-				num = atoi(str + 1);
+				num = atoi(str);
 
 			_info[fi]->_transitions[ti][m] = num;
 		}

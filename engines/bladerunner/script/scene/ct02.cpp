@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,10 +70,10 @@ void SceneScriptCT02::InitializeScene() {
 	Ambient_Sounds_Add_Sound(kSfxDISH2, 10, 30, 7, 7, 100, 100, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxDISH3, 10, 30, 8, 8, 100, 100, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxDISH4, 10, 30, 7, 7, 100, 100, -101, -101, 0, 0);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy,  0, 10, 260, 17, 19, 100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 20, 10, 260, 17, 19, 100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 40, 10, 260, 17, 19, 100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 50, 10, 260, 17, 19, 100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy,  0, 10u, 260u, 17, 19, 100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 20, 10u, 260u, 17, 19, 100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 40, 10u, 260u, 17, 19, 100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 50, 10u, 260u, 17, 19, 100, 100, -101, -101, 1, 1);
 	if (Game_Flag_Query(kFlagCT02PotTipped)) {
 		Scene_Loop_Set_Default(kCT02LoopMainPotTipped);
 	} else {
@@ -122,9 +121,9 @@ void SceneScriptCT02::SceneLoaded() {
 		Preload(kModelAnimationMcCoyWithGunWalking);
 		Preload(kModelAnimationMcCoyWithGunWalking); // A bug? Why is this preloaded twice?
 		Preload(kModelAnimationMcCoyDodgeAndDrawGun);
-		Preload(400);
-		Preload(419);
-		Preload(420);
+		Preload(kModelAnimationZubenRunning);
+		Preload(kModelAnimationZubenToppleSoupCauldron);
+		Preload(kModelAnimationZubenBashOnDoor);
 	}
 	if (Game_Flag_Query(kFlagCT02McCoyCombatReady)) {
 		Game_Flag_Reset(kFlagCT02McCoyCombatReady);
@@ -287,7 +286,7 @@ bool SceneScriptCT02::ClickedOnExit(int exitId) {
 	if (exitId == kCT02ExitCT01) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -111.2f, -145.11f, 243.28f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagCT02toCT01walk);
 			Game_Flag_Set(kFlagCT02toCT01);
 			Set_Enter(kSetCT01_CT12, kSceneCT01);
@@ -303,7 +302,7 @@ bool SceneScriptCT02::ClickedOnExit(int exitId) {
 		}
 		if (!v1) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagCT02toCT03);
 			Set_Enter(kSetCT03_CT04, kSceneCT03);
 		}
@@ -341,7 +340,7 @@ void SceneScriptCT02::SceneFrameAdvanced(int frame) {
 		Sound_Play(kSfxPOTSPL5, 60, -20, 40, 50);
 	}
 	if (frame == 61) {
-		Music_Play(kMusicBatl226M, 50, 0, 2, -1, 0, 0);
+		Music_Play(kMusicBatl226M, 50, 0, 2, -1, kMusicLoopPlayOnce, 0);
 	}
 	if (frame == 81) {
 		Scene_Exit_Add_2D_Exit(kCT02ExitCT03, 332, 163, 404, 297, 0);

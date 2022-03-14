@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,18 +31,25 @@
 namespace Mohawk {
 
 LBGraphics::LBGraphics(MohawkEngine_LivingBooks *vm, uint16 width, uint16 height) : GraphicsManager(), _vm(vm) {
-	_bmpDecoder = _vm->isPreMohawk() ? new LivingBooksBitmap_v1() : new MohawkBitmap();
+	_bmpDecoder = nullptr;
+	_bmpDecoderLB = nullptr;
+
+	if (_vm->isPreMohawk())
+		_bmpDecoderLB = new LivingBooksBitmap_v1();
+	else
+		_bmpDecoder =  new MohawkBitmap();
 
 	initGraphics(width, height);
 }
 
 LBGraphics::~LBGraphics() {
 	delete _bmpDecoder;
+	delete _bmpDecoderLB;
 }
 
 MohawkSurface *LBGraphics::decodeImage(uint16 id) {
 	if (_vm->isPreMohawk())
-		return _bmpDecoder->decodeImage(_vm->wrapStreamEndian(ID_BMAP, id));
+		return _bmpDecoderLB->decodeImageLB(_vm->wrapStreamEndian(ID_BMAP, id));
 
 	return _bmpDecoder->decodeImage(_vm->getResource(ID_TBMP, id));
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,15 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/stream.h"
 #include "common/memstream.h"
+#include "common/stream.h"
 
 #include "startrek/font.h"
+#include "startrek/resource.h"
 
 namespace StarTrek {
 
@@ -31,7 +31,7 @@ static const byte CHARACTER_COUNT = 0x80;
 static const byte CHARACTER_SIZE = 0x40;
 
 Font::Font(StarTrekEngine *vm) : _vm(vm) {
-	Common::MemoryReadStreamEndian *fontStream = _vm->loadFile("FONT.FNT");
+	Common::MemoryReadStreamEndian *fontStream = _vm->_resource->loadFile("FONT.FNT");
 
 	_characters = new Character[CHARACTER_COUNT];
 
@@ -53,7 +53,6 @@ bool Font::isDisplayableCharacter(char c) {
 	// True if lowercase, uppercase, a digit, punctuation, or space
 	return _fontProperties[c & 0xff] & 0x57;
 }
-
 
 // Bit 0 set for lowercase characters;
 // Bit 1 set for uppercase characters;

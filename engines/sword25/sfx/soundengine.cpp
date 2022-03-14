@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,6 +37,7 @@
 
 #include "audio/audiostream.h"
 #include "audio/decoders/vorbis.h"
+#include "audio/mididrv.h"
 
 #include "common/system.h"
 #include "common/config-manager.h"
@@ -65,6 +65,15 @@ SoundEngine::SoundEngine(Kernel *pKernel) : ResourceService(pKernel) {
 	_mixer = g_system->getMixer();
 
 	_maxHandleId = 1;
+
+	Common::String selDevStr = ConfMan.hasKey("music_driver") ? ConfMan.get("music_driver") : Common::String("auto");
+	MidiDriver::DeviceHandle dev = MidiDriver::getDeviceHandle(selDevStr.empty() ? Common::String("auto") : selDevStr);
+	_noMusic = (MidiDriver::getMusicType(dev) == MT_NULL || MidiDriver::getMusicType(dev) == MT_INVALID);
+
+	if (_noMusic) {
+		warning("AUDIO: MUSIC IS FORCED TO OFF");
+		ConfMan.setInt("music_volume", 0);
+	}
 }
 
 bool SoundEngine::init(uint sampleRate, uint channels) {
@@ -79,8 +88,10 @@ void SoundEngine::setVolume(float volume, SOUND_TYPES type) {
 
 	switch (type) {
 	case SoundEngine::MUSIC:
-		ConfMan.setInt("music_volume", val);
-		_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, val);
+		if (!_noMusic) {
+			ConfMan.setInt("music_volume", val);
+			_mixer->setVolumeForSoundType(Audio::Mixer::kMusicSoundType, val);
+		}
 		break;
 	case SoundEngine::SPEECH:
 		ConfMan.setInt("speech_volume", val);
@@ -100,7 +111,7 @@ float SoundEngine::getVolume(SOUND_TYPES type) {
 
 	switch (type) {
 	case SoundEngine::MUSIC:
-		val = ConfMan.getInt("music_volume");
+		val = _noMusic ? 0 : ConfMan.getInt("music_volume");
 		break;
 	case SoundEngine::SPEECH:
 		val = ConfMan.getInt("speech_volume");
@@ -203,6 +214,9 @@ bool SoundEngine::playSound(const Common::String &fileName, SOUND_TYPES type, fl
 }
 
 uint SoundEngine::playSoundEx(const Common::String &fileName, SOUND_TYPES type, float volume, float pan, bool loop, int loopStart, int loopEnd, uint layer, uint handleId) {
+	if (type == MUSIC && _noMusic)
+		return 0;
+
 #ifdef USE_VORBIS
 	Common::SeekableReadStream *in = Kernel::getInstance()->getPackage()->getStream(fileName);
 	Audio::SeekableAudioStream *stream = Audio::makeVorbisStream(in, DisposeAfterUse::YES);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/util.h"
 #include "common/stack.h"
+#include "common/unicode-bidi.h"
 #include "graphics/primitives.h"
 
 #include "sci/sci.h"
@@ -31,7 +31,7 @@
 #include "sci/graphics/coordadjuster.h"
 #include "sci/graphics/ports.h"
 #include "sci/graphics/paint16.h"
-#include "sci/graphics/font.h"
+#include "sci/graphics/scifont.h"
 #include "sci/graphics/screen.h"
 #include "sci/graphics/text16.h"
 
@@ -43,13 +43,15 @@ GfxText16::GfxText16(GfxCache *cache, GfxPorts *ports, GfxPaint16 *paint16, GfxS
 }
 
 GfxText16::~GfxText16() {
+	delete[] _codeFonts;
+	delete[] _codeColors;
 }
 
 void GfxText16::init() {
-	_font = NULL;
-	_codeFonts = NULL;
+	_font = nullptr;
+	_codeFonts = nullptr;
 	_codeFontsCount = 0;
-	_codeColors = NULL;
+	_codeColors = nullptr;
 	_codeColorsCount = 0;
 	_useEarlyGetLongestTextCalculations = g_sci->_features->useEarlyGetLongestTextCalculations();
 }
@@ -59,14 +61,14 @@ GuiResourceId GfxText16::GetFontId() {
 }
 
 GfxFont *GfxText16::GetFont() {
-	if ((_font == NULL) || (_font->getResourceId() != _ports->_curPort->fontId))
+	if ((_font == nullptr) || (_font->getResourceId() != _ports->_curPort->fontId))
 		_font = _cache->getFont(_ports->_curPort->fontId);
 
 	return _font;
 }
 
 void GfxText16::SetFont(GuiResourceId fontId) {
-	if ((_font == NULL) || (_font->getResourceId() != fontId))
+	if ((_font == nullptr) || (_font->getResourceId() != fontId))
 		_font = _cache->getFont(fontId);
 
 	_ports->_curPort->fontId = _font->getResourceId();
@@ -100,7 +102,7 @@ int16 GfxText16::CodeProcessing(const char *&text, GuiResourceId orgFontId, int1
 	//  c -> sets textColor to current port pen color
 	//  cX -> sets textColor to _textColors[X-1]
 	curCode = textCode[0];
-	curCodeParm = strtol(textCode+1, NULL, 10);
+	curCodeParm = strtol(textCode+1, nullptr, 10);
 	if (!Common::isDigit(textCode[1])) {
 		curCodeParm = -1;
 	}
@@ -193,12 +195,13 @@ static const uint16 text16_shiftJIS_punctuation_SCI01[] = {
 int16 GfxText16::GetLongest(const char *&textPtr, int16 maxWidth, GuiResourceId orgFontId) {
 	uint16 curChar = 0;
 	const char *textStartPtr = textPtr;
-	const char *lastSpacePtr = NULL;
+	const char *lastSpacePtr = nullptr;
 	int16 lastSpaceCharCount = 0;
 	int16 curCharCount = 0, resultCharCount = 0;
 	uint16 curWidth = 0, tempWidth = 0;
 	GuiResourceId previousFontId = GetFontId();
 	int16 previousPenColor = _ports->_curPort->penClr;
+	bool escapedNewLine = false;
 
 	GetFont();
 	if (!_font)
@@ -209,6 +212,14 @@ int16 GfxText16::GetLongest(const char *&textPtr, int16 maxWidth, GuiResourceId 
 		if (_font->isDoubleByte(curChar)) {
 			curChar |= (*(const byte *)(textPtr + 1)) << 8;
 		}
+		if (escapedNewLine) {
+			escapedNewLine = false;
+			curChar = 0x0D;
+		} else if (isJapaneseNewLine(curChar, *(textPtr + 1))) {
+			escapedNewLine = true;
+			curChar = ' ';
+		}
+
 		switch (curChar) {
 		case 0x7C:
 			if (getSciVersion() >= SCI_VERSION_1_1) {
@@ -287,6 +298,7 @@ int16 GfxText16::GetLongest(const char *&textPtr, int16 maxWidth, GuiResourceId 
 
 	} else {
 		// Break without spaces found, we split the very first word - may also be Kanji/Japanese
+
 		if (curChar > 0xFF) {
 			// current character is Japanese
 
@@ -369,6 +381,7 @@ void GfxText16::Width(const char *text, int16 from, int16 len, GuiResourceId org
 	int16 previousPenColor = _ports->_curPort->penClr;
 
 	textWidth = 0; textHeight = 0;
+	bool escapedNewLine = false;
 
 	GetFont();
 	if (_font) {
@@ -379,6 +392,14 @@ void GfxText16::Width(const char *text, int16 from, int16 len, GuiResourceId org
 				curChar |= (*(const byte *)text++) << 8;
 				len--;
 			}
+			if (escapedNewLine) {
+				escapedNewLine = false;
+				curChar = 0x0D;
+			} else if (isJapaneseNewLine(curChar, *text)) {
+				escapedNewLine = true;
+				curChar = ' ';
+			}
+
 			switch (curChar) {
 			case 0x0A:
 			case 0x0D:
@@ -386,12 +407,12 @@ void GfxText16::Width(const char *text, int16 from, int16 len, GuiResourceId org
 				textHeight = MAX<int16> (textHeight, _ports->_curPort->fontHeight);
 				break;
 			case 0x7C:
+				// pipe character is a control character in SCI1.1, otherwise treat as normal
 				if (getSciVersion() >= SCI_VERSION_1_1) {
 					len -= CodeProcessing(text, orgFontId, 0, false);
 					break;
 				}
 				// fall through
-				// FIXME: fall through intended?
 			default:
 				textHeight = MAX<int16> (textHeight, _ports->_curPort->fontHeight);
 				textWidth += _font->getCharWidth(curChar);
@@ -434,6 +455,8 @@ int16 GfxText16::Size(Common::Rect &rect, const char *text, uint16 languageSplit
 	rect.top = rect.left = 0;
 
 	if (maxWidth < 0) { // force output as single line
+		if (g_sci->getLanguage() == Common::KO_KOR)
+			SwitchToFont1001OnKorean(text, languageSplitter);
 		if (g_sci->getLanguage() == Common::JA_JPN)
 			SwitchToFont900OnSjis(text, languageSplitter);
 
@@ -446,6 +469,11 @@ int16 GfxText16::Size(Common::Rect &rect, const char *text, uint16 languageSplit
 		rect.right = (maxWidth ? maxWidth : 192);
 		const char *curTextPos = text; // in work position for GetLongest()
 		const char *curTextLine = text; // starting point of current line
+
+		// Check for Korean text
+		if (g_sci->getLanguage() == Common::KO_KOR)
+			SwitchToFont1001OnKorean(curTextPos, languageSplitter);
+
 		while (*curTextPos) {
 			// We need to check for Shift-JIS every line
 			if (g_sci->getLanguage() == Common::JA_JPN)
@@ -479,12 +507,21 @@ void GfxText16::Draw(const char *text, int16 from, int16 len, GuiResourceId orgF
 	rect.top = _ports->_curPort->curTop;
 	rect.bottom = rect.top + _ports->_curPort->fontHeight;
 	text += from;
+	bool escapedNewLine = false;
 	while (len--) {
 		curChar = (*(const byte *)text++);
 		if (_font->isDoubleByte(curChar)) {
 			curChar |= (*(const byte *)text++) << 8;
 			len--;
 		}
+		if (escapedNewLine) {
+			escapedNewLine = false;
+			curChar = 0x0D;
+		} else if (isJapaneseNewLine(curChar, *text)) {
+			escapedNewLine = true;
+			curChar = ' ';
+		}
+
 		switch (curChar) {
 		case 0x0A:
 		case 0x0D:
@@ -492,12 +529,12 @@ void GfxText16::Draw(const char *text, int16 from, int16 len, GuiResourceId orgF
 		case 0x9781: // this one is used by SQ4/japanese as line break as well
 			break;
 		case 0x7C:
+			// pipe character is a control character in SCI1.1, otherwise treat as normal
 			if (getSciVersion() >= SCI_VERSION_1_1) {
 				len -= CodeProcessing(text, orgFontId, orgPenColor, true);
 				break;
 			}
 			// fall through
-			// FIXME: fall through intended?
 		default:
 			charWidth = _font->getCharWidth(curChar);
 			// clear char
@@ -541,6 +578,14 @@ void GfxText16::Box(const char *text, uint16 languageSplitter, bool show, const 
 	else
 		fontId = previousFontId;
 
+	// Check for Korean text
+	if (g_sci->getLanguage() == Common::KO_KOR) {
+		if (SwitchToFont1001OnKorean(curTextPos, languageSplitter)) {
+			doubleByteMode = true;
+			fontId = 1001;
+		}
+	}
+
 	// Reset reference code rects
 	_codeRefRects.clear();
 	_codeRefTempRect.left = _codeRefTempRect.top = -1;
@@ -561,19 +606,44 @@ void GfxText16::Box(const char *text, uint16 languageSplitter, bool show, const 
 		maxTextWidth = MAX<int16>(maxTextWidth, textWidth);
 		switch (alignment) {
 		case SCI_TEXT16_ALIGNMENT_RIGHT:
-			offset = rect.width() - textWidth;
+			if (!g_sci->isLanguageRTL())
+				offset = rect.width() - textWidth;
+			else
+				offset = 0;
 			break;
 		case SCI_TEXT16_ALIGNMENT_CENTER:
 			offset = (rect.width() - textWidth) / 2;
 			break;
 		case SCI_TEXT16_ALIGNMENT_LEFT:
-			offset = 0;
+			if (!g_sci->isLanguageRTL())
+				offset = 0;
+			else
+				offset = rect.width() - textWidth;
 			break;
 
 		default:
 			warning("Invalid alignment %d used in TextBox()", alignment);
 		}
+
+
+		if (g_sci->isLanguageRTL())
+			// In the game fonts, characters have spacing on the left, and no spacing on the right,
+			// therefore, when we start drawing from the right, they "start from the border"
+			// e.g., in SQ3 Hebrew user's input prompt.
+			// We can't add spacing on the right of the Hebrew letters, because then characters in mixed
+			// English-Hebrew text might be stuck together.
+			// Therefore, we shift one pixel to the left, for proper spacing
+			offset--;
+
 		_ports->moveTo(rect.left + offset, rect.top + hline);
+
+		Common::String textString;
+		if (g_sci->isLanguageRTL()) {
+			const char *curTextLineOrig = curTextLine;
+			Common::String textLogical = Common::String(curTextLineOrig, (uint32)charCount);
+			textString = Common::convertBiDiString(textLogical, g_sci->getLanguage());
+			curTextLine = textString.c_str();
+		}
 
 		if (show) {
 			Show(curTextLine, 0, charCount, fontId, previousPenColor);
@@ -607,9 +677,15 @@ void GfxText16::Box(const char *text, uint16 languageSplitter, bool show, const 
 	}
 }
 
-void GfxText16::DrawString(const Common::String &text) {
+void GfxText16::DrawString(const Common::String &textOrig) {
 	GuiResourceId previousFontId = GetFontId();
 	int16 previousPenColor = _ports->_curPort->penClr;
+
+	Common::String text;
+	if (!g_sci->isLanguageRTL())
+		text = textOrig;
+	else
+		text = Common::convertBiDiString(textOrig, g_sci->getLanguage());
 
 	Draw(text.c_str(), 0, text.size(), previousFontId, previousPenColor);
 	SetFont(previousFontId);
@@ -618,8 +694,15 @@ void GfxText16::DrawString(const Common::String &text) {
 
 // we need to have a separate status drawing code
 //  In KQ4 the IV char is actually 0xA, which would otherwise get considered as linebreak and not printed
-void GfxText16::DrawStatus(const Common::String &str) {
+void GfxText16::DrawStatus(const Common::String &strOrig) {
 	uint16 curChar, charWidth;
+
+	Common::String str;
+	if (!g_sci->isLanguageRTL())
+		str = strOrig;
+	else
+		str = Common::convertBiDiString(strOrig, g_sci->getLanguage());
+
 	const byte *text = (const byte *)str.c_str();
 	uint16 textLen = str.size();
 	Common::Rect rect;
@@ -643,6 +726,28 @@ void GfxText16::DrawStatus(const Common::String &str) {
 	}
 }
 
+// Check for Korean strings, and use font 1001 to render them
+bool GfxText16::SwitchToFont1001OnKorean(const char *text, uint16 languageSplitter) {
+	const byte* ptr = (const byte *)text;
+	if (languageSplitter != 0x6b23) { // #k prefix as language splitter
+		// Check if the text contains at least one Korean character
+		while (*ptr) {
+			byte ch = *ptr++;
+			if (ch >= 0xB0 && ch <= 0xC8) {
+				ch = *ptr++;
+				if (!ch)
+					return false;
+
+				if (ch >= 0xA1 && ch <= 0xFE) {
+					SetFont(1001);
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 // Sierra did this in their PC98 interpreter only, they identify a text as being
 // sjis and then switch to font 900
 bool GfxText16::SwitchToFont900OnSjis(const char *text, uint16 languageSplitter) {
@@ -654,6 +759,17 @@ bool GfxText16::SwitchToFont900OnSjis(const char *text, uint16 languageSplitter)
 		}
 	}
 	return false;
+}
+
+// In PC-9801 SSCI, "\n", "\N", "\r" and "\R" were overwritten with SPACE + 0x0D
+// inside GetLongest() (text16). This was a bit of a hack since it meant this
+// version altered the input that it's normally only supposed to be measuring.
+// Instead, we detect the newline sequences during string processing loops and
+// apply the substitute characters on the fly. PQ2 is the only game known to use
+// this feature. "\n" appears in most of its Japanese strings.
+bool GfxText16::isJapaneseNewLine(int16 curChar, int16 nextChar) {
+	return g_sci->getLanguage() == Common::JA_JPN &&
+		curChar == '\\' && (nextChar == 'n' || nextChar == 'N' || nextChar == 'r' || nextChar == 'R');
 }
 
 reg_t GfxText16::allocAndFillReferenceRectArray() {
@@ -691,7 +807,7 @@ void GfxText16::kernelTextSize(const char *text, uint16 languageSplitter, int16 
 void GfxText16::kernelTextFonts(int argc, reg_t *argv) {
 	int i;
 
-	delete _codeFonts;
+	delete[] _codeFonts;
 	_codeFontsCount = argc;
 	_codeFonts = new GuiResourceId[argc];
 	for (i = 0; i < argc; i++) {
@@ -703,7 +819,7 @@ void GfxText16::kernelTextFonts(int argc, reg_t *argv) {
 void GfxText16::kernelTextColors(int argc, reg_t *argv) {
 	int i;
 
-	delete _codeColors;
+	delete[] _codeColors;
 	_codeColorsCount = argc;
 	_codeColors = new uint16[argc];
 	for (i = 0; i < argc; i++) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,12 +64,12 @@ void KIASectionLoad::open() {
 	_scrollBox->show();
 	_scrollBox->clearLines();
 
-	_saveList = SaveFileManager::list(_vm->getTargetName());
+	_saveList = SaveFileManager::list(_vm->getMetaEngine(), _vm->getTargetName());
 
 	if (!_saveList.empty()) {
 		_scrollBox->addLine(_vm->_textOptions->getText(36), -1, 4); // Load game:
 		for (uint i = 0; i < _saveList.size(); ++i) {
-			_scrollBox->addLine(_saveList[i].getDescription(), i, 0);
+			_scrollBox->addLine(_saveList[i].getDescription().encode(Common::kDos850), i, 0);
 		}
 		_scrollBox->addLine("", -1, 4);
 	}
@@ -106,7 +105,7 @@ void KIASectionLoad::draw(Graphics::Surface &surface) {
 	if (_hoveredLineId != selectedLineId) {
 		if (selectedLineId >= 0 && selectedLineId < (int)_saveList.size() && _displayingLineId != selectedLineId) {
 			if (_timeLeft == 0u) {
-				SaveStateDescriptor desc = SaveFileManager::queryMetaInfos(_vm->getTargetName(), selectedLineId);
+				SaveStateDescriptor desc = SaveFileManager::queryMetaInfos(_vm->getMetaEngine(), _vm->getTargetName(), selectedLineId);
 				const Graphics::Surface *thumbnail = desc.getThumbnail();
 				if (thumbnail != nullptr) {
 					_vm->_kia->playImage(*thumbnail);
@@ -126,7 +125,7 @@ void KIASectionLoad::draw(Graphics::Surface &surface) {
 		if (_timeLeft) {
 			uint32 timeDiff = now - _timeLast; // unsigned difference is intentional
 			if (timeDiff >= _timeLeft) {
-				SaveStateDescriptor desc = SaveFileManager::queryMetaInfos(_vm->getTargetName(), _saveList[selectedLineId].getSaveSlot());
+				SaveStateDescriptor desc = SaveFileManager::queryMetaInfos(_vm->getMetaEngine(), _vm->getTargetName(), _saveList[selectedLineId].getSaveSlot());
 				const Graphics::Surface *thumbnail = desc.getThumbnail();
 				if (thumbnail != nullptr) {
 					_vm->_kia->playImage(*thumbnail);

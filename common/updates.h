@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,9 +27,18 @@
 namespace Common {
 
 /**
+ * @defgroup common_update Update Manager
+ * @ingroup common
+ *
+ * @brief The UpdateManager module allows for automatic update checking.
+ *
+ * @{
+ */
+
+/**
  * The UpdateManager allows configuring of the automatic update checking
  * for systems that support it:
- *  - using Sparkle on Mac OS X
+ *  - using Sparkle on macOS
  *  - using WinSparkle on Windows
  *
  * Most of the update checking is completely automated and this class only
@@ -114,9 +122,9 @@ public:
 	 * Returns string representation of a given interval.
 	 *
 	 * @param  interval    The interval.
-	 * @return  pointer to localized string of given interval.
+	 * @return Localized string of given interval as a U32String.
 	 */
-	static const char *updateIntervalToString(int interval);
+	static Common::U32String updateIntervalToString(int interval);
 
 	/**
 	 * Rounds up the given interval to acceptable value.
@@ -126,6 +134,8 @@ public:
 	 */
 	static int normalizeInterval(int interval);
 };
+
+/** @} */
 
 } // End of namespace Common
 

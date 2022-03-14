@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -433,16 +432,31 @@ void EngineState::saveLoadWithSerializer(Common::Serializer &s) {
 
 	g_sci->_soundCmd->syncPlayList(s);
 
-#ifdef ENABLE_SCI32
 	if (getSciVersion() >= SCI_VERSION_2) {
+#ifdef ENABLE_SCI32
 		g_sci->_gfxPalette32->saveLoadWithSerializer(s);
 		g_sci->_gfxRemap32->saveLoadWithSerializer(s);
 		g_sci->_gfxCursor32->saveLoadWithSerializer(s);
 		g_sci->_audio32->saveLoadWithSerializer(s);
 		g_sci->_video32->saveLoadWithSerializer(s);
-	} else
 #endif
+	} else {
 		g_sci->_gfxPalette16->saveLoadWithSerializer(s);
+	}
+
+	// Stop any currently playing audio when loading.
+	// Loading is not normally allowed while audio is being played in SCI games.
+	// Stopping sounds is needed in ScummVM, as the player may load via
+	// Control - F5 at any point, even while a sound is playing.
+	if (s.isLoading()) {
+		if (getSciVersion() >= SCI_VERSION_2) {
+#ifdef ENABLE_SCI32
+			g_sci->_audio32->stop(kAllChannels);
+#endif
+		} else {
+			g_sci->_audio->stopAllAudio();
+		}
+	}
 }
 
 void Vocabulary::saveLoadWithSerializer(Common::Serializer &s) {
@@ -674,6 +688,7 @@ void MusicEntry::saveLoadWithSerializer(Common::Serializer &s) {
 	s.syncAsSint16LE(fadeStep);
 	s.syncAsSint32LE(fadeTicker);
 	s.syncAsSint32LE(fadeTickerStep);
+	s.syncAsByte(stopAfterFading, VER(45));
 	s.syncAsByte(status);
 	if (s.getVersion() >= 32)
 		s.syncAsByte(playBed);
@@ -687,9 +702,9 @@ void MusicEntry::saveLoadWithSerializer(Common::Serializer &s) {
 	// pMidiParser and pStreamAud will be initialized when the
 	// sound list is reconstructed in gamestate_restore()
 	if (s.isLoading()) {
-		soundRes = 0;
-		pMidiParser = 0;
-		pStreamAud = 0;
+		soundRes = nullptr;
+		pMidiParser = nullptr;
+		pStreamAud = nullptr;
 		reverb = -1;	// invalid reverb, will be initialized in processInitSound()
 	}
 }
@@ -736,7 +751,18 @@ void SoundCommandParser::reconstructPlayList() {
 			if (_soundVersion >= SCI_VERSION_1_EARLY)
 				writeSelectorValue(_segMan, entry->soundObj, SELECTOR(vol), entry->volume);
 
-			processPlaySound(entry->soundObj, entry->playBed);
+			processPlaySound(entry->soundObj, entry->playBed, true);
+		}
+	}
+
+	// Emulate the original SCI0 behavior: If no sound with status kSoundPlaying was found we
+	// look for the first sound with status kSoundPaused and start that. It relies on a correctly
+	// sorted playlist, but we have that...
+	if (_soundVersion <= SCI_VERSION_0_LATE && !_music->getFirstSlotWithStatus(kSoundPlaying)) {
+		if (MusicEntry *pSnd = _music->getFirstSlotWithStatus(kSoundPaused)) {
+			writeSelectorValue(_segMan, pSnd->soundObj, SELECTOR(loop), pSnd->loop);
+			writeSelectorValue(_segMan, pSnd->soundObj, SELECTOR(priority), pSnd->priority);
+			processPlaySound(pSnd->soundObj, pSnd->playBed, true);
 		}
 	}
 }
@@ -823,7 +849,7 @@ void GfxPalette::saveLoadWithSerializer(Common::Serializer &s) {
 		// We need to save intensity of the _sysPalette at least for kq6 when entering the dark cave (room 390)
 		//  from room 340. scripts will set intensity to 60 for this room and restore them when leaving.
 		//  Sierra SCI is also doing this (although obviously not for SCI0->SCI01 games, still it doesn't hurt
-		//  to save it everywhere). Refer to bug #3072868
+		//  to save it everywhere). Refer to bug #5383
 		s.syncBytes(_sysPalette.intensity, 256);
 	}
 	if (s.getVersion() >= 24) {
@@ -1180,10 +1206,49 @@ void SegManager::reconstructClones() {
 
 #pragma mark -
 
+bool gamestate_save(EngineState *s, int saveId, const Common::String &savename, const Common::String &version) {
+	Common::SaveFileManager *saveFileMan = g_sci->getSaveFileManager();
+	const Common::String filename = g_sci->getSavegameName(saveId);
+
+	Common::OutSaveFile *saveStream = saveFileMan->openForSaving(filename);
+	if (saveStream == nullptr) {
+		warning("Error opening savegame \"%s\" for writing", filename.c_str());
+		return false;
+	}
+
+	if (!gamestate_save(s, saveStream, savename, version)) {
+		warning("Saving the game failed");
+		saveStream->finalize();
+		delete saveStream;
+		return false;
+	}
+
+	saveStream->finalize();
+	if (saveStream->err()) {
+		warning("Writing the savegame failed");
+		delete saveStream;
+		return false;
+	}
+
+	delete saveStream;
+	return true;
+}
 
 bool gamestate_save(EngineState *s, Common::WriteStream *fh, const Common::String &savename, const Common::String &version) {
 	Common::Serializer ser(nullptr, fh);
-	set_savegame_metadata(ser, fh, savename, version);
+	Common::String ver = version;
+
+	// If the game version is empty, we are probably saving from the GMM, so read it
+	// from global 27 and then the VERSION file
+	if (ver == "") {
+		ver = s->_segMan->getString(s->variables[VAR_GLOBAL][kGlobalVarVersion]);
+		if (ver == "") {
+			Common::ScopedPtr<Common::SeekableReadStream> versionFile(SearchMan.createReadStreamForMember("VERSION"));
+			ver = versionFile ? versionFile->readLine() : "";
+		}
+	}
+
+	set_savegame_metadata(ser, fh, savename, ver);
 	s->saveLoadWithSerializer(ser);		// FIXME: Error handling?
 	if (g_sci->_gfxPorts)
 		g_sci->_gfxPorts->saveLoadWithSerializer(ser);
@@ -1196,7 +1261,7 @@ bool gamestate_save(EngineState *s, Common::WriteStream *fh, const Common::Strin
 	return true;
 }
 
-extern int showScummVMDialog(const Common::String& message, const char* altButton = nullptr, bool alignCenter = true);
+extern int showScummVMDialog(const Common::U32String &message, const Common::U32String &altButton = Common::U32String(), bool alignCenter = true);
 
 void gamestate_afterRestoreFixUp(EngineState *s, int savegameId) {
 	switch (g_sci->getGameId()) {
@@ -1255,6 +1320,9 @@ void gamestate_afterRestoreFixUp(EngineState *s, int savegameId) {
 		//  saving a previously restored game.
 		// We set the current savedgame-id directly and remove the script
 		//  code concerning this via script patch.
+		// We also set this in kSaveGame so that the global is correct even if no restoring occurs,
+		//  otherwise the auto-delete script at the end of the SCI1.1 floppy version breaks if
+		//  the game is played from start to finish. (bug #5294)
 		s->variables[VAR_GLOBAL][0xB3].setOffset(SAVEGAMEID_OFFICIALRANGE_START + savegameId);
 		break;
 	case GID_JONES:
@@ -1275,6 +1343,20 @@ void gamestate_afterRestoreFixUp(EngineState *s, int savegameId) {
 		g_sci->_gfxMenu->kernelSetAttribute(515 >> 8, 515 & 0xFF, SCI_MENU_ATTRIBUTE_ENABLED, TRUE_REG);    // Game -> Restore Game
 		g_sci->_gfxMenu->kernelSetAttribute(1025 >> 8, 1025 & 0xFF, SCI_MENU_ATTRIBUTE_ENABLED, TRUE_REG);  // Status -> Statistics
 		g_sci->_gfxMenu->kernelSetAttribute(1026 >> 8, 1026 & 0xFF, SCI_MENU_ATTRIBUTE_ENABLED, TRUE_REG);  // Status -> Goals
+		break;
+	case GID_KQ5:
+		// WORKAROUND: We allow users to choose if they want the older KQ5 CD Windows cursors. These
+		//  are black and white Cursor resources instead of the color View resources in the DOS version.
+		//  This setting affects how KQCursor objects are initialized and might have changed since the
+		//  game was saved. The scripts don't expect this since it wasn't an option in the original.
+		//  In order for the cursors to correctly use the current setting, we need to clear the "number"
+		//  property of every KQCursor when restoring when Windows cursors are disabled.
+		if (g_sci->isCD() && !g_sci->_features->useWindowsCursors()) {
+			Common::Array<reg_t> cursors = s->_segMan->findObjectsBySuperClass("KQCursor");
+			for (uint i = 0; i < cursors.size(); ++i) {
+				writeSelector(s->_segMan, cursors[i], SELECTOR(number), NULL_REG);
+			}
+		}
 		break;
 	case GID_KQ6:
 		if (g_sci->isCD()) {
@@ -1329,10 +1411,27 @@ void gamestate_afterRestoreFixUp(EngineState *s, int savegameId) {
 	}
 }
 
+bool gamestate_restore(EngineState *s, int saveId) {
+	Common::SaveFileManager *saveFileMan = g_sci->getSaveFileManager();
+	const Common::String filename = g_sci->getSavegameName(saveId);
+	Common::SeekableReadStream *saveStream = saveFileMan->openForLoading(filename);
+
+	if (saveStream == nullptr) {
+		warning("Savegame #%d not found", saveId);
+		return false;
+	}
+
+	gamestate_restore(s, saveStream);
+	delete saveStream;
+
+	gamestate_afterRestoreFixUp(s, saveId);
+	return true;
+}
+
 void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {
 	SavegameMetadata meta;
 
-	Common::Serializer ser(fh, 0);
+	Common::Serializer ser(fh, nullptr);
 	sync_SavegameMetadata(ser, meta);
 
 	if (fh->eos()) {
@@ -1346,7 +1445,7 @@ void gamestate_restore(EngineState *s, Common::SeekableReadStream *fh) {
 			if (meta.version < MINIMUM_SAVEGAME_VERSION) {
 				showScummVMDialog(_("The format of this saved game is obsolete, unable to load it"));
 			} else {
-				Common::String msg = Common::String::format(_("Savegame version is %d, maximum supported is %0d"), meta.version, CURRENT_SAVEGAME_VERSION);
+				Common::U32String msg = Common::U32String::format(_("Savegame version is %d, maximum supported is %0d"), meta.version, CURRENT_SAVEGAME_VERSION);
 				showScummVMDialog(msg);
 			}
 

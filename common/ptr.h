@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,18 +27,29 @@
 #include "common/safe-bool.h"
 #include "common/types.h"
 
+/* For nullptr_t */
+#include <cstddef>
+
 namespace Common {
 
-class SharedPtrDeletionInternal {
+/**
+ * @defgroup common_ptr Pointers
+ * @ingroup common
+ *
+ * @brief API and templates for pointers.
+ * @{
+ */
+
+class BasePtrDeletionInternal {
 public:
-	virtual ~SharedPtrDeletionInternal() {}
+	virtual ~BasePtrDeletionInternal() {}
 };
 
 template<class T>
-class SharedPtrDeletionImpl : public SharedPtrDeletionInternal {
+class BasePtrDeletionImpl : public BasePtrDeletionInternal {
 public:
-	SharedPtrDeletionImpl(T *ptr) : _ptr(ptr) {}
-	~SharedPtrDeletionImpl() {
+	BasePtrDeletionImpl(T *ptr) : _ptr(ptr) {}
+	~BasePtrDeletionImpl() {
 		STATIC_ASSERT(sizeof(T) > 0, SharedPtr_cannot_delete_incomplete_type);
 		delete _ptr;
 	}
@@ -47,15 +57,180 @@ private:
 	T *_ptr;
 };
 
-template<class T, class D>
-class SharedPtrDeletionDeleterImpl : public SharedPtrDeletionInternal {
+template<class T, class DL>
+class BasePtrDeletionDeleterImpl : public BasePtrDeletionInternal {
 public:
-	SharedPtrDeletionDeleterImpl(T *ptr, D d) : _ptr(ptr), _deleter(d) {}
-	~SharedPtrDeletionDeleterImpl() { _deleter(_ptr); }
+	BasePtrDeletionDeleterImpl(T *ptr, DL d) : _ptr(ptr), _deleter(d) {}
+	~BasePtrDeletionDeleterImpl() { _deleter(_ptr); }
 private:
 	T *_ptr;
-	D _deleter;
+	DL _deleter;
 };
+
+/**
+ * A base class for both SharedPtr and WeakPtr.
+ *
+ * This base class encapsulates the logic for the reference counter
+ * used by both.
+ */
+template<class T>
+class BasePtr : public SafeBool<BasePtr<T> > {
+#if !defined(__GNUC__) || GCC_ATLEAST(3, 0)
+	template<class T2> friend class BasePtr;
+#endif
+public:
+	typedef int RefValue;
+	typedef T ValueType;
+	typedef T *PointerType;
+	typedef T &ReferenceType;
+
+	BasePtr() : _refCount(nullptr), _deletion(nullptr), _pointer(nullptr) {
+	}
+
+	explicit BasePtr(std::nullptr_t) : _refCount(nullptr), _deletion(nullptr), _pointer(nullptr) {
+	}
+
+	template<class T2>
+	explicit BasePtr(T2 *p) : _refCount(new RefValue(1)), _deletion(new BasePtrDeletionImpl<T2>(p)), _pointer(p) {
+	}
+
+	template<class T2, class DL>
+	BasePtr(T2 *p, DL d) : _refCount(new RefValue(1)), _deletion(new BasePtrDeletionDeleterImpl<T2, DL>(p, d)), _pointer(p) {
+	}
+
+	BasePtr(const BasePtr &r) : _refCount(r._refCount), _deletion(r._deletion), _pointer(r._pointer) {
+		if (_refCount)
+			++(*_refCount);
+	}
+	template<class T2>
+	BasePtr(const BasePtr<T2> &r) : _refCount(r._refCount), _deletion(r._deletion), _pointer(r._pointer) {
+		if (_refCount) ++(*_refCount);
+	}
+
+	~BasePtr() {
+		decRef();
+	}
+
+	/**
+	 * Implicit conversion operator to bool for convenience, to make
+	 * checks like "if (sharedPtr) ..." possible.
+	 */
+	bool operator_bool() const {
+		return _pointer != nullptr;
+	}
+
+	/**
+	 * Returns the number of references to the assigned pointer.
+	 * This should just be used for debugging purposes.
+	 */
+	RefValue refCount() const {
+		return _refCount ? *_refCount : 0;
+	}
+
+	/**
+	 * Returns whether the referenced object isn't valid
+	 */
+	bool expired() const {
+		return !_refCount;
+	}
+
+	/**
+	 * Checks if the object is the only object refering
+	 * to the assigned pointer. This should just be used for
+	 * debugging purposes.
+	 */
+	bool unique() const {
+		return refCount() == 1;
+	}
+
+	BasePtr &operator=(const BasePtr &r) {
+		reset(r);
+		return *this;
+	}
+
+	template<class T2>
+	BasePtr &operator=(const BasePtr<T2> &r) {
+		reset(r);
+		return *this;
+	}
+
+	/**
+	 * Resets the object to a NULL pointer.
+	 */
+	void reset() {
+		decRef();
+		_deletion = nullptr;
+		_refCount = nullptr;
+		_pointer = nullptr;
+	}
+
+	/**
+	 * Resets the object to the specified pointer
+	 */
+	void reset(const BasePtr &r) {
+		if (r._refCount)
+			++(*r._refCount);
+		decRef();
+
+		_refCount = r._refCount;
+		_deletion = r._deletion;
+		_pointer = r._pointer;
+	}
+
+	/**
+	 * Resets the object to the specified pointer
+	 */
+	template<class T2>
+	void reset(const BasePtr<T2> &r) {
+		if (r._refCount)
+			++(*r._refCount);
+		decRef();
+
+		_refCount = r._refCount;
+		_deletion = r._deletion;
+		_pointer = r._pointer;
+	}
+
+	/**
+	 * Resets the object to the specified pointer
+	 */
+	void reset(T *ptr) {
+		reset(BasePtr<T>(ptr));
+	}
+
+protected:
+	RefValue *_refCount;
+	BasePtrDeletionInternal *_deletion;
+	PointerType _pointer;
+protected:
+	/**
+	 * Decrements the reference count to the stored pointer, and deletes it if
+	 * there are no longer any references to it
+	 */
+	void decRef() {
+		if (_refCount) {
+			--(*_refCount);
+			if (!*_refCount) {
+				delete _refCount;
+				delete _deletion;
+				_deletion = nullptr;
+				_refCount = nullptr;
+				_pointer = nullptr;
+			}
+		}
+	}
+
+	/**
+	 * Increments the reference count to the stored pointer
+	 */
+	void incRef() {
+		if (_refCount)
+			++*_refCount;
+	}
+};
+
+template<class T>
+class WeakPtr;
 
 /**
  * A simple shared pointer implementation modelled after boost.
@@ -99,57 +274,48 @@ private:
  * a plain pointer is only possible via SharedPtr::get.
  */
 template<class T>
-class SharedPtr : public SafeBool<SharedPtr<T> > {
-#if !defined(__GNUC__) || GCC_ATLEAST(3, 0)
-	template<class T2> friend class SharedPtr;
-#endif
+class SharedPtr : public BasePtr<T> {
 public:
-	typedef int RefValue;
-	typedef T ValueType;
 	typedef T *PointerType;
 	typedef T &ReferenceType;
 
-	SharedPtr() : _refCount(nullptr), _deletion(nullptr), _pointer(nullptr) {}
+	SharedPtr() : BasePtr<T>() {
+	}
+
+	SharedPtr(std::nullptr_t) : BasePtr<T>() {
+	}
 
 	template<class T2>
-	explicit SharedPtr(T2 *p) : _refCount(new RefValue(1)), _deletion(new SharedPtrDeletionImpl<T2>(p)), _pointer(p) {}
+	explicit SharedPtr(T2 *p) : BasePtr<T>(p) {
+	}
 
-	template<class T2, class D>
-	SharedPtr(T2 *p, D d) : _refCount(new RefValue(1)), _deletion(new SharedPtrDeletionDeleterImpl<T2, D>(p, d)), _pointer(p) {}
+	template<class T2, class DL>
+	SharedPtr(T2 *p, DL d) : BasePtr<T>(p, d) {
+	}
 
-	SharedPtr(const SharedPtr &r) : _refCount(r._refCount), _deletion(r._deletion), _pointer(r._pointer) { if (_refCount) ++(*_refCount); }
+	SharedPtr(const SharedPtr<T> &r) : BasePtr<T>(r) {
+	}
+
+	SharedPtr(const WeakPtr<T> &r) : BasePtr<T>(r) {
+	}
+
 	template<class T2>
-	SharedPtr(const SharedPtr<T2> &r) : _refCount(r._refCount), _deletion(r._deletion), _pointer(r._pointer) { if (_refCount) ++(*_refCount); }
-
-	~SharedPtr() { decRef(); }
+	SharedPtr(const SharedPtr<T2> &r) : BasePtr<T>(r) {
+	}
 
 	SharedPtr &operator=(const SharedPtr &r) {
-		if (r._refCount)
-			++(*r._refCount);
-		decRef();
-
-		_refCount = r._refCount;
-		_deletion = r._deletion;
-		_pointer = r._pointer;
-
+		BasePtr<T>::operator=(r);
 		return *this;
 	}
 
 	template<class T2>
 	SharedPtr &operator=(const SharedPtr<T2> &r) {
-		if (r._refCount)
-			++(*r._refCount);
-		decRef();
-
-		_refCount = r._refCount;
-		_deletion = r._deletion;
-		_pointer = r._pointer;
-
+		BasePtr<T>::operator=(r);
 		return *this;
 	}
 
-	ReferenceType operator*() const { assert(_pointer); return *_pointer; }
-	PointerType operator->() const { assert(_pointer); return _pointer; }
+	T &operator*() const { assert(this->_pointer); return *this->_pointer; }
+	T *operator->() const { assert(this->_pointer); return this->_pointer; }
 
 	/**
 	 * Returns the plain pointer value. Be sure you know what you
@@ -157,65 +323,49 @@ public:
 	 *
 	 * @return the pointer the SharedPtr object manages
 	 */
-	PointerType get() const { return _pointer; }
-
-	/**
-	 * Implicit conversion operator to bool for convenience, to make
-	 * checks like "if (sharedPtr) ..." possible.
-	 */
-	bool operator_bool() const { return _pointer != nullptr; }
-
-	/**
-	 * Checks if the SharedPtr object is the only object refering
-	 * to the assigned pointer. This should just be used for
-	 * debugging purposes.
-	 */
-	bool unique() const { return refCount() == 1; }
-
-	/**
-	 * Resets the SharedPtr object to a NULL pointer.
-	 */
-	void reset() {
-		decRef();
-		_deletion = nullptr;
-		_refCount = nullptr;
-		_pointer = nullptr;
-	}
+	PointerType get() const { return this->_pointer; }
 
 	template<class T2>
 	bool operator==(const SharedPtr<T2> &r) const {
-		return _pointer == r.get();
+		return this->_pointer == r.get();
 	}
 
 	template<class T2>
 	bool operator!=(const SharedPtr<T2> &r) const {
-		return _pointer != r.get();
+		return this->_pointer != r.get();
+	}
+};
+
+/**
+ * Implements a smart pointer that holds a non-owning ("weak") refrence to
+ * a pointer. It needs to be converted to a SharedPtr to access it.
+ */
+template<class T>
+class WeakPtr : public BasePtr<T> {
+public:
+	WeakPtr() : BasePtr<T>() {
+	}
+
+	WeakPtr(std::nullptr_t) : BasePtr<T>() {
+	}
+
+	template<class T2>
+	explicit WeakPtr(T2 *p) : BasePtr<T>(p) {
+	}
+
+	WeakPtr(const BasePtr<T> &r) : BasePtr<T>(r) {
+	}
+
+	template<class T2>
+	WeakPtr(const BasePtr<T2> &r) : BasePtr<T>(r) {
 	}
 
 	/**
-	 * Returns the number of references to the assigned pointer.
-	 * This should just be used for debugging purposes.
+	 * Creates a SharedPtr that manages the referenced object
 	 */
-	RefValue refCount() const { return _refCount ? *_refCount : 0; }
-#if !defined(__GNUC__) || GCC_ATLEAST(3, 0)
-private:
-#endif
-	void decRef() {
-		if (_refCount) {
-			--(*_refCount);
-			if (!*_refCount) {
-				delete _refCount;
-				delete _deletion;
-				_deletion = nullptr;
-				_refCount = nullptr;
-				_pointer = nullptr;
-			}
-		}
+	SharedPtr<T> lock() const {
+		return SharedPtr<T>(*this);
 	}
-
-	RefValue *_refCount;
-	SharedPtrDeletionInternal *_deletion;
-	PointerType _pointer;
 };
 
 template <typename T>
@@ -226,8 +376,8 @@ struct DefaultDeleter {
 	}
 };
 
-template<typename T, class D = DefaultDeleter<T> >
-class ScopedPtr : private NonCopyable, public SafeBool<ScopedPtr<T, D> > {
+template<typename T, class DL = DefaultDeleter<T> >
+class ScopedPtr : private NonCopyable, public SafeBool<ScopedPtr<T, DL> > {
 public:
 	typedef T ValueType;
 	typedef T *PointerType;
@@ -245,14 +395,14 @@ public:
 	bool operator_bool() const { return _pointer != nullptr; }
 
 	~ScopedPtr() {
-		D()(_pointer);
+		DL()(_pointer);
 	}
 
 	/**
 	 * Resets the pointer with the new value. Old object will be destroyed
 	 */
 	void reset(PointerType o = nullptr) {
-		D()(_pointer);
+		DL()(_pointer);
 		_pointer = o;
 	}
 
@@ -279,8 +429,8 @@ private:
 	PointerType _pointer;
 };
 
-template<typename T, class D = DefaultDeleter<T> >
-class DisposablePtr : private NonCopyable, public SafeBool<DisposablePtr<T, D> > {
+template<typename T, class DL = DefaultDeleter<T> >
+class DisposablePtr : private NonCopyable, public SafeBool<DisposablePtr<T, DL> > {
 public:
 	typedef T  ValueType;
 	typedef T *PointerType;
@@ -289,7 +439,7 @@ public:
 	explicit DisposablePtr(PointerType o, DisposeAfterUse::Flag dispose) : _pointer(o), _dispose(dispose) {}
 
 	~DisposablePtr() {
-		if (_dispose) D()(_pointer);
+		if (_dispose) DL()(_pointer);
 	}
 
 	ReferenceType operator*() const { return *_pointer; }
@@ -305,7 +455,7 @@ public:
 	 * Resets the pointer with the new value. Old object will be destroyed
 	 */
 	void reset(PointerType o, DisposeAfterUse::Flag dispose) {
-		if (_dispose) D()(_pointer);
+		if (_dispose) DL()(_pointer);
 		_pointer = o;
 		_dispose = dispose;
 	}
@@ -318,16 +468,31 @@ public:
 	}
 
 	/**
+	 * Clears the pointer without destroying the old object.
+	 */
+	void disownPtr() {
+		_pointer = nullptr;
+		_dispose = DisposeAfterUse::NO;
+	}
+
+	/**
 	 * Returns the plain pointer value.
 	 *
 	 * @return the pointer the DisposablePtr manages
 	 */
 	PointerType get() const { return _pointer; }
 
+	/**
+	 * Returns the pointer's dispose flag.
+	 */
+	DisposeAfterUse::Flag getDispose() const { return _dispose; }
+
 private:
 	PointerType           _pointer;
 	DisposeAfterUse::Flag _dispose;
 };
+
+/** @} */
 
 } // End of namespace Common
 

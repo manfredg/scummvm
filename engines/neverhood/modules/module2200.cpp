@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -595,7 +594,7 @@ uint32 Scene2201::handleMessage(int messageNum, const MessageParam &param, Entit
 
 Scene2202::Scene2202(NeverhoodEngine *vm, Module *parentModule, int which)
 	: Scene(vm, parentModule), _isSolved(false), _leaveScene(false), _isCubeMoving(false),
-	_ssMovingCube(NULL), _ssDoneMovingCube(NULL) {
+	_ssMovingCube(nullptr), _ssDoneMovingCube(nullptr) {
 
 	_vm->gameModule()->initCubeSymbolsPuzzle();
 
@@ -648,14 +647,14 @@ void Scene2202::update() {
 		if (freeCubePosition != -1) {
 			setSurfacePriority(_ssMovingCube->getSurface(), 700);
 			sendMessage(_ssMovingCube, 0x2001, freeCubePosition);
-			_ssMovingCube = NULL;
+			_ssMovingCube = nullptr;
 			_isCubeMoving = true;
 		}
 	}
 
 	if (_ssDoneMovingCube) {
 		setSurfacePriority(_ssDoneMovingCube->getSurface(), _surfacePriority);
-		_ssDoneMovingCube = NULL;
+		_ssDoneMovingCube = nullptr;
 		if (testIsSolved()) {
 			playSound(0);
 			setGlobalVar(V_TILE_PUZZLE_SOLVED, 1);
@@ -1160,11 +1159,11 @@ Scene2207::Scene2207(NeverhoodEngine *vm, Module *parentModule)
 		insertSprite<SsScene2207Symbol>(kScene2207FileHashes[getSubVar(VA_GOOD_CANNON_SYMBOLS_1, 0)], 0);
 		insertSprite<SsScene2207Symbol>(kScene2207FileHashes[getSubVar(VA_GOOD_CANNON_SYMBOLS_1, 1)], 1);
 		insertSprite<SsScene2207Symbol>(kScene2207FileHashes[getSubVar(VA_GOOD_CANNON_SYMBOLS_1, 2)], 2);
-		_asTape = NULL;
-		_asLever = NULL;
-		_asWallRobotAnimation = NULL;
-		_asWallCannonAnimation = NULL;
-		_ssButton = NULL;
+		_asTape = nullptr;
+		_asLever = nullptr;
+		_asWallRobotAnimation = nullptr;
+		_asWallCannonAnimation = nullptr;
+		_ssButton = nullptr;
 		_klaymen->setClipRect(0, _ssMaskPart1->getDrawRect().y, 640, 480);
 		_asElevator->setClipRect(0, _ssMaskPart1->getDrawRect().y, 640, 480);
 	}

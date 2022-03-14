@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,7 @@
 #define ULTIMA8_WORLD_ACTORS_PATHFINDER_H
 
 #include "ultima/shared/std/containers.h"
-#include "ultima/shared/std/containers.h"
+#include "ultima/ultima8/misc/direction.h"
 #include "ultima/ultima8/world/actors/animation.h"
 
 namespace Ultima {
@@ -34,22 +33,25 @@ class Actor;
 class Item;
 
 struct PathfindingState {
+	PathfindingState() : _x(0), _y(0), _z(0),  _direction(dir_north),
+		_lastAnim(Animation::walk), _flipped(false),
+		_firstStep(true), _combat(false) {};
 	int32 _x, _y, _z;
 	Animation::Sequence _lastAnim;
-	uint32 _direction;
+	Direction _direction;
 	bool _flipped;
 	bool _firstStep;
 	bool _combat;
 
 	void load(const Actor *actor);
-	bool checkPoint(int32 x_, int32 y_, int32 z_, int range) const;
+	bool checkPoint(int32 x, int32 y, int32 z, int range) const;
 	bool checkItem(const Item *item, int xyRange, int zRange) const;
-	bool checkHit(Actor *actor, const Actor *target);
+	bool checkHit(const Actor *actor, const Item *target) const;
 };
 
 struct PathfindingAction {
 	Animation::Sequence _action;
-	uint32 _direction;
+	Direction _direction;
 	uint32 _steps;
 };
 
@@ -90,17 +92,18 @@ protected:
 
 	int32 _actorXd, _actorYd, _actorZd;
 
-	Std::list<PathfindingState> _visited;
+	Common::Array<PathfindingState> _visited;
 	Std::priority_queue<PathNode *, Std::vector<PathNode *>, PathNodeCmp> _nodes;
 
-	Std::list<PathNode *> _nodeList;
+	/** List of nodes for garbage collection later and order is not important */
+	Std::vector<PathNode *> _cleanupNodes;
 
 	bool alreadyVisited(int32 x, int32 y, int32 z) const;
 	void newNode(PathNode *oldnode, PathfindingState &state,
 				 unsigned int steps);
 	void expandNode(PathNode *node);
-	unsigned int costHeuristic(PathNode *node);
-	bool checkTarget(PathNode *node);
+	unsigned int costHeuristic(PathNode *node) const;
+	bool checkTarget(const PathNode *node) const;
 };
 
 } // End of namespace Ultima8

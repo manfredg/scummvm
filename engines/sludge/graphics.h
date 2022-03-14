@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,20 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef SLUDGE_GRAPHICS_H
 #define SLUDGE_GRAPHICS_H
 
-#include "common/stream.h"
-
-#include "graphics/surface.h"
-#include "graphics/transparent_surface.h"
-
 #include "sludge/sprbanks.h"
+
+namespace Common {
+class SeekableReadStream;
+class WriteStream;
+}
 
 namespace Sludge {
 
@@ -43,6 +42,7 @@ struct OnScreenPerson;
 struct SpriteBank;
 struct Sprite;
 struct SpriteLayers;
+struct VariableStack;
 struct ZBufferData;
 
 enum ELightMapMode {
@@ -51,6 +51,16 @@ enum ELightMapMode {
 	LIGHTMAPMODE_PIXEL,
 	LIGHTMAPMODE_NUM
 };
+
+// Parallax
+struct ParallaxLayer {
+	Graphics::Surface surface;
+	int speedX, speedY;
+	bool wrapS, wrapT;
+	uint16 fileNum, fractionX, fractionY;
+	int cameraX, cameraY;
+};
+typedef Common::List<ParallaxLayer *> ParallaxLayers;
 
 class GraphicsManager {
 public:
@@ -84,8 +94,8 @@ public:
 	void blankAllScreen();
 	void darkScreen();
 	void saveHSI(Common::WriteStream *stream);
-	bool loadHSI(Common::SeekableReadStream *stream, int, int, bool);
-	bool mixHSI(Common::SeekableReadStream *stream, int x = 0, int y = 0);
+	bool loadHSI(int num, Common::SeekableReadStream *stream, int, int, bool);
+	bool mixHSI(int num, Common::SeekableReadStream *stream, int x = 0, int y = 0);
 	void drawLine(uint, uint, uint, uint);
 	void drawHorizontalLine(uint, uint, uint);
 	void drawVerticalLine(uint, uint, uint);
@@ -140,7 +150,7 @@ public:
 	void burnSpriteToBackDrop(int x1, int y1, Sprite &single, const SpritePalette &fontPal);
 
 	void resetSpriteLayers(ZBufferData *ptrZBuffer, int x, int y, bool upsidedown);
-	void addSpriteDepth(Graphics::Surface *ptr, int depth, int x, int y, Graphics::FLIP_FLAGS flip, int width = -1, int height = -1, bool disposeAfterUse = false);
+	void addSpriteDepth(Graphics::Surface *ptr, int depth, int x, int y, Graphics::FLIP_FLAGS flip, int width = -1, int height = -1, bool disposeAfterUse = false, byte trans = 255);
 	void displaySpriteLayers();
 	void killSpriteLayers();
 
@@ -175,6 +185,20 @@ public:
 	void setFadeMode(int fadeMode) { _fadeMode = fadeMode; };
 	void fixBrightness();
 	void resetRandW();
+	void reserveTransitionTexture();
+
+	void transitionFader();
+	void transitionDisolve();
+	void transitionTV();
+	void transitionBlinds();
+	void transitionSnapshotBox();
+	void transitionCrossFader();
+
+	// BG effects
+	bool blurScreen();
+	void blur_saveSettings(Common::WriteStream *stream);
+	void blur_loadSettings(Common::SeekableReadStream *stream);
+	bool blur_createSettings(int numParams, VariableStack *&stack);
 
 private:
 	SludgeEngine *_vm;
@@ -190,9 +214,6 @@ private:
 	// LightMap
 	int _lightMapNumber;
 	Graphics::Surface _lightMap;
-
-	// Parallax
-	Parallax *_parallaxStuff;
 
 	// Camera
 	float _cameraZoom;
@@ -234,6 +255,19 @@ private:
 	// Transition
 	byte _brightnessLevel;
 	byte _fadeMode;
+
+#define RANDKK 17
+
+	uint32 _randbuffer[RANDKK][2];
+	int _randp1, _randp2;
+	Graphics::TransparentSurface *_transitionTexture;
+
+	// Parallax
+	ParallaxLayers *_parallaxLayers;
+
+	inline int sortOutPCamera(int cX, int fX, int sceneMax, int boxMax) {
+		return (fX == 65535) ? (sceneMax ? ((cX * boxMax) / sceneMax) : 0) : ((cX * fX) / 100);
+	}
 };
 
 } // End of namespace Sludge

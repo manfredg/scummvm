@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -441,7 +440,7 @@ bool CParrot::NPCPlayTalkingAnimationMsg(CNPCPlayTalkingAnimationMsg *msg) {
 		"Talking5", "Talking6", "Talking7", nullptr
 	};
 
-	if (!(_npcFlags & (NPCFLAG_MOVING | NPCFLAG_MOVE_START | NPCFLAG_MOVE_LOOP | NPCFLAG_MOVE_FINISH 
+	if (!(_npcFlags & (NPCFLAG_MOVING | NPCFLAG_MOVE_START | NPCFLAG_MOVE_LOOP | NPCFLAG_MOVE_FINISH
 			| NPCFLAG_MOVE_LEFT | NPCFLAG_MOVE_RIGHT | NPCFLAG_MOVE_END))
 			&& _visible && _state == PARROT_IN_CAGE) {
 		if (compareViewNameTo("ParrotLobby.Node 1.N"))
@@ -453,11 +452,11 @@ bool CParrot::NPCPlayTalkingAnimationMsg(CNPCPlayTalkingAnimationMsg *msg) {
 
 bool CParrot::NPCPlayIdleAnimationMsg(CNPCPlayIdleAnimationMsg *msg) {
 	static const char *const NAMES[] = {
-		"Idle0", "Idle1", "Peck At Feet", "Peck At Feet Left"
+		"Idle0", "Idle1", "Peck At Feet", "Peck At Feet Left",
 		"Peck At Feet Right", nullptr
 	};
 
-	if (!(_npcFlags & (NPCFLAG_MOVING | NPCFLAG_MOVE_START | NPCFLAG_MOVE_LOOP | NPCFLAG_MOVE_FINISH 
+	if (!(_npcFlags & (NPCFLAG_MOVING | NPCFLAG_MOVE_START | NPCFLAG_MOVE_LOOP | NPCFLAG_MOVE_FINISH
 			| NPCFLAG_MOVE_LEFT | NPCFLAG_MOVE_RIGHT | NPCFLAG_MOVE_END))
 			&& _visible && _state == PARROT_IN_CAGE && compareViewNameTo("ParrotLobby.Node 1.N")) {
 		CGameObject *dragItem = getDraggingObject();

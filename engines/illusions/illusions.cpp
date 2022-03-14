@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,17 +60,25 @@
 
 namespace Illusions {
 
-char *debugW2I(byte *wstr) {
+char *debugW2I(uint16 *wstr) {
 	static char buf[65];
 	char *p = buf;
 	uint i = 0;
 	while (*wstr != 0 && i < sizeof(buf) - 1) {
-		*p++ = *wstr;
-		wstr += 2;
+		*p++ = (byte)*wstr;
+		wstr++;
 		i++;
 	}
 	*p = 0;
 	return buf;
+}
+
+void swapBytesInWideString(byte *wstr) {
+#if defined(SCUMM_BIG_ENDIAN)
+	for (byte *ptr = wstr; *ptr != 0; ptr += 2) {
+		WRITE_UINT16(ptr, SWAP_BYTES_16(READ_UINT16(ptr)));
+	}
+#endif
 }
 
 IllusionsEngine::IllusionsEngine(OSystem *syst, const IllusionsGameDescription *gd) :
@@ -120,7 +127,7 @@ Common::Point *IllusionsEngine::getObjectActorPositionPtr(uint32 objectId) {
 	Control *control = getObjectControl(objectId);
 	if (control && control->_actor)
 		return &control->_actor->_position;
-	return 0;
+	return nullptr;
 }
 
 uint32 IllusionsEngine::getElapsedUpdateTime() {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "dragons/scene.h"
@@ -37,13 +36,15 @@ namespace Dragons {
 
 
 Scene::Scene(DragonsEngine *vm, Screen *screen, ScriptOpcodes *scriptOpcodes, ActorManager *actorManager, DragonRMS *dragonRMS, DragonINIResource *dragonINIResource, BackgroundResourceLoader *backgroundResourceLoader)
-		: _vm(vm), _screen(screen), _scriptOpcodes(scriptOpcodes), _stage(0), _actorManager(actorManager), _dragonRMS(dragonRMS), _dragonINIResource(dragonINIResource), _backgroundLoader(backgroundResourceLoader) {
+		: _vm(vm), _screen(screen), _scriptOpcodes(scriptOpcodes), _stage(nullptr), _actorManager(actorManager), _dragonRMS(dragonRMS), _dragonINIResource(dragonINIResource), _backgroundLoader(backgroundResourceLoader) {
 	_mapTransitionEffectSceneID = 2;
 	_data_800633ee = 0;
+
+	_currentSceneId = -1;
 }
 void Scene::loadScene(uint32 sceneId, uint32 cameraPointId) {
 	if (!_vm->isFlagSet(ENGINE_FLAG_40)) {
-		//TODO fade_related_calls_with_1f();
+		_vm->fadeToBlack();
 	}
 	bool unkFlag2Set = _vm->isUnkFlagSet(ENGINE_UNK1_FLAG_2);
 	bool flag8set = _vm->isFlagSet(ENGINE_FLAG_8);
@@ -67,7 +68,7 @@ void Scene::loadScene(uint32 sceneId, uint32 cameraPointId) {
 		_vm->_cursor->updateSequenceID((int16)_vm->_cursor->_sequenceID);
 	}
 	_vm->waitForFrames(2);
-	// TODO call_fade_related_1f();
+	_vm->fadeFromBlack();
 	if (!unkFlag2Set) {
 		_vm->clearUnkFlags(ENGINE_UNK1_FLAG_2);
 	}
@@ -113,7 +114,7 @@ void Scene::loadSceneData(uint32 sceneId, uint32 cameraPointId) {
 	}
 
 	_actorManager->clearActorFlags(2);
-	//TODO sub_8003fadc(); might be fade related
+	//TODO stopAndCloseSceneVab()
 
 	_vm->_cursor->setActorFlag400();
 	_vm->_inventory->setActorFlag400();
@@ -126,7 +127,7 @@ void Scene::loadSceneData(uint32 sceneId, uint32 cameraPointId) {
 	_vm->clearFlags(ENGINE_FLAG_20);
 	_vm->setUnkFlags(ENGINE_UNK1_FLAG_10);
 
-	_vm->call_fade_related_1f();
+	_vm->fadeFromBlack();
 	// TODO 0x8002f7c4
 
 	_vm->_cursor->updatePosition(160, 100);
@@ -136,7 +137,7 @@ void Scene::loadSceneData(uint32 sceneId, uint32 cameraPointId) {
 
 	DragonINI *flicker = _vm->_dragonINIResource->getFlickerRecord();
 
-	if (flicker == NULL || flicker->sceneId == 0) {
+	if (flicker == nullptr || flicker->sceneId == 0) {
 		_vm->getINI(1)->sceneId = 0;
 	} else {
 		_currentSceneId = (uint16)(sceneId & 0x7fff);
@@ -182,7 +183,7 @@ void Scene::loadSceneData(uint32 sceneId, uint32 cameraPointId) {
 		_vm->getINI(1)->y = _camera.y;
 	}
 
-	debug("Flicker: (%X, %X)", _camera.x, _camera.y);
+	debug(3, "Flicker: (%X, %X)", _camera.x, _camera.y);
 
 	if (_camera.x > 160) {
 		_camera.x -= 160;
@@ -204,10 +205,10 @@ void Scene::loadSceneData(uint32 sceneId, uint32 cameraPointId) {
 		_camera.y = _stage->getHeight() - 200;
 	}
 
-	debug("Camera: (%d, %d)", _camera.x, _camera.y);
+	debug(3, "Camera: (%d, %d)", _camera.x, _camera.y);
 
 	// 0x8002ff80
-	// TODO fade_related_calls_with_1f();
+	_vm->fadeToBlack();
 	_vm->clearUnkFlags(ENGINE_UNK1_FLAG_10);
 	_vm->setFlags(ENGINE_FLAG_20);
 	// TODO reset vsync_updater_function
@@ -361,6 +362,8 @@ void Scene::draw() {
 			}
 		}
 
+		_screen->drawFlatQuads(priority);
+
 		for (int16 i = 0; i < DRAGONS_ENGINE_NUM_ACTORS; i++) {
 			Actor *actor = _actorManager->getActorByDisplayOrder(i);
 			if (actor->_x_pos == -100 && actor->_y_pos == 100) {
@@ -384,7 +387,7 @@ void Scene::draw() {
 					debug(5, "Actor %d %s (%d, %d) w:%d h:%d Priority: %d Scale: %d", actor->_actorID, actor->_actorResource->getFilename(), x,
 						  y,
 						  s->w, s->h, actor->_priorityLayer, actor->_scale);
-						_screen->copyRectToSurface8bpp(*s, actor->getPalette(), x, y, Common::Rect(s->w, s->h), (bool)(actor->_frame->flags & FRAME_FLAG_FLIP_X), actor->isFlagSet(ACTOR_FLAG_8000) ? NONE : NORMAL, actor->_scale);
+					_screen->copyRectToSurface8bpp(*s, actor->getPalette(), x, y, Common::Rect(s->w, s->h), (bool)(actor->_frame->flags & FRAME_FLAG_FLIP_X), actor->isFlagSet(ACTOR_FLAG_8000) ? NONE : NORMAL, actor->_scale);
 					if (_vm->isDebugMode()) {
 						_screen->drawRect(0x7fff, Common::Rect(x, y, x + s->w, y + s->h), actor->_actorID);
 						drawActorNumber(x + s->w, y + 8, actor->_actorID);
@@ -517,7 +520,7 @@ void Scene::drawBgLayer(uint8 layerNumber, Common::Rect rect, Graphics::Surface 
 		rect.bottom += offset.y;
 	}
 //	clippedRect.bottom += offset.y < 0 ? -offset.y : 0;
-	_screen->copyRectToSurface8bpp(*surface, _screen->getPalette(0), 0, 0, rect, false, _stage->getLayerAlphaMode(layerNumber));
+	_screen->copyRectToSurface8bppWrappedX(*surface, _screen->getPalette(0), rect, _stage->getLayerAlphaMode(layerNumber));
 }
 
 ScaleLayer *Scene::getScaleLayer() {

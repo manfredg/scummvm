@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -75,7 +74,7 @@ ViewGame::ViewGame(TreeItem *parent) : Shared::Gfx::VisualContainer("Game", Rect
 
 	Ultima1Game *game = static_cast<Ultima1Game *>(getGame());
 	_viewportMap = new ViewportMap(this);
-	
+
 	_actions.resize(22);
 	_actions[0] = new Actions::Move(this);
 	_actions[1] = new Shared::Actions::Huh(this, game->_res->HUH);
@@ -164,7 +163,7 @@ void ViewGame::drawIndicators() {
 	}
 }
 
-bool ViewGame::ShowMsg(CShowMsg &msg) {
+bool ViewGame::ShowMsg(CShowMsg *msg) {
 	// Set the info area to prompt for a command
 	Shared::CInfoGetCommandKeypress cmdMsg(this);
 	cmdMsg.execute(this);
@@ -172,7 +171,7 @@ bool ViewGame::ShowMsg(CShowMsg &msg) {
 	return true;
 }
 
-bool ViewGame::EndOfTurnMsg(CEndOfTurnMsg &msg) {
+bool ViewGame::EndOfTurnMsg(CEndOfTurnMsg *msg) {
 	// Set the info area to prompt for the next command
 	Shared::CInfoGetCommandKeypress cmdMsg(this);
 	cmdMsg.execute(this);
@@ -182,12 +181,12 @@ bool ViewGame::EndOfTurnMsg(CEndOfTurnMsg &msg) {
 
 #define FRAME_REDUCTION_RATE 5
 
-bool ViewGame::FrameMsg(CFrameMsg &msg) {
+bool ViewGame::FrameMsg(CFrameMsg *msg) {
 	if (_frameCtr == FRAME_REDUCTION_RATE) {
 		// Ignore frame message at the start of passing reduced frame rate to child views
 		return false;
 	} else if (++_frameCtr == FRAME_REDUCTION_RATE) {
-		msg.execute(this, nullptr, Shared::MSGFLAG_SCAN);
+		msg->execute(this, nullptr, Shared::MSGFLAG_SCAN);
 		_frameCtr = 0;
 	}
 
@@ -202,7 +201,7 @@ void dispatchKey(ViewGame *game) {
 	T dMsg;
 	dMsg.execute(game);
 }
-#define CHECK(KEYCODE, MSG_CLASS) else if (msg._keyState.keycode == KEYCODE) { dispatchKey<MSG_CLASS>(this); }
+#define CHECK(KEYCODE, MSG_CLASS) else if (msg->_keyState.keycode == KEYCODE) { dispatchKey<MSG_CLASS>(this); }
 
 bool ViewGame::checkMovement(const Common::KeyState &keyState) {
 	Shared::Maps::Direction dir = Shared::Maps::MapWidget::directionFromKey(keyState.keycode);
@@ -256,8 +255,8 @@ bool ViewGame::checkMovement(const Common::KeyState &keyState) {
 	return true;
 }
 
-bool ViewGame::CharacterInputMsg(CCharacterInputMsg &msg) {
-	if (checkMovement(msg._keyState)) {}
+bool ViewGame::CharacterInputMsg(CCharacterInputMsg *msg) {
+	if (checkMovement(msg->_keyState)) {}
 	CHECK(Common::KEYCODE_a, Shared::CAttackMsg)
 	CHECK(Common::KEYCODE_b, Shared::CBoardMsg)
 	CHECK(Common::KEYCODE_c, Shared::CCastMsg)

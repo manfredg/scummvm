@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -126,6 +125,7 @@ Common::Error SwordEngine::init() {
 	_systemVars.forceRestart = false;
 	_systemVars.wantFade = true;
 	_systemVars.realLanguage = Common::parseLanguage(ConfMan.get("language"));
+	_systemVars.isLangRtl = false;
 
 	switch (_systemVars.realLanguage) {
 	case Common::DE_DEU:
@@ -143,8 +143,13 @@ Common::Error SwordEngine::init() {
 	case Common::PT_BRA:
 		_systemVars.language = BS1_PORT;
 		break;
-	case Common::CZ_CZE:
+	case Common::CS_CZE:
 		_systemVars.language = BS1_CZECH;
+		break;
+	case Common::HE_ISR:
+		// Hebrew is using "faked" English
+		_systemVars.language = BS1_ENGLISH;
+		_systemVars.isLangRtl = true;
 		break;
 	default:
 		_systemVars.language = BS1_ENGLISH;
@@ -289,9 +294,10 @@ const CdFile SwordEngine::_pcCdFileList[] = {
 	{ "scripts.clu", FLAG_CD1 | FLAG_DEMO | FLAG_IMMED },
 	{ "swordres.rif", FLAG_CD1 | FLAG_DEMO | FLAG_IMMED },
 	{ "text.clu", FLAG_CD1 | FLAG_DEMO },
-	{ "cows.mad", FLAG_DEMO },
+	{ "1m14a.wav", FLAG_DEMO },
 	{ "speech1.clu", FLAG_SPEECH1 },
-	{ "speech2.clu", FLAG_SPEECH2 }
+	{ "speech2.clu", FLAG_SPEECH2 },
+	{ "speech.clu", FLAG_SPEECH | FLAG_DEMO } // Spanish Demo
 #ifdef USE_FLAC
 	, { "speech1.clf", FLAG_SPEECH1 },
 	{ "speech2.clf", FLAG_SPEECH2 }
@@ -440,8 +446,8 @@ void SwordEngine::showFileErrorMsg(uint8 type, bool *fileExists) {
 void SwordEngine::checkCdFiles() { // check if we're running from cd, hdd or what...
 	bool fileExists[30];
 	bool isFullVersion = false; // default to demo version
-	bool missingTypes[8] = { false, false, false, false, false, false, false, false };
-	bool foundTypes[8] = { false, false, false, false, false, false, false, false };
+	bool missingTypes[9] = { false, false, false, false, false, false, false, false, false };
+	bool foundTypes[9] = { false, false, false, false, false, false, false, false, false };
 	bool cd2FilesFound = false;
 	_systemVars.runningFromCd = false;
 	_systemVars.playSpeech = true;
@@ -571,6 +577,9 @@ void SwordEngine::checkCdFiles() { // check if we're running from cd, hdd or wha
 	*/
 	// make the demo flag depend on the Gamesettings for now, and not on what the datafiles look like
 	_systemVars.isDemo = (_features & GF_DEMO) != 0;
+
+	// Spanish demo has proper speech.clu and uses normal sound and var mapping
+	_systemVars.isSpanishDemo = (_systemVars.isDemo && foundTypes[TYPE_SPEECH]) != 0;
 }
 
 Common::Error SwordEngine::go() {

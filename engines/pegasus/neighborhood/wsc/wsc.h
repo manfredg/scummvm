@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ static const RoomID kWSC62 = 62;
 class WSC : public Neighborhood {
 public:
 	WSC(InputHandler *, PegasusEngine *);
-	~WSC() override {}
+	~WSC() override;
 
 	void flushGameState() override;
 
@@ -56,6 +55,8 @@ public:
 
 	bool canSolve() override;
 	void doSolve() override;
+
+	void setSoundFXLevel(const uint16) override;
 
 	void prepareForAIHint(const Common::String &) override;
 	void cleanUpAfterAIHint(const Common::String &) override;
@@ -126,6 +127,7 @@ protected:
 	void pickedUpItem(Item *) override;
 	void doorOpened() override;
 	void startExtraSequence(const ExtraID, const NotificationFlags, const InputBits) override;
+	void startDoorOpenMovie(const TimeValue, const TimeValue) override;
 	void getExtraEntry(const uint32, ExtraTable::Entry &) override;
 	void takeItemFromRoom(Item *item) override;
 	void checkPeopleCrossing();
@@ -137,6 +139,7 @@ protected:
 	void getExitCompassMove(const ExitTable::Entry &exitEntry, FaderMoveSpec &compassMove) override;
 	void getExtraCompassMove(const ExtraTable::Entry &entry, FaderMoveSpec &compassMove) override;
 	void bumpIntoWall() override;
+	void spotCompleted() override;
 	void activateHotspots() override;
 	void setUpAIRules() override;
 	Common::String getBriefingMovie() override;
@@ -153,12 +156,15 @@ protected:
 
 	FlagsArray<byte, kNumWSCPrivateFlags> _privateFlags;
 	const Hotspot *_cachedZoomSpot;
+	Hotspot _biotechImplantSpot;
+	Movie _extraMovie;
+	NotificationCallBack _extraMovieCallBack;
 	MoleculeBin _moleculeBin;
 	int32 _moleculeGameLevel, _numCorrect;
 	Movie _moleculesMovie;
 	uint32 _levelArray[6];
-	Common::Rational _energyDrainRate;
 	Sprite *_argonSprite;
+	Sound _welcomeSound;
 };
 
 } // End of namespace Pegasus

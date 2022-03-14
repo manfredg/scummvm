@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,7 @@
 
 #include "common/textconsole.h"
 #include "common/stream.h"
+#include "common/substream.h"
 
 #include "audio/decoders/mac_snd.h"
 #include "audio/decoders/raw.h"
@@ -44,13 +44,13 @@ SeekableAudioStream *makeMacSndStream(Common::SeekableReadStream *stream,
 		// "normal" snd resources
 		if (stream->readUint16BE() != 1) {
 			warning("makeMacSndStream(): Unsupported data type count");
-			return 0;
+			return nullptr;
 		}
 
 		if (stream->readUint16BE() != 5) {
 			// 5 == sampled
 			warning("makeMacSndStream(): Unsupported data type");
-			return 0;
+			return nullptr;
 		}
 
 		stream->readUint32BE(); // initialization option
@@ -59,13 +59,13 @@ SeekableAudioStream *makeMacSndStream(Common::SeekableReadStream *stream,
 		stream->readUint16BE(); // reference count (unused)
 	} else {
 		warning("makeMacSndStream(): Unknown format type %d", sndType);
-		return 0;
+		return nullptr;
 	}
 
 	// We really should never get this as long as we have sampled data only
 	if (stream->readUint16BE() != 1) {
 		warning("makeMacSndStream(): Unsupported command count");
-		return 0;
+		return nullptr;
 	}
 
 	uint16 command = stream->readUint16BE();
@@ -74,7 +74,7 @@ SeekableAudioStream *makeMacSndStream(Common::SeekableReadStream *stream,
 	// 0x8051 - bufferCmd (with dataOffsetFlag set): play a sample sound
 	if (command != 0x8050 && command != 0x8051) {
 		warning("makeMacSndStream(): Unsupported command %04x", command);
-		return 0;
+		return nullptr;
 	}
 
 	stream->readUint16BE(); // 0
@@ -93,20 +93,15 @@ SeekableAudioStream *makeMacSndStream(Common::SeekableReadStream *stream,
 	if (encoding != 0) {
 		// 0 == PCM
 		warning("makeMacSndStream(): Unsupported compression %d", encoding);
-		return 0;
+		return nullptr;
 	}
 
 	stream->skip(soundDataOffset);
 
-	byte *data = (byte *)malloc(size);
-	assert(data);
-	stream->read(data, size);
+	Common::SeekableReadStream *dataStream = new Common::SeekableSubReadStream(stream, stream->pos(), stream->pos() + size, disposeAfterUse);
 
-	if (disposeAfterUse == DisposeAfterUse::YES)
-		delete stream;
-
-	// Since we allocated our own buffer for the data, we must specify DisposeAfterUse::YES.
-	return makeRawStream(data, size, rate, Audio::FLAG_UNSIGNED);
+	// Since we allocated our own stream for the data, we must specify DisposeAfterUse::YES.
+	return makeRawStream(dataStream, rate, Audio::FLAG_UNSIGNED);
 }
 
 } // End of namespace Audio

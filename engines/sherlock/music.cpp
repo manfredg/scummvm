@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,7 +71,7 @@ MidiParser_SH::MidiParser_SH() {
 MidiParser_SH::~MidiParser_SH() {
 	Common::StackLock lock(_mutex);
 	unloadMusic();
-	_driver = NULL;
+	_driver = nullptr;
 }
 
 void MidiParser_SH::parseNextEvent(EventInfo &info) {
@@ -209,7 +208,7 @@ void MidiParser_SH::unloadMusic() {
 
 	if (_musData) {
 		delete[] _musData;
-		_musData = NULL;
+		_musData = nullptr;
 		_musDataSize = 0;
 	}
 
@@ -219,8 +218,8 @@ void MidiParser_SH::unloadMusic() {
 /*----------------------------------------------------------------*/
 
 Music::Music(SherlockEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer) {
-	_midiDriver = NULL;
-	_midiParser = NULL;
+	_midiDriver = nullptr;
+	_midiParser = nullptr;
 	_musicType = MT_NULL;
 	_musicPlaying = false;
 	_midiOption = false;
@@ -336,7 +335,7 @@ Music::Music(SherlockEngine *vm, Audio::Mixer *mixer) : _vm(vm), _mixer(mixer) {
 Music::~Music() {
 	stopMusic();
 	if (_midiDriver) {
-		_midiDriver->setTimerCallback(this, NULL);
+		_midiDriver->setTimerCallback(this, nullptr);
 	}
 	if (_midiParser) {
 		_midiParser->stopPlaying();

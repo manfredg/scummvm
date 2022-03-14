@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@
 namespace Pegasus {
 
 Blinker::Blinker() {
-	_sprite = 0;
+	_sprite = nullptr;
 	_frame1 = -1;
 	_frame2 = -1;
 	_blinkDuration = 0;
@@ -51,7 +50,7 @@ void Blinker::startBlinking(Sprite *sprite, int32 frame1, int32 frame2, uint32 n
 void Blinker::stopBlinking() {
 	if (_sprite) {
 		_sprite->setCurrentFrameIndex(_frame2);
-		_sprite = 0;
+		_sprite = nullptr;
 		stop();
 	}
 }
@@ -72,7 +71,7 @@ enum {
 	kEnergyExpiredFlag = 1
 };
 
-EnergyMonitor *g_energyMonitor = 0;
+EnergyMonitor *g_energyMonitor = nullptr;
 
 EnergyMonitor::EnergyMonitor() : IdlerAnimation(kEnergyBarID), _energyLight(kWarningLightID) {
 	PegasusEngine *vm = (PegasusEngine *)g_engine;
@@ -116,7 +115,7 @@ EnergyMonitor::EnergyMonitor() : IdlerAnimation(kEnergyBarID), _energyLight(kWar
 }
 
 EnergyMonitor::~EnergyMonitor() {
-	g_energyMonitor = 0;
+	g_energyMonitor = nullptr;
 }
 
 void EnergyMonitor::setEnergyValue(const uint32 value) {

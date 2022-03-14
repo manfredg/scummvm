@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,8 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
- */
-
-/*
- * PNG decoder used in engines:
- *  - sword25
- *  - wintermute
- * Dependencies:
- *  - libpng
  */
 
 #ifndef IMAGE_PNG_H
@@ -47,21 +38,35 @@ struct Surface;
 
 namespace Image {
 
+/**
+ * @defgroup image_png PNG decoder
+ * @ingroup image
+ *
+ * @brief Decoder for PNG images.
+ *
+ * This decoder has a dependency on the libpng library.
+ *
+ * Used in engines:
+ * - Sword25
+ * - Wintermute
+ * @{
+ */
+
 class PNGDecoder : public ImageDecoder {
 public:
 	PNGDecoder();
 	~PNGDecoder();
 
-	bool loadStream(Common::SeekableReadStream &stream);
-	void destroy();
-	const Graphics::Surface *getSurface() const { return _outputSurface; }
-	const byte *getPalette() const { return _palette; }
-	uint16 getPaletteColorCount() const { return _paletteColorCount; }
+	bool loadStream(Common::SeekableReadStream &stream) override;
+	void destroy() override;
+	const Graphics::Surface *getSurface() const override { return _outputSurface; }
+	const byte *getPalette() const override { return _palette; }
+	uint16 getPaletteColorCount() const override { return _paletteColorCount; }
 	int getTransparentColor() const { return _transparentColor; }
 	void setSkipSignature(bool skip) { _skipSignature = skip; }
 	void setKeepTransparencyPaletted(bool keep) { _keepTransparencyPaletted = keep; }
 private:
-	Graphics::PixelFormat getByteOrderRgbaPixelFormat() const;
+	Graphics::PixelFormat getByteOrderRgbaPixelFormat(bool isAlpha) const;
 
 	byte *_palette;
 	uint16 _paletteColorCount;
@@ -78,9 +83,13 @@ private:
 
 /**
  * Outputs a compressed PNG stream of the given input surface.
+  *
+ *  @param out  Stream to which to write the PNG image.
+ *  @param input The surface to save as a PNG image..
+ *  @param palette    The palette (in RGB888), if the source format has a bpp of 1.
  */
-bool writePNG(Common::WriteStream &out, const Graphics::Surface &input);
-
+bool writePNG(Common::WriteStream &out, const Graphics::Surface &input, const byte *palette = nullptr);
+/** @} */
 } // End of namespace Image
 
 #endif

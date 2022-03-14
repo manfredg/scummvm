@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/misc/pent_include.h"
 
 #include "ultima/ultima8/games/game_info.h"
-
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 #include "ultima/ultima8/misc/util.h"
 
 namespace Ultima {
@@ -63,7 +59,8 @@ static const GameLangDesc gamelangs[] = {
 };
 
 
-GameInfo::GameInfo() : _type(GAME_UNKNOWN), version(0), _language(GAMELANG_UNKNOWN) {
+GameInfo::GameInfo() : _type(GAME_UNKNOWN), version(0), _language(GAMELANG_UNKNOWN),
+		_ucOffVariant(GAME_UC_DEFAULT) {
 	for (int i = 0; i < 16; ++i)
 		_md5[i] = 0;
 }
@@ -166,10 +163,10 @@ bool GameInfo::match(GameInfo &other, bool ignoreMD5) const {
 
 	if (ignoreMD5) return true;
 
-	return (Std::memcmp(_md5, other._md5, 16) == 0);
+	return (memcmp(_md5, other._md5, 16) == 0);
 }
 
-void GameInfo::save(ODataSource *ods) {
+void GameInfo::save(Common::WriteStream *ws) {
 	unsigned int l = static_cast<unsigned int>(_language);
 	assert(l < (sizeof(gamelangs) / sizeof(gamelangs[0])) - 1);
 	unsigned int t = static_cast<unsigned int>(_type);
@@ -184,14 +181,14 @@ void GameInfo::save(ODataSource *ods) {
 	Std::string md5Str = getPrintableMD5();
 
 	Std::string d = game + "," + lang + "," + ver + "," + md5Str + "\n";
-	ods->write(d.c_str(), d.size());
+	ws->write(d.c_str(), d.size());
 }
 
-bool GameInfo::load(IDataSource *ids, uint32 version_) {
+bool GameInfo::load(Common::SeekableReadStream *rs, uint32 ver) {
 	Std::string s;
 	Std::vector<Std::string> parts;
 
-	ids->readline(s);
+	s = rs->readLine();
 	SplitString(s, ',', parts);
 	if (parts.size() != 4) return false;
 
@@ -215,14 +212,14 @@ bool GameInfo::load(IDataSource *ids, uint32 version_) {
 	}
 	if (!gamelangs[i].name) return false;
 
-	this->version = Std::strtol(parts[2].c_str(), 0, 0);
+	this->version = strtol(parts[2].c_str(), 0, 0);
 
 	for (i = 0; i < 16; ++i) {
 		char buf[3];
 		buf[0] = parts[3][2 * i];
 		buf[1] = parts[3][2 * i + 1];
 		buf[2] = 0;
-		long x = Std::strtol(buf, 0, 16);
+		long x = strtol(buf, 0, 16);
 		_md5[i] = static_cast<uint8>(x);
 	}
 

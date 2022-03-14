@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #include "common/file.h"
 #include "common/system.h"
 #include "common/util.h"
+#include "common/rect.h"
 
 #include "audio/mixer.h"
 
@@ -31,7 +31,7 @@
 #include "graphics/palette.h"
 
 #include "scumm/file.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 #include "scumm/scumm.h"
 #include "scumm/scumm_v7.h"
 #include "scumm/sound.h"
@@ -215,8 +215,9 @@ void SmushPlayer::timerCallback() {
 	parseNextFrame();
 }
 
-SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm) {
+SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm, IMuseDigital *imuseDigital) {
 	_vm = scumm;
+	_imuseDigital = imuseDigital;
 	_nbframes = 0;
 	_codec37 = 0;
 	_codec47 = 0;
@@ -250,6 +251,8 @@ SmushPlayer::SmushPlayer(ScummEngine_v7 *scumm) {
 	_pauseStartTime = 0;
 	_pauseTime = 0;
 
+	for (int i = 0; i < 4; i++)
+		_iactTable[i] = 0;
 
 	_IACTchannel = new Audio::SoundHandle();
 	_compressedFileSoundHandle = new Audio::SoundHandle();
@@ -274,7 +277,7 @@ void SmushPlayer::init(int32 speed) {
 	_dst = vs->getPixels(0, 0);
 
 	// HACK HACK HACK: This is an *evil* trick, beware!
-	// We do this to fix bug #1037052. A proper solution would change all the
+	// We do this to fix bug #1792. A proper solution would change all the
 	// drawing code to use the pitch value specified by the virtual screen.
 	// However, since a lot of the SMUSH code currently assumes the screen
 	// width and pitch to be equal, this will require lots of changes. So
@@ -387,10 +390,10 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 	int code = b.readUint16LE();
 	int flags = b.readUint16LE();
 	int unknown = b.readSint16LE();
-	int track_flags = b.readUint16LE();
+	int userId = b.readUint16LE();
 
 	if ((code != 8) && (flags != 46)) {
-		_vm->_insane->procIACT(_dst, 0, 0, 0, b, 0, 0, code, flags, unknown, track_flags);
+		_vm->_insane->procIACT(_dst, 0, 0, 0, b, 0, 0, code, flags, unknown, userId);
 		return;
 	}
 
@@ -399,42 +402,13 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 	}
 
 	assert(flags == 46 && unknown == 0);
-	int track_id = b.readUint16LE();
+	/*int track_id =*/ b.readUint16LE();
 	int index = b.readUint16LE();
 	int nbframes = b.readUint16LE();
-	int32 size = b.readUint32LE();
+	/*int32 size =*/ b.readUint32LE();
 	int32 bsize = subSize - 18;
 
-	if (_vm->_game.id != GID_CMI) {
-		int32 track = track_id;
-		if (track_flags == 1) {
-			track = track_id + 100;
-		} else if (track_flags == 2) {
-			track = track_id + 200;
-		} else if (track_flags == 3) {
-			track = track_id + 300;
-		} else if ((track_flags >= 100) && (track_flags <= 163)) {
-			track = track_id + 400;
-		} else if ((track_flags >= 200) && (track_flags <= 263)) {
-			track = track_id + 500;
-		} else if ((track_flags >= 300) && (track_flags <= 363)) {
-			track = track_id + 600;
-		} else {
-			error("SmushPlayer::handleIACT(): bad track_flags: %d", track_flags);
-		}
-		debugC(DEBUG_SMUSH, "SmushPlayer::handleIACT(): %d, %d, %d", track, index, track_flags);
-
-		SmushChannel *c = _smixer->findChannel(track);
-		if (c == 0) {
-			c = new ImuseChannel(track);
-			_smixer->addChannel(c);
-		}
-		if (index == 0)
-			c->setParameters(nbframes, size, track_flags, unknown, 0);
-		else
-			c->checkParameters(index, nbframes, size, track_flags, unknown);
-		c->appendData(b, bsize);
-	} else {
+	if (_vm->_game.id == GID_CMI) {
 		// TODO: Move this code into another SmushChannel subclass?
 		byte *src = (byte *)malloc(bsize);
 		b.read(src, bsize);
@@ -504,6 +478,99 @@ void SmushPlayer::handleIACT(int32 subSize, Common::SeekableReadStream &b) {
 		}
 
 		free(src);
+	} else if ((_vm->_game.id == GID_DIG) && !(_vm->_game.features & GF_DEMO)) {
+		int bufId, volume, paused, curSoundId;
+
+		byte *dataBuffer = (byte *)malloc(bsize);
+		b.read(dataBuffer, bsize);
+
+		switch (userId) {
+		case 1:
+			bufId = 1;
+			volume = 127;
+			break;
+		case 2:
+			bufId = 2;
+			volume = 127;
+			break;
+		case 3:
+			bufId = 3;
+			volume = 127;
+			break;
+		default:
+			if (userId >= 100 && userId <= 163) {
+				bufId = DIMUSE_BUFFER_SPEECH;
+				volume = 2 * userId - 200;
+			} else if (userId >= 200 && userId <= 263) {
+				bufId = DIMUSE_BUFFER_MUSIC;
+				volume = 2 * userId - 400;
+			} else if (userId >= 300 && userId <= 363) {
+				bufId = DIMUSE_BUFFER_SMUSH;
+				volume = 2 * userId - 600;
+			} else {
+				free(dataBuffer);
+				error("SmushPlayer::handleIACT(): ERROR: got invalid userID (%d)", userId);
+			}
+			break;
+		}
+
+		paused = nbframes - index == 1;
+
+		// Apparently this is expected to happen (e.g.: Brink's death video)
+		if (index && _iactTable[bufId] - index != -1) {
+			free(dataBuffer);
+			debugC(DEBUG_SMUSH, "SmushPlayer::handleIACT(): WARNING: got out of order block");
+			return;
+		}
+
+		_iactTable[bufId] = index;
+
+		if (index) {
+			if (_imuseDigital->diMUSEGetParam(bufId + DIMUSE_SMUSH_SOUNDID, 0x100)) {
+				_imuseDigital->diMUSEFeedStream(bufId + DIMUSE_SMUSH_SOUNDID, dataBuffer, subSize - 18, paused);
+				free(dataBuffer);
+				return;
+			}
+			free(dataBuffer);
+			error("SmushPlayer::handleIACT(): ERROR: got unexpected non-zero IACT block, bufID %d", bufId);
+		} else {
+			if (READ_BE_UINT32(dataBuffer) != MKTAG('i', 'M', 'U', 'S')) {
+				free(dataBuffer);
+				error("SmushPlayer::handleIACT(): ERROR: got non-IMUS IACT block");
+			}
+
+			curSoundId = 0;
+			do {
+				curSoundId = _imuseDigital->diMUSEGetNextSound(curSoundId);
+				if (!curSoundId)
+					break;
+			} while (_imuseDigital->diMUSEGetParam(curSoundId, 0x1800) != 1 || _imuseDigital->diMUSEGetParam(curSoundId, 0x1900) != bufId);
+
+			if (!curSoundId) {
+				// There isn't any previous sound running: start a new stream
+				if (_imuseDigital->diMUSEStartStream(bufId + DIMUSE_SMUSH_SOUNDID, 126, bufId)) {
+					free(dataBuffer);
+					error("SmushPlayer::handleIACT(): ERROR: couldn't start stream");
+				}
+			} else {
+				// There's an old sound running: switch the stream from the old one to the new one
+				_imuseDigital->diMUSESwitchStream(curSoundId, bufId + DIMUSE_SMUSH_SOUNDID, bufId == 2 ? 1000 : 150, 0, 0);
+			}
+
+			_imuseDigital->diMUSESetParam(bufId + DIMUSE_SMUSH_SOUNDID, 0x600, volume);
+
+			if (bufId == DIMUSE_BUFFER_SPEECH) {
+				_imuseDigital->diMUSESetParam(bufId + DIMUSE_SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_SPEECH);
+			} else if (bufId == DIMUSE_BUFFER_MUSIC) {
+				_imuseDigital->diMUSESetParam(bufId + DIMUSE_SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_MUSIC);
+			} else {
+				_imuseDigital->diMUSESetParam(bufId + DIMUSE_SMUSH_SOUNDID, 0x400, DIMUSE_GROUP_SFX);
+			}
+
+			_imuseDigital->diMUSEFeedStream(bufId + DIMUSE_SMUSH_SOUNDID, dataBuffer, subSize - 18, paused);
+			free(dataBuffer);
+			return;
+		}
 	}
 }
 
@@ -513,8 +580,8 @@ void SmushPlayer::handleTextResource(uint32 subType, int32 subSize, Common::Seek
 	int flags = b.readSint16LE();
 	int left = b.readSint16LE();
 	int top = b.readSint16LE();
-	int right = b.readSint16LE();
-	/*int32 height =*/ b.readSint16LE();
+	int width = b.readSint16LE();
+	int height = b.readSint16LE();
 	/*int32 unk2 =*/ b.readUint16LE();
 
 	const char *str;
@@ -534,12 +601,14 @@ void SmushPlayer::handleTextResource(uint32 subType, int32 subSize, Common::Seek
 	//
 	// Query ConfMan here. However it may be slower, but
 	// player may want to switch the subtitles on or off during the
-	// playback. This fixes bug #1550974
+	// playback. This fixes bug #2812
 	if ((!ConfMan.getBool("subtitles")) && ((flags & 8) == 8))
 		return;
 
-	SmushFont *sf = getFont(0);
+	bool isCJKComi = (_vm->_game.id == GID_CMI && _vm->_useCJKMode);
 	int color = 15;
+	int fontId = isCJKComi ? 1 : 0;
+
 	while (*str == '/') {
 		str++; // For Full Throttle text resources
 	}
@@ -561,24 +630,33 @@ void SmushPlayer::handleTextResource(uint32 subType, int32 subSize, Common::Seek
 	while (str[0] == '^') {
 		switch (str[1]) {
 		case 'f':
-			{
-				int id = str[3] - '0';
-				str += 4;
-				sf = getFont(id);
-			}
-			break;
+		{
+			fontId = str[3] - '0';
+			str += 4;
+		}
+		break;
 		case 'c':
-			{
-				color = str[4] - '0' + 10 *(str[3] - '0');
-				str += 5;
-			}
-			break;
+		{
+			color = str[4] - '0' + 10 *(str[3] - '0');
+			str += 5;
+		}
+		break;
 		default:
 			error("invalid escape code in text string");
 		}
 	}
 
-	// HACK. This is to prevent bug #1310846. In updated Win95 dig
+	// This is a hack from the original COMI CJK interpreter. Its purpose is to avoid
+	// ugly combinations of two byte characters (rendered with the respective special
+	// font) and standard one byte (NUT font) characters (see bug #11947).
+	if (isCJKComi && !(fontId == 0 && color == 1)) {
+		fontId = 1;
+		color = 255;
+	}
+
+	SmushFont *sf = getFont(fontId);
+
+	// HACK. This is to prevent bug #2220. In updated Win95 dig
 	// there is such line:
 	//
 	// ^f01^c001LEAD TESTER
@@ -613,6 +691,8 @@ void SmushPlayer::handleTextResource(uint32 subType, int32 subSize, Common::Seek
 					error("invalid escape code in text string");
 				}
 			} else {
+				if (SmushFont::is2ByteCharacter(_vm->_language, *sptr))
+					*sptr2++ = *sptr++;
 				*sptr2++ = *sptr++;
 			}
 		}
@@ -628,36 +708,33 @@ void SmushPlayer::handleTextResource(uint32 subType, int32 subSize, Common::Seek
 	}
 
 	// flags:
-	// bit 0 - center       1
-	// bit 1 - not used     2
-	// bit 2 - ???          4
-	// bit 3 - wrap around  8
-	switch (flags & 9) {
-	case 0:
-		sf->drawString(str, _dst, _width, _height, pos_x, pos_y, false);
-		break;
-	case 1:
-		sf->drawString(str, _dst, _width, _height, pos_x, MAX(pos_y, top), true);
-		break;
-	case 8:
-		// FIXME: Is 'right' the maximum line width here, just
-		// as it is in the next case? It's used several times
-		// in The Dig's intro, where 'left' and 'right' are
-		// always 0 and 321 respectively, and apparently we
-		// handle that correctly.
-		sf->drawStringWrap(str, _dst, _width, _height, pos_x, MAX(pos_y, top), left, right, false);
-		break;
-	case 9:
-		// In this case, the 'right' parameter is actually the
-		// maximum line width. This explains why it's sometimes
-		// smaller than 'left'.
-		//
-		// Note that in The Dig's "Spacetime Six" movie it's
-		// 621. I have no idea what that means.
-		sf->drawStringWrap(str, _dst, _width, _height, pos_x, MAX(pos_y, top), left, MIN(left + right, _width), true);
-		break;
-	default:
-		error("SmushPlayer::handleTextResource. Not handled flags: %d", flags);
+	// bit 0 - center                  0x01
+	// bit 1 - not used (align right)  0x02
+	// bit 2 - word wrap               0x04
+	// bit 3 - switchable              0x08
+	// bit 4 - fill background         0x10
+	// bit 5 - outline/shadow          0x20        (apparently only set by the text renderer itself, not from the smush data)
+	// bit 6 - vertical fix (COMI)     0x40        (COMI handles this in the printing method, but I haven't seen a case where it is used)
+	// bit 7 - skip ^ codes (COMI)     0x80        (should be irrelevant for Smush, we strip these commands anyway)
+	// bit 8 - no vertical fix (COMI)  0x100       (COMI handles this in the printing method, but I haven't seen a case where it is used)
+
+	if ((flags & 4) || _vm->_language == Common::HE_ISR) {
+		// COMI has to do it all a bit different, of course. SCUMM7 games immediately render the text from here and actually use the clipping data
+		// provided by the text resource. COMI does not render directly, but enqueues a blast string (which is then drawn through the usual main
+		// loop routines). During that process the rect data will get dumped and replaced with the following default values. It's hard to tell
+		// whether this is on purpose or not (the text looks not necessarily better or worse, just different), so we follow the original...
+		if (_vm->_game.id == GID_CMI) {
+			left = top = 10;
+			width = _width - 20;
+			height = _height - 20;
+		}
+		Common::Rect clipRect(MAX<int>(0, left), MAX<int>(0, top), MIN<int>(left + width, _width), MIN<int>(top + height, _height));
+		sf->drawStringWrap(str, _dst, clipRect, pos_x, pos_y, flags & 1);
+	} else {
+		// Similiar to the wrapped text, COMI will pass on rect coords here, which will later be lost. Unlike with the wrapped text, it will
+		// finally use the full screen dimenstions. SCUMM7 renders directly from here (see comment above), but also with the full screen.
+		Common::Rect clipRect(0, 0, _width, _height);
+		sf->drawString(str, _dst, clipRect, pos_x, pos_y, flags & 1);
 	}
 
 	free(string);
@@ -735,6 +812,7 @@ void SmushPlayer::handleNewPalette(int32 subSize, Common::SeekableReadStream &b)
 }
 
 void smush_decode_codec1(byte *dst, const byte *src, int left, int top, int width, int height, int pitch);
+void smush_decode_codec20(byte *dst, const byte *src, int left, int top, int width, int height, int pitch);
 
 void SmushPlayer::decodeFrameObject(int codec, const uint8 *src, int left, int top, int width, int height) {
 	if ((height == 242) && (width == 384)) {
@@ -773,6 +851,10 @@ void SmushPlayer::decodeFrameObject(int codec, const uint8 *src, int left, int t
 			_codec47 = new Codec47Decoder(width, height);
 		if (_codec47)
 			_codec47->decode(_dst, src);
+		break;
+	case 20:
+		// Used by Full Throttle Classic (from Remastered)
+		smush_decode_codec20(_dst, src, left, top, width, height, _vm->_screenWidth);
 		break;
 	default:
 		error("Invalid codec for frame object : %d", codec);
@@ -1244,7 +1326,7 @@ void SmushPlayer::play(const char *filename, int32 speed, int32 offset, int32 st
 			skipped = 0;
 		if (_updateNeeded) {
 			if (!skipFrame) {
-				// Workaround for bug #1386333: "FT DEMO: assertion triggered
+				// Workaround for bug #2415: "FT DEMO: assertion triggered
 				// when playing movie". Some frames there are 384 x 224
 				int w = MIN(_width, _vm->_screenWidth);
 				int h = MIN(_height, _vm->_screenHeight);
@@ -1261,6 +1343,7 @@ void SmushPlayer::play(const char *filename, int32 speed, int32 offset, int32 st
 			_vm->_mixer->stopHandle(*_compressedFileSoundHandle);
 			_vm->_mixer->stopHandle(*_IACTchannel);
 			_IACTpos = 0;
+			_imuseDigital->stopSMUSHAudio();
 			break;
 		}
 		_vm->_system->delayMillis(10);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,6 +35,7 @@ namespace Pink {
 
 ActionText::ActionText() {
 	_txtWnd = nullptr;
+	_macText = nullptr;
 
 	_xLeft = _xRight = 0;
 	_yTop = _yBottom = 0;
@@ -75,12 +75,6 @@ void ActionText::toConsole() const {
 		  _name.c_str(), _fileName.c_str(), _xLeft, _yTop, _xRight, _yBottom, _centered, _scrollBar, _textRGB, _backgroundRGB);
 }
 
-static const byte noborderData[3][3] = {
-	{ 0, 1, 0 },
-	{ 1, 0, 1 },
-	{ 0, 1, 0 },
-};
-
 void ActionText::start() {
 	findColorsInPalette();
 	Director *director = _actor->getPage()->getGame()->getDirector();
@@ -92,6 +86,29 @@ void ActionText::start() {
 	delete stream;
 
 	switch(_actor->getPage()->getGame()->getLanguage()) {
+	case Common::DA_DNK:
+	case Common::ES_ESP:
+	case Common::FR_FRA:
+	case Common::PT_BRA:
+		_text = Common::String(str).decode(Common::kWindows1252);
+		break;
+
+	case Common::FI_FIN:
+	case Common::SE_SWE:
+		_text = Common::String(str).decode(Common::kWindows1257);
+		break;
+
+	case Common::HE_ISR:
+		_text = Common::String(str).decode(Common::kWindows1255);
+		if (!_centered) {
+			align = Graphics::kTextAlignRight;
+		}
+		break;
+
+	case Common::PL_POL:
+		_text = Common::String(str).decode(Common::kWindows1250);
+		break;
+
 	case Common::RU_RUS:
 		_text = Common::String(str).decode(Common::kWindows1251);
 		break;
@@ -108,52 +125,58 @@ void ActionText::start() {
 		_text.deleteLastChar();
 
 	if (_scrollBar) {
-		Graphics::MacFont *font = new Graphics::MacFont;
-		_txtWnd = director->getWndManager().addTextWindow(font, _textColorIndex, _backgroundColorIndex,
+		_txtWnd = director->getWndManager().addTextWindow(director->getTextFont(), _textColorIndex, _backgroundColorIndex,
 														  _xRight - _xLeft, align, nullptr, false);
+		_txtWnd->setTextColorRGB(_textRGB);
+		_txtWnd->enableScrollbar(true);
+		// it will hide the scrollbar when the text height is smaller than the window height
+		_txtWnd->setMode(Graphics::kWindowModeDynamicScrollbar);
 		_txtWnd->move(_xLeft, _yTop);
 		_txtWnd->resize(_xRight - _xLeft, _yBottom - _yTop);
 		_txtWnd->setEditable(false);
 		_txtWnd->setSelectable(false);
 
-		Graphics::TransparentSurface *noborder = new Graphics::TransparentSurface();
-		noborder->create(3, 3, noborder->getSupportedPixelFormat());
-		uint32 colorBlack = noborder->getSupportedPixelFormat().RGBToColor(0, 0, 0);
-		uint32 colorPink = noborder->getSupportedPixelFormat().RGBToColor(255, 0, 255);
-
-		for (int y = 0; y < 3; y++)
-			for (int x = 0; x < 3; x++)
-				*((uint32 *)noborder->getBasePtr(x, y)) = noborderData[y][x] ? colorBlack : colorPink;
-
-		_txtWnd->setBorder(noborder, true);
-
-		Graphics::TransparentSurface *noborder2 = new Graphics::TransparentSurface(*noborder, true);
-		_txtWnd->setBorder(noborder2, false);
-
-		_txtWnd->appendText(_text, font);
+		_txtWnd->appendText(_text);
+		director->addTextWindow(_txtWnd);
 
 	} else {
 		director->addTextAction(this);
+
+		// alignment not working, thus we implement alignment for center manually
+		Graphics::TextAlign alignment = _centered ? Graphics::kTextAlignCenter : Graphics::kTextAlignLeft;
+		if (!_centered && _actor->getPage()->getGame()->getLanguage() == Common::HE_ISR) {
+			alignment = Graphics::kTextAlignRight;
+		}
+		_macText = new Graphics::MacText(_text, &director->getWndManager(), director->getTextFont(), _textColorIndex, _backgroundColorIndex, _xRight - _xLeft, alignment);
 	}
+}
+
+Common::Rect ActionText::getBound() {
+	return Common::Rect(_xLeft, _yTop, _xRight, _yBottom);
 }
 
 void ActionText::end() {
 	Director *director = _actor->getPage()->getGame()->getDirector();
 	if (_scrollBar && _txtWnd) {
 		director->getWndManager().removeWindow(_txtWnd);
+		director->removeTextWindow(_txtWnd);
 		_txtWnd = nullptr;
 	} else {
 		director->removeTextAction(this);
+		delete _macText;
 	}
 }
 
 void ActionText::draw(Graphics::ManagedSurface *surface) {
-	// not working
-	Graphics::TextAlign alignment = _centered ? Graphics::kTextAlignCenter : Graphics::kTextAlignLeft;
-	Graphics::MacFont *font = new Graphics::MacFont();
-	Director *director = _actor->getPage()->getGame()->getDirector();
-	Graphics::MacText text(_text, &director->getWndManager(), font, _textColorIndex, _backgroundColorIndex, _xRight - _xLeft, alignment);
-	text.drawToPoint(surface, Common::Rect(0, 0, _xRight - _xLeft, _yBottom - _yTop), Common::Point(_xLeft, _yTop));
+	int xOffset = 0, yOffset = 0;
+	// we need to first fill this area with backgroundColor, in order to wash away the previous text
+	surface->fillRect(Common::Rect(_xLeft, _yTop, _xRight, _yBottom), _backgroundColorIndex);
+
+	if (_centered) {
+		xOffset = (_xRight - _xLeft) / 2 - _macText->getTextMaxWidth() / 2;
+		yOffset = (_yBottom - _yTop) / 2 - _macText->getTextHeight() / 2;
+	}
+	_macText->drawToPoint(surface, Common::Rect(0, 0, _xRight - _xLeft, _yBottom - _yTop), Common::Point(_xLeft + xOffset, _yTop + yOffset));
 }
 
 #define BLUE(rgb) ((rgb) & 0xFF)

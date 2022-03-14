@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,20 +44,20 @@ bool RomfsStream::eos() const {
 	return romfs_eof((ROMFILE *)_handle) != 0;
 }
 
-int32 RomfsStream::pos() const {
+int64 RomfsStream::pos() const {
 	return romfs_tell((ROMFILE *)_handle);
 }
 
-int32 RomfsStream::size() const {
-	int32 oldPos = romfs_tell((ROMFILE *)_handle);
+int64 RomfsStream::size() const {
+	int64 oldPos = romfs_tell((ROMFILE *)_handle);
 	romfs_seek((ROMFILE *)_handle, 0, SEEK_END);
-	int32 length = romfs_tell((ROMFILE *)_handle);
+	int64 length = romfs_tell((ROMFILE *)_handle);
 	romfs_seek((ROMFILE *)_handle, oldPos, SEEK_SET);
 
 	return length;
 }
 
-bool RomfsStream::seek(int32 offs, int whence) {
+bool RomfsStream::seek(int64 offs, int whence) {
 	return romfs_seek((ROMFILE *)_handle, offs, whence) >= 0;
 }
 

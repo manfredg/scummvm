@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,7 +47,6 @@ private:
 	int scaler_index;  // Index of Current Scaler
 	int scale_factor;  // Scale factor
 
-	bool fullscreen;
 	bool doubleBuffer;
 	bool is_no_darkness;
 	bool non_square_pixels;
@@ -68,9 +66,7 @@ public:
 
 	bool init();
 
-	bool is_fullscreen() {
-		return fullscreen;
-	}
+	bool is_fullscreen() const;
 	bool is_non_square_pixels() {
 		return non_square_pixels;
 	}
@@ -82,6 +78,7 @@ public:
 	}
 	bool toggle_darkness_cheat();
 	bool toggle_fullscreen();
+	bool set_fullscreen(bool value);
 	bool set_palette(uint8 *palette);
 	bool set_palette_entry(uint8 idx, uint8 r, uint8 g, uint8 b);
 	bool rotate_palette(uint8 pos, uint8 length);
@@ -153,10 +150,6 @@ public:
 
 	void get_mouse_location(int *x, int *y);
 
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	void scale_sdl_window_coords(sint32 *x, sint32 *y);
-#endif
-
 	void set_non_square_pixels(bool value);
 
 protected:
@@ -195,7 +188,6 @@ private:
 	int get_screen_bpp();
 
 	bool sdl1_toggle_fullscreen();
-	bool set_fullscreen(bool value);
 };
 
 } // End of namespace Nuvie

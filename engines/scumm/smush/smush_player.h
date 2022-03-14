@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,11 +37,13 @@ class SmushMixer;
 class StringResource;
 class Codec37Decoder;
 class Codec47Decoder;
+class IMuseDigital;
 
 class SmushPlayer {
 	friend class Insane;
 private:
 	ScummEngine_v7 *_vm;
+	IMuseDigital *_imuseDigital;
 	int32 _nbframes;
 	SmushMixer *_smixer;
 	int16 _deltaPal[0x300];
@@ -85,9 +86,9 @@ private:
 	bool _insanity;
 	bool _middleAudio;
 	bool _skipPalette;
-
+	int _iactTable[4];
 public:
-	SmushPlayer(ScummEngine_v7 *scumm);
+	SmushPlayer(ScummEngine_v7 *scumm, IMuseDigital *_imuseDigital);
 	~SmushPlayer();
 
 	void pause();

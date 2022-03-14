@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/config-manager.h"
+#include "common/unicode-bidi.h"
 #include "agi/agi.h"
 #include "agi/sprite.h"     // for commit_both()
 #include "agi/graphics.h"
@@ -28,9 +28,6 @@
 #include "agi/text.h"
 #include "agi/systemui.h"
 #include "agi/words.h"
-#ifdef __DS__
-#include "wordcompletion.h"
-#endif
 
 namespace Agi {
 
@@ -39,7 +36,7 @@ TextMgr::TextMgr(AgiEngine *vm, Words *words, GfxMgr *gfx) {
 	_words = words;
 	_gfx = gfx;
 
-	_systemUI = NULL;
+	_systemUI = nullptr;
 
 	memset(&_messageState, 0, sizeof(_messageState));
 	_textPos.row = 0;
@@ -241,8 +238,8 @@ byte TextMgr::calculateTextBackground(byte background) {
 }
 
 void TextMgr::display(int16 textNr, int16 textRow, int16 textColumn) {
-	const char *logicTextPtr = NULL;
-	char *processedTextPtr   = NULL;
+	const char *logicTextPtr = nullptr;
+	char *processedTextPtr   = nullptr;
 
 	charPos_Push();
 	charPos_Set(textRow, textColumn);
@@ -277,7 +274,27 @@ void TextMgr::displayTextInsideWindow(const char *textPtr, int16 windowRow, int1
 	charPos_Pop();
 }
 
+Common::String rightAlign(Common::String line, va_list args) {
+	uint width = va_arg(args, uint);
+
+	while (line.size() < width)
+		line = " " + line;
+	return line;
+}
+
 void TextMgr::displayText(const char *textPtr, bool disabledLook) {
+	Common::String textString;
+	if (_vm->isLanguageRTL()) {
+		textString = textPtr;
+		if (_vm->getLanguage() == Common::HE_ISR)
+			textString = Common::convertBiDiStringByLines(textString, Common::kWindows1255);
+
+		if (textString.contains('\n'))
+			textString = textString.forEachLine(rightAlign, (uint)_messageState.textSize_Width);
+
+		textPtr = textString.c_str();
+	}
+
 	const char *curTextPtr = textPtr;
 	byte  curCharacter = 0;
 
@@ -329,7 +346,7 @@ void TextMgr::displayCharacter(byte character, bool disabledLook) {
 }
 
 void TextMgr::print(int16 textNr) {
-	const char *logicTextPtr = NULL;
+	const char *logicTextPtr = nullptr;
 	if (textNr >= 1 && textNr <= _vm->_game._curLogic->numTexts) {
 		logicTextPtr = _vm->_game._curLogic->texts[textNr - 1];
 		messageBox(logicTextPtr);
@@ -557,7 +574,7 @@ bool TextMgr::statusEnabled() {
 }
 
 void TextMgr::statusDraw() {
-	char *statusTextPtr = NULL;
+	char *statusTextPtr = nullptr;
 
 	charAttrib_Push();
 	charPos_Push();
@@ -566,11 +583,17 @@ void TextMgr::statusDraw() {
 		clearLine(_statusRow, 15);
 
 		charAttrib_Set(0, 15);
-		charPos_Set(_statusRow, 1);
 		statusTextPtr = stringPrintf(_systemUI->getStatusTextScore());
+		if (!_vm->isLanguageRTL())
+			charPos_Set(_statusRow, 1);
+		else
+			charPos_Set(_statusRow, FONT_COLUMN_CHARACTERS - Common::strnlen(statusTextPtr, FONT_COLUMN_CHARACTERS) - 1);
 		displayText(statusTextPtr);
 
-		charPos_Set(_statusRow, 30);
+		if (!_vm->isLanguageRTL())
+			charPos_Set(_statusRow, 30);
+		else
+			charPos_Set(_statusRow, 1);
 		if (_vm->getFlag(VM_FLAG_SOUND_ON)) {
 			statusTextPtr = stringPrintf(_systemUI->getStatusTextSoundOn());
 		} else {
@@ -687,6 +710,7 @@ void TextMgr::promptKeyPress(uint16 newKey) {
 	// but as soon as invalid characters were used in graphics mode they weren't properly shown
 	switch (_vm->getLanguage()) {
 	case Common::RU_RUS:
+	case Common::HE_ISR:
 		if (newKey >= 0x20)
 			acceptableInput = true;
 		break;
@@ -724,6 +748,8 @@ void TextMgr::promptKeyPress(uint16 newKey) {
 			_promptCursorPos--;
 			_prompt[_promptCursorPos] = 0;
 			displayCharacter(newKey);
+			if (_vm->isLanguageRTL())
+				promptRedraw();
 
 			promptRememberForAutoComplete();
 		}
@@ -753,6 +779,8 @@ void TextMgr::promptKeyPress(uint16 newKey) {
 				_promptCursorPos++;
 				_prompt[_promptCursorPos] = 0;
 				displayCharacter(newKey);
+				if (_vm->isLanguageRTL())
+					promptRedraw();
 
 				promptRememberForAutoComplete();
 			}
@@ -813,9 +841,17 @@ void TextMgr::promptRedraw() {
 		textPtr = stringPrintf(textPtr);
 		textPtr = stringWordWrap(textPtr, 40);
 
-		displayText(textPtr);
-		displayText((char *)&_prompt);
-		inputEditOff();
+		if (!_vm->isLanguageRTL()) {
+			displayText(textPtr);
+			displayText((char *)&_prompt);
+			inputEditOff();
+		} else {
+			charPos_Set(_promptRow, FONT_COLUMN_CHARACTERS - 2 - Common::strnlen((const char *)_prompt, FONT_COLUMN_CHARACTERS));
+			inputEditOff();
+			displayText((char *)&_prompt);
+			displayText(textPtr);
+			charPos_Set(_promptRow, FONT_COLUMN_CHARACTERS - 1);
+		}
 	}
 }
 
@@ -829,9 +865,6 @@ void TextMgr::promptClear() {
 }
 
 void TextMgr::promptRememberForAutoComplete(bool entered) {
-#ifdef __DS__
-	DS::findWordCompletions((char *)_prompt);
-#endif
 }
 
 void TextMgr::promptCommandWindow(bool recallLastCommand, uint16 newKey) {
@@ -895,9 +928,21 @@ void TextMgr::stringEdit(int16 stringMaxLen) {
 
 	// Caller can set the input string
 	_inputStringCursorPos = 0;
-	while (_inputStringCursorPos < inputStringLen) {
-		displayCharacter(_inputString[_inputStringCursorPos]);
-		_inputStringCursorPos++;
+	if (!_vm->isLanguageRTL()) {
+		while (_inputStringCursorPos < inputStringLen) {
+			displayCharacter(_inputString[_inputStringCursorPos]);
+			_inputStringCursorPos++;
+		}
+	} else {
+		while (_inputStringCursorPos < inputStringLen)
+			_inputStringCursorPos++;
+		if (stringMaxLen == 30)
+			// called from askForSaveGameDescription
+			charPos_Set(_textPos.row, 34 - _inputStringCursorPos);
+		else
+			charPos_Set(_textPos.row, stringMaxLen + 2 - _inputStringCursorPos);
+		inputEditOff();
+		displayText((const char *)_inputString);
 	}
 
 	// should never happen unless there is a coding glitch
@@ -906,7 +951,8 @@ void TextMgr::stringEdit(int16 stringMaxLen) {
 	_inputStringMaxLen = stringMaxLen;
 	_inputStringEntered = false;
 
-	inputEditOff();
+	if (!_vm->isLanguageRTL())
+		inputEditOff();
 
 	do {
 		_vm->processAGIEvents();
@@ -938,6 +984,13 @@ void TextMgr::stringKeyPress(uint16 newKey) {
 			_inputStringCursorPos--;
 			_inputString[_inputStringCursorPos] = 0;
 			displayCharacter(newKey);
+			if (_vm->isLanguageRTL()) {
+				for (int i = 0; i < _inputStringCursorPos; i++)
+					displayCharacter(0x08);
+				displayCharacter(' ');
+				inputEditOff();
+				displayText((const char *)_inputString);
+			}
 
 			stringRememberForAutoComplete();
 		}
@@ -971,6 +1024,7 @@ void TextMgr::stringKeyPress(uint16 newKey) {
 			// but as soon as invalid characters were used in graphics mode they weren't properly shown
 			switch (_vm->getLanguage()) {
 			case Common::RU_RUS:
+			case Common::HE_ISR:
 				if (newKey >= 0x20)
 					acceptableInput = true;
 				break;
@@ -987,7 +1041,14 @@ void TextMgr::stringKeyPress(uint16 newKey) {
 					_inputString[_inputStringCursorPos] = newKey;
 					_inputStringCursorPos++;
 					_inputString[_inputStringCursorPos] = 0;
-					displayCharacter(newKey);
+					if (!_vm->isLanguageRTL()) {
+						displayCharacter(newKey);
+					} else {
+						for(int i = 0; i < _inputStringCursorPos ; i++)
+							displayCharacter(0x08);
+						inputEditOff();
+						displayText((const char *)_inputString);
+					}
 
 					stringRememberForAutoComplete();
 				}
@@ -1000,9 +1061,6 @@ void TextMgr::stringKeyPress(uint16 newKey) {
 }
 
 void TextMgr::stringRememberForAutoComplete(bool entered) {
-#ifdef __DS__
-	DS::findWordCompletions((char *)_inputString);
-#endif
 }
 
 /**
@@ -1123,7 +1181,7 @@ char *TextMgr::stringWordWrap(const char *originalText, int16 maxWidth, int16 *c
 // ===============================================================
 
 static void safeStrcat(Common::String &p, const char *t) {
-	if (t != NULL)
+	if (t != nullptr)
 		p += t;
 }
 
@@ -1148,7 +1206,7 @@ char *TextMgr::stringPrintf(const char *originalText) {
 			switch (*originalText++) {
 				int i;
 			case 'v':
-				i = strtoul(originalText, NULL, 10);
+				i = strtoul(originalText, nullptr, 10);
 				while (*originalText >= '0' && *originalText <= '9')
 					originalText++;
 				sprintf(z, "%015i", _vm->getVar(i));
@@ -1156,7 +1214,7 @@ char *TextMgr::stringPrintf(const char *originalText) {
 				i = 99;
 				if (*originalText == '|') {
 					originalText++;
-					i = strtoul(originalText, NULL, 10);
+					i = strtoul(originalText, nullptr, 10);
 					while (*originalText >= '0' && *originalText <= '9')
 						originalText++;
 				}
@@ -1172,23 +1230,23 @@ char *TextMgr::stringPrintf(const char *originalText) {
 				safeStrcat(resultString, z + i);
 				break;
 			case '0':
-				i = strtoul(originalText, NULL, 10) - 1;
+				i = strtoul(originalText, nullptr, 10) - 1;
 				safeStrcat(resultString, _vm->objectName(i));
 				break;
 			case 'g':
-				i = strtoul(originalText, NULL, 10) - 1;
+				i = strtoul(originalText, nullptr, 10) - 1;
 				safeStrcat(resultString, _vm->_game.logics[0].texts[i]);
 				break;
 			case 'w':
-				i = strtoul(originalText, NULL, 10) - 1;
+				i = strtoul(originalText, nullptr, 10) - 1;
 				safeStrcat(resultString, _vm->_words->getEgoWord(i));
 				break;
 			case 's':
-				i = strtoul(originalText, NULL, 10);
+				i = strtoul(originalText, nullptr, 10);
 				safeStrcat(resultString, stringPrintf(_vm->_game.strings[i]));
 				break;
 			case 'm':
-				i = strtoul(originalText, NULL, 10) - 1;
+				i = strtoul(originalText, nullptr, 10) - 1;
 				if (_vm->_game.logics[_vm->_game.curLogicNr].numTexts > i)
 					safeStrcat(resultString, stringPrintf(_vm->_game.logics[_vm->_game.curLogicNr].texts[i]));
 				break;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,18 +34,28 @@ protected:
 	bool _original;
 
 
-	int getStringWidth(const char *str);
-	int getStringHeight(const char *str);
+	int getStringWidth(const char *str, uint numBytesMax);
+	int getStringHeight(const char *str, uint numBytesMax);
 	int draw2byte(byte *buffer, int dst_width, int x, int y, int idx);
 	int drawChar(byte *buffer, int dst_width, int x, int y, byte chr);
-	void drawSubstring(const char *str, byte *buffer, int dst_width, int x, int y);
+	void drawSubstring(const char *str, uint numBytesMax, byte *buffer, int dst_width, int x, int y);
 
 public:
 	SmushFont(ScummEngine *vm, const char *filename, bool use_original_colors, bool new_colors);
 
 	void setColor(byte c) { _color = c; }
-	void drawString    (const char *str, byte *buffer, int dst_width, int dst_height, int x, int y, bool center);
-	void drawStringWrap(const char *str, byte *buffer, int dst_width, int dst_height, int x, int y, int left, int right, bool center);
+	void drawString    (const char *str, byte *buffer, Common::Rect &clipRect, int x, int y, bool center);
+	void drawStringWrap(const char *str, byte *buffer, Common::Rect &clipRect, int x, int y, bool center);
+
+	static inline bool is2ByteCharacter(Common::Language lang, byte c) {
+		if (lang == Common::JA_JPN)
+			return (c >= 0x80 && c <= 0x9F) || (c >= 0xE0 && c <= 0xFD);
+		else if (lang == Common::KO_KOR)
+			return (c >= 0xB0 && c <= 0xD0);
+		else if (lang == Common::ZH_TWN || lang == Common::ZH_CHN)
+			return (c >= 0x80);
+		return false;
+	}
 };
 
 } // End of namespace Scumm

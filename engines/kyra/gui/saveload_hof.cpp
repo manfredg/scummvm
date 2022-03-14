@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -286,12 +285,12 @@ Common::Error KyraEngine_HoF::loadGameState(int slot) {
 	if (loadedZTable != _characterShapeFile)
 		loadCharacterShapes(_characterShapeFile);
 
-	_screen->loadBitmap("_PLAYFLD.CPS", 3, 3, 0);
+	_screen->loadBitmap("_PLAYFLD.CPS", 3, 3, nullptr);
 	if (!queryGameFlag(1))
 		_screen->copyRegion(0xCE, 0x90, 0xCE, 0x90, 0x2C, 0x2C, 2, 0, Screen::CR_NO_P_CHECK);
 	if (!queryGameFlag(2))
 		_screen->copyRegion(0xFA, 0x90, 0xFA, 0x90, 0x46, 0x2C, 2, 0, Screen::CR_NO_P_CHECK);
-	_screen->loadBitmap("_PLAYALL.CPS", 3, 3, 0);
+	_screen->loadBitmap("_PLAYALL.CPS", 3, 3, nullptr);
 	if (queryGameFlag(1))
 		_screen->copyRegion(0xCE, 0x90, 0xCE, 0x90, 0x2C, 0x2C, 2, 0, Screen::CR_NO_P_CHECK);
 	if (queryGameFlag(2))

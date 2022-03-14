@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@ namespace Nuvie {
 
 using Std::vector;
 
-SeekPath::SeekPath() : A_scan(0), B_scan(0) {
+SeekPath::SeekPath() {
 
 }
 
@@ -40,8 +39,8 @@ SeekPath::~SeekPath() {
 /* Get two relative directions that a line can travel to trace around an
    obstacle towards `xdir',`ydir'. */
 bool SeekPath::get_obstacle_tracer(MapCoord &start, sint32 xdir, sint32 ydir,
-                                   sint32 &Axdir, sint32 &Aydir,
-                                   sint32 &Bxdir, sint32 &Bydir) {
+								   sint32 &Axdir, sint32 &Aydir,
+								   sint32 &Bxdir, sint32 &Bydir) {
 	if (xdir && ydir) { // original direction is diagonal
 		MapCoord checkA(start.x + xdir, start.y, start.z);
 		MapCoord checkB(start.x, start.y + ydir, start.z);
@@ -188,8 +187,8 @@ bool SeekPath::path_search(MapCoord &start, MapCoord &goal) {
 }
 
 void SeekPath::delete_nodes() {
-	A_scan.resize(0);
-	B_scan.resize(0);
+	A_scan.clear();
+	B_scan.clear();
 }
 
 } // End of namespace Nuvie

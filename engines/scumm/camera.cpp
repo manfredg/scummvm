@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,7 +51,7 @@ void ScummEngine::setCameraAt(int pos_x, int pos_y) {
 
 	if (VAR_SCROLL_SCRIPT != 0xFF && VAR(VAR_SCROLL_SCRIPT)) {
 		VAR(VAR_CAMERA_POS_X) = camera._cur.x;
-		runScript(VAR(VAR_SCROLL_SCRIPT), 0, 0, 0);
+		runScript(VAR(VAR_SCROLL_SCRIPT), 0, 0, nullptr);
 	}
 
 	// If the camera moved and text is visible, remove it
@@ -68,7 +67,7 @@ void ScummEngine::setCameraFollows(Actor *a, bool setCamera) {
 	camera._follows = a->_number;
 
 	if (!a->isInCurrentRoom()) {
-		startScene(a->getRoom(), 0, 0);
+		startScene(a->getRoom(), nullptr, 0);
 		camera._mode = kFollowActorCameraMode;
 		camera._cur.x = a->getPos().x;
 		setCameraAt(camera._cur.x, 0);
@@ -94,7 +93,7 @@ void ScummEngine::clampCameraPos(Common::Point *pt) {
 void ScummEngine::moveCamera() {
 	int pos = camera._cur.x;
 	int t;
-	Actor *a = NULL;
+	Actor *a = nullptr;
 	const bool snapToX = (_snapScroll || (VAR_CAMERA_FAST_X != 0xFF && VAR(VAR_CAMERA_FAST_X)));
 
 	camera._cur.x &= 0xFFF8;
@@ -163,7 +162,7 @@ void ScummEngine::moveCamera() {
 
 	if (VAR_SCROLL_SCRIPT != 0xFF && VAR(VAR_SCROLL_SCRIPT) && pos != camera._cur.x) {
 		VAR(VAR_CAMERA_POS_X) = camera._cur.x;
-		runScript(VAR(VAR_SCROLL_SCRIPT), 0, 0, 0);
+		runScript(VAR(VAR_SCROLL_SCRIPT), 0, 0, nullptr);
 	}
 }
 
@@ -237,8 +236,8 @@ void ScummEngine_v7::setCameraAt(int pos_x, int pos_y) {
 
 		// Even though cameraMoved() is called automatically, we may
 		// need to know at once that the camera has moved, or text may
-		// be printed at the wrong coordinates. See bugs #795938 and
-		// #929242
+		// be printed at the wrong coordinates. See bugs #1195 and
+		// #1579
 		cameraMoved();
 	}
 }

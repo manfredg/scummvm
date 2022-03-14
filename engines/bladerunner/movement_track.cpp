@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,17 +46,17 @@ void MovementTrack::reset() {
 	}
 }
 
-int MovementTrack::append(int waypointId, int32 delay, bool run) {
-	return append(waypointId, delay, -1, run);
+int MovementTrack::append(int waypointId, int32 delayMillis, bool run) {
+	return append(waypointId, delayMillis, -1, run);
 }
 
-int MovementTrack::append(int waypointId, int32 delay, int angle, bool run) {
+int MovementTrack::append(int waypointId, int32 delayMillis, int angle, bool run) {
 	if (_lastIndex >= kSize) {
 		return 0;
 	}
 
 	_entries[_lastIndex].waypointId = waypointId;
-	_entries[_lastIndex].delay = delay;
+	_entries[_lastIndex].delay = delayMillis;
 	_entries[_lastIndex].angle = angle;
 	_entries[_lastIndex].run = run;
 
@@ -92,16 +91,16 @@ bool MovementTrack::hasNext() const {
 	return _hasNext;
 }
 
-bool MovementTrack::next(int *waypointId, int32 *delay, int *angle, bool *run) {
+bool MovementTrack::next(int *waypointId, int32 *delayMillis, int *angle, bool *run) {
 	if (_currentIndex < _lastIndex && _hasNext) {
 		*waypointId = _entries[_currentIndex].waypointId;
-		*delay = _entries[_currentIndex].delay;
+		*delayMillis = _entries[_currentIndex].delay;
 		*angle = _entries[_currentIndex].angle;
 		*run = _entries[_currentIndex++].run;
 		return true;
 	} else {
 		*waypointId = -1;
-		*delay = -1;
+		*delayMillis = -1;
 		*angle = -1;
 		*run = false;
 		_hasNext = false;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,14 +43,14 @@ namespace AGT {
 /* ------------------------------------------------------------ */
 
 const char trans_ibm[] =
-    "CueaaaaceeeiiiAA"   /* 80 */
-    "E@@ooouuyOUc$$pf"   /* 90 */
-    "aiounNao?....!<>"   /* A0 */
-    "###|++|+++|\\/++\\"   /* B0 */
-    "\\+++-+||\\/+++=+="   /* C0 */
-    "+=+++++++//@@@@@"   /* D0 */
-    "abGpSsmtFTOd.fe^"   /* E0 */
-    "=+><fj/=***/n2# ";  /* F0 */
+	"CueaaaaceeeiiiAA"   /* 80 */
+	"E@@ooouuyOUc$$pf"   /* 90 */
+	"aiounNao?....!<>"   /* A0 */
+	"###|++|+++|\\/++\\"   /* B0 */
+	"\\+++-+||\\/+++=+="   /* C0 */
+	"+=+++++++//@@@@@"   /* D0 */
+	"abGpSsmtFTOd.fe^"   /* E0 */
+	"=+><fj/=***/n2# ";  /* F0 */
 
 
 /* ------------------------------------------------------------- */
@@ -324,13 +323,13 @@ const opdef illegal_def = a(ILLEGAL);
    The last table entry is now marked by a new value of -1.*/
 
 /* Versions of the command set:
-    v1.21 apparantly has a compatible command set w/ 1.7 (!)
-      [except that their maxcmd is apparantly 22, not 30]
-    1.0 doesn't; it seems to have an EOC code of 154, as opposed to
-    165 or so.
-    1.18 seems to be slightly different from 1.7, but seemingly only
-       by one opcode.
-    [And of course both ME and 1.8 have their own extended command sets]
+	v1.21 apparantly has a compatible command set w/ 1.7 (!)
+	  [except that their maxcmd is apparantly 22, not 30]
+	1.0 doesn't; it seems to have an EOC code of 154, as opposed to
+	165 or so.
+	1.18 seems to be slightly different from 1.7, but seemingly only
+	   by one opcode.
+	[And of course both ME and 1.8 have their own extended command sets]
 */
 
 static const cmd_fix_rec FIX_ME[] =  /* No longer using this as baseline */
@@ -341,7 +340,7 @@ static const cmd_fix_rec FIX_ME[] =  /* No longer using this as baseline */
 };
 
 static const cmd_fix_rec FIX_ME0[] =
-    /* 169 */
+	/* 169 */
 {	{0, 0},
 	{110, 1000},
 	{136, 1028}, /* Skip ToggleMoveable and ChangeDescr */
@@ -351,7 +350,7 @@ static const cmd_fix_rec FIX_ME0[] =
 };
 
 static const cmd_fix_rec FIX_ME0A[] = /* Pre-ME/1.0: */
-    /* 169 */
+	/* 169 */
 {	{0, 0},
 	{110, 1000},
 	{130, 1021}, /* Skip PlayRandom */
@@ -479,13 +478,13 @@ const fix_array FIX_LIST[] = /* An array of arrays, indexed by aver */
 
 const char *verstr[] = {"????", "SMALL", "BIG", "MASTER", "SOGGY"};
 const char *averstr[] = {"????", "1.0", "1.18",
-                         "1.2", "1.32/COS", "Classic",
-                         "1.82", "1.83",
-                         "1.5/H", "1.5/F", "1.6",
-                         "ME/1.0b", "ME/1.0a",
-                         "ME/1.5", "ME/1.55", "ME/1.6",
-                         "Magx"
-                        };
+						 "1.2", "1.32/COS", "Classic",
+						 "1.82", "1.83",
+						 "1.5/H", "1.5/F", "1.6",
+						 "ME/1.0b", "ME/1.0a",
+						 "ME/1.5", "ME/1.55", "ME/1.6",
+						 "Magx"
+						};
 
 const char *portstr = PORTSTR;
 const char *version_str = "version 1.1.1";
@@ -510,42 +509,42 @@ const char *exitname[13] =
   except that if a verb takes no objects at all, it should be period
   terminated and if it is a metaverb it should be terminated by '!'. */
 static const char verbdef[] =
-    "north n. south s. east e. west w."
-    "northeast ne. northwest nw. southeast se. southwest sw."
-    "up u. down d."
-    "enter in inside go&in go&into go&in&to get&in get&into get&in&to."
-    "exit leave out go&out get&out get&out&of. special."
-    "throw cast dump, at to in into across inside;"
-    "open , with; close shut; lock, with; unlock, with;"
-    "look l. examine x ex check inspect look&at look&in;"
-    "change_locations change_location;"
-    "read; eat; drink; score! attack kill fight hit, with;"
-    "wait z. yell shout scream."
-    "put place, in with inside into near behind over under on;"
-    "quit q! tell talk talk&to talk&with, to about;"
-    "inventory inv i. get take pick pick&up; ask, about for;"
-    "turn, on off; push touch press, with; pull; play;"
-    "list. show, to; drop;"
-    "listexit listexits list_exits list&exits show&exits."
-    "brief! verbose! save! restore!"
-    "light; extinguish ext put&out; fire shoot, at with;"
-    "help h. wear put&on; remove take&off;"
-    "script script&on! unscript script&off! magic_word. view; after."
-    "instructions ins!"   /* INSTRUCTIONS is "1.83 only" */
-    /* The following are not defined in the original AGT */
-    "again g. restart! oops; undo. notify!"
-    "listexit_on listexit&on listexits&on!"
-    "listexit_off listexit&off listexits&off!"
-    "agildebug agtdebug! log! logoff log&off log&close! replay!"
-    "replay_step replay&step! menu! replay_fast replay&fast."
-    "sound sound_on sound&on! sound_off sound&off! introduction intro!"
-    "dir_addr.";
+	"north n. south s. east e. west w."
+	"northeast ne. northwest nw. southeast se. southwest sw."
+	"up u. down d."
+	"enter in inside go&in go&into go&in&to get&in get&into get&in&to."
+	"exit leave out go&out get&out get&out&of. special."
+	"throw cast dump, at to in into across inside;"
+	"open , with; close shut; lock, with; unlock, with;"
+	"look l. examine x ex check inspect look&at look&in;"
+	"change_locations change_location;"
+	"read; eat; drink; score! attack kill fight hit, with;"
+	"wait z. yell shout scream."
+	"put place, in with inside into near behind over under on;"
+	"quit q! tell talk talk&to talk&with, to about;"
+	"inventory inv i. get take pick pick&up; ask, about for;"
+	"turn, on off; push touch press, with; pull; play;"
+	"list. show, to; drop;"
+	"listexit listexits list_exits list&exits show&exits."
+	"brief! verbose! save! restore!"
+	"light; extinguish ext put&out; fire shoot, at with;"
+	"help h. wear put&on; remove take&off;"
+	"script script&on! unscript script&off! magic_word. view; after."
+	"instructions ins!"   /* INSTRUCTIONS is "1.83 only" */
+	/* The following are not defined in the original AGT */
+	"again g. restart! oops; undo. notify!"
+	"listexit_on listexit&on listexits&on!"
+	"listexit_off listexit&off listexits&off!"
+	"agildebug agtdebug! log! logoff log&off log&close! replay!"
+	"replay_step replay&step! menu! replay_fast replay&fast."
+	"sound sound_on sound&on! sound_off sound&off! introduction intro!"
+	"dir_addr.";
 
 /* 1.83: Removes listexit; adds instructions after remove. */
 
 /* Then come the dummy verbs */
 /* Dummy verb n ==> n-55     105,122
-    Dummy_verb1...Dummy_Verb50        */
+	Dummy_verb1...Dummy_Verb50        */
 
 /* Possible extension to verb definitons (not implemented):
    If it _requires_ a prep, use : ?
@@ -698,7 +697,7 @@ static void init0_dict(void)
 	dictstrptr = 4; /* Point just after 'any' */
 	dictstrsize = DICT_GRAN;
 	dp = 1;
-	syntbl = NULL;
+	syntbl = nullptr;
 	synptr = 0;
 	syntbl_size = 0; /* Clear synonym table */
 }
@@ -806,15 +805,15 @@ static void enter_verbs(int vp, const char *s)
 
 
 void init_dict(void) {
-	dict = NULL;
-	verblist = NULL;
-	syntbl = NULL;
+	dict = nullptr;
+	verblist = nullptr;
+	syntbl = nullptr;
 	no_syn = 0;
-	auxsyn = NULL;
-	preplist = NULL;
-	verbflag = NULL;
-	auxcomb = NULL;
-	old_agt_verb = NULL;
+	auxsyn = nullptr;
+	preplist = nullptr;
+	verbflag = nullptr;
+	auxcomb = nullptr;
+	old_agt_verb = nullptr;
 	num_auxcomb = 0;
 }
 
@@ -824,7 +823,7 @@ void build_verblist(void) {
 
 	verblist = (words *)rmalloc(sizeof(words) * TOTAL_VERB);
 	for (i = 0; i < TOTAL_VERB; i++)
-		strncpy(verblist[i], dict[syntbl[auxsyn[i]]], sizeof(words));
+		Common::strlcpy(verblist[i], dict[syntbl[auxsyn[i]]], sizeof(words));
 #ifdef DUMP_VLIST
 	{
 		int j;
@@ -859,13 +858,13 @@ void reinit_dict(void)
    as loading the initial vocabulary into the dictionary. */
 {
 	char buff[16]; /* Needs to be big enough to hold dummy_verbNNN\0
-            or subroutineNNN\0 */
+			or subroutineNNN\0 */
 	int i;
 
 	no_syn = no_auxsyn;
 
 	auxsyn = (slist *)rmalloc(sizeof(slist) * TOTAL_VERB);
-	auxcomb = NULL;
+	auxcomb = nullptr;
 	num_auxcomb = 0;
 	preplist = (slist *)rmalloc(sizeof(slist) * TOTAL_VERB);
 	verbflag = (uchar *)rmalloc(sizeof(uchar) * TOTAL_VERB);
@@ -899,13 +898,13 @@ void reinit_dict(void)
 		addsyn(-1);
 	}
 	no_syn = 0; /* Return to usual state */
-	verblist = NULL;
+	verblist = nullptr;
 
 	/* Now initialize old_agt_verb array */
-	for (i = 0; old_agt_verb_str[i] != NULL; i++);
+	for (i = 0; old_agt_verb_str[i] != nullptr; i++);
 	rfree(old_agt_verb);
 	old_agt_verb = (word *)rmalloc(sizeof(word) * (i + 1));
-	for (i = 0; old_agt_verb_str[i] != NULL; i++) {
+	for (i = 0; old_agt_verb_str[i] != nullptr; i++) {
 		old_agt_verb[i] = search_dict(old_agt_verb_str[i]);
 		assert(old_agt_verb[i] != -1);
 	}
@@ -1128,7 +1127,7 @@ static int cmp_cmd(const void *cmd1, const void *cmd2) {
 /*   actor will equal the index of the header in the original list. */
 /*   (or negative the header if the command is a redirection) */
 /* For redirected commands, we steal the data pointer since it shouldn't
-    be being used anyhow. */
+	be being used anyhow. */
 /* In a field pointed to by data we store the verb word */
 /* NOTE: this routine requires that the data type of *data (namely
   integer) is big enough to hold a value of type word. */
@@ -1225,7 +1224,7 @@ void sort_cmd(void) {
 
 	all_word = search_dict("all");
 	if (all_word == 0) all_word = -1; /* This means none of the metacommands
-                   used ALL, so prevent ANY matches */
+				   used ALL, so prevent ANY matches */
 	global_word = search_dict("global_scope");
 	if (global_word == 0) global_word = -1; /* Ditto */
 
@@ -1244,7 +1243,7 @@ void sort_cmd(void) {
 	}
 
 	for (i = 0; i < TOTAL_VERB; i++)
-		if (verbptr[i] == last_cmd) /* No occurences of this verb */
+		if (verbptr[i] == last_cmd) /* No occurrences of this verb */
 			verbend[i] = last_cmd;
 		else verbend[i]++; /* Point *after* last occurance */
 
@@ -1346,8 +1345,8 @@ descr_line *read_descr(long start, long size) {
 }
 
 void free_descr(descr_line *txt) {
-	if (txt == NULL) return;
-	if (mem_descr == NULL)
+	if (txt == nullptr) return;
+	if (mem_descr == nullptr)
 		rfree(txt[0]);  /* First free the string block containing the text...*/
 	rfree(txt);    /* ... then the array of pointers to it */
 }
@@ -1571,9 +1570,9 @@ void init_flags(void) {
 	bold_mode = 0;
 	dbg_nomsg = 0; /* Print out MSG arguments to metacommands */
 	debug_mode = 0;
-	dbgflagptr = NULL;
-	dbgvarptr = NULL;
-	dbgcntptr = NULL;
+	dbgflagptr = nullptr;
+	dbgvarptr = nullptr;
+	dbgcntptr = nullptr;
 	no_auxsyn = 0;
 	text_file = 0;
 #ifdef PATH_SEP

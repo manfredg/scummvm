@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define MOHAWK_RIVEN_GRAPHICS_H
 
 #include "mohawk/graphics.h"
+#include "mohawk/riven_graphics_detection_enums.h"
 
 #include "common/ustr.h"
 
@@ -49,13 +49,6 @@ enum RivenTransition {
 	kRivenTransitionPanDown   = 15,
 	kRivenTransitionBlend     = 16,
 	kRivenTransitionBlend2    = 17
-};
-
-enum RivenTransitionMode {
-	kRivenTransitionModeDisabled = 5000,
-	kRivenTransitionModeFastest  = 5001,
-	kRivenTransitionModeNormal   = 5002,
-	kRivenTransitionModeBest     = 5003
 };
 
 enum RivenCreditsImageNumber {
@@ -103,8 +96,10 @@ public:
 	void runScheduledTransition();
 	void fadeToBlack();
 	void setTransitionMode(RivenTransitionMode mode);
+	static RivenTransitionMode sanitizeTransitionMode(int mode);
 
 	// Main menu
+	void loadMenuFont();
 	void drawText(const Common::U32String &text, const Common::Rect &dest, uint8 greyLevel);
 
 	// Credits
@@ -146,7 +141,6 @@ private:
 
 	// Main menu
 	Graphics::Font *_menuFont;
-	void loadMenuFont();
 	const Graphics::Font *getMenuFont() const;
 
 	// Credits

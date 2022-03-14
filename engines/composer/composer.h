@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,25 +43,13 @@
 
 #include "composer/resource.h"
 #include "composer/console.h"
+#include "composer/detection.h"
 
 namespace Audio {
 	class QueuingAudioStream;
 }
 
 namespace Composer {
-
-struct ComposerGameDescription;
-
-enum GameType {
-	GType_ComposerV1,
-	GType_ComposerV2
-};
-
-enum GameFileTypes {
-	GAME_CONFIGFILE     = 1 << 0,    // Game configuration
-	GAME_SCRIPTFILE     = 1 << 1,    // Game script
-	GAME_EXECUTABLE     = 1 << 2     // Game executable
-};
 
 class Archive;
 struct Animation;
@@ -230,7 +217,7 @@ private:
 	uint16 _mouseSpriteId;
 	Common::Point _mouseOffset;
 
-	virtual Common::String getSaveStateName(int slot) const override;
+	Common::String getSaveStateName(int slot) const override;
 	Common::String getStringFromConfig(const Common::String &section, const Common::String &key);
 	Common::String getFilename(const Common::String &section, uint id);
 	Common::String mangleFilename(Common::String filename);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,10 +25,23 @@
 #include <3ds.h>
 #include <malloc.h>
 
+enum {
+	SYSTEM_MODEL_2DS = 3
+};
+
+// Set the size of the stack.
+u32 __stacksize__ = 64 * 1024;
+
 int main(int argc, char *argv[]) {
 	// Initialize basic libctru stuff
-	gfxInitDefault();
 	cfguInit();
+	gfxInitDefault();
+
+	// 800px wide top screen is not available on old 2DS systems
+	u8 systemModel = 0;
+	CFGU_GetSystemModel(&systemModel);
+	gfxSetWide(systemModel != SYSTEM_MODEL_2DS);
+
 	romfsInit();
 	osSetSpeedupEnable(true);
 // 	consoleInit(GFX_TOP, NULL);
@@ -42,7 +54,7 @@ int main(int argc, char *argv[]) {
 	socInit((u32 *)soc_sharedmem, soc_sharedmem_size);
 #endif
 
-	g_system = new _3DS::OSystem_3DS();
+	g_system = new N3DS::OSystem_3DS();
 	assert(g_system);
 
 #ifdef DYNAMIC_MODULES
@@ -64,7 +76,7 @@ int main(int argc, char *argv[]) {
 #endif
 	gdbHioDevExit();
 	romfsExit();
-	cfguExit();
 	gfxExit();
+	cfguExit();
 	return res;
 }

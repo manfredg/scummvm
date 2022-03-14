@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,71 +15,91 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef COMMON_GUI_OPTIONS_H
 #define COMMON_GUI_OPTIONS_H
 
-#define GUIO_NONE            "\000"
-#define GUIO_NOSUBTITLES     "\001"
-#define GUIO_NOMUSIC         "\002"
+#define GUIO_NONE            "\x00"
+#define GUIO_NOSUBTITLES     "\x01"
+#define GUIO_NOMUSIC         "\x02"
 // GUIO_NOSPEECH is a combination of GUIO_NOSPEECHVOLUME and GUIO_NOSUBTITLES
-#define GUIO_NOSPEECH        "\003"
-#define GUIO_NOSFX           "\004"
-#define GUIO_NOMIDI          "\005"
-#define GUIO_NOLAUNCHLOAD    "\006"
+#define GUIO_NOSPEECH        "\x03"
+#define GUIO_NOSFX           "\x04"
+#define GUIO_NOMIDI          "\x05"
+#define GUIO_NOLAUNCHLOAD    "\x06"
 
-#define GUIO_MIDIPCSPK       "\007"
-#define GUIO_MIDICMS         "\010"
-#define GUIO_MIDIPCJR        "\011"
-#define GUIO_MIDIADLIB       "\012"
-#define GUIO_MIDIC64         "\013"
-#define GUIO_MIDIAMIGA       "\014"
-#define GUIO_MIDIAPPLEIIGS   "\015"
-#define GUIO_MIDITOWNS       "\016"
-#define GUIO_MIDIPC98        "\017"
-#define GUIO_MIDIMT32        "\020"
-#define GUIO_MIDIGM          "\021"
+#define GUIO_MIDIPCSPK       "\x07"
+#define GUIO_MIDICMS         "\x08"
+#define GUIO_MIDIPCJR        "\x09"
+#define GUIO_MIDIADLIB       "\x0a"
+#define GUIO_MIDIC64         "\x0b"
+#define GUIO_MIDIAMIGA       "\x0c"
+#define GUIO_MIDIAPPLEIIGS   "\x0d"
+#define GUIO_MIDITOWNS       "\x0e"
+#define GUIO_MIDIPC98        "\x0f"
+#define GUIO_MIDISEGACD      "\x10"
+#define GUIO_MIDIMT32        "\x11"
+#define GUIO_MIDIGM          "\x12"
 
-#define GUIO_NOASPECT        "\022"
+#define GUIO_NOASPECT        "\x13"
 
-#define GUIO_RENDERHERCGREEN "\030"
-#define GUIO_RENDERHERCAMBER "\031"
-#define GUIO_RENDERCGA       "\032"
-#define GUIO_RENDEREGA       "\033"
-#define GUIO_RENDERVGA       "\034"
-#define GUIO_RENDERAMIGA     "\035"
-#define GUIO_RENDERFMTOWNS   "\036"
-#define GUIO_RENDERPC9821    "\037"
-#define GUIO_RENDERPC9801    "\040"
-#define GUIO_RENDERAPPLE2GS  "\041"
-#define GUIO_RENDERATARIST   "\042"
-#define GUIO_RENDERMACINTOSH "\043"
+#define GUIO_RENDERHERCGREEN	"\x18"
+#define GUIO_RENDERHERCAMBER	"\x19"
+#define GUIO_RENDERCGA			"\x1a"
+#define GUIO_RENDEREGA			"\x1b"
+#define GUIO_RENDERVGA			"\x1c"
+#define GUIO_RENDERAMIGA		"\x1d"
+#define GUIO_RENDERFMTOWNS		"\x1e"
+#define GUIO_RENDERPC9821		"\x1f"
+#define GUIO_RENDERPC9801		"\x20"
+#define GUIO_RENDERAPPLE2GS		"\x21"
+#define GUIO_RENDERATARIST		"\x22"
+#define GUIO_RENDERMACINTOSH	"\x23"
+#define GUIO_RENDERMACINTOSHBW	"\x28"	// Setting this to 0x28 is not ideal, but there is no free slot left. Maybe we need to migrate to 3-digit numbers...
 
-#define GUIO_LINKSPEECHTOSFX "\044"
-#define GUIO_LINKMUSICTOSFX  "\045"
-#define GUIO_NOSPEECHVOLUME  "\046"
+#define GUIO_LINKSPEECHTOSFX "\x24"
+#define GUIO_LINKMUSICTOSFX  "\x25"
+#define GUIO_NOSPEECHVOLUME  "\x26"
+
+#define GUIO_NOLANG          "\x27"
 
 // Special GUIO flags for the AdvancedDetector's caching of game specific
 // options.
-#define GUIO_GAMEOPTIONS1    "\050"
-#define GUIO_GAMEOPTIONS2    "\051"
-#define GUIO_GAMEOPTIONS3    "\052"
-#define GUIO_GAMEOPTIONS4    "\053"
-#define GUIO_GAMEOPTIONS5    "\054"
-#define GUIO_GAMEOPTIONS6    "\055"
-#define GUIO_GAMEOPTIONS7    "\056"
-#define GUIO_GAMEOPTIONS8    "\057"
-#define GUIO_GAMEOPTIONS9    "\060"
-#define GUIO_GAMEOPTIONS10   "\061"
-#define GUIO_GAMEOPTIONS11   "\062"
-#define GUIO_GAMEOPTIONS12   "\063"
-#define GUIO_GAMEOPTIONS13   "\064"
-#define GUIO_GAMEOPTIONS14   "\065"
-#define GUIO_GAMEOPTIONS15   "\066"
+#define GUIO_GAMEOPTIONS1    "\x30"
+#define GUIO_GAMEOPTIONS2    "\x31"
+#define GUIO_GAMEOPTIONS3    "\x32"
+#define GUIO_GAMEOPTIONS4    "\x33"
+#define GUIO_GAMEOPTIONS5    "\x34"
+#define GUIO_GAMEOPTIONS6    "\x35"
+#define GUIO_GAMEOPTIONS7    "\x36"
+#define GUIO_GAMEOPTIONS8    "\x37"
+#define GUIO_GAMEOPTIONS9    "\x38"
+#define GUIO_GAMEOPTIONS10   "\x39"
+#define GUIO_GAMEOPTIONS11   "\x3a"
+#define GUIO_GAMEOPTIONS12   "\x3b"
+#define GUIO_GAMEOPTIONS13   "\x3c"
+#define GUIO_GAMEOPTIONS14   "\x3d"
+#define GUIO_GAMEOPTIONS15   "\x3e"
+#define GUIO_GAMEOPTIONS16   "\x3f"
+#define GUIO_GAMEOPTIONS17   "\x40"
+#define GUIO_GAMEOPTIONS18   "\x41"
+#define GUIO_GAMEOPTIONS19   "\x42"
+#define GUIO_GAMEOPTIONS20   "\x43"
+#define GUIO_GAMEOPTIONS21   "\x44"
+#define GUIO_GAMEOPTIONS22   "\x45"
+#define GUIO_GAMEOPTIONS23   "\x46"
+#define GUIO_GAMEOPTIONS24   "\x47"
+#define GUIO_GAMEOPTIONS25   "\x48"
+#define GUIO_GAMEOPTIONS26   "\x49"
+#define GUIO_GAMEOPTIONS27   "\x4a"
+#define GUIO_GAMEOPTIONS28   "\x4b"
+#define GUIO_GAMEOPTIONS29   "\x4c"
+#define GUIO_GAMEOPTIONS30   "\x4d"
+#define GUIO_GAMEOPTIONS31   "\x4e"
+#define GUIO_GAMEOPTIONS32   "\x4f"
 
 #define GUIO0() (GUIO_NONE)
 #define GUIO1(a) (a)
@@ -94,6 +114,15 @@
 
 namespace Common {
 
+/**
+ * @defgroup common_gui_options GUI options
+ * @ingroup common
+ *
+ * @brief API for managing the options of the graphical user interface (GUI).
+ *
+ * @{
+ */
+
 class String;
 
 bool checkGameGUIOption(const String &option, const String &str);
@@ -101,12 +130,13 @@ String parseGameGUIOptions(const String &str);
 const String getGameGUIOptionsDescription(const String &options);
 
 /**
- * Updates the GUI options of the current config manager
- * domain, when they differ to the ones passed as
+ * Update the GUI options of the current config manager
+ * domain when they differ to the ones passed as
  * parameter.
  */
 void updateGameGUIOptions(const String &options, const String &langOption);
 
+/** @} */
 
 } // End of namespace Common
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/memstream.h"
@@ -131,7 +130,7 @@ void FontManager::draw() {
 
 void FontManager::clearText() {
 	_numTextEntries = 0;
-	_surface->fillRect(Common::Rect(0, 0, _surface->w - 1, _surface->h - 1), 0);
+	_surface->fillRect(Common::Rect(_surface->w, _surface->h), 0);
 }
 
 Font *FontManager::loadFont(uint16 index, Common::SeekableReadStream &stream) {
@@ -231,12 +230,17 @@ void FontManager::drawTextDialogBox(uint32 x1, uint32 y1, uint32 x2, uint32 y2) 
 	drawBoxChar(x2, y1, kTileIndexTopRight);
 	drawBoxChar(x1, y2, kTileIndexBottomLeft);
 	drawBoxChar(x2, y2, kTileIndexBottomRight);
+	_numTextEntries++;
 }
 
 void FontManager::clearTextDialog(uint32 x1, uint32 y1, uint32 x2, uint32 y2) {
-	//TODO clear just specified Area.
-	debug("Clear text (%d,%d) -> (%d,%d)", x1, y1, x2, y2);
-	clearText();
+	debug(3, "Clear text (%d,%d) -> (%d,%d)", x1, y1, x2, y2);
+//	assert(x1 > 0);
+//	assert(y1 > 0);
+	_surface->fillRect(Common::Rect((x1-1) * 8, (y1-1) * 8, (x2 + 1) * 8 + 1, (y2 + 1) * 8 + 1), 0);
+	if (_numTextEntries > 0) {
+		_numTextEntries--; //TODO need a better way to check if we should still draw the font surface.
+	}
 }
 
 void FontManager::drawBoxChar(uint32 x, uint32 y, uint8 tileIndex) {

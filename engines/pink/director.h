@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,10 +39,11 @@ class Actor;
 class ActionCEL;
 class ActionSound;
 class ActionText;
+class PinkEngine;
 
 class Director {
 public:
-	Director();
+	Director(PinkEngine *vm);
 	~Director();
 
 	void update();
@@ -63,6 +63,9 @@ public:
 	void addSound(ActionSound *sound) { _sounds.push_back(sound); };
 	void removeSound(ActionSound *sound);
 
+	void addTextWindow(Graphics::MacTextWindow *window);
+	void removeTextWindow(Graphics::MacTextWindow *window);
+
 	void clear();
 
 	void pause(bool pause);
@@ -70,11 +73,13 @@ public:
 	void saveStage();
 	void loadStage();
 
-	Actor *getActorByPoint(const Common::Point point);
+	Actor *getActorByPoint(Common::Point point);
 
 	Graphics::MacWindowManager &getWndManager() { return *_wm; };
 
 	void draw(bool blit = true);
+
+	const Graphics::Font *getTextFont() { return _textFont; }
 
 private:
 	void mergeDirtyRects();
@@ -88,7 +93,11 @@ private:
 	Common::Array<ActionCEL *> _savedSprites;
 	Common::Array<ActionSound *> _sounds;
 	Common::Array<ActionText *> _textActions;
+	Common::Array<Graphics::MacTextWindow *> _textWindows;
 	bool _textRendered;
+
+	const Graphics::Font *_textFont;
+	bool _textFontCleanup;
 };
 
 } // End of namespace Pink

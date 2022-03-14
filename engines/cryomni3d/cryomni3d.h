@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,6 +37,7 @@
 #include "cryomni3d/font_manager.h"
 #include "cryomni3d/objects.h"
 #include "cryomni3d/sprites.h"
+#include "cryomni3d/detection.h"
 
 class OSystem;
 
@@ -62,26 +62,6 @@ class ImageDecoder;
 namespace CryOmni3D {
 
 class DATSeekableStream;
-
-enum CryOmni3DGameType {
-	GType_VERSAILLES
-};
-
-enum CryOmni3DGameFeatures {
-	GF_VERSAILLES_FONTS_MASK               = (3 << 0), // Fonts flag mask
-	GF_VERSAILLES_FONTS_NUMERIC            = (0 << 0), // Fonts are font01.crf, ...
-	GF_VERSAILLES_FONTS_SET_A              = (1 << 0), // Fonts are for French Macintosh (development version)
-	GF_VERSAILLES_FONTS_SET_B              = (2 << 0), // Standard set (Helvet12 is used for debugging docs)
-	GF_VERSAILLES_FONTS_SET_C              = (3 << 0), // Fonts for Italian version (Helvet12 is used for docs texts)
-
-	GF_VERSAILLES_AUDIOPADDING_NO          = (0 << 2), // Audio files have underscore padding before extension
-	GF_VERSAILLES_AUDIOPADDING_YES         = (1 << 2), // Audio files have underscore padding before extension
-
-	GF_VERSAILLES_LINK_STANDARD            = (0 << 3), // Links file is lien_doc.txt
-	GF_VERSAILLES_LINK_LOCALIZED           = (1 << 3)  // Links file is taken from cryomni3d.dat
-};
-
-struct CryOmni3DGameDescription;
 
 // Engine Debug Flags
 enum {
@@ -176,6 +156,9 @@ protected:
 	void fadeInPalette(const byte *colors);
 	void setBlackPalette();
 
+	void setHNMClipping(const Common::Rect &clip) { _hnmClipping = clip; _hnmHasClip = true; }
+	void unsetHNMClipping() { _hnmHasClip = false; }
+
 protected:
 	bool _canLoadSave;
 
@@ -194,6 +177,25 @@ protected:
 private:
 	uint _lockPaletteStartRW;
 	uint _lockPaletteEndRW;
+
+	Common::Rect _hnmClipping;
+	bool _hnmHasClip;
+};
+
+class CryOmni3DEngine_HNMPlayer : public CryOmni3DEngine {
+protected:
+	Common::Error run() override;
+
+public:
+	CryOmni3DEngine_HNMPlayer(OSystem *syst, const CryOmni3DGameDescription *gamedesc) : CryOmni3DEngine(syst, gamedesc) {}
+	~CryOmni3DEngine_HNMPlayer() override {}
+
+	bool displayToolbar(const Graphics::Surface *original) override { return false; }
+	bool hasPlaceDocumentation() override { return false; }
+	bool displayPlaceDocumentation() override { return false; }
+	uint displayOptions() override { return 0; }
+	void makeTranslucent(Graphics::Surface &dst, const Graphics::Surface &src) const override {}
+	void setupPalette(const byte *colors, uint start, uint num) override {}
 };
 
 } // End of namespace CryOmni3D

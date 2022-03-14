@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,7 @@
 #include "common/error.h"
 #include "common/file.h"
 #include "common/fs.h"
+#include "common/text-to-speech.h"
 #include "engines/advancedDetector.h"
 #include "engines/util.h"
 #include "gui/message.h"
@@ -44,11 +44,6 @@ const int CGEEngine::_maxSceneArr[5] = {1, 8, 16, 23, 24};
 
 CGEEngine::CGEEngine(OSystem *syst, const ADGameDescription *gameDescription)
 	: Engine(syst), _gameDescription(gameDescription), _randomSource("cge") {
-
-	// Debug/console setup
-	DebugMan.addDebugChannel(kCGEDebugBitmap, "bitmap", "CGE Bitmap debug channel");
-	DebugMan.addDebugChannel(kCGEDebugFile, "file", "CGE IO debug channel");
-	DebugMan.addDebugChannel(kCGEDebugEngine, "engine", "CGE Engine debug channel");
 
 	_bitmapPalette = nullptr;
 	_pocLight = nullptr;
@@ -169,9 +164,6 @@ void CGEEngine::init() {
 }
 
 void CGEEngine::deinit() {
-	// Remove all of our debug levels here
-	DebugMan.clearAllDebugChannels();
-
 	// Delete engine objects
 	delete _vga;
 	delete _sys;
@@ -226,10 +218,14 @@ Common::Error CGEEngine::run() {
 	// If game is finished, display ending message
 	if (_flag[3]) {
 		Common::String msg = Common::String(_text->getText(kSayTheEnd));
-		if (msg.size() != 0) {
+		if (!msg.empty()) {
 			g_system->delayMillis(10);
-			GUI::MessageDialog dialog(msg, "OK");
+			GUI::MessageDialog dialog(msg);
 			dialog.runModal();
+			Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+			if (ttsMan != nullptr && ConfMan.getBool("tts_enabled")) {
+				ttsMan->say(msg);
+			}
 		}
 	}
 
@@ -241,7 +237,7 @@ Common::Error CGEEngine::run() {
 
 bool CGEEngine::hasFeature(EngineFeature f) const {
 	return
-		(f == kSupportsRTL) ||
+		(f == kSupportsReturnToLauncher) ||
 		(f == kSupportsLoadingDuringRuntime) ||
 		(f == kSupportsSavingDuringRuntime);
 }

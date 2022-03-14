@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@
 #include "scumm/sound.h"
 
 #include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 
 #include "scumm/smush/smush_player.h"
 #include "scumm/smush/smush_font.h"
@@ -1218,7 +1217,7 @@ void Insane::smlayer_setFluPalette(byte *pal, int shut_flag) {
 }
 
 bool Insane::smlayer_isSoundRunning(int32 sound) {
-	return _vm->_imuseDigital->getSoundStatus(readArray(sound)) != 0;
+	return _vm->_imuseDigital->isSoundRunning(readArray(sound)) != 0;
 }
 
 bool Insane::smlayer_startSfx(int32 sound) {
@@ -1238,11 +1237,11 @@ bool Insane::smlayer_startVoice(int32 sound) {
 }
 
 void Insane::smlayer_soundSetPan(int32 soundId, int32 pan) {
-	_vm->_imuseDigital->setPan(soundId, pan);
+	_vm->_imuseDigital->setPan(readArray(soundId), pan);
 }
 
 void Insane::smlayer_soundSetPriority(int32 soundId, int32 priority) {
-	_vm->_imuseDigital->setPriority(soundId, priority);
+	_vm->_imuseDigital->setPriority(readArray(soundId), priority);
 }
 
 void Insane::smlayer_drawSomething(byte *renderBitmap, int32 codecparam,
@@ -1262,10 +1261,8 @@ void Insane::smlayer_showStatusMsg(int32 arg_0, byte *renderBitmap, int32 codecp
 					   int32 flags, const char *formatString, const char *strng) {
 	SmushFont *sf = _player->getFont(0);
 	int color = 1;
-	int32 top = 0;
 	char *str = NULL, *string;
 	int len = strlen(formatString) + strlen(strng) + 16;
-
 	string = (char *)malloc(len);
 	str = string;
 
@@ -1299,23 +1296,20 @@ void Insane::smlayer_showStatusMsg(int32 arg_0, byte *renderBitmap, int32 codecp
 	sf->setColor(color);
 
 	// flags:
-	// bit 0 - center       1
-	// bit 1 - not used     2
-	// bit 2 - ???          4
-	// bit 3 - wrap around  8
-	switch (flags) {
-	case 0:
-		sf->drawString(str, renderBitmap, _player->_width, _player->_height, pos_x, pos_y, false);
-		break;
-	case 1:
-		sf->drawString(str, renderBitmap, _player->_width, _player->_height, pos_x, MAX(pos_y, top), true);
-		break;
-	case 5:
-		sf->drawStringWrap(str, renderBitmap, _player->_width, _player->_height, pos_x, pos_y, 10, 300, true);
-		break;
-	default:
-		error("Insane::smlayer_showStatusMsg. Not handled flags: %d", flags);
+	// bit 0 - center                  0x01
+	// bit 1 - not used (align right)  0x02
+	// bit 2 - word wrap               0x04
+	// bit 3 - switchable              0x08
+	// bit 4 - fill background         0x10
+	if ((flags & 4) || _vm->_language == Common::HE_ISR) {
+		Common::Rect clipRect(0, 0, _player->_width, _player->_height);
+		sf->drawStringWrap(str, renderBitmap, clipRect, pos_x, pos_y, flags & 1);
+	} else {
+		Common::Rect clipRect(10, 0, 310, _player->_height);
+		sf->drawString(str, renderBitmap, clipRect, pos_x, pos_y, flags & 1);
 	}
+
+
 	free (string);
 }
 

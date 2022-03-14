@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,21 +15,26 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef TOOLS_CREATE_PROJECT_H
 #define TOOLS_CREATE_PROJECT_H
 
-#ifndef __has_feature       // Optional of course.
-#define __has_feature(x) 0  // Compatibility with non-clang compilers.
+#ifndef __has_feature      // Optional of course.
+#define __has_feature(x) 0 // Compatibility with non-clang compilers.
 #endif
 
-#include <map>
+#if __cplusplus < 201103L && (!defined(_MSC_VER) || _MSC_VER < 1700)
+#define override           // Compatibility with non-C++11 compilers.
+#endif
+
 #include <list>
+#include <map>
+#include <map>
 #include <string>
+#include <vector>
 
 #include <cassert>
 
@@ -156,12 +161,11 @@ StringList getEngineDefines(const EngineDescList &engines);
  * used to build ScummVM.
  */
 struct Feature {
-	const char *name;        ///< Name of the feature
-	const char *define;      ///< Define of the feature
+	const char *name;   ///< Name of the feature
+	const char *define; ///< Define of the feature
+	bool library; ///< Whether this feature needs to be linked to a library
 
-	const char *libraries;   ///< Libraries, which need to be linked, for the feature
-
-	bool enable;             ///< Whether the feature is enabled or not
+	bool enable; ///< Whether the feature is enabled or not
 
 	const char *description; ///< Human readable description of the feature
 
@@ -172,8 +176,8 @@ struct Feature {
 typedef std::list<Feature> FeatureList;
 
 struct Tool {
-	const char *name;        ///< Name of the tools
-	bool enable;             ///< Whether the tools is enabled or not
+	const char *name; ///< Name of the tools
+	bool enable;      ///< Whether the tools is enabled or not
 };
 typedef std::list<Tool> ToolList;
 
@@ -193,14 +197,6 @@ FeatureList getAllFeatures();
 StringList getFeatureDefines(const FeatureList &features);
 
 /**
- * Returns a list of all external library files, according to the
- * feature set passed.
- *
- * @param features List of features for the build (this may contain features, which are *not* enabled!)
- */
-StringList getFeatureLibraries(const FeatureList &features);
-
-/**
  * Sets the state of a given feature. This can be used to
  * either include or exclude an feature.
  *
@@ -218,7 +214,7 @@ bool setFeatureBuildState(const std::string &name, FeatureList &features, bool e
  * @param features List of features to operate on.
  * @return "true", when the feature is enabled, "false" otherwise.
  */
-bool getFeatureBuildState(const std::string &name, FeatureList &features);
+bool getFeatureBuildState(const std::string &name, const FeatureList &features);
 
 /**
  * Structure to describe a build setup.
@@ -228,33 +224,44 @@ bool getFeatureBuildState(const std::string &name, FeatureList &features);
  * It also contains the path to the project source root.
  */
 struct BuildSetup {
-	std::string projectName;         ///< Project name
-	std::string projectDescription;  ///< Project description
+	std::string projectName;        ///< Project name
+	std::string projectDescription; ///< Project description
 
 	std::string srcDir;     ///< Path to the sources.
 	std::string filePrefix; ///< Prefix for the relative path arguments in the project files.
 	std::string outputDir;  ///< Path where to put the MSVC project files.
 
+	StringList includeDirs; ///< List of additional include paths
+	StringList libraryDirs; ///< List of additional library paths
+
 	EngineDescList engines; ///< Engine list for the build (this may contain engines, which are *not* enabled!).
 	FeatureList features;   ///< Feature list for the build (this may contain features, which are *not* enabled!).
 
 	StringList defines;   ///< List of all defines for the build.
-	StringList libraries; ///< List of all external libraries required for the build.
 	StringList testDirs;  ///< List of all folders containing tests
 
-	bool devTools;         ///< Generate project files for the tools
-	bool tests;            ///< Generate project files for the tests
-	bool runBuildEvents;   ///< Run build events as part of the build (generate revision number and copy engine/theme data & needed files to the build folder
-	bool createInstaller;  ///< Create installer after the build
-	bool useSDL2;          ///< Whether to use SDL2 or not.
+	bool devTools;             ///< Generate project files for the tools
+	bool tests;                ///< Generate project files for the tests
+	bool runBuildEvents;       ///< Run build events as part of the build (generate revision number and copy engine/theme data & needed files to the build folder
+	bool createInstaller;      ///< Create installer after the build
+	bool useSDL2;              ///< Whether to use SDL2 or not.
+	bool useCanonicalLibNames; ///< Whether to use canonical libraries names or default ones
+	bool useStaticDetection;   ///< Whether to link detection features inside the executable or not.
+	bool useWindowsUnicode;    ///< Whether to use Windows Unicode APIs or ANSI APIs.
 
 	BuildSetup() {
-		devTools        = false;
-		tests           = false;
-		runBuildEvents  = false;
+		devTools = false;
+		tests = false;
+		runBuildEvents = false;
 		createInstaller = false;
-		useSDL2         = true;
+		useSDL2 = true;
+		useCanonicalLibNames = false;
+		useStaticDetection = true;
+		useWindowsUnicode = true;
 	}
+
+	bool featureEnabled(std::string feature) const;
+	Feature getFeature(std::string feature) const;
 };
 
 /**
@@ -263,17 +270,17 @@ struct BuildSetup {
  * @param message The error message to print to stderr.
  */
 #if defined(__GNUC__)
-	#define NORETURN_POST __attribute__((__noreturn__))
+#define NORETURN_POST __attribute__((__noreturn__))
 #elif defined(_MSC_VER)
-	#define NORETURN_PRE __declspec(noreturn)
+#define NORETURN_PRE __declspec(noreturn)
 #endif
 
 #ifndef NORETURN_PRE
-#define	NORETURN_PRE
+#define NORETURN_PRE
 #endif
 
 #ifndef NORETURN_POST
-#define	NORETURN_POST
+#define NORETURN_POST
 #endif
 void NORETURN_PRE error(const std::string &message) NORETURN_POST;
 
@@ -293,6 +300,15 @@ struct MSVCVersion {
 	const char *toolsetLLVM;     ///< Toolset version for Clang/LLVM compiler.
 };
 typedef std::list<MSVCVersion> MSVCList;
+
+enum MSVC_Architecture {
+	ARCH_ARM64,
+	ARCH_X86,
+	ARCH_AMD64
+};
+
+std::string getMSVCArchName(MSVC_Architecture arch);
+std::string getMSVCConfigName(MSVC_Architecture arch);
 
 /**
  * Creates a list of all supported versions of Visual Studio.
@@ -315,6 +331,15 @@ const MSVCVersion *getMSVCVersion(int version);
  * @return Version number, or 0 if no installations were found.
  */
 int getInstalledMSVC();
+
+/**
+ * Removes given feature from setup.
+ *
+ * @param setup The setup to be processed.
+ * @param feature The feature to be removed
+ * @return A copy of setup less feature.
+ */
+BuildSetup removeFeatureFromSetup(BuildSetup setup, const std::string &feature);
 
 namespace CreateProjectTool {
 
@@ -371,6 +396,17 @@ std::string convertPathToWin(const std::string &path);
 void splitFilename(const std::string &fileName, std::string &name, std::string &ext);
 
 /**
+ * Splits a full path into directory and filename.
+ * This assumes the last part is the filename, even if it
+ * has no extension.
+ *
+ * @param path Path to split
+ * @param name Reference to a string, where to store the directory part.
+ * @param ext Reference to a string, where to store the filename part.
+ */
+void splitPath(const std::string &path, std::string &dir, std::string &file);
+
+/**
  * Returns the basename of a path.
  * examples:
  *   a/b/c/d.ext -> d.ext
@@ -396,6 +432,14 @@ bool producesObjectFile(const std::string &fileName);
 * @return string representation of the number
 */
 std::string toString(int num);
+
+/**
+* Convert a string to uppercase
+*
+* @param str the source string
+* @return The string transformed to uppercase
+*/
+std::string toUpper(const std::string &str);
 
 /**
  * Returns a list of all files and directories in the specified
@@ -464,11 +508,12 @@ public:
 	static std::string getLastPathComponent(const std::string &path);
 
 protected:
-	const int _version;                                      ///< Target project version
-	StringList &_globalWarnings;                             ///< Global warnings
-	std::map<std::string, StringList> &_projectWarnings;     ///< Per-project warnings
+	const int _version;                                  ///< Target project version
+	StringList &_globalWarnings;                         ///< Global warnings
+	std::map<std::string, StringList> &_projectWarnings; ///< Per-project warnings
 
-	UUIDMap _uuidMap;                                        ///< List of (project name, UUID) pairs
+	UUIDMap _engineUuidMap; ///< List of (project name, UUID) pairs
+	UUIDMap _allProjUuidMap;
 
 	/**
 	 *  Create workspace/solution file
@@ -506,18 +551,16 @@ protected:
 
 	/**
 	 * Writes file entries for the specified directory node into
-	 * the given project file. It will also take care of duplicate
-	 * object files.
+	 * the given project file.
 	 *
 	 * @param dir Directory node.
 	 * @param projectFile File stream to write to.
 	 * @param indentation Indentation level to use.
-	 * @param duplicate List of duplicate object file names.
 	 * @param objPrefix Prefix to use for object files, which would name clash.
 	 * @param filePrefix Generic prefix to all files of the node.
 	 */
-	virtual void writeFileListToProject(const FileNode &dir, std::ofstream &projectFile, const int indentation,
-	                                    const StringList &duplicate, const std::string &objPrefix, const std::string &filePrefix) = 0;
+	virtual void writeFileListToProject(const FileNode &dir, std::ostream &projectFile, const int indentation,
+	                                    const std::string &objPrefix, const std::string &filePrefix) = 0;
 
 	/**
 	 * Output a list of project references to the file stream
@@ -540,7 +583,7 @@ protected:
 	 * @param excludeList Files to exclude (must have a relative directory as prefix).
 	 * @param filePrefix Prefix to use for relative path arguments.
 	 */
-	void addFilesToProject(const std::string &dir, std::ofstream &projectFile,
+	void addFilesToProject(const std::string &dir, std::ostream &projectFile,
 	                       const StringList &includeList, const StringList &excludeList,
 	                       const std::string &filePrefix);
 
@@ -555,7 +598,7 @@ protected:
 	 * @param includeList Reference to a list, where included files should be added.
 	 * @param excludeList Reference to a list, where excluded files should be added.
 	 */
-	void createModuleList(const std::string &moduleDir, const StringList &defines, StringList &testDirs, StringList &includeList, StringList &excludeList) const;
+	void createModuleList(const std::string &moduleDir, const StringList &defines, StringList &testDirs, StringList &includeList, StringList &excludeList, bool forDetection = false) const;
 
 	/**
 	 * Creates an UUID for every enabled engine of the
@@ -590,7 +633,6 @@ protected:
 	std::string createUUID(const std::string &name) const;
 
 private:
-
 	/**
 	 * Returns the string representation of an existing UUID.
 	 *
@@ -608,6 +650,6 @@ private:
 	void createEnginePluginsTable(const BuildSetup &setup);
 };
 
-} // End of CreateProjectTool namespace
+} // namespace CreateProjectTool
 
 #endif // TOOLS_CREATE_PROJECT_H

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "sci/sci.h"
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/engine/features.h"
 #include "sci/engine/state.h"
 #include "sci/engine/selector.h"
@@ -407,7 +406,11 @@ reg_t kDoAvoider(EngineState *s, int argc, reg_t *argv) {
 	reg_t avoider = argv[0];
 	int16 timesStep = argc > 1 ? argv[1].toUint16() : 1;
 
-	if (!s->_segMan->isHeapObject(avoider)) {
+	// Note: the avoider must be an object but it may already have been freed.
+	//  Avoid:doit calls kDoAvoider multiple times and any of these calls might
+	//  result in the avoider being disposed when invoking mover:doit.
+	//  This can happen in kq4 early when captured by a witch in room 57.
+	if (!s->_segMan->isObject(avoider)) {
 		error("DoAvoider() where avoider %04x:%04x is not an object", PRINT_REG(avoider));
 		return SIGNAL_REG;
 	}

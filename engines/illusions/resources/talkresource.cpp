@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,17 +44,24 @@ void TalkEntry::load(byte *dataStart, Common::SeekableReadStream &stream) {
 	uint32 textOffs = stream.readUint32LE();
 	uint32 tblOffs = stream.readUint32LE();
 	uint32 voiceNameOffs = stream.readUint32LE();
-	_text = dataStart + textOffs;
+	_text = (uint16 *)(dataStart + textOffs);
 	_tblPtr = dataStart + tblOffs;
 	_voiceName = dataStart + voiceNameOffs;
 	debug(0, "TalkEntry::load() _talkId: %08X; textOffs: %08X; tblOffs: %08X; voiceNameOffs: %08X",
 		_talkId, textOffs, tblOffs, voiceNameOffs);
+
+#if defined(SCUMM_BIG_ENDIAN)
+	for (byte *ptr = (byte *)_text; *ptr != 0; ptr += 2) {
+		WRITE_UINT16(ptr, SWAP_BYTES_16(READ_UINT16(ptr)));
+	}
+#endif
+
 }
 
 // TalkResource
 
 TalkResource::TalkResource()
-	: _talkEntriesCount(0), _talkEntries(0) {
+	: _talkEntriesCount(0), _talkEntries(nullptr) {
 }
 
 TalkResource::~TalkResource() {
@@ -146,7 +152,7 @@ TalkInstance *TalkInstanceList::findTalkItem(uint32 talkId) {
 		if ((*it)->_talkId == talkId)
 			return (*it);
 	}
-	return 0;
+	return nullptr;
 }
 
 TalkInstance *TalkInstanceList::findTalkItemBySceneId(uint32 sceneId) {
@@ -154,7 +160,7 @@ TalkInstance *TalkInstanceList::findTalkItemBySceneId(uint32 sceneId) {
 		if ((*it)->_sceneId == sceneId)
 			return (*it);
 	}
-	return 0;
+	return nullptr;
 }
 
 void TalkInstanceList::pauseBySceneId(uint32 sceneId) {

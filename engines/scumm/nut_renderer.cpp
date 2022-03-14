@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,6 +31,7 @@ NutRenderer::NutRenderer(ScummEngine *vm, const char *filename) :
 	_vm(vm),
 	_numChars(0),
 	_maxCharSize(0),
+	_fontHeight(0),
 	_charBuffer(0),
 	_decodedData(0) {
 	memset(_chars, 0, sizeof(_chars));
@@ -117,16 +117,13 @@ void NutRenderer::loadFont(const char *filename) {
 	uint32 decodedLength = 0;
 	int l;
 
-	_paletteMap = new byte[256];
-	for (l = 0; l < 256; l++) {
-		_paletteMap[l] = 0;
-	}
+	_paletteMap = new byte[256]();
 
 	for (l = 0; l < _numChars; l++) {
 		offset += READ_BE_UINT32(dataSrc + offset + 4) + 16;
 		int width = READ_LE_UINT16(dataSrc + offset + 14);
-		int height = READ_LE_UINT16(dataSrc + offset + 16);
-		int size = width * height;
+		_fontHeight = READ_LE_UINT16(dataSrc + offset + 16);
+		int size = width * _fontHeight;
 		decodedLength += size;
 		if (size > _maxCharSize)
 			_maxCharSize = size;
@@ -219,8 +216,7 @@ void NutRenderer::loadFont(const char *filename) {
 
 		debug(1, "NutRenderer::loadFont('%s') - compressedLength = %d (%d bpp)", filename, compressedLength, _bpp);
 
-		byte *compressedData = new byte[compressedLength];
-		memset(compressedData, 0, compressedLength);
+		byte *compressedData = new byte[compressedLength]();
 
 		offset = 0;
 
@@ -404,24 +400,10 @@ void NutRenderer::draw2byte(const Graphics::Surface &s, int c, int x, int y, byt
 		return;
 	}
 
-	enum ShadowMode {
-		kNone,
-		kKoreanV8ShadowMode
-	};
-
-	ShadowMode shadowMode = kNone;
-
-	if (_vm->_language == Common::KO_KOR && _vm->_game.version == 8) {
-		shadowMode = kKoreanV8ShadowMode;
-	}
-
 	int shadowOffsetXTable[4] = {-1, 0, 1, 0};
 	int shadowOffsetYTable[4] = {0, 1, 0, 0};
 	int shadowOffsetColorTable[4] = {0, 0, 0, color};
-
-	int shadowIdx = 3;
-	if (shadowMode == kKoreanV8ShadowMode)
-		shadowIdx = 0;
+	int shadowIdx = (_vm->_useCJKMode && _vm->_game.id == GID_CMI) ? 0 : 3;
 
 	const byte *origSrc = src;
 

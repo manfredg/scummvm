@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 #include "engines/engine.h"
 #include "gui/debugger.h"
 #include "common/fs.h"
+#include "wintermute/detection.h"
 
 namespace Wintermute {
 
@@ -33,7 +33,10 @@ class Console;
 class BaseGame;
 class SystemClassRegistry;
 class DebuggerController;
-struct WMEGameDescription;
+
+const int INT_MAX_VALUE  = 0x7fffffff;
+const int INT_MIN_VALUE  = -INT_MAX_VALUE - 1;
+const int UINT_MAX_VALUE = 0xffffffff;
 
 // our engine debug channels
 enum {
@@ -43,13 +46,6 @@ enum {
 	kWintermuteDebugFileAccess = 1 << 3, // the current limitation is 32 debug channels (1 << 31 is the last one)
 	kWintermuteDebugAudio = 1 << 4,
 	kWintermuteDebugGeneral = 1 << 5
-};
-
-enum WintermuteGameFeatures {
- 	/** A game with low-spec resources. */
- 	GF_LOWSPEC_ASSETS       = 1 << 0,
- 	GF_IGNORE_SD_FILES      = 1 << 1,
- 	GF_IGNORE_HD_FILES      = 1 << 2
 };
 
 class WintermuteEngine : public Engine {

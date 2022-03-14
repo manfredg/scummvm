@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,11 +48,11 @@ const KyraEngine_v2::EngineDesc KyraEngine_HoF::_hofEngineDesc = {
 };
 
 KyraEngine_HoF::KyraEngine_HoF(OSystem *system, const GameFlags &flags) : KyraEngine_v2(system, flags, _hofEngineDesc), _updateFunctor(this, &KyraEngine_HoF::update) {
-	_screen = 0;
-	_text = 0;
+	_screen = nullptr;
+	_text = nullptr;
 
-	_gamePlayBuffer = 0;
-	_cCodeBuffer = _optionsBuffer = _chapterBuffer = 0;
+	_gamePlayBuffer = nullptr;
+	_cCodeBuffer = _optionsBuffer = _chapterBuffer = nullptr;
 
 	_overwriteSceneFacing = false;
 	_mainCharX = _mainCharY = -1;
@@ -77,12 +76,12 @@ KyraEngine_HoF::KyraEngine_HoF(OSystem *system, const GameFlags &flags) : KyraEn
 	_lastIdleScript = -1;
 	_useSceneIdleAnim = false;
 
-	_currentTalkSections.STATim = 0;
-	_currentTalkSections.TLKTim = 0;
-	_currentTalkSections.ENDTim = 0;
+	_currentTalkSections.STATim = nullptr;
+	_currentTalkSections.TLKTim = nullptr;
+	_currentTalkSections.ENDTim = nullptr;
 
 	memset(&_invWsa, 0, sizeof(_invWsa));
-	_itemAnimDefinition = 0;
+	_itemAnimDefinition = nullptr;
 	_nextAnimItem = 0;
 
 	for (int i = 0; i < 15; i++)
@@ -93,25 +92,23 @@ KyraEngine_HoF::KyraEngine_HoF(OSystem *system, const GameFlags &flags) : KyraEn
 	_scriptCountDown = 0;
 	_dbgPass = 0;
 
-	_gamePlayBuffer = 0;
-	_unkBuf500Bytes = 0;
+	_gamePlayBuffer = nullptr;
 	_inventorySaved = false;
-	_unkBuf200kByte = 0;
 	memset(&_sceneShapeTable, 0, sizeof(_sceneShapeTable));
 
-	_talkObjectList = 0;
-	_shapeDescTable = 0;
-	_gfxBackUpRect = 0;
-	_sceneList = 0;
+	_talkObjectList = nullptr;
+	_shapeDescTable = nullptr;
+	_gfxBackUpRect = nullptr;
+	_sceneList = nullptr;
 	memset(&_sceneAnimMovie, 0, sizeof(_sceneAnimMovie));
 	memset(&_wsaSlots, 0, sizeof(_wsaSlots));
 	memset(&_buttonShapes, 0, sizeof(_buttonShapes));
 
 	_configTextspeed = 50;
 
-	_inventoryButtons = _buttonList = 0;
+	_inventoryButtons = _buttonList = nullptr;
 
-	_dlgBuffer = 0;
+	_dlgBuffer = nullptr;
 	_conversationState = new int8 *[19];
 	for (int i = 0; i < 19; i++)
 		_conversationState[i] = new int8[14];
@@ -136,6 +133,10 @@ KyraEngine_HoF::KyraEngine_HoF(OSystem *system, const GameFlags &flags) : KyraEn
 	_useCharPal = false;
 
 	memset(_characterFacingCountTable, 0, sizeof(_characterFacingCountTable));
+
+	_defaultFont = (_flags.lang == Common::ZH_TWN) ? Screen::FID_CHINESE_FNT : ((_flags.lang == Common::JA_JPN) ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
+	_bookFont = (_flags.lang == Common::ZH_TWN) ? Screen::FID_CHINESE_FNT : ((_flags.lang == Common::JA_JPN) ? Screen::FID_SJIS_FNT : Screen::FID_BOOKFONT_FNT);
+	_lineHeight = (_flags.lang == Common::ZH_TWN) ? 16 : 10;
 }
 
 KyraEngine_HoF::~KyraEngine_HoF() {
@@ -145,7 +146,7 @@ KyraEngine_HoF::~KyraEngine_HoF() {
 	delete _text;
 	delete _gui;
 	delete _tim;
-	_text = 0;
+	_text = nullptr;
 	delete _invWsa.wsa;
 
 	delete[] _dlgBuffer;
@@ -192,12 +193,15 @@ Common::Error KyraEngine_HoF::init() {
 
 	if (_flags.isDemo && !_flags.isTalkie) {
 		_screen->loadFont(_screen->FID_8_FNT, "FONT9P.FNT");
+	} else if (_flags.lang == Common::ZH_TWN) {
+		_screen->loadFont(Screen::FID_CHINESE_FNT, "HOF.PAK");
+		_screen->_lineSpacing = 1;
 	} else {
 		_screen->loadFont(_screen->FID_6_FNT, "6.FNT");
 		_screen->loadFont(_screen->FID_8_FNT, "8FAT.FNT");
 		_screen->loadFont(_screen->FID_BOOKFONT_FNT, "BOOKFONT.FNT");
 	}
-	_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : _screen->FID_8_FNT);
+	_screen->setFont(_defaultFont);
 
 	_screen->setAnimBlockPtr(3504);
 	_screen->setScreenDim(0);
@@ -210,7 +214,7 @@ Common::Error KyraEngine_HoF::init() {
 		return Common::kNoError;
 
 	_res->exists("PWGMOUSE.SHP", true);
-	uint8 *shapes = _res->fileData("PWGMOUSE.SHP", 0);
+	uint8 *shapes = _res->fileData("PWGMOUSE.SHP", nullptr);
 	assert(shapes);
 
 	for (int i = 0; i < 2; i++)
@@ -287,7 +291,6 @@ void KyraEngine_HoF::startup() {
 
 	memset(_sceneShapeTable, 0, sizeof(_sceneShapeTable));
 	_gamePlayBuffer = new uint8[46080];
-	_unkBuf500Bytes = new uint8[500];
 
 	loadMouseShapes();
 	loadItemShapes();
@@ -295,7 +298,6 @@ void KyraEngine_HoF::startup() {
 	_screen->setMouseCursor(0, 0, getShapePtr(0));
 
 	_screenBuffer = new uint8[64000];
-	_unkBuf200kByte = new uint8[200000];
 
 	loadChapterBuffer(_newChapterFile);
 
@@ -313,7 +315,7 @@ void KyraEngine_HoF::startup() {
 		_optionsBuffer = _cCodeBuffer;
 	}
 
-	showMessage(0, 207);
+	clearMessage();
 
 	_screen->setShapePages(5, 3);
 
@@ -330,10 +332,8 @@ void KyraEngine_HoF::startup() {
 
 	_screen->_curPage = 0;
 
-	_talkObjectList = new TalkObject[72];
-	memset(_talkObjectList, 0, sizeof(TalkObject)*72);
-	_shapeDescTable = new ShapeDesc[55];
-	memset(_shapeDescTable, 0, sizeof(ShapeDesc)*55);
+	_talkObjectList = new TalkObject[72]();
+	_shapeDescTable = new ShapeDesc[55]();
 
 	for (int i = 9; i <= 32; ++i) {
 		_shapeDescTable[i-9].width = 30;
@@ -358,7 +358,7 @@ void KyraEngine_HoF::startup() {
 	loadInventoryShapes();
 
 	_screen->loadPalette("PALETTE.COL", _screen->getPalette(0));
-	_screen->loadBitmap("_PLAYFLD.CPS", 3, 3, 0);
+	_screen->loadBitmap("_PLAYFLD.CPS", 3, 3, nullptr);
 	_screen->copyPage(3, 0);
 
 	clearAnimObjects();
@@ -371,8 +371,7 @@ void KyraEngine_HoF::startup() {
 	for (int i = 0; i < 23; ++i)
 		resetCauldronStateTable(i);
 
-	_sceneList = new SceneDesc[86];
-	memset(_sceneList, 0, sizeof(SceneDesc)*86);
+	_sceneList = new SceneDesc[86]();
 	_sceneListSize = 86;
 	runStartScript(1, 0);
 	loadNPCScript();
@@ -380,7 +379,7 @@ void KyraEngine_HoF::startup() {
 	if (_gameToLoad == -1) {
 		snd_playWanderScoreViaMap(52, 1);
 		enterNewScene(_mainCharacter.sceneId, _mainCharacter.facing, 0, 0, 1);
-		saveGameStateIntern(0, "New Game", 0);
+		saveGameStateIntern(0, "New Game", nullptr);
 	} else {
 		loadGameStateCheck(_gameToLoad);
 	}
@@ -406,7 +405,7 @@ void KyraEngine_HoF::runLoop() {
 			removeHandItem();
 			delay(5);
 			_drawNoShapeFlag = 0;
-			_gui->optionsButton(0);
+			_gui->optionsButton(nullptr);
 			_deathHandler = -1;
 
 			if (!_runFlag || shouldQuit())
@@ -431,12 +430,12 @@ void KyraEngine_HoF::runLoop() {
 			if (_mainCharacter.sceneId == 34) {
 				if (queryGameFlag(0xD1)) {
 					initTalkObject(28);
-					npcChatSequence(getTableString(0xFA, _cCodeBuffer, 1), 28, 0x83, 0xFA);
+					npcChatSequence(getTableString(0xFA, _cCodeBuffer, true), 28, 0x83, 0xFA);
 					deinitTalkObject(28);
 					enterNewScene(35, 4, 0, 0, 0);
 				} else if (queryGameFlag(0xD0)) {
 					initTalkObject(29);
-					npcChatSequence(getTableString(0xFB, _cCodeBuffer, 1), 29, 0x83, 0xFB);
+					npcChatSequence(getTableString(0xFB, _cCodeBuffer, true), 29, 0x83, 0xFB);
 					deinitTalkObject(29);
 					enterNewScene(33, 6, 0, 0, 0);
 				}
@@ -570,7 +569,7 @@ bool KyraEngine_HoF::handleInputUnkSub(int x, int y) {
 
 	if (_mouseState <= -3 && findItem(_mainCharacter.sceneId, 13) >= 0) {
 		updateCharFacing();
-		objectChat(getTableString(0xFC, _cCodeBuffer, 1), 0, 0x83, 0xFC);
+		objectChat(getTableString(0xFC, _cCodeBuffer, true), 0, 0x83, 0xFC);
 		return true;
 	} else {
 		_emc->init(&_sceneScriptState, &_sceneScriptData);
@@ -621,7 +620,7 @@ void KyraEngine_HoF::updateWithText() {
 	restorePage3();
 	drawAnimObjects();
 
-	if (_chatTextEnabled && _chatText) {
+	if (_chatTextEnabled && !_chatText.empty()) {
 		int pageBackUp = _screen->_curPage;
 		_screen->_curPage = 2;
 		objectChatPrintText(_chatText, _chatObject);
@@ -738,36 +737,34 @@ void KyraEngine_HoF::updateMouse() {
 }
 
 void KyraEngine_HoF::cleanup() {
-	delete[] _inventoryButtons; _inventoryButtons = 0;
+	delete[] _inventoryButtons; _inventoryButtons = nullptr;
 
-	delete[] _gamePlayBuffer; _gamePlayBuffer = 0;
-	delete[] _unkBuf500Bytes; _unkBuf500Bytes = 0;
-	delete[] _unkBuf200kByte; _unkBuf200kByte = 0;
+	delete[] _gamePlayBuffer; _gamePlayBuffer = nullptr;
 
 	freeSceneShapePtrs();
 
 	if (_optionsBuffer != _cCodeBuffer)
 		delete[] _optionsBuffer;
-	_optionsBuffer = 0;
-	delete[] _cCodeBuffer; _cCodeBuffer = 0;
-	delete[] _chapterBuffer; _chapterBuffer = 0;
+	_optionsBuffer = nullptr;
+	delete[] _cCodeBuffer; _cCodeBuffer = nullptr;
+	delete[] _chapterBuffer; _chapterBuffer = nullptr;
 
-	delete[] _talkObjectList; _talkObjectList = 0;
-	delete[] _shapeDescTable; _shapeDescTable = 0;
+	delete[] _talkObjectList; _talkObjectList = nullptr;
+	delete[] _shapeDescTable; _shapeDescTable = nullptr;
 
-	delete[] _gfxBackUpRect; _gfxBackUpRect = 0;
+	delete[] _gfxBackUpRect; _gfxBackUpRect = nullptr;
 
 	for (int i = 0; i < ARRAYSIZE(_sceneAnimMovie); ++i) {
 		delete _sceneAnimMovie[i];
-		_sceneAnimMovie[i] = 0;
+		_sceneAnimMovie[i] = nullptr;
 	}
 	for (int i = 0; i < ARRAYSIZE(_wsaSlots); ++i) {
 		delete _wsaSlots[i];
-		_wsaSlots[i] = 0;
+		_wsaSlots[i] = nullptr;
 	}
 	for (int i = 0; i < ARRAYSIZE(_buttonShapes); ++i) {
 		delete[] _buttonShapes[i];
-		_buttonShapes[i] = 0;
+		_buttonShapes[i] = nullptr;
 	}
 
 	_emc->unload(&_npcScriptData);
@@ -781,7 +778,7 @@ void KyraEngine_HoF::loadCCodeBuffer(const char *file) {
 	changeFileExtension(tempString);
 
 	delete[] _cCodeBuffer;
-	_cCodeBuffer = _res->fileData(tempString, 0);
+	_cCodeBuffer = _res->fileData(tempString, nullptr);
 }
 
 void KyraEngine_HoF::loadOptionsBuffer(const char *file) {
@@ -790,7 +787,7 @@ void KyraEngine_HoF::loadOptionsBuffer(const char *file) {
 	changeFileExtension(tempString);
 
 	delete[] _optionsBuffer;
-	_optionsBuffer = _res->fileData(tempString, 0);
+	_optionsBuffer = _res->fileData(tempString, nullptr);
 }
 
 void KyraEngine_HoF::loadChapterBuffer(int chapter) {
@@ -805,7 +802,7 @@ void KyraEngine_HoF::loadChapterBuffer(int chapter) {
 	changeFileExtension(tempString);
 
 	delete[] _chapterBuffer;
-	_chapterBuffer = _res->fileData(tempString, 0);
+	_chapterBuffer = _res->fileData(tempString, nullptr);
 	_currentChapter = chapter;
 }
 
@@ -821,19 +818,17 @@ uint8 *KyraEngine_HoF::getTableEntry(uint8 *buffer, int id) {
 	return buffer + READ_LE_UINT16(buffer + (id<<1));
 }
 
-char *KyraEngine_HoF::getTableString(int id, uint8 *buffer, int decode) {
-	char *string = (char *)getTableEntry(buffer, id);
+Common::String KyraEngine_HoF::getTableString(int id, uint8 *buffer, bool decode) {
+	Common::String string((char *)getTableEntry(buffer, id));
 
 	if (decode && _flags.lang != Common::JA_JPN) {
-		Util::decodeString1(string, _internStringBuf);
-		Util::decodeString2(_internStringBuf, _internStringBuf);
-		string = _internStringBuf;
+		string = Util::decodeString2(Util::decodeString1(string));
 	}
 
 	return string;
 }
 
-const char *KyraEngine_HoF::getChapterString(int id) {
+Common::String KyraEngine_HoF::getChapterString(int id) {
 	if (_currentChapter != _newChapterFile)
 		loadChapterBuffer(_newChapterFile);
 
@@ -843,15 +838,15 @@ const char *KyraEngine_HoF::getChapterString(int id) {
 #pragma mark -
 
 void KyraEngine_HoF::showMessageFromCCode(int id, int16 palIndex, int) {
-	const char *string = getTableString(id, _cCodeBuffer, 1);
-	showMessage(string, palIndex);
+	showMessage(getTableString(id, _cCodeBuffer, true), palIndex);
 }
 
-void KyraEngine_HoF::showMessage(const char *string, int16 palIndex) {
+void KyraEngine_HoF::showMessage(const Common::String &string, int16 palIndex) {
 	_shownMessage = string;
-	_screen->fillRect(0, 190, 319, 199, 0xCF);
+	int y = (_flags.lang == Common::ZH_TWN) ? 186 : 190;
+	_screen->fillRect(0, y, 319, 199, 0xCF);
 
-	if (string) {
+	if (!string.empty()) {
 		if (palIndex != -1 || _fadeMessagePalette) {
 			palIndex *= 3;
 			memcpy(_messagePal, _screen->getPalette(0).getData() + palIndex, 3);
@@ -860,11 +855,17 @@ void KyraEngine_HoF::showMessage(const char *string, int16 palIndex) {
 		}
 
 		int x = _text->getCenterStringX(string, 0, 320);
-		_text->printText(string, x, 190, 255, 207, 0);
+		_text->printText(string, x, y, 255, 207, 0);
 
 		setTimer1DelaySecs(7);
 	}
 
+	_fadeMessagePalette = false;
+}
+
+void KyraEngine_HoF::clearMessage() {
+	_shownMessage = "";
+	_screen->fillRect(0, 190, 319, 199, 0xCF);
 	_fadeMessagePalette = false;
 }
 
@@ -873,27 +874,27 @@ void KyraEngine_HoF::showChapterMessage(int id, int16 palIndex) {
 }
 
 void KyraEngine_HoF::updateCommandLineEx(int str1, int str2, int16 palIndex) {
-	char buffer[0x51];
-	char *src = buffer;
+	Common::String str = getTableString(str1, _cCodeBuffer, true);
 
-	strcpy(src, getTableString(str1, _cCodeBuffer, 1));
-
-	if (_flags.lang != Common::JA_JPN) {
-		while (*src != 0x20)
-			++src;
-		++src;
-		*src = toupper(*src);
+	if (_flags.lang != Common::ZH_TWN && _flags.lang != Common::JA_JPN && _flags.lang != Common::HE_ISR) {
+		if (uint32 i = (uint32)str.findFirstOf(' ') + 1) {
+			str.erase(0, i);
+			str.setChar(toupper(str[0]), 0);
+		}
 	}
-
-	strcpy((char *)_unkBuf500Bytes, src);
 
 	if (str2 > 0) {
-		if (_flags.lang != Common::JA_JPN)
-			strcat((char *)_unkBuf500Bytes, " ");
-		strcat((char *)_unkBuf500Bytes, getTableString(str2, _cCodeBuffer, 1));
+		if (_flags.lang != Common::ZH_TWN && _flags.lang != Common::JA_JPN && _flags.lang != Common::HE_ISR)
+			str += " ";
+		if (_flags.lang == Common::HE_ISR)
+			str = getTableString(str2, _cCodeBuffer, 1) + " " + str + ".";
+		else if (_flags.lang == Common::ZH_TWN)
+			str = getTableString(str2, _cCodeBuffer, 1) + str;
+		else
+			str += getTableString(str2, _cCodeBuffer, 1);
 	}
 
-	showMessage((char *)_unkBuf500Bytes, palIndex);
+	showMessage(str, palIndex);
 }
 
 void KyraEngine_HoF::fadeMessagePalette() {
@@ -922,14 +923,14 @@ void KyraEngine_HoF::fadeMessagePalette() {
 #pragma mark -
 
 void KyraEngine_HoF::loadMouseShapes() {
-	_screen->loadBitmap("_MOUSE.CSH", 3, 3, 0);
+	_screen->loadBitmap("_MOUSE.CSH", 3, 3, nullptr);
 
 	for (int i = 0; i <= 8; ++i)
 		addShapeToPool(_screen->getCPagePtr(3), i, i);
 }
 
 void KyraEngine_HoF::loadItemShapes() {
-	_screen->loadBitmap("_ITEMS.CSH", 3, 3, 0);
+	_screen->loadBitmap("_ITEMS.CSH", 3, 3, nullptr);
 
 	for (int i = 64; i <= 239; ++i)
 		addShapeToPool(_screen->getCPagePtr(3), i, i-64);
@@ -947,7 +948,7 @@ void KyraEngine_HoF::loadCharacterShapes(int shapes) {
 	_characterShapeFile = shapes;
 	file[2] = '0' + shapes;
 
-	uint8 *data = _res->fileData(file, 0);
+	uint8 *data = _res->fileData(file, nullptr);
 	for (int i = 9; i <= 32; ++i)
 		addShapeToPool(data, i, i-9);
 	delete[] data;
@@ -959,7 +960,7 @@ void KyraEngine_HoF::loadInventoryShapes() {
 	int curPageBackUp = _screen->_curPage;
 	_screen->_curPage = 2;
 
-	_screen->loadBitmap("_PLAYALL.CPS", 3, 3, 0);
+	_screen->loadBitmap("_PLAYALL.CPS", 3, 3, nullptr);
 
 	for (int i = 0; i < 10; ++i)
 		addShapeToPool(_screen->encodeShape(_inventoryX[i], _inventoryY[i], 16, 16, 0), 240+i);
@@ -1144,7 +1145,7 @@ int KyraEngine_HoF::inputSceneChange(int x, int y, int unk1, int unk2) {
 
 	if (strId) {
 		updateCharFacing();
-		objectChat(getTableString(strId, _cCodeBuffer, 1), 0, vocH, strId);
+		objectChat(getTableString(strId, _cCodeBuffer, true), 0, vocH, strId);
 		_pathfinderFlag = 0;
 		return 0;
 	}
@@ -1175,13 +1176,13 @@ int KyraEngine_HoF::inputSceneChange(int x, int y, int unk1, int unk2) {
 			_deathHandler = 7;
 			snd_playWanderScoreViaMap(0x53, 1);
 		} else {
-			objectChat(getTableString(0xFD, _cCodeBuffer, 1), 0, 0x83, 0xFD);
+			objectChat(getTableString(0xFD, _cCodeBuffer, true), 0, 0x83, 0xFD);
 			setGameFlag(0x164);
 			_timer->enable(5);
 			_timer->setCountdown(5, 120);
 		}
 	} else if (queryGameFlag(0x164)) {
-		objectChat(getTableString(0xFE, _cCodeBuffer, 1), 0, 0x83, 0xFE);
+		objectChat(getTableString(0xFE, _cCodeBuffer, true), 0, 0x83, 0xFE);
 		resetGameFlag(0x164);
 		_timer->disable(5);
 	}
@@ -1483,7 +1484,7 @@ void KyraEngine_HoF::snd_playSoundEffect(int track, int volume) {
 				break;
 			}
 		}
-		_sound->voicePlay(_ingameSoundList[file], 0, volume, prio, true);
+		_sound->voicePlay(_ingameSoundList[file], nullptr, volume, prio, true);
 	} else if (_flags.platform == Common::kPlatformDOS) {
 		if (_sound->getSfxType() == Sound::kMidiMT32)
 			track = track < _mt32SfxMapSize ? _mt32SfxMap[track] - 1 : -1;
@@ -1509,7 +1510,7 @@ void KyraEngine_HoF::loadInvWsa(const char *filename, int run_, int delayTime, i
 	if (!_invWsa.wsa)
 		_invWsa.wsa = new WSAMovie_v2(this);
 
-	if (!_invWsa.wsa->open(filename, wsaFlags, 0))
+	if (!_invWsa.wsa->open(filename, wsaFlags, nullptr))
 		error("Couldn't open inventory WSA file '%s'", filename);
 
 	_invWsa.curFrame = 0;
@@ -1550,7 +1551,7 @@ void KyraEngine_HoF::loadInvWsa(const char *filename, int run_, int delayTime, i
 void KyraEngine_HoF::closeInvWsa() {
 	_invWsa.wsa->close();
 	delete _invWsa.wsa;
-	_invWsa.wsa = 0;
+	_invWsa.wsa = nullptr;
 	_invWsa.running = false;
 }
 
@@ -1561,7 +1562,7 @@ void KyraEngine_HoF::updateInvWsa() {
 	if (_invWsa.timer > _system->getMillis())
 		return;
 
-	_invWsa.wsa->displayFrame(_invWsa.curFrame, _invWsa.page, 0, 0, 0, 0, 0);
+	_invWsa.wsa->displayFrame(_invWsa.curFrame, _invWsa.page, 0, 0, 0, nullptr, nullptr);
 
 	if (_invWsa.page)
 		_screen->copyRegion(_invWsa.x, _invWsa.y, _invWsa.x, _invWsa.y, _invWsa.w, _invWsa.h, _invWsa.page, 0, Screen::CR_NO_P_CHECK);
@@ -1599,7 +1600,7 @@ void KyraEngine_HoF::displayInvWsaLastFrame() {
 	if (!_invWsa.wsa)
 		return;
 
-	_invWsa.wsa->displayFrame(_invWsa.lastFrame-1, _invWsa.page, 0, 0, 0, 0, 0);
+	_invWsa.wsa->displayFrame(_invWsa.lastFrame-1, _invWsa.page, 0, 0, 0, nullptr, nullptr);
 
 	if (_invWsa.page)
 		_screen->copyRegion(_invWsa.x, _invWsa.y, _invWsa.x, _invWsa.y, _invWsa.w, _invWsa.h, _invWsa.page, 0, Screen::CR_NO_P_CHECK);
@@ -1620,7 +1621,7 @@ void KyraEngine_HoF::setCauldronState(uint8 state, bool paletteFade) {
 	file->seek(state*18, SEEK_SET);
 	_screen->getPalette(2).loadVGAPalette(*file, 241, 6);
 	delete file;
-	file = 0;
+	file = nullptr;
 
 	if (paletteFade) {
 		snd_playSoundEffect((state == 0) ? 0x6B : 0x66);
@@ -1662,7 +1663,7 @@ void KyraEngine_HoF::cauldronItemAnim(int item) {
 			mouseY -= 2;
 		uint32 waitEnd = _system->getMillis() + _tickLength;
 		setMousePos(mouseX, mouseY);
-		_system->updateScreen();
+		_screen->updateBackendScreen(true);
 		delayUntil(waitEnd);
 	}
 
@@ -1673,7 +1674,7 @@ void KyraEngine_HoF::cauldronItemAnim(int item) {
 			mouseX -= 2;
 		uint32 waitEnd = _system->getMillis() + _tickLength;
 		setMousePos(mouseX, mouseY);
-		_system->updateScreen();
+		_screen->updateBackendScreen(true);
 		delayUntil(waitEnd);
 	}
 
@@ -1771,10 +1772,10 @@ bool KyraEngine_HoF::updateCauldron() {
 		}
 
 		if (cauldronState >= 0) {
-			showMessage(0, 0xCF);
+			clearMessage();
 			setCauldronState(cauldronState, true);
 			if (cauldronState == 7)
-				objectChat(getTableString(0xF2, _cCodeBuffer, 1), 0, 0x83, 0xF2);
+				objectChat(getTableString(0xF2, _cCodeBuffer, true), 0, 0x83, 0xF2);
 			clearCauldronTable();
 			return true;
 		}
@@ -1784,7 +1785,7 @@ bool KyraEngine_HoF::updateCauldron() {
 }
 
 void KyraEngine_HoF::cauldronRndPaletteFade() {
-	showMessage(0, 0xCF);
+	clearMessage();
 	int index = _rnd.getRandomNumberRng(0x0F, 0x16);
 	Common::SeekableReadStream *file = _res->createReadStream("_POTIONS.PAL");
 	if (!file)
@@ -1825,36 +1826,27 @@ void KyraEngine_HoF::listItemsInCauldron() {
 
 	if (!itemsInCauldron) {
 		if (!_cauldronState)
-			objectChat(getTableString(0xF4, _cCodeBuffer, 1), 0, 0x83, 0xF4);
+			objectChat(getTableString(0xF4, _cCodeBuffer, true), 0, 0x83, 0xF4);
 		else
-			objectChat(getTableString(0xF3, _cCodeBuffer, 1), 0, 0x83, 0xF3);
+			objectChat(getTableString(0xF3, _cCodeBuffer, true), 0, 0x83, 0xF3);
 	} else {
-		objectChat(getTableString(0xF7, _cCodeBuffer, 1), 0, 0x83, 0xF7);
+		objectChat(getTableString(0xF7, _cCodeBuffer, true), 0, 0x83, 0xF7);
 
-		char buffer[80];
 		for (int i = 0; i < itemsInCauldron-1; ++i) {
-			char *str = buffer;
-			strcpy(str, getTableString(_cauldronTable[i]+54, _cCodeBuffer, 1));
+			Common::String str = getTableString(_cauldronTable[i]+54, _cCodeBuffer, true);
 			if (_lang == 1) {
-				if (*str == 37)
-					str += 2;
+			    if (str[0] == 37)
+				str = str.substr(2);
 			}
-			strcpy((char *)_unkBuf500Bytes, "...");
-			strcat((char *)_unkBuf500Bytes, str);
-			strcat((char *)_unkBuf500Bytes, "...");
-			objectChat((const char *)_unkBuf500Bytes, 0, 0x83, _cauldronTable[i]+54);
+			objectChat("..." + str + "...", 0, 0x83, _cauldronTable[i]+54);
 		}
 
-		char *str = buffer;
-		strcpy(str, getTableString(_cauldronTable[itemsInCauldron-1]+54, _cCodeBuffer, 1));
+		Common::String str = getTableString(_cauldronTable[itemsInCauldron-1]+54, _cCodeBuffer, true);
 		if (_lang == 1) {
-			if (*str == 37)
-				str += 2;
+			if (str[0] == 37)
+			    str = str.substr(2);
 		}
-		strcpy((char *)_unkBuf500Bytes, "...");
-		strcat((char *)_unkBuf500Bytes, str);
-		strcat((char *)_unkBuf500Bytes, ".");
-		objectChat((const char *)_unkBuf500Bytes, 0, 0x83, _cauldronTable[itemsInCauldron-1]+54);
+		objectChat("..." + str + ".", 0, 0x83, _cauldronTable[itemsInCauldron-1]+54);
 	}
 }
 
@@ -1905,7 +1897,7 @@ void KyraEngine_HoF::playTim(const char *filename) {
 	_tim->resetFinishedFlag();
 	while (!shouldQuit() && !_tim->finished()) {
 		_tim->exec(tim, 0);
-		if (_chatText)
+		if (!_chatText.empty())
 			updateWithText();
 		else
 			update();
@@ -1943,7 +1935,7 @@ void KyraEngine_HoF::writeSettings() {
 
 	case 0:
 	default:
-		_flags.lang = Common::EN_ANY;
+		_flags.lang = _langIntern ? Common::ZH_TWN : Common::EN_ANY;
 	}
 
 	if (_flags.lang == _flags.replacedLang && _flags.fanLang != Common::UNK_LANG)

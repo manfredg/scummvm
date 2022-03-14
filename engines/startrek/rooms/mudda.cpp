@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,28 +24,40 @@
 
 namespace StarTrek {
 
+enum muddTextIds {
+	TX_COMMON_IDS_OFFSET_START = 5000, // needed to distinguish common IDs
+	TX_SPEAKER_KIRK, TX_SPEAKER_MCCOY, TX_SPEAKER_SPOCK,
+	TX_MUD0_002, TX_MUD0_018, TX_MUD0_019, TX_MUD0_020,
+	TX_MUD0N002, TX_MUD0N006, TX_MUD0N011
+};
+
+// TODO: Finish floppy offsets
+extern const RoomTextOffsets muddTextOffsets[] = {
+	{ TX_SPEAKER_KIRK, 2941, 0, 0, 0 },
+	{ TX_SPEAKER_MCCOY, 2966, 0, 0, 0 },
+	{ TX_SPEAKER_SPOCK, 2976, 0, 0, 0 },
+	{ TX_MUD0_002, 8651, 0, 0, 0 },
+	{ TX_MUD0_018, 2523, 0, 0, 0 },
+	{ TX_MUD0_019, 2473, 0, 0, 0 },
+	{ TX_MUD0_020, 2423, 0, 0, 0 },
+	{ TX_MUD0N002, 5513, 0, 0, 0 },
+	{ TX_MUD0N006, 2573, 0, 0, 0 },
+	{ TX_MUD0N011, 6036, 0, 0, 0 },
+	{          -1, 0,    0, 0, 0 }
+};
+
 // The functions here used to be independently implemented in each room of the MUDD
 // mission, despite being mostly the same.
 
 void Room::muddaUseLenseOnDegrimer() {
 	assert(_vm->_roomIndex >= 0 && _vm->_roomIndex <= 5);
 
-	// All of these audio files are identical, but there's one for each room.
-	const TextRef text[] = {
-		11,	// MUDD0
-		13,	// MUDD1
-		10,	// MUDD2
-		16,	// MUDD3
-		 9,	// MUDD4
-		 9,	// MUDD5
-	};
-
 	giveItem(OBJECT_IALIENDV);
 	loseItem(OBJECT_IDEGRIME);
 	loseItem(OBJECT_ILENSES);
 
 	_awayMission->mudd.missionScore++;
-	showDescription(text[_vm->_roomIndex], true);
+	showDescription(TX_MUD0N011);
 }
 
 
@@ -78,25 +89,14 @@ void Room::muddaFiredAlienDevice() {
 	if (!_awayMission->mudd.discoveredLenseAndDegrimerFunction) {
 		_awayMission->mudd.discoveredLenseAndDegrimerFunction = true;
 		_awayMission->mudd.missionScore += 5; // BUGFIX: didn't happen if done in MUDD5
-		showText(TX_SPEAKER_KIRK, 2, true);
+		showText(TX_SPEAKER_KIRK, TX_MUD0_002);
 	}
 }
-
 
 void Room::muddaUseDegrimer() {
 	assert(_vm->_roomIndex >= 0 && _vm->_roomIndex <= 5);
 
-	// All of these audio files are identical, but there's one for each room.
-	const TextRef text[] = {
-		2,	// MUDD0
-		4,	// MUDD1
-		1,	// MUDD2
-		1,	// MUDD3
-		2,	// MUDD4
-		1,	// MUDD5
-	};
-
-	showDescription(text[_vm->_roomIndex], true);
+	showDescription(TX_MUD0N002);
 }
 
 void Room::muddaTick() {
@@ -109,16 +109,6 @@ void Room::muddaTick() {
 	// spot instead.
 
 	assert(_vm->_roomIndex >= 0 && _vm->_roomIndex <= 5);
-
-	// All of these audio files are identical, but there's one for each room.
-	const TextRef deathText[] = {
-		6,	// MUDD0
-		7,	// MUDD1
-		5,	// MUDD2
-		8,	// MUDD3
-		5,	// MUDD4
-		5	// MUDD5
-	};
 
 	const int TIMER_LENGTH = 27000;
 
@@ -156,7 +146,7 @@ void Room::muddaTick() {
 				anim += directions[i][_vm->_roomIndex];
 				loadActorAnim2(i, anim);
 			}
-			showDescription(deathText[_vm->_roomIndex], true);
+			showDescription(TX_MUD0N006);
 			showGameOverMenu();
 		}
 	}

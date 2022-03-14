@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,7 +68,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2105220
+{ // Supplied by goodoldgeorg in bug report #3960
 	{
 		"lit",
 		"",
@@ -167,7 +166,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by SiRoCs in bug report #2093672
+{ // Supplied by SiRoCs in bug report #3943
 	{
 		"lit",
 		"",
@@ -181,7 +180,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by SiRoCs in bug report #2093672
+{ // Supplied by SiRoCs in bug report #3943
 	{
 		"lit",
 		"",
@@ -195,7 +194,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by SiRoCs in bug report #2093672
+{ // Supplied by SiRoCs in bug report #3943
 	{
 		"lit",
 		"",
@@ -209,7 +208,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by SiRoCs in bug report #2093672
+{ // Supplied by SiRoCs in bug report #3943
 	{
 		"lit",
 		"",
@@ -223,7 +222,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by SiRoCs in bug report #2093672
+{ // Supplied by SiRoCs in bug report #3943
 	{
 		"lit",
 		"",
@@ -237,7 +236,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by SiRoCs in bug report #2093672
+{ // Supplied by SiRoCs in bug report #3943
 	{
 		"lit",
 		"",
@@ -344,11 +343,8 @@
 	{
 		"lit1",
 		"Light install",
-		{
-			{"intro.stk", 0, "93c91bc9e783d00033042ae83144d7dd", 72318},
-			{"partie2.itk", 0, "78f00bd8eb9e680e6289bba0130b1b33", 664064},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "93c91bc9e783d00033042ae83144d7dd", 72318,
+				   "partie2.itk", "78f00bd8eb9e680e6289bba0130b1b33", 664064),
 		FR_FRA,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -362,11 +358,8 @@
 	{
 		"lit1",
 		"Full install",
-		{
-			{"intro.stk", 0, "93c91bc9e783d00033042ae83144d7dd", 72318},
-			{"partie2.itk", 0, "78f00bd8eb9e680e6289bba0130b1b33", 4396644},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "93c91bc9e783d00033042ae83144d7dd", 72318,
+				   "partie2.itk", "78f00bd8eb9e680e6289bba0130b1b33", 4396644),
 		FR_FRA,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -397,11 +390,8 @@
 	{
 		"lit2",
 		"Full install",
-		{
-			{"intro.stk", 0, "17acbb212e62addbe48dc8f2282c98cb", 72318},
-			{"partie4.itk", 0, "6ce4967e0c79d7daeabc6c1d26783d4c", 2612087},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "17acbb212e62addbe48dc8f2282c98cb", 72318,
+				   "partie4.itk", "6ce4967e0c79d7daeabc6c1d26783d4c", 2612087),
 		FR_FRA,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -414,15 +404,12 @@
 
 // -- Mac (Part I and II) --
 
-{ // Supplied by koalet in bug report #2479034
+{ // Supplied by koalet in bug report #4066
 	{
 		"lit",
 		"",
-		{
-			{"intro.stk", 0, "af98bcdc70e1f1c1635577fd726fe7f1", 3937310},
-			{"musmac1.mid", 0, "ae7229bb09c6abe4e60a2768b24bc890", 9398},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "af98bcdc70e1f1c1635577fd726fe7f1", 3937310,
+				   "musmac1.mid", "ae7229bb09c6abe4e60a2768b24bc890", 9398),
 		FR_FRA,
 		kPlatformMacintosh,
 		ADGF_NO_FLAGS,
@@ -453,7 +440,7 @@
 	{
 		"lit",
 		"Non-interactive Demo",
-		AD_ENTRY1("demo.stk", "2eba8abd9e3878c57307576012dd2fec"),
+		AD_ENTRY1s("demo.stk", "2eba8abd9e3878c57307576012dd2fec", 3031494),
 		UNK_LANG,
 		kPlatformDOS,
 		ADGF_DEMO,

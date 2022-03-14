@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,6 +64,8 @@ void ScriptManager::initialize() {
 	_currentLocation.room = 0;
 	_currentLocation.view = 0;
 
+	_changeLocationDelayCycles = 0;
+
 	parseScrFile("universe.scr", universe);
 	changeLocation('g', 'a', 'r', 'y', 0);
 
@@ -73,7 +74,17 @@ void ScriptManager::initialize() {
 
 void ScriptManager::update(uint deltaTimeMillis) {
 	if (_currentLocation != _nextLocation) {
-		ChangeLocationReal(false);
+		// The location is changing. The script that did that may have
+		// triggered other scripts, so give them all one extra cycle to
+		// run. This fixes some missing scoring in ZGI, and quite
+		// possibly other minor glitches as well.
+		//
+		// Another idea would be to change if there are pending scripts
+		// in the exec queues, but that could cause this to hang
+		// indefinitely.
+		if (_changeLocationDelayCycles-- <= 0) {
+			ChangeLocationReal(false);
+		}
 	}
 
 	updateNodes(deltaTimeMillis);
@@ -538,6 +549,8 @@ void ScriptManager::changeLocation(const Location &_newLocation) {
 }
 
 void ScriptManager::changeLocation(char _world, char _room, char _node, char _view, uint32 offset) {
+	_changeLocationDelayCycles = 1;
+
 	_nextLocation.world = _world;
 	_nextLocation.room = _room;
 	_nextLocation.node = _node;

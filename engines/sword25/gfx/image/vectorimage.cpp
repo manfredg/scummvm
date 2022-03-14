@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,8 +35,6 @@
 #include "sword25/gfx/image/art.h"
 #include "sword25/gfx/image/vectorimage.h"
 #include "sword25/gfx/image/renderedimage.h"
-
-#include "graphics/colormasks.h"
 
 namespace Sword25 {
 
@@ -291,7 +288,7 @@ VectorImage::VectorImage(const byte *pFileData, uint fileSize, bool &success, co
 				r = bs.getByte();
 				g = bs.getByte();
 				b = bs.getByte();
-				_bgColor = Graphics::ARGBToColor<Graphics::ColorMasks<8888> >(0xff, r, g, b);
+				_bgColor = BS_RGB(r, g, b);
 			}
 			break;
 		default:
@@ -546,7 +543,7 @@ bool VectorImage::parseStyles(uint shapeType, SWFBitStream &bs, uint &numFillBit
 		if (shapeType == 3)
 			a = bs.getByte();
 
-		color = Graphics::ARGBToColor<Graphics::ColorMasks<8888> >(a, r, g, b);
+		color = BS_ARGB(a, r, g, b);
 
 		if (type != 0)
 			return false;
@@ -575,7 +572,7 @@ bool VectorImage::parseStyles(uint shapeType, SWFBitStream &bs, uint &numFillBit
 		if (shapeType == 3)
 			a = bs.getByte();
 
-		color = Graphics::ARGBToColor<Graphics::ColorMasks<8888> >(a, r, g, b);
+		color = BS_ARGB(a, r, g, b);
 
 		_elements.back()._lineStyles.push_back(VectorImageElement::LineStyleType(width, color));
 	}
@@ -611,10 +608,10 @@ bool VectorImage::setContent(const byte *pixeldata, uint size, uint offset, uint
 }
 
 bool VectorImage::blit(int posX, int posY,
-                       int flipping,
-                       Common::Rect *pPartRect,
-                       uint color,
-                       int width, int height,
+					   int flipping,
+					   Common::Rect *pPartRect,
+					   uint color,
+					   int width, int height,
 					   RectangleList *updateRects) {
 	static VectorImage *oldThis = 0;
 	static int              oldWidth = -2;

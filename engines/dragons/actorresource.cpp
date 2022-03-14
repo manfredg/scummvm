@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/debug.h"
@@ -41,7 +40,7 @@ ActorResource *ActorResourceLoader::load(uint32 resourceId) {
 	byte *scrData = _bigFileArchive->load(filename, size);
 	Common::SeekableReadStream *readStream = new Common::MemoryReadStream(scrData, size, DisposeAfterUse::NO);
 
-	debug("Loading '%s'", filename);
+	debug(1, "Loading '%s'", filename);
 	actorResource->load(resourceId, scrData, *readStream);
 	return actorResource;
 }
@@ -71,7 +70,7 @@ bool ActorResource::load(uint32 id, byte *dataStart, Common::SeekableReadStream 
 
 	_framesCount = (paletteOffset - stream.readUint16LE()) / 0xe;
 
-	debug("Frame Count: %d", _framesCount);
+	debug(3, "Frame Count: %d", _framesCount);
 
 	_frames = new ActorFrame[_framesCount];
 	for (int i = 0; i < _framesCount; i++) {
@@ -178,7 +177,7 @@ const char *ActorResource::getFilename() {
 }
 
 byte *ActorResource::getSequenceDataAtOffset(uint32 offset) {
-	assert(offset < _fileSize);
+	assert(offset < (uint32)_fileSize);
 	return &_data[offset];
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,11 +36,11 @@ Resources *Resources::init(AccessEngine *vm) {
 	error("Unknown game");
 }
 
-bool Resources::load(Common::String &errorMessage) {
+bool Resources::load(Common::U32String &errorMessage) {
 	Common::File f;
 	Common::String filename = "access.dat";
 	if (!f.open(filename.c_str())) {
-		errorMessage = Common::String::format(_("Unable to locate the '%s' engine data file."), filename.c_str());
+		errorMessage = Common::U32String::format(_("Unable to locate the '%s' engine data file."), filename.c_str());
 		return false;
 	}
 
@@ -49,15 +48,15 @@ bool Resources::load(Common::String &errorMessage) {
 	char buffer[4];
 	f.read(buffer, 4);
 	if (strncmp(buffer, "SVMA", 4)) {
-		errorMessage = Common::String::format(_("The '%s' engine data file is corrupt."), filename.c_str());
+		errorMessage = Common::U32String::format(_("The '%s' engine data file is corrupt."), filename.c_str());
 		return false;
 	}
 
 	// Validate the version number
-	uint expectedVersion = 1;
+	uint expectedVersion = 2;
 	uint version = f.readUint16LE();
 	if (version != expectedVersion) {
-		errorMessage = Common::String::format(
+		errorMessage = Common::U32String::format(
 			_("Incorrect version of the '%s' engine data file found. Expected %d.%d but got %d.%d."),
 			filename.c_str(), expectedVersion, 0, version, 0);
 		return false;
@@ -78,6 +77,9 @@ bool Resources::load(Common::String &errorMessage) {
 			break;
 		case 5:
 			_datIndex[idx]._language = Common::EN_ANY;
+			break;
+		case 23:
+			_datIndex[idx]._language = Common::ES_ESP;
 			break;
 		default:
 			error("Unknown language");
@@ -203,6 +205,19 @@ const char *const GENERAL_MESSAGES[] = {
 	"THIS OBJECT REQUIRES NO HINTS",    // HELP_MESSAGE
 	"THIS OBJECT REQUIRES NO HINTS",    // HELP_MESSAGE
 	"THAT DOESN'T SEEM TO WORK."        // USE_MESSAGE
+};
+
+const char *const ESP_GENERAL_MESSAGES[] = {
+	"MIRANDO AHI NO ENCONTRARAS NADA DE INTERES.", // LOOK_MESSAGE
+	"NO ESTA ABIERTO.",                 // OPEN_MESSAGE
+	"NO PUEDES MOVERLO.",               // MOVE_MESSAGE
+	"NO PUEDES COGER ESO.",             // GET_MESSAGE
+	"NO PARECE QUE FUNCIONE.",          // USE_MESSAGE
+	"NO PUEDES SUBIRTE A ESO.",         // GO_MESSAGE
+	"PARECE QUE NO TE RESPONDE.",       // TALK_MESSAGE
+	"NO HAY AYUDA PARA ESE OBJETO.",    // HELP_MESSAGE
+	"NO HAY AYUDA PARA ESE OBJETO.",    // HELP_MESSAGE
+	"NO PARECE QUE FUNCIONE."           // USE_MESSAGE
 };
 
 const int INVCOORDS[][4] = {

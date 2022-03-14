@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,6 +39,7 @@
 #include "mads/msurface.h"
 #include "mads/resources.h"
 #include "mads/sound.h"
+#include "mads/detection.h"
 
 /**
  * This is the namespace of the MADS engine.
@@ -61,19 +61,11 @@ enum MADSDebugChannels {
 	kDebugGraphics	= 1 << 2
 };
 
-enum {
-	GType_RexNebular = 0,
-	GType_Dragonsphere = 1,
-	GType_Phantom = 2
-};
-
 enum ScreenFade {
 	SCREEN_FADE_SMOOTH = 0,
 	SCREEN_FADE_MEDIUM = 1,
 	SCREEN_FADE_FAST = 2
 };
-
-struct MADSGameDescription;
 
 
 class MADSEngine : public Engine {
@@ -124,7 +116,6 @@ public:
 
 	int getRandomNumber(int maxNumber);
 	int getRandomNumber(int minNumber, int maxNumber);
-	int hypotenuse(int xv, int yv);
 
 	/**
 	* Returns true if it is currently okay to restore a game

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@
 namespace AGOS {
 
 MidiDriver_Accolade_MT32::MidiDriver_Accolade_MT32() {
-	_driver = NULL;
+	_driver = nullptr;
 	_isOpen = false;
 	_nativeMT32 = false;
 	_baseFreq = 250;
@@ -42,11 +41,11 @@ MidiDriver_Accolade_MT32::MidiDriver_Accolade_MT32() {
 MidiDriver_Accolade_MT32::~MidiDriver_Accolade_MT32() {
 	Common::StackLock lock(_mutex);
 	if (_driver) {
-		_driver->setTimerCallback(0, 0);
+		_driver->setTimerCallback(nullptr, nullptr);
 		_driver->close();
 		delete _driver;
 	}
-	_driver = NULL;
+	_driver = nullptr;
 }
 
 int MidiDriver_Accolade_MT32::open() {
@@ -198,7 +197,7 @@ bool MidiDriver_Accolade_MT32::setupInstruments(byte *driverData, uint16 driverD
 }
 
 MidiDriver *MidiDriver_Accolade_MT32_create(Common::String driverFilename) {
-	byte  *driverData = NULL;
+	byte  *driverData = nullptr;
 	uint16 driverDataSize = 0;
 	bool   isMusicDrvFile = false;
 

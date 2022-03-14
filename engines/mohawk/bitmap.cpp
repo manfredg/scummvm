@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -642,8 +641,13 @@ void MohawkBitmap::drawRLE8(Graphics::Surface *surface, bool isLE) {
 
 MohawkSurface *MystBitmap::decodeImage(Common::SeekableReadStream *stream) {
 	uint32 uncompressedSize = stream->readUint32LE();
-	Common::SeekableReadStream *bmpStream = decompressLZ(stream, uncompressedSize);
-	delete stream;
+	Common::SeekableReadStream *bmpStream;
+	if (uncompressedSize) {
+		bmpStream = decompressLZ(stream, uncompressedSize);
+		delete stream;
+	} else {
+		bmpStream = stream;
+	}
 
 	Image::BitmapDecoder bitmapDecoder;
 	if (!bitmapDecoder.loadStream(*bmpStream))
@@ -677,9 +681,7 @@ MohawkSurface *MystBitmap::decodeImage(Common::SeekableReadStream *stream) {
 
 #endif
 
-MohawkSurface *LivingBooksBitmap_v1::decodeImage(Common::SeekableReadStream *stream) {
-	Common::SeekableSubReadStreamEndian *endianStream = (Common::SeekableSubReadStreamEndian *)stream;
-
+MohawkSurface *LivingBooksBitmap_v1::decodeImageLB(Common::SeekableReadStreamEndian *endianStream) {
 	// 12 bytes header for the image
 	_header.format = endianStream->readUint16();
 	_header.bytesPerRow = endianStream->readUint16();
@@ -701,7 +703,7 @@ MohawkSurface *LivingBooksBitmap_v1::decodeImage(Common::SeekableReadStream *str
 		uint16 lengthBits = endianStream->readUint16();
 
 		if (compressedSize != (uint32)endianStream->size() - 24)
-			error("More bytes (%d) remaining in stream than header says there should be (%d)", endianStream->size() - 24, compressedSize);
+			error("More bytes (%d) remaining in stream than header says there should be (%d)", (int)endianStream->size() - 24, compressedSize);
 
 		// These two errors are really just sanity checks and should never go off
 		if (posBits != POS_BITS)
@@ -709,7 +711,7 @@ MohawkSurface *LivingBooksBitmap_v1::decodeImage(Common::SeekableReadStream *str
 		if (lengthBits != LEN_BITS)
 			error("Length bits modified to %d", lengthBits);
 
-		_data = decompressLZ(stream, uncompressedSize);
+		_data = decompressLZ(endianStream, uncompressedSize);
 
 		if (endianStream->pos() != endianStream->size())
 			error("LivingBooksBitmap_v1 decompression failed");
@@ -728,8 +730,8 @@ MohawkSurface *LivingBooksBitmap_v1::decodeImage(Common::SeekableReadStream *str
 		if (!endianStream->isBE())
 			leRLE8 = true;
 
-		_data = stream;
-		stream = nullptr;
+		_data = endianStream;
+		endianStream = nullptr;
 	}
 
 	Graphics::Surface *surface = createSurface(_header.width, _header.height);
@@ -740,7 +742,7 @@ MohawkSurface *LivingBooksBitmap_v1::decodeImage(Common::SeekableReadStream *str
 		drawRaw(surface);
 
 	delete _data;
-	delete stream;
+	delete endianStream;
 
 	MohawkSurface *mhkSurface = new MohawkSurface(surface);
 	mhkSurface->setOffsetX(offsetX);
@@ -815,8 +817,8 @@ void DOSBitmap::expandMonochromePlane(Graphics::Surface *surface, Common::Seekab
 
 	// Expand the 8 pixels in a byte into a full byte per pixel
 
-	for (uint32 i = 0; i < surface->h; i++) {
-		for (uint x = 0; x < surface->w;) {
+	for (int i = 0; i < surface->h; i++) {
+		for (int x = 0; x < surface->w;) {
 			byte temp = rawStream->readByte();
 
 			for (int j = 7; j >= 0 && x < surface->w; j--) {
@@ -842,7 +844,7 @@ void DOSBitmap::expandEGAPlanes(Graphics::Surface *surface, Common::SeekableRead
 
 	byte *dst = (byte *)surface->getPixels();
 
-	for (uint32 i = 0; i < surface->h; i++) {
+	for (int32 i = 0; i < surface->h; i++) {
 		uint x = 0;
 
 		for (int32 j = 0; j < surface->w / 4; j++) {

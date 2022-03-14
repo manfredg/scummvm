@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,8 +33,8 @@ TestbedOptionsDialog::TestbedOptionsDialog(Common::Array<Testsuite *> &tsList, T
 		GUI::Dialog("TestbedOptions"),
 		_testbedConfMan(tsConfMan) {
 
-	new GUI::StaticTextWidget(this, "TestbedOptions.Headline", "Select Testsuites to Execute");
-	new GUI::StaticTextWidget(this, "TestbedOptions.Info", "Use Doubleclick to select/deselect");
+	new GUI::StaticTextWidget(this, "TestbedOptions.Headline", Common::U32String("Select Testsuites to Execute"));
+	new GUI::StaticTextWidget(this, "TestbedOptions.Info", Common::U32String("Use Doubleclick to select/deselect"));
 
 	// Construct a String Array
 	Common::Array<Testsuite *>::const_iterator iter;
@@ -63,12 +62,12 @@ TestbedOptionsDialog::TestbedOptionsDialog(Common::Array<Testsuite *> &tsList, T
 	_testListDisplay->setEditable(false);
 
 	if (selected > (tsList.size() - selected)) {
-		_selectButton = new GUI::ButtonWidget(this, "TestbedOptions.SelectAll", "Deselect All", 0, kTestbedDeselectAll, 0);
+		_selectButton = new GUI::ButtonWidget(this, "TestbedOptions.SelectAll", Common::U32String("Deselect All"), Common::U32String(), kTestbedDeselectAll, 0);
 	} else {
-		_selectButton = new GUI::ButtonWidget(this, "TestbedOptions.SelectAll", "Select All", 0, kTestbedSelectAll, 0);
+		_selectButton = new GUI::ButtonWidget(this, "TestbedOptions.SelectAll", Common::U32String("Select All"), Common::U32String(), kTestbedSelectAll, 0);
 	}
-	new GUI::ButtonWidget(this, "TestbedOptions.RunTests", "Run tests", 0, GUI::kCloseCmd);
-	new GUI::ButtonWidget(this, "TestbedOptions.Quit", "Exit Testbed", 0, kTestbedQuitCmd);
+	new GUI::ButtonWidget(this, "TestbedOptions.RunTests", Common::U32String("Run tests"), Common::U32String(), GUI::kCloseCmd);
+	new GUI::ButtonWidget(this, "TestbedOptions.Quit", Common::U32String("Exit Testbed"), Common::U32String(), kTestbedQuitCmd);
 }
 
 TestbedOptionsDialog::~TestbedOptionsDialog() {}
@@ -143,7 +142,8 @@ void TestbedInteractionDialog::addText(uint w, uint h, const Common::String text
 		xOffset = _xOffset;
 	}
 	_yOffset += yPadding;
-	new GUI::StaticTextWidget(this, xOffset, _yOffset, w, h, text, textAlign);
+	GUI::StaticTextWidget *widget = new GUI::StaticTextWidget(this, xOffset, _yOffset, w, h, text, textAlign);
+	widget->resize(xOffset, _yOffset, w, h);
 	_yOffset += h;
 }
 
@@ -152,21 +152,24 @@ void TestbedInteractionDialog::addButton(uint w, uint h, const Common::String na
 		xOffset = _xOffset;
 	}
 	_yOffset += yPadding;
-	_buttonArray.push_back(new GUI::ButtonWidget(this, xOffset, _yOffset, w, h, name, 0, cmd));
+	_buttonArray.push_back(new GUI::ButtonWidget(this, xOffset, _yOffset, w, h, name, Common::U32String(), cmd));
+	_buttonArray.back()->resize(xOffset, _yOffset, w, h);
 	_yOffset += h;
 }
 
-void TestbedInteractionDialog::addList(uint x, uint y, uint w, uint h, const Common::Array<Common::String> &strArray, GUI::ListWidget::ColorList *colors, uint yPadding) {
+void TestbedInteractionDialog::addList(uint x, uint y, uint w, uint h, const Common::Array<Common::U32String> &strArray, GUI::ListWidget::ColorList *colors, uint yPadding) {
 	_yOffset += yPadding;
 	GUI::ListWidget *list = new GUI::ListWidget(this, x, y, w, h);
+	list->resize(x, y, w, h);
 	list->setEditable(false);
 	list->setNumberingMode(GUI::kListNumberingOff);
 	list->setList(strArray, colors);
 	_yOffset += h;
 }
 
-void TestbedInteractionDialog::addButtonXY(uint x, uint /* y */, uint w, uint h, const Common::String name, uint32 cmd) {
-	_buttonArray.push_back(new GUI::ButtonWidget(this, x, _yOffset, w, h, name, 0, cmd));
+void TestbedInteractionDialog::addButtonXY(uint x, uint y, uint w, uint h, const Common::String name, uint32 cmd) {
+	_buttonArray.push_back(new GUI::ButtonWidget(this, x, _yOffset, w, h, name, Common::U32String(), cmd));
+	_buttonArray.back()->resize(x, y, w, h);
 }
 
 void TestbedInteractionDialog::handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) {

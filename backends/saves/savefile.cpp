@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,15 +51,39 @@ uint32 OutSaveFile::write(const void *dataPtr, uint32 dataSize) {
 	return _wrapped->write(dataPtr, dataSize);
 }
 
-int32 OutSaveFile::pos() const {
+int64 OutSaveFile::pos() const {
 	return _wrapped->pos();
 }
 
+bool OutSaveFile::seek(int64 offset, int whence) {
+	Common::SeekableWriteStream *sws =
+		dynamic_cast<Common::SeekableWriteStream *>(_wrapped);
+
+	if (sws) {
+		return sws->seek(offset, whence);
+	} else {
+		warning("Seeking isn't supported for compressed save files");
+		return false;
+	}
+}
+
+int64 OutSaveFile::size() const {
+	Common::SeekableWriteStream *sws =
+		dynamic_cast<Common::SeekableWriteStream *>(_wrapped);
+
+	if (sws) {
+		return sws->size();
+	} else {
+		warning("Size isn't supported for compressed save files");
+		return -1;
+	}
+}
+
 bool SaveFileManager::copySavefile(const String &oldFilename, const String &newFilename, bool compress) {
-	InSaveFile *inFile = 0;
-	OutSaveFile *outFile = 0;
+	InSaveFile *inFile = nullptr;
+	OutSaveFile *outFile = nullptr;
 	uint32 size = 0;
-	void *buffer = 0;
+	void *buffer = nullptr;
 	bool success = false;
 
 	inFile = openForLoading(oldFilename);
@@ -76,7 +99,7 @@ bool SaveFileManager::copySavefile(const String &oldFilename, const String &newF
 			inFile->read(buffer, size);
 			bool error = inFile->err();
 			delete inFile;
-			inFile = 0;
+			inFile = nullptr;
 
 			if (!error) {
 				outFile->write(buffer, size);

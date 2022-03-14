@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1994-1998 Revolution Software Ltd.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 // MAKETEXT	- Constructs a single-frame text sprite: returns a handle to a
@@ -535,6 +534,10 @@ uint32 FontRenderer::buildNewBloc(byte *ascii, int16 x, int16 y, uint16 width, u
 		case POSITION_AT_CENTER_OF_TOP:
 			x -= (frame_head.width / 2);
 			break;
+		case POSITION_AT_CENTER_OF_CENTER:
+			x -= (frame_head.width / 2);
+			y -= (frame_head.height) / 2;
+			break;
 		case POSITION_AT_LEFT_OF_TOP:
 			// The given coords are already correct for this!
 			break;
@@ -674,7 +677,7 @@ void Sword2Engine::initializeFontResourceFlags() {
 	else
 		textLine = (char *)fetchTextLine(textFile, 54) + 2;
 
-	_system->setWindowCaption(textLine);
+	_system->setWindowCaption(Common::U32String(textLine));
 	_resman->closeResource(TEXT_RES);
 }
 

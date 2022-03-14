@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,8 +23,7 @@
 #include "scumm/actor.h"
 #include "scumm/akos.h"
 #include "scumm/bomp.h"
-#include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 #include "scumm/he/intern_he.h"
 #include "scumm/resource.h"
 #include "scumm/scumm_v7.h"
@@ -349,7 +347,7 @@ void AkosRenderer::setCostume(int costume, int shadow) {
 	akct = _vm->findResourceData(MKTAG('A','K','C','T'), akos);
 	rgbs = _vm->findResourceData(MKTAG('R','G','B','S'), akos);
 
-	xmap = 0;
+	xmap = nullptr;
 	if (shadow) {
 		const uint8 *xmapPtr = _vm->getResourceAddress(rtImage, shadow);
 		assert(xmapPtr);
@@ -543,12 +541,12 @@ void AkosRenderer::codec1_genericDecode(Codec1 &v1) {
 	const byte *mask, *src;
 	byte *dst;
 	byte len, maskbit;
-	int y;
+	int lastColumnX, y;
 	uint16 color, height, pcolor;
 	const byte *scaleytab;
 	bool masked;
-	bool skip_column = false;
 
+	lastColumnX = -1;
 	y = v1.y;
 	src = _srcptr;
 	dst = v1.destptr;
@@ -579,31 +577,50 @@ void AkosRenderer::codec1_genericDecode(Codec1 &v1) {
 					}
 				} else {
 					masked = (y < v1.boundsRect.top || y >= v1.boundsRect.bottom) || (v1.x < 0 || v1.x >= v1.boundsRect.right) || (*mask & maskbit);
+					bool skipColumn = false;
 
-					if (color && !masked && !skip_column) {
+					if (color && !masked) {
 						pcolor = _palette[color];
 						if (_shadow_mode == 1) {
-							if (pcolor == 13)
+							if (pcolor == 13) {
+								// In shadow mode 1 skipColumn works more or less the same way as in shadow
+								// mode 3. It is only ever checked and applied if pcolor is 13.
+								skipColumn = (lastColumnX == v1.x);
 								pcolor = _shadow_table[*dst];
+							}
 						} else if (_shadow_mode == 2) {
 							error("codec1_spec2"); // TODO
 						} else if (_shadow_mode == 3) {
 							if (_vm->_game.features & GF_16BIT_COLOR) {
+								// I add the column skip here, too, although I don't know whether it always
+								// applies. But this is the only way to prevent recursive shading of pixels.
+								// This might need more fine tuning...
+								skipColumn = (lastColumnX == v1.x);
 								uint16 srcColor = (pcolor >> 1) & 0x7DEF;
 								uint16 dstColor = (READ_UINT16(dst) >> 1) & 0x7DEF;
 								pcolor = srcColor + dstColor;
 							} else if (_vm->_game.heversion >= 90) {
+								// I add the column skip here, too, although I don't know whether it always
+								// applies. But this is the only way to prevent recursive shading of pixels.
+								// This might need more fine tuning...
+								skipColumn = (lastColumnX == v1.x);
 								pcolor = (pcolor << 8) + *dst;
 								pcolor = xmap[pcolor];
-							} else if (pcolor < 8) {
+							} else if (pcolor < 8 ) {
+								// This mode is used in COMI. The column skip only takes place when the shading
+								// is actually applied (for pcolor < 8). The skip avoids shading of pixels that
+								// already have been shaded.
+								skipColumn = (lastColumnX == v1.x);
 								pcolor = (pcolor << 8) + *dst;
 								pcolor = _shadow_table[pcolor];
 							}
 						}
-						if (_vm->_bytesPerPixel == 2) {
-							WRITE_UINT16(dst, pcolor);
-						} else {
-							*dst = pcolor;
+						if (!skipColumn) {
+							if (_vm->_bytesPerPixel == 2) {
+								WRITE_UINT16(dst, pcolor);
+							} else {
+								*dst = pcolor;
+							}
 						}
 					}
 				}
@@ -618,6 +635,7 @@ void AkosRenderer::codec1_genericDecode(Codec1 &v1) {
 				y = v1.y;
 
 				scaleytab = &v1.scaletable[v1.scaleYindex];
+				lastColumnX = v1.x;
 
 				if (_scaleX == 255 || v1.scaletable[v1.scaleXindex] < _scaleX) {
 					v1.x += v1.scaleXstep;
@@ -625,9 +643,8 @@ void AkosRenderer::codec1_genericDecode(Codec1 &v1) {
 						return;
 					maskbit = revBitMask(v1.x & 7);
 					v1.destptr += v1.scaleXstep * _vm->_bytesPerPixel;
-					skip_column = false;
-				} else
-					skip_column = true;
+				}
+
 				v1.scaleXindex += v1.scaleXstep;
 				dst = v1.destptr;
 				mask = _vm->getMaskBuffer(v1.x - (_vm->_virtscr[kMainVirtScreen].xstart & 7), v1.y, _zbuf);
@@ -994,6 +1011,8 @@ byte AkosRenderer::codec1(int xmoveCur, int ymoveCur) {
 	if (_draw_bottom < rect.bottom)
 		_draw_bottom = rect.bottom;
 
+	v1.width = _out.w;
+	v1.height = _out.h;
 	v1.destptr = (byte *)_out.getBasePtr(v1.x, v1.y);
 
 	codec1_genericDecode(v1);
@@ -1063,7 +1082,7 @@ byte AkosRenderer::codec5(int xmoveCur, int ymoveCur) {
 	bdd.shadowMode = _shadow_mode;
 	bdd.shadowPalette = _vm->_shadowPalette;
 
-	bdd.actorPalette = _useBompPalette ? _palette : 0;
+	bdd.actorPalette = _useBompPalette ? _palette : nullptr;
 
 	bdd.mirror = !_mirror;
 
@@ -1096,7 +1115,7 @@ void AkosRenderer::akos16SetupBitReader(const byte *src) {
 
 
 void AkosRenderer::akos16SkipData(int32 numbytes) {
-	akos16DecodeLine(0, numbytes, 0);
+	akos16DecodeLine(nullptr, numbytes, 0);
 }
 
 void AkosRenderer::akos16DecodeLine(byte *buf, int32 numbytes, int32 dir) {
@@ -1608,7 +1627,7 @@ bool ScummEngine_v6::akos_increaseAnim(Actor *a, int chan, const byte *aksq, con
 			akos_queCommand(6, a, GW(2), GW(4));
 			continue;
 		case AKC_JumpTable:
-			if (akfo == NULL)
+			if (akfo == nullptr)
 				error("akos_increaseAnim: no AKFO table");
 			tmp = a->getAnimVar(GB(2)) - 1;
 			if (_game.heversion >= 80) {

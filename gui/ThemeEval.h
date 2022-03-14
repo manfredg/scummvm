@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,7 @@ class ThemeEval {
 	typedef Common::HashMap<Common::String, ThemeLayout *> LayoutsMap;
 
 public:
-	ThemeEval() {
+	ThemeEval() : _scaleFactor(1.0f) {
 		buildBuiltinVars();
 	}
 
@@ -70,29 +69,43 @@ public:
 		return def;
 	}
 
+	void setScaleFactor(float s) { _scaleFactor = s; }
+
 	void setVar(const Common::String &name, int val) { _vars[name] = val; }
 
 	bool hasVar(const Common::String &name) { return _vars.contains(name) || _builtin.contains(name); }
 
-	void addDialog(const Common::String &name, const Common::String &overlays, int16 maxWidth = -1, int16 maxHeight = -1, bool enabled = true, int inset = 0);
-	void addLayout(ThemeLayout::LayoutType type, int spacing, ThemeLayout::ItemAlign itemAlign);
-	void addWidget(const Common::String &name, int w, int h, const Common::String &type, bool enabled = true, Graphics::TextAlign align = Graphics::kTextAlignLeft);
-	bool addImportedLayout(const Common::String &name);
-	void addSpace(int size);
+	ThemeEval &addDialog(const Common::String &name, const Common::String &overlays, int16 maxWidth = -1, int16 maxHeight = -1, int inset = 0);
+	ThemeEval &addLayout(ThemeLayout::LayoutType type, int spacing = -1, ThemeLayout::ItemAlign itemAlign = ThemeLayout::kItemAlignStart);
+	ThemeEval &addWidget(const Common::String &name, const Common::String &type, int w = -1, int h = -1, Graphics::TextAlign align = Graphics::kTextAlignStart, bool useRTL = true);
+	ThemeEval &addImportedLayout(const Common::String &name);
+	ThemeEval &addSpace(int size = -1);
 
-	void addPadding(int16 l, int16 r, int16 t, int16 b) { _curLayout.top()->setPadding(l, r, t, b); }
+	ThemeEval &addPadding(int16 l, int16 r, int16 t, int16 b);
 
-	void closeLayout() { _curLayout.pop(); }
-	void closeDialog() { _curLayout.pop(); _curDialog.clear(); }
+	ThemeEval &closeLayout() { _curLayout.pop(); return *this; }
+	ThemeEval &closeDialog() { _curLayout.pop(); _curDialog.clear(); return *this; }
+
+	bool hasDialog(const Common::String &name);
 
 	void reflowDialogLayout(const Common::String &name, Widget *widgetChain);
-	bool getWidgetData(const Common::String &widget, int16 &x, int16 &y, uint16 &w, uint16 &h);
+	bool getWidgetData(const Common::String &widget, int16 &x, int16 &y, int16 &w, int16 &h);
+	bool getWidgetData(const Common::String &widget, int16 &x, int16 &y, int16 &w, int16 &h, bool &useRTL);
 
 	Graphics::TextAlign getWidgetTextHAlign(const Common::String &widget);
 
 #ifdef LAYOUT_DEBUG_DIALOG
-	void debugDraw(Graphics::Surface *screen, const Graphics::Font *font) {
-		_layouts[LAYOUT_DEBUG_DIALOG]->debugDraw(screen, font);
+	void debugDraw(Graphics::ManagedSurface *screen, const Graphics::Font *font) {
+		if (_layouts.contains(LAYOUT_DEBUG_DIALOG)) {
+			_layouts[LAYOUT_DEBUG_DIALOG]->debugDraw(screen, font);
+		} else {
+			Common::String list;
+
+			for (auto l = _layouts.begin(); l != _layouts.end(); ++l)
+				list += " " + l->_key;
+
+			warning("debugDraw: Unknown layout %s\nList:%s", LAYOUT_DEBUG_DIALOG, list.c_str());
+		}
 	}
 #endif
 
@@ -105,6 +118,8 @@ private:
 	LayoutsMap _layouts;
 	Common::Stack<ThemeLayout *> _curLayout;
 	Common::String _curDialog;
+
+	float _scaleFactor;
 };
 
 } // End of namespace GUI

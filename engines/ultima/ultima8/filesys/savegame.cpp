@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/filesys/savegame.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
-#include "ultima/shared/engine/ultima.h"
-#include "common/system.h"
-#include "common/savefile.h"
-#include "graphics/thumbnail.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -79,7 +71,7 @@ SavegameReader::State SavegameReader::isValid() const {
 		return SAVE_VALID;
 }
 
-IDataSource *SavegameReader::getDataSource(const Std::string &name) {
+Common::SeekableReadStream *SavegameReader::getDataSource(const Std::string &name) {
 	assert(_index.contains(name));
 
 	const FileEntry &fe = _index[name];
@@ -87,7 +79,7 @@ IDataSource *SavegameReader::getDataSource(const Std::string &name) {
 	_file->seek(fe._offset);
 	_file->read(data, fe._size);
 
-	return new IBufferDataSource(data, fe._size, false, true);
+	return new Common::MemoryReadStream(data, fe._size, DisposeAfterUse::YES);
 }
 
 
@@ -117,7 +109,7 @@ bool SavegameWriter::finish() {
 		_file->writeUint32LE(fe.size());
 		_file->write(&fe[0], fe.size());
 	}
-	
+
 	return true;
 }
 
@@ -133,8 +125,8 @@ bool SavegameWriter::writeFile(const Std::string &name, const uint8 *data, uint3
 	return true;
 }
 
-bool SavegameWriter::writeFile(const Std::string &name, OAutoBufferDataSource *ods) {
-	return writeFile(name, ods->getBuf(), ods->getSize());
+bool SavegameWriter::writeFile(const Std::string &name, Common::MemoryWriteStreamDynamic *buf) {
+	return writeFile(name, buf->getData(), buf->pos());
 }
 
 } // End of namespace Ultima8

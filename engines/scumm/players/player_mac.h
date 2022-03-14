@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@ public:
 	Player_Mac(ScummEngine *scumm, Audio::Mixer *mixer, int numberOfChannels, int channelMask, bool fadeNoteEnds);
 	~Player_Mac() override;
 
-	void init();
+	void init(const Common::String &instrumentFile);
 
 	// MusicEngine API
 	void setMusicVolume(int vol) override;
@@ -98,7 +97,6 @@ private:
 	int _channelMask;
 	bool _fadeNoteEnds;
 
-	virtual bool checkMusicAvailable() { return false; }
 	virtual bool loadMusic(const byte *ptr) { return false; }
 	virtual bool getNextNote(int ch, uint32 &samples, int &pitchModifier, byte &velocity) { return false; }
 
@@ -123,6 +121,7 @@ protected:
 	friend void syncWithSerializer(Common::Serializer &, Channel &);
 
 	ScummEngine *const _vm;
+	Common::String _instrumentFile;
 	Channel *_channel;
 
 	uint32 durationToSamples(uint16 duration);

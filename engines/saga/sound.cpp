@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,7 +54,7 @@ SndHandle *Sound::getHandle() {
 
 	error("Sound::getHandle(): Too many sound handles");
 
-	return NULL;	// for compilers that don't support NORETURN
+	return nullptr;	// for compilers that don't support NORETURN
 }
 
 void Sound::playSoundBuffer(Audio::SoundHandle *handle, const SoundBuffer &buffer, int volume,
@@ -71,7 +70,7 @@ void Sound::playSoundBuffer(Audio::SoundHandle *handle, const SoundBuffer &buffe
 void Sound::playSound(SoundBuffer &buffer, int volume, bool loop, int resId) {
 	// WORKAROUND
 	// Prevent playing same looped sound for several times
-	// Fixes bug #2886141: "ITE: Cumulative Snoring sounds in Prince's Bedroom"
+	// Fixes bug #4686: "ITE: Cumulative Snoring sounds in Prince's Bedroom"
 	for (int i = 0; i < SOUND_HANDLES; i++)
 		if (_handles[i].type == kEffectHandle && _handles[i].resId == resId) {
 			debug(1, "Skipped playing SFX #%d", resId);

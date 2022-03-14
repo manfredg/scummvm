@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,6 +36,8 @@ void initMouseCursor();
 Common::Rect computeSize(const Common::Rect &cursorRect, int scalingFactor, int cursorTargetScale);
 void HSVtoRGB(int &rComp, int &gComp, int &bComp, int hue, int sat, int val);
 Common::Rect drawCursor(bool cursorPaletteDisabled = false, int cursorTargetScale = 1);
+TestExitStatus pixelFormats(Common::List<Graphics::PixelFormat> &pfList);
+void showPixelFormat(const Graphics::PixelFormat &pf, uint aLoss);
 
 // will contain function declarations for GFX tests
 TestExitStatus cursorTrails();
@@ -52,7 +53,8 @@ TestExitStatus shakingEffect();
 TestExitStatus focusRectangle();
 TestExitStatus overlayGraphics();
 TestExitStatus paletteRotation();
-TestExitStatus pixelFormats();
+TestExitStatus pixelFormatsSupported();
+TestExitStatus pixelFormatsRequired();
 // add more here
 
 } // End of namespace GFXtests
@@ -75,6 +77,7 @@ public:
 	const char *getDescription() const override {
 		return "Graphics Subsystem";
 	}
+	void prepare() override;
 	static void setCustomColor(uint r, uint g, uint b);
 
 private:

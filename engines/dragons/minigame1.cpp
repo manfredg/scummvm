@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "dragons/minigame1.h"
@@ -30,13 +29,11 @@ namespace Dragons {
 
 #define DAT_80063a48 0x12d
 #define DAT_80063a40 0x12f
-#define DAT_80063ab8 0x216D2
 
 Minigame1::Minigame1(DragonsEngine *vm) : _vm(vm) {}
 
 void Minigame1::run() {
 
-	//TODO this might change for different game versions.
 	const uint32 dialogIdTbl[17] = {
 		0x21312, 0x2134C, 0x21386, 0x213C0,
 		0x213E2, 0x21428, 0x2146C, 0x214B4,
@@ -56,7 +53,7 @@ void Minigame1::run() {
 	uint16 auStack1008 [200];
 	DragonINI *originalFlickerIniID;
 	uint16 local_25c;
-	uint16 local_25a;
+	uint16 local_25a = 0;
 	uint16 catFieldE_scaleMaybe;
 	uint16 hitCounter;
 	uint16 local_254;
@@ -66,12 +63,12 @@ void Minigame1::run() {
 	uint16 local_242;
 	uint16 local_240;
 	uint16 local_23e;
-	short local_23c;
+	short local_23c = 0;
 	short local_23a;
 	short local_238;
 	short gameState;
-	uint16 local_234;
-	short local_232;
+	uint16 local_234 = 0;
+	short local_232 = 0;
 	uint16 local_22e;
 	uint16 local_22c;
 	Actor *targetActorIdTbl [5];
@@ -432,9 +429,9 @@ void Minigame1::run() {
 							local_234 = 0;
 						}
 						if (local_252 == 0) { //successful hit maybe?
-							_vm->_talk->loadText(local_118[((uint)hitCounter - 1) * 2], auStack1008, 200);
-							_vm->_talk->displayDialogAroundPoint(auStack1008, (int)(short)(flickerXPos >> 3), 0xc, 0, 0,
-									 local_118[((uint)hitCounter - 1) * 2]);
+							uint32 textId = _vm->getDialogTextId(local_118[((uint)hitCounter - 1) * 2]);
+							_vm->_talk->loadText(textId, auStack1008, 200);
+							_vm->_talk->displayDialogAroundPoint(auStack1008, (int)(short)(flickerXPos >> 3), 0xc, 0, 0, textId);
 							local_250 = *(short *)(local_118 + ((uint)hitCounter - 1) * 2 + 1);
 						}
 						targetActorIdTbl[(uint)(uint16)local_188[(uint)i]]->_priorityLayer = 3;
@@ -767,8 +764,9 @@ void Minigame1::run() {
 								local_16a = *(short *)(local_c0 + (uint)uVar5 * 2 + 5);
 							}
 							if ((local_252 == 0) || ((auStack536[(uint)local_22c * 3] == 0 && (local_254 == 0)))) {
-								_vm->_talk->loadText(local_168, auStack1008, 200);
-								_vm->_talk->displayDialogAroundPoint(auStack1008, (int)(short)(flickerXPos >> 3), 0xc, 0, 0, local_168);
+								uint32 textId = _vm->getDialogTextId(local_168);
+								_vm->_talk->loadText(textId, auStack1008, 200);
+								_vm->_talk->displayDialogAroundPoint(auStack1008, (int)(short)(flickerXPos >> 3), 0xc, 0, 0, textId);
 								local_250 = local_16a;
 							}
 							if (local_254 < 2) {
@@ -833,8 +831,8 @@ void Minigame1::run() {
 				_vm->_talk->FUN_8001a7c4_clearDialogBoxMaybe();
 			}
 			pusherActor->updateSequence(7);
-			_vm->_talk->loadText(DAT_80063ab8, auStack1008, 200);
-			_vm->_talk->displayDialogAroundPoint(auStack1008, 0x19, 0xc, 0, 1, DAT_80063ab8);
+			_vm->_talk->loadText(_vm->getDialogTextId(0x216D2), auStack1008, 200);
+			_vm->_talk->displayDialogAroundPoint(auStack1008, 0x19, 0xc, 0, 1, _vm->getDialogTextId(0x216D2));
 
 			pusherActor->updateSequence(1);
 			_vm->waitForFrames(0x1e);
@@ -843,7 +841,7 @@ void Minigame1::run() {
 		}
 	} while (true);
 
-	//TODO callMaybeResetData();
+	_vm->clearAllText();
 	flickerActor->updateSequence(0x15);
 	// DisableVSyncEvent();
 	catActor->reset_maybe();

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,14 @@
 #include "common/hashmap.h"
 #include "common/queue.h"
 #include "common/quicktime.h"
+
+/**
+ * @defgroup audio_midiparser_qt QT MIDI parser
+ * @ingroup audio
+ *
+ * @brief The QuickTime Music version of MidiParser class.
+ * @{
+ */
 
 /**
  * The QuickTime Music version of MidiParser.
@@ -47,12 +54,12 @@
  */
 class MidiParser_QT : public MidiParser, public Common::QuickTimeParser {
 public:
-	MidiParser_QT() {}
+	MidiParser_QT(int8 source = -1) : _source(source) {}
 	~MidiParser_QT() {}
 
 	// MidiParser
-	bool loadMusic(byte *data, uint32 size);
-	void unloadMusic();
+	bool loadMusic(byte *data, uint32 size) override;
+	void unloadMusic() override;
 
 	/**
 	 * Load the MIDI from a 'Tune' resource
@@ -71,11 +78,23 @@ public:
 
 protected:
 	// MidiParser
-	void parseNextEvent(EventInfo &info);
-	void resetTracking();
+	void parseNextEvent(EventInfo &info) override;
+	void resetTracking() override;
+
+	void sendToDriver(uint32 b) override;
+	void sendMetaEventToDriver(byte type, byte *data, uint16 length) override;
 
 	// QuickTimeParser
-	SampleDesc *readSampleDesc(Track *track, uint32 format, uint32 descSize);
+	SampleDesc *readSampleDesc(Track *track, uint32 format, uint32 descSize) override;
+
+	/**
+	 * The source number to use when sending MIDI messages to the driver.
+	 * When using multiple sources, use source 0 and higher. This must be
+	 * used when source volume or channel locking is used.
+	 * By default this is -1, which means the parser is the only source
+	 * of MIDI messages and multiple source functionality is disabled.
+	 */
+	int8 _source;
 
 private:
 	struct MIDITrackInfo {
@@ -130,5 +149,5 @@ private:
 	void initCommon();
 	uint32 readUint32();
 };
-
+/** @} */
 #endif

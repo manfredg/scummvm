@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -89,7 +88,7 @@ void AGOSEngine::vc45_setWindowPalette() {
 			dst += width * 2;
 		}
 	} else {
-		Graphics::Surface *screen = _system->lockScreen();
+		Graphics::Surface *screen = getBackendSurface();
 		byte *dst = (byte *)screen->getBasePtr(vlut[0] * 16, vlut[1]);
 
 		if (getGameType() == GType_ELVIRA2 && num == 7) {
@@ -107,7 +106,7 @@ void AGOSEngine::vc45_setWindowPalette() {
 			dst += screen->pitch;
 		}
 
-		_system->unlockScreen();
+		updateBackendSurface();
 	}
 }
 
@@ -223,7 +222,7 @@ void AGOSEngine::vc53_dissolveIn() {
 
 	uint16 count = dissolveCheck * 2;
 	while (count--) {
-		Graphics::Surface *screen = _system->lockScreen();
+		Graphics::Surface *screen = getBackendSurface();
 		byte *dstPtr = (byte *)screen->getBasePtr(x, y);
 
 		yoffs = _rnd.getRandomNumber(dissolveY);
@@ -264,7 +263,7 @@ void AGOSEngine::vc53_dissolveIn() {
 		*dst &= color;
 		*dst |= *src & 0xF;
 
-		_system->unlockScreen();
+		updateBackendSurface();
 
 		dissolveCount--;
 		if (!dissolveCount) {
@@ -296,7 +295,7 @@ void AGOSEngine::vc54_dissolveOut() {
 
 	uint16 count = dissolveCheck * 2;
 	while (count--) {
-		Graphics::Surface *screen = _system->lockScreen();
+		Graphics::Surface *screen = getBackendSurface();
 		byte *dstPtr = (byte *)screen->getBasePtr(x, y);
 		color |= dstPtr[0] & 0xF0;
 
@@ -318,7 +317,7 @@ void AGOSEngine::vc54_dissolveOut() {
 		dst += xoffs;
 		*dst = color;
 
-		_system->unlockScreen();
+		updateBackendSurface();
 
 		dissolveCount--;
 		if (!dissolveCount) {
@@ -378,7 +377,7 @@ void AGOSEngine::fullFade() {
 }
 
 void AGOSEngine::vc56_fullScreen() {
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = getBackendSurface();
 	byte *dst = (byte *)screen->getPixels();
 	byte *src = _curVgaFile2 + 800;
 
@@ -387,7 +386,7 @@ void AGOSEngine::vc56_fullScreen() {
 		src += 320;
 		dst += screen->pitch;
 	}
-	_system->unlockScreen();
+	updateBackendSurface();
 
 	fullFade();
 }

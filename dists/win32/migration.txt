@@ -2,9 +2,16 @@ AUTHORS.txt
 COPYING.BSD.txt
 COPYING.FREEFONT.txt
 COPYING.LGPL.txt
+COPYING.ISC.txt
+COPYING.LUA.txt
+COPYING.MIT.txt
+COPYING.OFL.txt
+COPYING.TINYGL
+COPYING.GLAD
 COPYING.txt
 COPYRIGHT.txt
 drascula.dat
+hadesch_translations.dat
 hugo.dat
 kyra.dat
 lure.dat
@@ -20,6 +27,7 @@ README.txt
 scummclassic.zip
 scummmodern.zip
 scummremastered.zip
+gui-icons.dat
 scummvm.exe
 SDL2.dll
 sky.cpt

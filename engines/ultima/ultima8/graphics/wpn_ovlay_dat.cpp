@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,6 @@
 
 #include "ultima/ultima8/graphics/wpn_ovlay_dat.h"
 
-#include "ultima/ultima8/filesys/idata_source.h"
 #include "ultima/ultima8/world/actors/weapon_overlay.h"
 #include "ultima/ultima8/filesys/raw_archive.h"
 #include "ultima/ultima8/games/game_data.h"
@@ -40,50 +38,44 @@ WpnOvlayDat::WpnOvlayDat() {
 WpnOvlayDat::~WpnOvlayDat() {
 	for (unsigned int i = 0; i < _overlay.size(); i++)
 		delete _overlay[i];
-	_overlay.clear();
-}
-
-const AnimWeaponOverlay *WpnOvlayDat::getAnimOverlay(uint32 action) const {
-	if (action >= _overlay.size()) return 0;
-	return _overlay[action];
 }
 
 const WeaponOverlayFrame *WpnOvlayDat::getOverlayFrame(uint32 action, int type,
-        int direction,
-        int frame) const {
-	if (action >= _overlay.size()) return 0;
-	if (!_overlay[action]) return 0;
+		Direction direction,
+		int frame) const {
+	if (action >= _overlay.size())
+		return nullptr;
+	if (!_overlay[action])
+		return nullptr;
 	return _overlay[action]->getFrame(type, direction, frame);
 }
 
 
 void WpnOvlayDat::load(RawArchive *overlaydat) {
-	WeaponOverlayFrame f;
-
 	MainShapeArchive *msf = GameData::get_instance()->getMainShapes();
 	assert(msf);
 
 	_overlay.resize(overlaydat->getCount());
 
 	for (unsigned int action = 0; action < _overlay.size(); action++) {
-		IDataSource *ds = overlaydat->get_datasource(action);
-		_overlay[action] = 0;
+		Common::SeekableReadStream *rs = overlaydat->get_datasource(action);
+		_overlay[action] = nullptr;
 
-		if (ds && ds->getSize()) {
+		if (rs && rs->size()) {
 			// get Avatar's animation
-			AnimAction *anim = msf->getAnim(1, action);
+			const AnimAction *anim = msf->getAnim(1, action);
 			if (!anim) {
-				perr << "Skipping wpnovlay action " << action << " because animation doesn't exist." << Std::endl;
+				perr << "Skipping wpnovlay action " << action << " because avatar animation doesn't exist." << Std::endl;
 				continue;
 			}
 
 			AnimWeaponOverlay *awo = new AnimWeaponOverlay;
 			_overlay[action] = awo;
 
-			unsigned int animlength = anim->_size;
-			unsigned int dircount = anim->_dirCount;
+			unsigned int animlength = anim->getSize();
+			unsigned int dircount = anim->getDirCount();
 
-			unsigned int typecount = ds->getSize() / (4 * dircount * animlength);
+			unsigned int typecount = rs->size() / (4 * dircount * animlength);
 			awo->_overlay.resize(typecount);
 
 			for (unsigned int type = 0; type < typecount; type++) {
@@ -93,12 +85,10 @@ void WpnOvlayDat::load(RawArchive *overlaydat) {
 				for (unsigned int dir = 0; dir < dircount; dir++) {
 					awo->_overlay[type]._frames[dir].resize(animlength);
 					for (unsigned int frame = 0; frame < animlength; frame++) {
-						unsigned int offset = type * 8 * animlength
-						                      + dir * animlength + frame;
-						ds->seek(4 * offset);
-						f._xOff = ds->readXS(1);
-						f._yOff = ds->readXS(1);
-						f._frame = ds->read2();
+						WeaponOverlayFrame f;
+						f._xOff = rs->readSByte();
+						f._yOff = rs->readSByte();
+						f._frame = rs->readUint16LE();
 
 						awo->_overlay[type]._frames[dir][frame] = f;
 					}
@@ -106,8 +96,7 @@ void WpnOvlayDat::load(RawArchive *overlaydat) {
 			}
 		}
 
-
-		delete ds;
+		delete rs;
 	}
 }
 

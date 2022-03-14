@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,9 +25,19 @@
 #include "common/array.h"
 #include "common/hash-str.h"
 #include "common/str.h"
+#include "common/ustr.h"
 #include "common/str-array.h"
 #include "common/language.h"
 #include "common/platform.h"
+
+/**
+ * @defgroup engines_game Games
+ * @ingroup engines
+ *
+ * @brief API for managing games by engines.
+ *
+ * @{
+ */
 
 /**
  * A simple structure used to map gameids (like "monkey", "sword1", ...) to
@@ -81,21 +90,34 @@ typedef Common::Array<QualifiedGameDescriptor> QualifiedGameList;
  * Ths is an enum to describe how done a game is. This also indicates what level of support is expected.
  */
 enum GameSupportLevel {
-	kStableGame = 0, // the game is fully supported
-	kTestingGame, // the game is not supposed to end up in releases yet but is ready for public testing
-	kUnstableGame // the game is not even ready for public testing yet
+	kStableGame = 0,  // the game is fully supported
+	kTestingGame,     // the game is not supposed to end up in releases yet but is ready for public testing
+	kUnstableGame,    // the game is not even ready for public testing yet
+	kUnsupportedGame, // we don't want to support the game
+	kWarningGame      // we want to ask user to proceed and provide them with an explanation
 };
 
+/**
+ * This enum is used to indicate the method of MD5 calculation used for a particular file.
+ * The result is used for the more fine tuned reporting of unknown MD5s
+ */
+
+enum MD5Properties {
+	kMD5Head		= 0 << 1,	// the MD5 is calculated from the head, default
+	kMD5Tail		= 1 << 1,	// the MD5 is calculated from the tail
+	kMD5MacResFork	= 1 << 2	// the MD5 is calculated from the Mac Resource fork (head or tail)
+};
 
 /**
  * A record describing the properties of a file. Used on the existing
  * files while detecting a game.
  */
 struct FileProperties {
-	int32 size;
+	int64 size;
 	Common::String md5;
+	MD5Properties md5prop;
 
-	FileProperties() : size(-1) {}
+	FileProperties() : size(-1), md5prop(kMD5Head) {}
 };
 
 /**
@@ -117,11 +139,12 @@ struct DetectedGame {
 	               const Common::String &description,
 	               Common::Language language = Common::UNK_LANG,
 	               Common::Platform platform = Common::kPlatformUnknown,
-	               const Common::String &extra = Common::String());
+	               const Common::String &extra = Common::String(),
+	               bool unsupported = false);
 
 	void setGUIOptions(const Common::String &options);
 	void appendGUIOptions(const Common::String &str);
-	Common::String getGUIOptions() const { return _guiOptions; }
+	const Common::String &getGUIOptions() const { return _guiOptions; }
 
 	Common::String engineId;
 
@@ -182,7 +205,7 @@ private:
 	 * Values that are missing are omitted, so e.g. (EXTRA/LANG) would be
 	 * added if no platform has been specified but a language and an extra string.
 	 */
-	Common::String updateDesc() const;
+	Common::String updateDesc(bool skipExtraField) const;
 
 	Common::String _guiOptions;
 };
@@ -233,7 +256,7 @@ public:
 	 *
 	 * @see ::generateUnknownGameReport
 	 */
-	Common::String generateUnknownGameReport(bool translate, uint32 wordwrapAt = 0) const;
+	Common::U32String generateUnknownGameReport(bool translate, uint32 wordwrapAt = 0) const;
 
 private:
 	DetectedGames _detectedGames;
@@ -248,7 +271,7 @@ private:
  *                 of last component of the path is included
  * @param wordwrapAt word wrap the text part of the report after a number of characters
  */
-Common::String generateUnknownGameReport(const DetectedGames &detectedGames, bool translate, bool fullPath, uint32 wordwrapAt = 0);
-Common::String generateUnknownGameReport(const DetectedGame &detectedGame, bool translate, bool fullPath, uint32 wordwrapAt = 0);
-
+Common::U32String generateUnknownGameReport(const DetectedGames &detectedGames, bool translate, bool fullPath, uint32 wordwrapAt = 0);
+Common::U32String generateUnknownGameReport(const DetectedGame &detectedGame, bool translate, bool fullPath, uint32 wordwrapAt = 0);
+/** @} */
 #endif

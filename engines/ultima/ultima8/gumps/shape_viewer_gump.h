@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,22 +25,24 @@
 #include "ultima/ultima8/gumps/modal_gump.h"
 
 #include "ultima/shared/std/containers.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
+#include "ultima/ultima8/misc/classtype.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
 class ShapeArchive;
 
-
+/**
+ * A tool for viewing the shapes in the game, for debugging purposes.
+ */
 class ShapeViewerGump : public ModalGump {
 public:
 	ENABLE_RUNTIME_CLASSTYPE()
 
 	ShapeViewerGump();
-	ShapeViewerGump(int width, int height,
+	ShapeViewerGump(int x, int y, int width, int height,
 	                Std::vector<Std::pair<Std::string, ShapeArchive *> > &flexes,
-	                uint32 flags = 0, int32 layer = LAYER_MODAL);
+	                uint32 flags = FLAG_PREVENT_SAVE, int32 layer = LAYER_MODAL);
 	~ShapeViewerGump() override;
 
 	void PaintThis(RenderSurface *, int32 lerp_factor, bool scaled) override;
@@ -49,12 +50,15 @@ public:
 	bool OnKeyDown(int key, int mod) override;
 	bool OnTextInput(int unicode) override;
 
+	// Init the gump, call after construction
+	void InitGump(Gump *newparent, bool take_focus = true) override;
+
 	static void U8ShapeViewer();
 
-	bool loadData(IDataSource *ids);
-protected:
-	void saveData(ODataSource *ods) override;
+	bool loadData(Common::ReadStream *rs);
+	void saveData(Common::WriteStream *ws) override;
 
+protected:
 	Std::vector<Std::pair<Std::string, ShapeArchive *> > _flexes;
 	unsigned int _curFlex;
 	ShapeArchive *_flex;
@@ -62,6 +66,9 @@ protected:
 	uint32 _curFrame;
 
 	uint32 _background;
+
+	//! The font used in the shape viewer
+	uint32 _fontNo;
 
 	int32 _shapeW, _shapeH, _shapeX, _shapeY;
 };

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@
 #include "sci/graphics/paint16.h"
 #include "sci/graphics/animate.h"
 #include "sci/graphics/cursor.h"
-#include "sci/graphics/font.h"
+#include "sci/graphics/scifont.h"
 #include "sci/graphics/text16.h"
 #include "sci/graphics/screen.h"
 #include "sci/graphics/menu.h"
@@ -45,7 +44,7 @@ GfxMenu::GfxMenu(EventManager *event, SegManager *segMan, GfxPorts *ports, GfxPa
 
 	_menuSaveHandle = NULL_REG;
 	_barSaveHandle = NULL_REG;
-	_oldPort = NULL;
+	_oldPort = nullptr;
 	_mouseOldState = false;
 
 	reset();
@@ -281,14 +280,14 @@ GuiMenuItemEntry *GfxMenu::findItem(uint16 menuId, uint16 itemId) {
 
 		listIterator++;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void GfxMenu::kernelSetAttribute(uint16 menuId, uint16 itemId, uint16 attributeId, reg_t value) {
 	GuiMenuItemEntry *itemEntry = findItem(menuId, itemId);
 
 	if (!itemEntry) {
-		// PQ2 demo calls this, for example, but has no menus (bug report #3034507). Some SCI
+		// PQ2 demo calls this, for example, but has no menus (bug report #4948). Some SCI
 		// fan games (Al Pond 2, Aquarius) call this too on non-existent menu items. The
 		// original interpreter ignored these as well.
 		debugC(kDebugLevelGraphics, "Tried to setAttribute() on non-existent menu-item %d:%d", menuId, itemId);
@@ -355,12 +354,24 @@ void GfxMenu::drawBar() {
 	_paint16->fillRect(_ports->_menuBarRect, 1, _screen->getColorWhite());
 	_paint16->fillRect(_ports->_menuLine, 1, 0);
 	_ports->penColor(0);
-	_ports->moveTo(8, 1);
+	if (!g_sci->isLanguageRTL())
+		_ports->moveTo(8, 1);
+	else
+		_ports->moveTo(_screen->getWidth() - 8, 1);
 
 	listIterator = _list.begin();
 	while (listIterator != listEnd) {
 		listEntry = *listIterator;
+		int16 textWidth;
+		int16 textHeight;
+		if (g_sci->isLanguageRTL()) {
+			_text16->StringWidth(listEntry->textSplit.c_str(), _text16->GetFontId(), textWidth, textHeight);
+			_ports->_curPort->curLeft -= textWidth;
+		}
+		int16 origCurLeft = _ports->_curPort->curLeft;
 		_text16->DrawString(listEntry->textSplit.c_str());
+		if (g_sci->isLanguageRTL())
+			_ports->_curPort->curLeft = origCurLeft;
 
 		listIterator++;
 	}
@@ -376,7 +387,7 @@ void GfxMenu::calculateMenuWidth() {
 	menuIterator = _list.begin();
 	while (menuIterator != menuEnd) {
 		menuEntry = *menuIterator;
-		menuEntry->textSplit = g_sci->strSplit(menuEntry->text.c_str(), NULL);
+		menuEntry->textSplit = g_sci->strSplit(menuEntry->text.c_str(), nullptr);
 		_text16->StringWidth(menuEntry->textSplit.c_str(), 0, menuEntry->textWidth, dummyHeight);
 
 		menuIterator++;
@@ -396,7 +407,7 @@ void GfxMenu::calculateMenuAndItemWidth() {
 	while (itemIterator != itemEnd) {
 		itemEntry = *itemIterator;
 		// Split the text now for multilingual SCI01 games
-		itemEntry->textSplit = g_sci->strSplit(itemEntry->text.c_str(), NULL);
+		itemEntry->textSplit = g_sci->strSplit(itemEntry->text.c_str(), nullptr);
 		_text16->StringWidth(itemEntry->textSplit.c_str(), 0, itemEntry->textWidth, dummyHeight);
 		_text16->StringWidth(itemEntry->textRightAligned.c_str(), 0, itemEntry->textRightAlignedWidth, dummyHeight);
 
@@ -409,7 +420,7 @@ reg_t GfxMenu::kernelSelect(reg_t eventObject, bool pauseSound) {
 	int16 keyPress, keyModifier;
 	GuiMenuItemList::iterator itemIterator = _itemList.begin();
 	GuiMenuItemList::iterator itemEnd = _itemList.end();
-	GuiMenuItemEntry *itemEntry = NULL;
+	GuiMenuItemEntry *itemEntry = nullptr;
 	bool forceClaimed = false;
 
 	switch (eventType) {
@@ -461,7 +472,7 @@ reg_t GfxMenu::kernelSelect(reg_t eventObject, bool pauseSound) {
 				itemIterator++;
 			}
 			if (itemIterator == itemEnd)
-				itemEntry = NULL;
+				itemEntry = nullptr;
 		}
 		break;
 
@@ -483,7 +494,7 @@ reg_t GfxMenu::kernelSelect(reg_t eventObject, bool pauseSound) {
 			itemIterator++;
 		}
 		if (itemIterator == itemEnd)
-			itemEntry = NULL;
+			itemEntry = nullptr;
 		break;
 
 	case kSciEventMousePress: {
@@ -518,7 +529,7 @@ reg_t GfxMenu::kernelSelect(reg_t eventObject, bool pauseSound) {
 	}
 	if (_oldPort) {
 		_ports->setPort(_oldPort);
-		_oldPort = NULL;
+		_oldPort = nullptr;
 	}
 
 	if ((itemEntry) || (forceClaimed))
@@ -532,8 +543,8 @@ GuiMenuItemEntry *GfxMenu::interactiveGetItem(uint16 menuId, uint16 itemId, bool
 	GuiMenuItemList::iterator itemIterator = _itemList.begin();
 	GuiMenuItemList::iterator itemEnd = _itemList.end();
 	GuiMenuItemEntry *itemEntry;
-	GuiMenuItemEntry *firstItemEntry = NULL;
-	GuiMenuItemEntry *lastItemEntry = NULL;
+	GuiMenuItemEntry *firstItemEntry = nullptr;
+	GuiMenuItemEntry *lastItemEntry = nullptr;
 
 	// Fixup menuId if needed
 	if (menuId > _list.size())
@@ -584,19 +595,30 @@ void GfxMenu::drawMenu(uint16 oldMenuId, uint16 newMenuId) {
 	_menuRect.top = _ports->_menuBarRect.bottom;
 	menuTextRect.top = _ports->_menuBarRect.top;
 	menuTextRect.bottom = _ports->_menuBarRect.bottom;
-	menuTextRect.left = menuTextRect.right = 7;
+	if (!g_sci->isLanguageRTL())
+		menuTextRect.left = menuTextRect.right = 7;
+	else
+		menuTextRect.left = menuTextRect.right = _ports->_menuBarRect.right - 7;
 	listIterator = _list.begin();
 	while (listIterator != listEnd) {
 		listEntry = *listIterator;
 		listNr++;
-		menuTextRect.left = menuTextRect.right;
-		menuTextRect.right += listEntry->textWidth;
-		if (listNr == newMenuId)
-			_menuRect.left = menuTextRect.left;
+		if (!g_sci->isLanguageRTL()) {
+			menuTextRect.left = menuTextRect.right;
+			menuTextRect.right += listEntry->textWidth;
+			if (listNr == newMenuId)
+				_menuRect.left = menuTextRect.left;
+		} else {
+			menuTextRect.right = menuTextRect.left;
+			menuTextRect.left -= listEntry->textWidth;
+			if (listNr == newMenuId)
+				_menuRect.right = menuTextRect.right;
+		}
 		if ((listNr == newMenuId) || (listNr == oldMenuId)) {
-			menuTextRect.translate(1, 0);
+			int multiplier = !g_sci->isLanguageRTL() ? 1 : -1;
+			menuTextRect.translate(1 * multiplier, 0);
 			_paint16->invertRect(menuTextRect);
-			menuTextRect.translate(-1, 0);
+			menuTextRect.translate(-1 * multiplier, 0);
 		}
 
 		listIterator++;
@@ -614,15 +636,25 @@ void GfxMenu::drawMenu(uint16 oldMenuId, uint16 newMenuId) {
 		}
 		listItemIterator++;
 	}
-	_menuRect.right = _menuRect.left + 16 + 4 + 2;
-	_menuRect.right += maxTextWidth + maxTextRightAlignedWidth;
-	if (!maxTextRightAlignedWidth)
-		_menuRect.right -= 5;
+	if (!g_sci->isLanguageRTL()) {
+		_menuRect.right = _menuRect.left + 16 + 4 + 2;
+		_menuRect.right += maxTextWidth + maxTextRightAlignedWidth;
+		if (!maxTextRightAlignedWidth)
+			_menuRect.right -= 5;
+	} else {
+		_menuRect.left = _menuRect.right - (16 + 4 + 2);
+		_menuRect.left -= (maxTextWidth + maxTextRightAlignedWidth);
+		if (!maxTextRightAlignedWidth)
+			_menuRect.left += 5;
+	}
 
 	// If part of menu window is outside the screen, move it into the screen
 	// (this happens in multilingual sq3 and lsl3).
 	if (_menuRect.right > _screen->getWidth()) {
 		_menuRect.translate(-(_menuRect.right - _screen->getWidth()), 0);
+	}
+	if (_menuRect.left < 0) {
+		warning("GfxMenu::drawMenu: _menuRect.left < 0");
 	}
 
 	// Save background
@@ -633,7 +665,10 @@ void GfxMenu::drawMenu(uint16 oldMenuId, uint16 newMenuId) {
 	_menuRect.left++; _menuRect.right--; _menuRect.bottom--;
 	_paint16->fillRect(_menuRect, GFX_SCREEN_MASK_VISUAL, _screen->getColorWhite());
 
-	_menuRect.left += 8;
+	if (!g_sci->isLanguageRTL())
+		_menuRect.left += 8;
+	else
+		_menuRect.right -= 8;
 	topPos = _menuRect.top + 1;
 	listItemIterator = _itemList.begin();
 	while (listItemIterator != listItemEnd) {
@@ -641,10 +676,17 @@ void GfxMenu::drawMenu(uint16 oldMenuId, uint16 newMenuId) {
 		if (listItemEntry->menuId == newMenuId) {
 			if (!listItemEntry->separatorLine) {
 				_ports->textGreyedOutput(!listItemEntry->enabled);
-				_ports->moveTo(_menuRect.left, topPos);
-				_text16->DrawString(listItemEntry->textSplit.c_str());
-				_ports->moveTo(_menuRect.right - listItemEntry->textRightAlignedWidth - 5, topPos);
-				_text16->DrawString(listItemEntry->textRightAligned.c_str());
+				if (!g_sci->isLanguageRTL()) {
+					_ports->moveTo(_menuRect.left, topPos);
+					_text16->DrawString(listItemEntry->textSplit.c_str());
+					_ports->moveTo(_menuRect.right - listItemEntry->textRightAlignedWidth - 5, topPos);
+					_text16->DrawString(listItemEntry->textRightAligned.c_str());
+				} else {
+					_ports->moveTo(_menuRect.left + 5, topPos);
+					_text16->DrawString(listItemEntry->textRightAligned.c_str());
+					_ports->moveTo(_menuRect.right - listItemEntry->textWidth, topPos);
+					_text16->DrawString(listItemEntry->textSplit.c_str());
+				}
 			} else {
 				// We dont 100% follow sierra here, we draw the line from left to right. Looks better
 				// BTW. SCI1.1 seems to put 2 pixels and then skip one, we don't do this at all (lsl6)
@@ -664,8 +706,16 @@ void GfxMenu::drawMenu(uint16 oldMenuId, uint16 newMenuId) {
 	// Draw the black line again
 	_paint16->fillRect(_ports->_menuLine, 1, 0);
 
-	_menuRect.left -= 8;
-	_menuRect.left--; _menuRect.right++; _menuRect.bottom++;
+	if (!g_sci->isLanguageRTL()) {
+		_menuRect.left -= 8;
+		_menuRect.left--;
+		_menuRect.right++;
+	} else {
+		_menuRect.right += 8;
+		_menuRect.right--;
+		_menuRect.left++;
+	}
+	_menuRect.bottom++;
 	_paint16->bitsShow(_menuRect);
 }
 
@@ -701,15 +751,26 @@ uint16 GfxMenu::mouseFindMenuSelection(Common::Point mousePosition) {
 	GuiMenuEntry *listEntry;
 	GuiMenuList::iterator listIterator;
 	GuiMenuList::iterator listEnd = _list.end();
-	uint16 curXstart = 8;
+	uint16 curXstart;
+	if (!g_sci->isLanguageRTL())
+		curXstart = 8;
+	else
+		curXstart = _screen->getWidth() - 8;
 
 	listIterator = _list.begin();
 	while (listIterator != listEnd) {
 		listEntry = *listIterator;
-		if (mousePosition.x >= curXstart && mousePosition.x < curXstart + listEntry->textWidth) {
-			return listEntry->id;
+		if (!g_sci->isLanguageRTL()) {
+			if (mousePosition.x >= curXstart && mousePosition.x < curXstart + listEntry->textWidth) {
+				return listEntry->id;
+			}
+			curXstart += listEntry->textWidth;
+		} else {
+			if (mousePosition.x <= curXstart && mousePosition.x > curXstart - listEntry->textWidth) {
+				return listEntry->id;
+			}
+			curXstart -= listEntry->textWidth;
 		}
-		curXstart += listEntry->textWidth;
 		listIterator++;
 	}
 	return 0;
@@ -767,6 +828,8 @@ GuiMenuItemEntry *GfxMenu::interactiveWithKeyboard() {
 	_paint16->bitsShow(_ports->_menuRect);
 	_paint16->bitsShow(_menuRect);
 
+	int multiplier = !g_sci->isLanguageRTL() ? 1 : -1;
+
 	while (true) {
 		curEvent = _event->getSciEvent(kSciEventAny);
 
@@ -779,7 +842,7 @@ GuiMenuItemEntry *GfxMenu::interactiveWithKeyboard() {
 				switch (curEvent.character) {
 				case kSciKeyEsc:
 					_curMenuId = curItemEntry->menuId; _curItemId = curItemEntry->id;
-					return NULL;
+					return nullptr;
 				case kSciKeyEnter:
 					if (curItemEntry->enabled)  {
 						_curMenuId = curItemEntry->menuId; _curItemId = curItemEntry->id;
@@ -787,10 +850,12 @@ GuiMenuItemEntry *GfxMenu::interactiveWithKeyboard() {
 					}
 					break;
 				case kSciKeyLeft:
-					newMenuId--; newItemId = 1;
+					newMenuId -= 1 * multiplier;
+					newItemId = 1;
 					break;
 				case kSciKeyRight:
-					newMenuId++; newItemId = 1;
+					newMenuId += 1 * multiplier;
+					newItemId = 1;
 					break;
 				case kSciKeyUp:
 					newItemId--;
@@ -868,6 +933,9 @@ GuiMenuItemEntry *GfxMenu::interactiveWithKeyboard() {
 			g_sci->sleep(2500 / 1000);
 			break;
 
+		case kSciEventQuit:
+			return nullptr;
+
 		default:
 			break;
 		}
@@ -883,7 +951,7 @@ GuiMenuItemEntry *GfxMenu::interactiveWithMouse() {
 	uint16 newMenuId = 0, newItemId = 0;
 	uint16 curMenuId = 0, curItemId = 0;
 	bool firstMenuChange = true;
-	GuiMenuItemEntry *curItemEntry = NULL;
+	GuiMenuItemEntry *curItemEntry = nullptr;
 
 	_oldPort = _ports->setPort(_ports->_menuPort);
 	calculateMenuAndItemWidth();
@@ -901,9 +969,9 @@ GuiMenuItemEntry *GfxMenu::interactiveWithMouse() {
 		switch (curEvent.type) {
 		case kSciEventMouseRelease:
 			if ((curMenuId == 0) || (curItemId == 0))
-				return NULL;
+				return nullptr;
 			if ((!curItemEntry->enabled) || (curItemEntry->separatorLine))
-				return NULL;
+				return nullptr;
 			return curItemEntry;
 
 		case kSciEventNone:
@@ -944,7 +1012,7 @@ GuiMenuItemEntry *GfxMenu::interactiveWithMouse() {
 		}
 
 	}
-	return NULL;
+	return nullptr;
 }
 
 void GfxMenu::kernelDrawStatus(const char *text, int16 colorPen, int16 colorBack) {
@@ -952,7 +1020,14 @@ void GfxMenu::kernelDrawStatus(const char *text, int16 colorPen, int16 colorBack
 
 	_paint16->fillRect(_ports->_menuBarRect, 1, colorBack);
 	_ports->penColor(colorPen);
-	_ports->moveTo(0, 1);
+	if (!g_sci->isLanguageRTL()) {
+		_ports->moveTo(0, 1);
+	} else {
+		int16 textWidth;
+		int16 textHeight;
+		_text16->StringWidth(text, _text16->GetFontId(), textWidth, textHeight);
+		_ports->moveTo(_screen->getWidth() - textWidth, 1);
+	}
 	_text16->DrawStatus(text);
 	_paint16->bitsShow(_ports->_menuBarRect);
 	// Also draw the line under the status bar. Normally, this is never drawn,

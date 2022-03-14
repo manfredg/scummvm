@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -248,8 +247,8 @@ void schedule(Aword evt, Aword whr, Aword aft) {
 
  */
 static Aptr getatr(
-    Aaddr atradr,              /* IN - ACODE address to attribute table */
-    Aaddr atr                  /* IN - The attribute to read */
+	Aaddr atradr,              /* IN - ACODE address to attribute table */
+	Aaddr atr                  /* IN - The attribute to read */
 ) {
 	AtrElem *at;
 
@@ -366,9 +365,9 @@ void setstr(Aword id, Aword atr, Aword str) {
 
  */
 static void incratr(
-    Aaddr atradr,           /* IN - ACODE address to attribute table */
-    Aword atr,              /* IN - attribute code */
-    Aword step              /* IN - step to increment by */
+	Aaddr atradr,           /* IN - ACODE address to attribute table */
+	Aword atr,              /* IN - attribute code */
+	Aword step              /* IN - step to increment by */
 ) {
 	AtrElem *at;
 
@@ -471,7 +470,7 @@ Aptr attribute(Aword id, Aword atr) {
 }
 
 Aptr strattr(Aword id, Aword atr) {
-	return (Aptr) strdup((char *)attribute(id, atr));
+	return (Aptr)scumm_strdup((char *)attribute(id, atr));
 }
 
 
@@ -751,7 +750,7 @@ static void saylit(Aword lit) {
 	if (isNum(lit))
 		sayint(litValues[lit - LITMIN].value);
 	else {
-		str = (char *)strdup((char *)litValues[lit - LITMIN].value);
+		str = (char *)scumm_strdup((char *)litValues[lit - LITMIN].value);
 		saystr(str);
 	}
 }
@@ -811,15 +810,15 @@ static void dscrobj(Aword obj) {
 }
 
 static void dscract(Aword act) {
-	ScrElem *scr = NULL;
+	ScrElem *scr = nullptr;
 
 	if (acts[act - ACTMIN].script != 0) {
 		for (scr = (ScrElem *) addrTo(acts[act - ACTMIN].scradr); !endOfTable(scr); scr++)
 			if (scr->code == acts[act - ACTMIN].script)
 				break;
-		if (endOfTable(scr)) scr = NULL;
+		if (endOfTable(scr)) scr = nullptr;
 	}
-	if (scr != NULL && scr->dscr != 0)
+	if (scr != nullptr && scr->dscr != 0)
 		interpret(scr->dscr);
 	else if (acts[act - ACTMIN].dscr != 0)
 		interpret(acts[act - ACTMIN].dscr);
@@ -1091,9 +1090,9 @@ Aword rnd(Aword from, Aword to) {
 	if (to == from)
 		return to;
 	else if (to > from)
-		return (rand() / 10) % (to - from + 1) + from;
+		return (g_vm->getRandomNumber(0x7fffffff) / 10) % (to - from + 1) + from;
 	else
-		return (rand() / 10) % (from - to + 1) + to;
+		return (g_vm->getRandomNumber(0x7fffffff) / 10) % (from - to + 1) + to;
 }
 
 /*----------------------------------------------------------------------
@@ -1125,7 +1124,7 @@ Aword contains(Aptr string, Aptr substring) {
 	strlow((char *)string);
 	strlow((char *)substring);
 
-	found = (strstr((char *)string, (char *)substring) != 0);
+	found = (strstr((char *)string, (char *)substring) != nullptr);
 
 	free((char *)string);
 	free((char *)substring);

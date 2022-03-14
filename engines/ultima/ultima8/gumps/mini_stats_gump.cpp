@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,31 +15,23 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/gumps/mini_stats_gump.h"
 
 #include "ultima/ultima8/games/game_data.h"
 #include "ultima/ultima8/graphics/gump_shape_archive.h"
-#include "ultima/ultima8/graphics/shape.h"
-#include "ultima/ultima8/graphics/shape_frame.h"
 #include "ultima/ultima8/world/actors/main_actor.h"
 #include "ultima/ultima8/graphics/render_surface.h"
 #include "ultima/ultima8/kernel/mouse.h"
-#include "ultima/ultima8/gumps/paperdoll_gump.h"
 #include "ultima/ultima8/world/get_object.h"
-
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(MiniStatsGump, Gump)
+DEFINE_RUNTIME_CLASSTYPE_CODE(MiniStatsGump)
 
 static const int gumpshape = 33;
 static const int hpx = 6;
@@ -66,11 +58,7 @@ void MiniStatsGump::InitGump(Gump *newparent, bool take_focus) {
 	Gump::InitGump(newparent, take_focus);
 
 	_shape = GameData::get_instance()->getGumps()->getShape(gumpshape);
-	ShapeFrame *sf = _shape->getFrame(0);
-	assert(sf);
-
-	_dims.w = sf->_width;
-	_dims.h = sf->_height;
+	UpdateDimsFromShape();
 }
 
 void MiniStatsGump::PaintThis(RenderSurface *surf, int32 lerp_factor, bool scaled) {
@@ -113,14 +101,14 @@ uint16 MiniStatsGump::TraceObjId(int32 mx, int32 my) {
 	return 0;
 }
 
-Gump *MiniStatsGump::OnMouseDown(int button, int32 mx, int32 my) {
+Gump *MiniStatsGump::onMouseDown(int button, int32 mx, int32 my) {
 	if (button == Shared::BUTTON_LEFT)
 		return this;
 
-	return 0;
+	return nullptr;
 }
 
-void MiniStatsGump::OnMouseDouble(int button, int32 mx, int32 my) {
+void MiniStatsGump::onMouseDouble(int button, int32 mx, int32 my) {
 	// check if there already is an open PaperdollGump
 	MainActor *av = getMainActor();
 	if (!av->getGump()) {
@@ -130,14 +118,12 @@ void MiniStatsGump::OnMouseDouble(int button, int32 mx, int32 my) {
 	Close();
 }
 
-void MiniStatsGump::saveData(ODataSource *ods) {
-	Gump::saveData(ods);
+void MiniStatsGump::saveData(Common::WriteStream *ws) {
+	Gump::saveData(ws);
 }
 
-bool MiniStatsGump::loadData(IDataSource *ids, uint32 version) {
-	if (!Gump::loadData(ids, version)) return false;
-
-	return true;
+bool MiniStatsGump::loadData(Common::ReadStream *rs, uint32 version) {
+	return Gump::loadData(rs, version);
 }
 
 } // End of namespace Ultima8

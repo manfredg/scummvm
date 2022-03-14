@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/engine/features.h"
 #include "sci/engine/seg_manager.h"
 #include "sci/engine/state.h"
@@ -38,7 +37,7 @@
 namespace Sci {
 #pragma mark CelScaler
 
-Common::ScopedPtr<CelScaler> CelObj::_scaler;
+CelScaler *CelObj::_scaler = nullptr;
 
 void CelScaler::activateScaleTables(const Ratio &scaleX, const Ratio &scaleY) {
 	for (int i = 0; i < ARRAYSIZE(_scaleTables); ++i) {
@@ -90,13 +89,15 @@ void CelObj::init() {
 	CelObj::deinit();
 	_drawBlackLines = false;
 	_nextCacheId = 1;
-	_scaler.reset(new CelScaler());
-	_cache.reset(new CelCache(100));
+	_scaler = new CelScaler();
+	_cache = new CelCache(100);
 }
 
 void CelObj::deinit() {
-	_scaler.reset();
-	_cache.reset();
+	delete _scaler;
+	_scaler = nullptr;
+	delete _cache;
+	_cache = nullptr;
 }
 
 #pragma mark -
@@ -437,13 +438,34 @@ public:
 #pragma mark CelObj - Remappers
 
 /**
+ * Translation for pixels from Mac pic and view cels to the PC palette.
+ * The Mac OS palette required 0 to be white and 255 to be black, which is the
+ * opposite of the PC palette. Mac cels use the Mac palette but the colors in
+ * scripts are constant between versions. SSCI handles this with many Mac-only
+ * translations throughout the interpreter. We use the PC palette and translate
+ * the cel pixels here, similar to the SCI16 code in GfxView::unpackCel. The
+ * difference is that in SCI32 we decompress while drawing, while in SCI16 cels
+ * are unpacked to a buffer first, making that translation code simpler.
+ */
+inline byte translateMacColor(bool isMacSource, byte color) {
+	if (isMacSource) {
+		if (color == 0) {
+			return 255;
+		} else if (color == 255) {
+			return 0;
+		}
+	}
+	return color;
+}
+
+/**
  * Pixel mapper for a CelObj with transparent pixels and no
  * remapping data.
  */
 struct MAPPER_NoMD {
-	inline void draw(byte *target, const byte pixel, const uint8 skipColor) const {
+	inline void draw(byte *target, const byte pixel, const uint8 skipColor, const bool isMacSource) const {
 		if (pixel != skipColor) {
-			*target = pixel;
+			*target = translateMacColor(isMacSource, pixel);
 		}
 	}
 };
@@ -453,8 +475,8 @@ struct MAPPER_NoMD {
  * no remapping data.
  */
 struct MAPPER_NoMDNoSkip {
-	inline void draw(byte *target, const byte pixel, const uint8) const {
-		*target = pixel;
+	inline void draw(byte *target, const byte pixel, const uint8, const bool isMacSource) const {
+		*target = translateMacColor(isMacSource, pixel);
 	}
 };
 
@@ -463,14 +485,14 @@ struct MAPPER_NoMDNoSkip {
  * remapping data, and remapping enabled.
  */
 struct MAPPER_Map {
-	inline void draw(byte *target, const byte pixel, const uint8 skipColor) const {
+	inline void draw(byte *target, const byte pixel, const uint8 skipColor, const bool isMacSource) const {
 		if (pixel != skipColor) {
 			// For some reason, SSCI never checks if the source pixel is *above*
 			// the range of remaps, so we do not either.
 			if (pixel < g_sci->_gfxRemap32->getStartColor()) {
-				*target = pixel;
+				*target = translateMacColor(isMacSource, pixel);
 			} else if (g_sci->_gfxRemap32->remapEnabled(pixel)) {
-				*target = g_sci->_gfxRemap32->remapColor(pixel, *target);
+				*target = g_sci->_gfxRemap32->remapColor(translateMacColor(isMacSource, pixel), *target);
 			}
 		}
 	}
@@ -481,11 +503,11 @@ struct MAPPER_Map {
  * remapping data, and remapping disabled.
  */
 struct MAPPER_NoMap {
-	inline void draw(byte *target, const byte pixel, const uint8 skipColor) const {
+	inline void draw(byte *target, const byte pixel, const uint8 skipColor, const bool isMacSource) const {
 		// For some reason, SSCI never checks if the source pixel is *above* the
 		// range of remaps, so we do not either.
 		if (pixel != skipColor && pixel < g_sci->_gfxRemap32->getStartColor()) {
-			*target = pixel;
+			*target = translateMacColor(isMacSource, pixel);
 		}
 	}
 };
@@ -665,7 +687,7 @@ void CelObj::submitPalette() const {
 #pragma mark CelObj - Caching
 
 int CelObj::_nextCacheId = 1;
-Common::ScopedPtr<CelCache> CelObj::_cache;
+CelCache *CelObj::_cache = nullptr;
 
 int CelObj::searchCache(const CelInfo32 &celInfo, int *const nextInsertIndex) const {
 	*nextInsertIndex = -1;
@@ -713,11 +735,13 @@ struct RENDERER {
 	MAPPER &_mapper;
 	SCALER &_scaler;
 	const uint8 _skipColor;
+	const bool _isMacSource;
 
-	RENDERER(MAPPER &mapper, SCALER &scaler, const uint8 skipColor) :
+	RENDERER(MAPPER &mapper, SCALER &scaler, const uint8 skipColor, const bool isMacSource) :
 	_mapper(mapper),
 	_scaler(scaler),
-	_skipColor(skipColor) {}
+	_skipColor(skipColor),
+	_isMacSource(isMacSource) {}
 
 	inline void draw(Buffer &target, const Common::Rect &targetRect, const Common::Point &scaledPosition) const {
 		byte *targetPixel = (byte *)target.getPixels() + target.w * targetRect.top + targetRect.left;
@@ -735,7 +759,7 @@ struct RENDERER {
 			_scaler.setTarget(targetRect.left, targetRect.top + y);
 
 			for (int16 x = 0; x < targetWidth; ++x) {
-				_mapper.draw(targetPixel++, _scaler.read(), _skipColor);
+				_mapper.draw(targetPixel++, _scaler.read(), _skipColor, _isMacSource);
 			}
 
 			targetPixel += skipStride;
@@ -748,7 +772,7 @@ void CelObj::render(Buffer &target, const Common::Rect &targetRect, const Common
 
 	MAPPER mapper;
 	SCALER scaler(*this, targetRect.left - scaledPosition.x + targetRect.width(), scaledPosition);
-	RENDERER<MAPPER, SCALER, false> renderer(mapper, scaler, _skipColor);
+	RENDERER<MAPPER, SCALER, false> renderer(mapper, scaler, _skipColor, _isMacSource);
 	renderer.draw(target, targetRect, scaledPosition);
 }
 
@@ -758,10 +782,10 @@ void CelObj::render(Buffer &target, const Common::Rect &targetRect, const Common
 	MAPPER mapper;
 	SCALER scaler(*this, targetRect, scaledPosition, scaleX, scaleY);
 	if (_drawBlackLines) {
-		RENDERER<MAPPER, SCALER, true> renderer(mapper, scaler, _skipColor);
+		RENDERER<MAPPER, SCALER, true> renderer(mapper, scaler, _skipColor, _isMacSource);
 		renderer.draw(target, targetRect, scaledPosition);
 	} else {
-		RENDERER<MAPPER, SCALER, false> renderer(mapper, scaler, _skipColor);
+		RENDERER<MAPPER, SCALER, false> renderer(mapper, scaler, _skipColor, _isMacSource);
 		renderer.draw(target, targetRect, scaledPosition);
 	}
 }
@@ -943,6 +967,7 @@ CelObjView::CelObjView(const GuiResourceId viewId, const int16 loopNo, const int
 	_info.loopNo = loopNo;
 	_info.celNo = celNo;
 	_mirrorX = false;
+	_isMacSource = (g_sci->getPlatform() == Common::kPlatformMacintosh);
 	_compressionType = kCelCompressionInvalid;
 	_transparent = true;
 
@@ -1149,6 +1174,7 @@ CelObjPic::CelObjPic(const GuiResourceId picId, const int16 celNo) {
 	_info.loopNo = 0;
 	_info.celNo = celNo;
 	_mirrorX = false;
+	_isMacSource = (g_sci->getPlatform() == Common::kPlatformMacintosh);
 	_compressionType = kCelCompressionInvalid;
 	_transparent = true;
 	_remap = false;
@@ -1274,6 +1300,7 @@ CelObjMem::CelObjMem(const reg_t bitmapObject) {
 	_info.type = kCelTypeMem;
 	_info.bitmap = bitmapObject;
 	_mirrorX = false;
+	_isMacSource = false;
 	_compressionType = kCelCompressionNone;
 	_celHeaderOffset = 0;
 	_transparent = true;
@@ -1317,6 +1344,7 @@ CelObjColor::CelObjColor(const uint8 color, const int16 width, const int16 heigh
 	_yResolution = g_sci->_gfxFrameout->getScriptHeight();
 	_hunkPaletteOffset = 0;
 	_mirrorX = false;
+	_isMacSource = (g_sci->getPlatform() == Common::kPlatformMacintosh);
 	_remap = false;
 	_width = width;
 	_height = height;
@@ -1332,7 +1360,7 @@ void CelObjColor::draw(Buffer &target, const Common::Rect &targetRect, const Com
 	error("Unsupported method");
 }
 void CelObjColor::draw(Buffer &target, const Common::Rect &targetRect) const {
-	target.fillRect(targetRect, _info.color);
+	target.fillRect(targetRect, translateMacColor(_isMacSource, _info.color));
 }
 
 CelObjColor *CelObjColor::duplicate() const {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,15 +23,11 @@
 #include "ultima/ultima8/graphics/fonts/jp_rendered_text.h"
 #include "ultima/ultima8/graphics/fonts/shape_font.h"
 #include "ultima/ultima8/graphics/render_surface.h"
-#include "ultima/ultima8/misc/encoding.h"
 #include "ultima/ultima8/graphics/shape_frame.h"
 #include "ultima/ultima8/graphics/palette_manager.h"
 
 namespace Ultima {
 namespace Ultima8 {
-
-DEFINE_RUNTIME_CLASSTYPE_CODE(JPRenderedText, RenderedText)
-
 
 JPRenderedText::JPRenderedText(Std::list<PositionedText> &lines, int width, int height,
 		int vLead, ShapeFont *font, unsigned int fontNum)
@@ -55,11 +50,11 @@ void JPRenderedText::draw(RenderSurface *surface, int x, int y, bool /*destmaske
 	const Palette *savepal = _font->getPalette();
 	_font->setPalette(pal);
 
-	Std::list<PositionedText>::iterator iter;
+	Std::list<PositionedText>::const_iterator iter;
 
 	for (iter = _lines.begin(); iter != _lines.end(); ++iter) {
-		int line_x = x + iter->_dims.x;
-		int line_y = y + iter->_dims.y;
+		int line_x = x + iter->_dims.left;
+		int line_y = y + iter->_dims.top;
 
 		size_t textsize = iter->_text.size();
 
@@ -74,7 +69,7 @@ void JPRenderedText::draw(RenderSurface *surface, int x, int y, bool /*destmaske
 
 			if (i == iter->_cursor) {
 				surface->Fill32(0xFF000000, line_x, line_y - _font->getBaseline(),
-				                1, iter->_dims.h);
+				                1, iter->_dims.height());
 			}
 
 			line_x += (_font->getFrame(u8char))->_width - _font->getHlead();
@@ -82,7 +77,7 @@ void JPRenderedText::draw(RenderSurface *surface, int x, int y, bool /*destmaske
 
 		if (iter->_cursor == textsize) {
 			surface->Fill32(0xFF000000, line_x, line_y - _font->getBaseline(),
-			                1, iter->_dims.h);
+			                1, iter->_dims.height());
 		}
 	}
 
@@ -90,7 +85,7 @@ void JPRenderedText::draw(RenderSurface *surface, int x, int y, bool /*destmaske
 }
 
 void JPRenderedText::drawBlended(RenderSurface *surface, int x, int y,
-                                 uint32 col, bool /*destmasked*/) {
+								 uint32 col, bool /*destmasked*/) {
 	// TODO Support masking here??
 
 	PaletteManager *palman = PaletteManager::get_instance();
@@ -100,11 +95,11 @@ void JPRenderedText::drawBlended(RenderSurface *surface, int x, int y,
 	const Palette *savepal = _font->getPalette();
 	_font->setPalette(pal);
 
-	Std::list<PositionedText>::iterator iter;
+	Std::list<PositionedText>::const_iterator iter;
 
 	for (iter = _lines.begin(); iter != _lines.end(); ++iter) {
-		int line_x = x + iter->_dims.x;
-		int line_y = y + iter->_dims.y;
+		int line_x = x + iter->_dims.left;
+		int line_y = y + iter->_dims.top;
 
 		size_t textsize = iter->_text.size();
 

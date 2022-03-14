@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,6 +64,7 @@ enum {
 
 	kCmdGlobalGraphicsOverride = 'OGFX',
 	kCmdGlobalShaderOverride = 'OSHD',
+	kCmdGlobalBackendOverride = 'OBAK',
 	kCmdGlobalAudioOverride = 'OSFX',
 	kCmdGlobalMIDIOverride = 'OMID',
 	kCmdGlobalMT32Override = 'OM32',
@@ -88,7 +88,7 @@ enum {
 */
 class DomainEditTextWidget : public EditTextWidget {
 public:
-	DomainEditTextWidget(GuiObject *boss, const String &name, const String &text, const char *tooltip = nullptr)
+	DomainEditTextWidget(GuiObject *boss, const Common::String &name, const Common::U32String &text, const Common::U32String &tooltip = Common::U32String())
 		: EditTextWidget(boss, name, text, tooltip) {}
 
 protected:
@@ -101,29 +101,33 @@ protected:
 	}
 };
 
-EditGameDialog::EditGameDialog(const String &domain)
+EditGameDialog::EditGameDialog(const Common::String &domain)
 	: OptionsDialog(domain, "GameOptions") {
 	EngineMan.upgradeTargetIfNecessary(domain);
 
-	// Retrieve all game specific options.
+	_engineOptions = nullptr;
 
 	// Retrieve the plugin, since we need to access the engine's MetaEngine
 	// implementation.
-	const Plugin *plugin = nullptr;
-	QualifiedGameDescriptor qgd = EngineMan.findTarget(domain, &plugin);
-	if (plugin) {
-		_engineOptions = plugin->get<MetaEngine>().getExtraGuiOptions(domain);
+	const Plugin *metaEnginePlugin = nullptr;
+	const Plugin *enginePlugin = nullptr;
+	QualifiedGameDescriptor qgd = EngineMan.findTarget(domain, &metaEnginePlugin);
+	if (!metaEnginePlugin) {
+		warning("MetaEnginePlugin for target \"%s\" not found!", domain.c_str());
 	} else {
-		warning("Plugin for target \"%s\" not found! Game specific settings might be missing", domain.c_str());
+		enginePlugin = PluginMan.getEngineFromMetaEngine(metaEnginePlugin);
+		if (!enginePlugin) {
+			warning("Engine Plugin for target \"%s\" not found! Game specific settings might be missing.", domain.c_str());
+		}
 	}
 
 	// GAME: Path to game data (r/o), extra data (r/o), and save data (r/w)
-	String gamePath(ConfMan.get("path", _domain));
-	String extraPath(ConfMan.get("extrapath", _domain));
-	String savePath(ConfMan.get("savepath", _domain));
+	Common::String gamePath(ConfMan.get("path", _domain));
+	Common::String extraPath(ConfMan.get("extrapath", _domain));
+	Common::String savePath(ConfMan.get("savepath", _domain));
 
 	// GAME: Determine the description string
-	String description(ConfMan.get("description", domain));
+	Common::String description(ConfMan.get("description", domain));
 	if (description.empty() && !qgd.description.empty()) {
 		description = qgd.description;
 	}
@@ -151,14 +155,18 @@ EditGameDialog::EditGameDialog(const String &domain)
 	_descriptionWidget = new EditTextWidget(tab, "GameOptions_Game.Desc", description, _("Full title of the game"));
 
 	// Language popup
-	_langPopUpDesc = new StaticTextWidget(tab, "GameOptions_Game.LangPopupDesc", _("Language:"), _("Language of the game. This will not turn your Spanish game version into English"));
-	_langPopUp = new PopUpWidget(tab, "GameOptions_Game.LangPopup", _("Language of the game. This will not turn your Spanish game version into English"));
-	_langPopUp->appendEntry(_("<default>"), (uint32)Common::UNK_LANG);
-	_langPopUp->appendEntry("", (uint32)Common::UNK_LANG);
-	const Common::LanguageDescription *l = Common::g_languages;
-	for (; l->code; ++l) {
-		if (checkGameGUIOptionLanguage(l->id, _guioptionsString))
-			_langPopUp->appendEntry(l->description, l->id);
+	_langPopUpDesc = nullptr;
+	_langPopUp = nullptr;
+	if (!_guioptions.contains(GUIO_NOLANG)) {
+		_langPopUpDesc = new StaticTextWidget(tab, "GameOptions_Game.LangPopupDesc", _("Language:"), _("Language of the game. This will not turn your Spanish game version into English"));
+		_langPopUp = new PopUpWidget(tab, "GameOptions_Game.LangPopup", _("Language of the game. This will not turn your Spanish game version into English"));
+		_langPopUp->appendEntry(_("<default>"), (uint32)Common::UNK_LANG);
+		_langPopUp->appendEntry("", (uint32)Common::UNK_LANG);
+		const Common::LanguageDescription *l = Common::g_languages;
+		for (; l->code; ++l) {
+			if (checkGameGUIOptionLanguage(l->id, _guioptionsString))
+				_langPopUp->appendEntry(l->description, l->id);
+		}
 	}
 
 	// Platform popup
@@ -175,26 +183,36 @@ EditGameDialog::EditGameDialog(const String &domain)
 	}
 
 	//
-	// 2) The engine tab (shown only if there are custom engine options)
+	// 2) The engine's game settings (shown only if the engine implements one or there are custom engine options)
 	//
-	if (_engineOptions.size() > 0) {
-		tab->addTab(_("Engine"), "GameOptions_Engine");
 
-		addEngineControls(tab, "GameOptions_Engine.", _engineOptions);
+	if (metaEnginePlugin) {
+		const MetaEngineDetection &metaEngineDetection = metaEnginePlugin->get<MetaEngineDetection>();
+		metaEngineDetection.registerDefaultSettings(_domain);
+		if (enginePlugin) {
+			enginePlugin->get<MetaEngine>().registerDefaultSettings(_domain);
+			_engineOptions = enginePlugin->get<MetaEngine>().buildEngineOptionsWidgetDynamic(tab, "GameOptions_Game.Container", _domain);
+		}
+		if (!_engineOptions)
+			_engineOptions = metaEngineDetection.buildEngineOptionsWidgetStatic(tab, "GameOptions_Game.Container", _domain);
+
+		if (_engineOptions) {
+			_engineOptions->setParentDialog(this);
+		}
 	}
 
 	//
 	// 3) The graphics tab
 	//
-	_graphicsTabId = tab->addTab(g_system->getOverlayWidth() > 320 ? _("Graphics") : _("GFX"), "GameOptions_Graphics");
+	_graphicsTabId = tab->addTab(g_system->getOverlayWidth() > 320 ? _("Graphics") : _("GFX"), "GameOptions_Graphics", false);
 	ScrollContainerWidget *graphicsContainer = new ScrollContainerWidget(tab, "GameOptions_Graphics.Container", "GameOptions_Graphics_Container", kGraphicsTabContainerReflowCmd);
 	graphicsContainer->setBackgroundType(ThemeEngine::kWidgetBackgroundNo);
 	graphicsContainer->setTarget(this);
 
 	if (g_system->getOverlayWidth() > 320)
-		_globalGraphicsOverride = new CheckboxWidget(graphicsContainer, "GameOptions_Graphics_Container.EnableTabCheckbox", _("Override global graphic settings"), nullptr, kCmdGlobalGraphicsOverride);
+		_globalGraphicsOverride = new CheckboxWidget(graphicsContainer, "GameOptions_Graphics_Container.EnableTabCheckbox", _("Override global graphic settings"), Common::U32String(), kCmdGlobalGraphicsOverride);
 	else
-		_globalGraphicsOverride = new CheckboxWidget(graphicsContainer, "GameOptions_Graphics_Container.EnableTabCheckbox", _c("Override global graphic settings", "lowres"), nullptr, kCmdGlobalGraphicsOverride);
+		_globalGraphicsOverride = new CheckboxWidget(graphicsContainer, "GameOptions_Graphics_Container.EnableTabCheckbox", _c("Override global graphic settings", "lowres"), Common::U32String(), kCmdGlobalGraphicsOverride);
 
 	addGraphicControls(graphicsContainer, "GameOptions_Graphics_Container.");
 
@@ -207,9 +225,9 @@ EditGameDialog::EditGameDialog(const String &domain)
 		tab->addTab(_("Shader"), "GameOptions_Shader");
 
 		if (g_system->getOverlayWidth() > 320)
-			_globalShaderOverride = new CheckboxWidget(tab, "GameOptions_Shader.EnableTabCheckbox", _("Override global shader settings"), nullptr, kCmdGlobalShaderOverride);
+			_globalShaderOverride = new CheckboxWidget(tab, "GameOptions_Shader.EnableTabCheckbox", _("Override global shader settings"), Common::U32String(), kCmdGlobalShaderOverride);
 		else
-			_globalShaderOverride = new CheckboxWidget(tab, "GameOptions_Shader.EnableTabCheckbox", _c("Override global shader settings", "lowres"), nullptr, kCmdGlobalShaderOverride);
+			_globalShaderOverride = new CheckboxWidget(tab, "GameOptions_Shader.EnableTabCheckbox", _c("Override global shader settings", "lowres"), Common::U32String(), kCmdGlobalShaderOverride);
 
 		addShaderControls(tab, "GameOptions_Shader.");
 	}
@@ -218,13 +236,32 @@ EditGameDialog::EditGameDialog(const String &domain)
 	// The Keymap tab
 	//
 	Common::KeymapArray keymaps;
-	if (plugin) {
-		keymaps = plugin->get<MetaEngine>().initKeymaps(domain.c_str());
+	if (enginePlugin) {
+		keymaps = enginePlugin->get<MetaEngine>().initKeymaps(domain.c_str());
 	}
 
 	if (!keymaps.empty()) {
-		tab->addTab(_("Keymaps"), "GameOptions_KeyMapper");
+		tab->addTab(_("Keymaps"), "GameOptions_KeyMapper", false);
 		addKeyMapperControls(tab, "GameOptions_KeyMapper.", keymaps, domain);
+	}
+
+	//
+	// The backend tab (shown only if the backend implements one)
+	//
+	int backendTabId = tab->addTab(_("Backend"), "GameOptions_Backend", false);
+
+	if (g_system->getOverlayWidth() > 320)
+		_globalBackendOverride = new CheckboxWidget(tab, "GameOptions_Backend.EnableTabCheckbox", _("Override global backend settings"), Common::U32String(), kCmdGlobalBackendOverride);
+	else
+		_globalBackendOverride = new CheckboxWidget(tab, "GameOptions_Backend.EnableTabCheckbox", _c("Override global backend settings", "lowres"), Common::U32String(), kCmdGlobalBackendOverride);
+
+	g_system->registerDefaultSettings(_domain);
+	_backendOptions = g_system->buildBackendOptionsWidget(tab, "GameOptions_Backend.Container", _domain);
+
+	if (_backendOptions) {
+		_backendOptions->setParentDialog(this);
+	} else {
+		tab->removeTab(backendTabId);
 	}
 
 	//
@@ -233,9 +270,9 @@ EditGameDialog::EditGameDialog(const String &domain)
 	tab->addTab(_("Audio"), "GameOptions_Audio");
 
 	if (g_system->getOverlayWidth() > 320)
-		_globalAudioOverride = new CheckboxWidget(tab, "GameOptions_Audio.EnableTabCheckbox", _("Override global audio settings"), nullptr, kCmdGlobalAudioOverride);
+		_globalAudioOverride = new CheckboxWidget(tab, "GameOptions_Audio.EnableTabCheckbox", _("Override global audio settings"), Common::U32String(), kCmdGlobalAudioOverride);
 	else
-		_globalAudioOverride = new CheckboxWidget(tab, "GameOptions_Audio.EnableTabCheckbox", _c("Override global audio settings", "lowres"), nullptr, kCmdGlobalAudioOverride);
+		_globalAudioOverride = new CheckboxWidget(tab, "GameOptions_Audio.EnableTabCheckbox", _c("Override global audio settings", "lowres"), Common::U32String(), kCmdGlobalAudioOverride);
 
 	addAudioControls(tab, "GameOptions_Audio.");
 	addSubtitleControls(tab, "GameOptions_Audio.");
@@ -249,9 +286,9 @@ EditGameDialog::EditGameDialog(const String &domain)
 		tab->addTab(_c("Volume", "lowres"), "GameOptions_Volume");
 
 	if (g_system->getOverlayWidth() > 320)
-		_globalVolumeOverride = new CheckboxWidget(tab, "GameOptions_Volume.EnableTabCheckbox", _("Override global volume settings"), nullptr, kCmdGlobalVolumeOverride);
+		_globalVolumeOverride = new CheckboxWidget(tab, "GameOptions_Volume.EnableTabCheckbox", _("Override global volume settings"), Common::U32String(), kCmdGlobalVolumeOverride);
 	else
-		_globalVolumeOverride = new CheckboxWidget(tab, "GameOptions_Volume.EnableTabCheckbox", _c("Override global volume settings", "lowres"), nullptr, kCmdGlobalVolumeOverride);
+		_globalVolumeOverride = new CheckboxWidget(tab, "GameOptions_Volume.EnableTabCheckbox", _c("Override global volume settings", "lowres"), Common::U32String(), kCmdGlobalVolumeOverride);
 
 	addVolumeControls(tab, "GameOptions_Volume.");
 
@@ -265,9 +302,9 @@ EditGameDialog::EditGameDialog(const String &domain)
 		tab->addTab(_("MIDI"), "GameOptions_MIDI");
 
 		if (g_system->getOverlayWidth() > 320)
-			_globalMIDIOverride = new CheckboxWidget(tab, "GameOptions_MIDI.EnableTabCheckbox", _("Override global MIDI settings"), nullptr, kCmdGlobalMIDIOverride);
+			_globalMIDIOverride = new CheckboxWidget(tab, "GameOptions_MIDI.EnableTabCheckbox", _("Override global MIDI settings"), Common::U32String(), kCmdGlobalMIDIOverride);
 		else
-			_globalMIDIOverride = new CheckboxWidget(tab, "GameOptions_MIDI.EnableTabCheckbox", _c("Override global MIDI settings", "lowres"), nullptr, kCmdGlobalMIDIOverride);
+			_globalMIDIOverride = new CheckboxWidget(tab, "GameOptions_MIDI.EnableTabCheckbox", _c("Override global MIDI settings", "lowres"), Common::U32String(), kCmdGlobalMIDIOverride);
 
 		addMIDIControls(tab, "GameOptions_MIDI.");
 	}
@@ -280,9 +317,9 @@ EditGameDialog::EditGameDialog(const String &domain)
 		tab->addTab(_("MT-32"), "GameOptions_MT32");
 
 		if (g_system->getOverlayWidth() > 320)
-			_globalMT32Override = new CheckboxWidget(tab, "GameOptions_MT32.EnableTabCheckbox", _("Override global MT-32 settings"), nullptr, kCmdGlobalMT32Override);
+			_globalMT32Override = new CheckboxWidget(tab, "GameOptions_MT32.EnableTabCheckbox", _("Override global MT-32 settings"), Common::U32String(), kCmdGlobalMT32Override);
 		else
-			_globalMT32Override = new CheckboxWidget(tab, "GameOptions_MT32.EnableTabCheckbox", _c("Override global MT-32 settings", "lowres"), nullptr, kCmdGlobalMT32Override);
+			_globalMT32Override = new CheckboxWidget(tab, "GameOptions_MT32.EnableTabCheckbox", _c("Override global MT-32 settings", "lowres"), Common::U32String(), kCmdGlobalMT32Override);
 
 		addMT32Controls(tab, "GameOptions_MT32.");
 	}
@@ -300,9 +337,9 @@ EditGameDialog::EditGameDialog(const String &domain)
 
 	// GUI:  Button + Label for the game path
 	if (g_system->getOverlayWidth() > 320)
-		new ButtonWidget(tab, "GameOptions_Paths.Gamepath", _("Game Path:"), nullptr, kCmdGameBrowser);
+		new ButtonWidget(tab, "GameOptions_Paths.Gamepath", _("Game Path:"), Common::U32String(), kCmdGameBrowser);
 	else
-		new ButtonWidget(tab, "GameOptions_Paths.Gamepath", _c("Game Path:", "lowres"), nullptr, kCmdGameBrowser);
+		new ButtonWidget(tab, "GameOptions_Paths.Gamepath", _c("Game Path:", "lowres"), Common::U32String(), kCmdGameBrowser);
 	_gamePathWidget = new StaticTextWidget(tab, "GameOptions_Paths.GamepathText", gamePath);
 
 	// GUI:  Button + Label for the additional path
@@ -323,13 +360,29 @@ EditGameDialog::EditGameDialog(const String &domain)
 
 	_savePathClearButton = addClearButton(tab, "GameOptions_Paths.SavePathClearButton", kCmdSavePathClear);
 
+	//
+	// 9) The Achievements & The Statistics tabs
+	//
+	if (enginePlugin) {
+		const MetaEngine &metaEngine = enginePlugin->get<MetaEngine>();
+		AchMan.setActiveDomain(metaEngine.getAchievementsInfo(domain));
+		if (AchMan.getAchievementCount()) {
+			tab->addTab(_("Achievements"), "GameOptions_Achievements", false);
+			addAchievementsControls(tab, "GameOptions_Achievements.");
+		}
+		if (AchMan.getStatCount()) {
+			tab->addTab(_("Statistics"), "GameOptions_Achievements", false);
+			addStatisticsControls(tab, "GameOptions_Achievements.");
+		}
+	}
+
 	// Activate the first tab
 	tab->setActiveTab(0);
 	_tabWidget = tab;
 
 	// Add OK & Cancel buttons
-	new ButtonWidget(this, "GameOptions.Cancel", _("Cancel"), nullptr, kCloseCmd);
-	new ButtonWidget(this, "GameOptions.Ok", _("OK"), nullptr, kOKCmd);
+	new ButtonWidget(this, "GameOptions.Cancel", _("Cancel"), Common::U32String(), kCloseCmd);
+	new ButtonWidget(this, "GameOptions.Ok", _("OK"), Common::U32String(), kOKCmd);
 }
 
 void EditGameDialog::setupGraphicsTab() {
@@ -340,12 +393,12 @@ void EditGameDialog::setupGraphicsTab() {
 void EditGameDialog::open() {
 	OptionsDialog::open();
 
-	String extraPath(ConfMan.get("extrapath", _domain));
+	Common::String extraPath(ConfMan.get("extrapath", _domain));
 	if (extraPath.empty() || !ConfMan.hasKey("extrapath", _domain)) {
 		_extraPathWidget->setLabel(_c("None", "path"));
 	}
 
-	String savePath(ConfMan.get("savepath", _domain));
+	Common::String savePath(ConfMan.get("savepath", _domain));
 	if (savePath.empty() || !ConfMan.hasKey("savepath", _domain)) {
 		_savePathWidget->setLabel(_("Default"));
 	}
@@ -357,13 +410,25 @@ void EditGameDialog::open() {
 
 	e = ConfMan.hasKey("gfx_mode", _domain) ||
 		ConfMan.hasKey("render_mode", _domain) ||
+		ConfMan.hasKey("stretch_mode", _domain) ||
+		ConfMan.hasKey("scaler", _domain) ||
+		ConfMan.hasKey("scale_factor", _domain) ||
+		ConfMan.hasKey("aspect_ratio", _domain) ||
 		ConfMan.hasKey("fullscreen", _domain) ||
-		ConfMan.hasKey("aspect_ratio", _domain);
+		ConfMan.hasKey("vsync", _domain) ||
+		ConfMan.hasKey("filtering", _domain) ||
+		ConfMan.hasKey("renderer", _domain) ||
+		ConfMan.hasKey("antialiasing", _domain);
 	_globalGraphicsOverride->setState(e);
 
 	if (g_system->hasFeature(OSystem::kFeatureShader)) {
 		e = ConfMan.hasKey("shader", _domain);
 		_globalShaderOverride->setState(e);
+	}
+
+	if (_backendOptions) {
+		e = _backendOptions->hasKeys();
+		_globalBackendOverride->setState(e);
 	}
 
 	e = ConfMan.hasKey("music_driver", _domain) ||
@@ -391,31 +456,23 @@ void EditGameDialog::open() {
 
 	// TODO: game path
 
-	const Common::Language lang = Common::parseLanguage(ConfMan.get("language", _domain));
+	if (_langPopUp != nullptr) {
+		const Common::Language lang = Common::parseLanguage(ConfMan.get("language", _domain));
 
-	if (ConfMan.hasKey("language", _domain)) {
-		_langPopUp->setSelectedTag(lang);
-	} else {
-		_langPopUp->setSelectedTag((uint32)Common::UNK_LANG);
+		if (ConfMan.hasKey("language", _domain)) {
+			_langPopUp->setSelectedTag(lang);
+		} else {
+			_langPopUp->setSelectedTag((uint32)Common::UNK_LANG);
+		}
+
+		if (_langPopUp->numEntries() <= 3) { // If only one language is avaliable
+			_langPopUpDesc->setEnabled(false);
+			_langPopUp->setEnabled(false);
+		}
 	}
 
-	if (_langPopUp->numEntries() <= 3) { // If only one language is avaliable
-		_langPopUpDesc->setEnabled(false);
-		_langPopUp->setEnabled(false);
-	}
-
-	// Set the state of engine-specific checkboxes
-	for (uint j = 0; j < _engineOptions.size(); ++j) {
-		// The default values for engine-specific checkboxes are not set when
-		// ScummVM starts, as this would require us to load and poll all of the
-		// engine plugins on startup. Thus, we set the state of each custom
-		// option checkbox to what is specified by the engine plugin, and
-		// update it only if a value has been set in the configuration of the
-		// currently selected game.
-		bool isChecked = _engineOptions[j].defaultState;
-		if (ConfMan.hasKey(_engineOptions[j].configOption, _domain))
-			isChecked = ConfMan.getBool(_engineOptions[j].configOption, _domain);
-		_engineCheckboxes[j]->setState(isChecked);
+	if (_engineOptions) {
+		_engineOptions->load();
 	}
 
 	const Common::PlatformDescription *p = Common::g_platforms;
@@ -431,23 +488,25 @@ void EditGameDialog::open() {
 void EditGameDialog::apply() {
 	ConfMan.set("description", _descriptionWidget->getEditString(), _domain);
 
-	Common::Language lang = (Common::Language)_langPopUp->getSelectedTag();
-	if (lang < 0)
-		ConfMan.removeKey("language", _domain);
-	else
-		ConfMan.set("language", Common::getLanguageCode(lang), _domain);
+	if (_langPopUp != nullptr) {
+		Common::Language lang = (Common::Language)_langPopUp->getSelectedTag();
+		if (lang < 0)
+			ConfMan.removeKey("language", _domain);
+		else
+			ConfMan.set("language", Common::getLanguageCode(lang), _domain);
+	}
 
-	String gamePath(_gamePathWidget->getLabel());
+	Common::U32String gamePath(_gamePathWidget->getLabel());
 	if (!gamePath.empty())
 		ConfMan.set("path", gamePath, _domain);
 
-	String extraPath(_extraPathWidget->getLabel());
+	Common::U32String extraPath(_extraPathWidget->getLabel());
 	if (!extraPath.empty() && (extraPath != _c("None", "path")))
 		ConfMan.set("extrapath", extraPath, _domain);
 	else
 		ConfMan.removeKey("extrapath", _domain);
 
-	String savePath(_savePathWidget->getLabel());
+	Common::U32String savePath(_savePathWidget->getLabel());
 	if (!savePath.empty() && (savePath != _("Default")))
 		ConfMan.set("savepath", savePath, _domain);
 	else
@@ -459,9 +518,8 @@ void EditGameDialog::apply() {
 	else
 		ConfMan.set("platform", Common::getPlatformCode(platform), _domain);
 
-	// Set the state of engine-specific checkboxes
-	for (uint i = 0; i < _engineOptions.size(); i++) {
-		ConfMan.setBool(_engineOptions[i].configOption, _engineCheckboxes[i]->getState(), _domain);
+	if (_engineOptions) {
+		_engineOptions->save();
 	}
 
 	OptionsDialog::apply();
@@ -475,6 +533,10 @@ void EditGameDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 dat
 		break;
 	case kCmdGlobalShaderOverride:
 		setShaderSettingsState(data != 0);
+		g_gui.scheduleTopDialogRedraw();
+		break;
+	case kCmdGlobalBackendOverride:
+		_backendOptions->setEnabled(data != 0);
 		g_gui.scheduleTopDialogRedraw();
 		break;
 	case kCmdGlobalAudioOverride:
@@ -505,7 +567,7 @@ void EditGameDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 dat
 			Common::FSNode file(browser.getResult());
 			_soundFont->setLabel(file.getPath());
 
-			if (!file.getPath().empty() && (file.getPath() != _c("None", "path")))
+			if (!file.getPath().empty() && (file.getPath() != Common::convertFromU32String(_c("None", "path"))))
 				_soundFontClearButton->setEnabled(true);
 			else
 				_soundFontClearButton->setEnabled(false);
@@ -554,7 +616,13 @@ void EditGameDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 dat
 		if (browser.runModal() > 0) {
 			// User made his choice...
 			Common::FSNode dir(browser.getResult());
-			_savePathWidget->setLabel(dir.getPath());
+			if (dir.isWritable()) {
+				_savePathWidget->setLabel(dir.getPath());
+			} else {
+				MessageDialog error(_("The chosen directory cannot be written to. Please select another one."));
+				error.runModal();
+				return;
+			}
 #if defined(USE_CLOUD) && defined(USE_LIBCURL)
 			MessageDialog warningMessage(_("Saved games sync feature doesn't work with non-default directories. If you want your saved games to sync, use default directory."));
 			warningMessage.runModal();
@@ -576,7 +644,7 @@ void EditGameDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 dat
 	case kOKCmd:
 	{
 		// Write back changes made to config object
-		String newDomain(_domainWidget->getEditString());
+		Common::String newDomain(Common::convertFromU32String(_domainWidget->getEditString()));
 		if (newDomain != _domain) {
 			if (newDomain.empty()
 				|| newDomain.hasPrefix("_")
@@ -588,6 +656,12 @@ void EditGameDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 dat
 			}
 			ConfMan.renameGameDomain(_domain, newDomain);
 			_domain = newDomain;
+			if (_engineOptions) {
+				_engineOptions->setDomain(newDomain);
+			}
+			if (_backendOptions) {
+				_backendOptions->setDomain(newDomain);
+			}
 		}
 	}
 	// fall through

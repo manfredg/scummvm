@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@ namespace Lure {
 
 #define SUPPORT_FILENAME "lure.dat"
 #define LURE_DAT_MAJOR 1
-#define LURE_DAT_MINOR 29
+#define LURE_DAT_MINOR 31
 #define LURE_MIN_SAVEGAME_MINOR 25
 #define LURE_SAVEGAME_MINOR 33
 
@@ -49,12 +48,6 @@ enum {
 #define ERROR_BASIC 1
 #define ERROR_INTERMEDIATE 2
 #define ERROR_DETAILED 3
-
-enum {
-	GF_FLOPPY	= 1 <<  0,
-	GF_EGA		= 1 <<  1,
-	GF_LNGUNK	= 1 << 15
-};
 
 enum {
 	GI_LURE = 0
@@ -230,17 +223,20 @@ enum CursorType {CURSOR_ARROW = 0, CURSOR_DISK = 1, CURSOR_TIME_START = 2,
 #define STRING_LIST_RESOURCE_ID 0x3f17
 #define SOUND_DESC_RESOURCE_ID 0x3f18
 #define STRING_DECODER_RESOURCE_ID 0x3f19
+#define AUDIO_INIT_ICON_RESOURCE_ID 0x3F1A
 
 // Script constants
 #define STARTUP_SCRIPT 0x23FC
 
 // Miscellaneous resources
 #define NAMES_RESOURCE_ID 9
+#define ROLAND_MAIN_SYSEX_RESOURCE_ID 0xB
 #define ROLAND_MAIN_SOUND_RESOURCE_ID 0xC
 #define ADLIB_MAIN_SOUND_RESOURCE_ID 0xD
 #define ROLAND_INTRO_SOUND_RESOURCE_ID 0x30
 #define ADLIB_INTRO_SOUND_RESOURCE_ID 0x31
 #define ROLAND_ENDGAME_SOUND_RESOURCE_ID 0xff10
+#define ADLIB_ENDGAME_SOUND_RESOURCE_ID 0xff11
 
 #define NOONE_ID 0x3E7
 #define PLAYER_ID 0x3E8
@@ -274,7 +270,9 @@ enum CursorType {CURSOR_ARROW = 0, CURSOR_DISK = 1, CURSOR_TIME_START = 2,
 
 // Milliseconds delay between game frames
 #define GAME_FRAME_DELAY 80
-#define GAME_TICK_DELAY 20
+
+// Milliseconds delay between clock ticks in shop
+#define GAME_TICK_DELAY 1000
 
 // Tick proc constants
 #define NULL_TICK_PROC_ID 1

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,6 @@
 #include "sherlock/scalpel/scalpel_user_interface.h"
 #include "sherlock/scalpel/scalpel.h"
 #include "sherlock/screen.h"
-#include "sherlock/scalpel/3do/movie_decoder.h"
 
 namespace Sherlock {
 
@@ -188,6 +186,12 @@ void ScalpelTalk::talkTo(const Common::String filename) {
 		// WORKAROUND: Original game bug causes the results of testing the powdery substance
 		// to disappear too quickly. Introduce a delay to allow it to be properly displayed
 		ui._menuCounter = 30;
+	} else if (filename == "Lesl24z.tlk" || filename == "Beal40y.tlk") {
+		// WORKAROUND: Walking to the flower girl or housekeeper the
+		// first time triggers this automatic talk. This should abort
+		// any other action, such as trying to look at her, else the UI
+		// gets corrupted
+		_talkToAbort = true;
 	}
 }
 
@@ -693,7 +697,7 @@ void ScalpelTalk::drawInterface() {
 	bb.fillRect(Common::Rect(0, SHERLOCK_SCREEN_HEIGHT - 1, SHERLOCK_SCREEN_WIDTH - 2,
 		SHERLOCK_SCREEN_HEIGHT), BORDER_COLOR);
 	bb.fillRect(Common::Rect(2, CONTROLS_Y + 10, SHERLOCK_SCREEN_WIDTH - 2,
-		SHERLOCK_SCREEN_HEIGHT - 2), INV_BACKGROUND);
+		SHERLOCK_SCREEN_HEIGHT - 1), INV_BACKGROUND);
 
 	if (_talkTo != -1) {
 		Common::String fixedText_Exit = FIXED(Window_Exit);
@@ -887,16 +891,9 @@ int ScalpelTalk::talkLine(int lineNum, int stateNum, byte color, int lineY, bool
 }
 
 void ScalpelTalk::showTalk() {
-	People &people = *_vm->_people;
 	ScalpelScreen &screen = *(ScalpelScreen *)_vm->_screen;
 	ScalpelUserInterface &ui = *(ScalpelUserInterface *)_vm->_ui;
 	byte color = ui._endKeyActive ? COMMAND_FOREGROUND : COMMAND_NULL;
-
-	clearSequences();
-	pushSequence(_talkTo);
-	people.setListenSequence(_talkTo);
-
-	ui._selector = ui._oldSelector = -1;
 
 	if (!ui._windowOpen) {
 		// Draw the talk interface on the back buffer

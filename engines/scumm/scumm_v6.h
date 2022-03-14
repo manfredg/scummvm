@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,6 +53,14 @@ protected:
 		byte color;
 		byte charset;
 		byte text[256];
+
+		void clear() {
+			xpos = 0;
+			ypos = 0;
+			color = 0;
+			charset = 0;
+			for (uint i = 0; i < ARRAYSIZE(text); i++) text[i] = 0;
+		}
 	};
 
 	/** BlastObjects to draw */
@@ -63,6 +70,15 @@ protected:
 		uint16 scaleX, scaleY;
 		uint16 image;
 		uint16 mode;
+
+		void clear() {
+			number = 0;
+			rect = Common::Rect();
+			scaleX = 0;
+			scaleY = 0;
+			image = 0;
+			mode = 0;
+		}
 	};
 
 	int _blastObjectQueuePos;
@@ -71,6 +87,12 @@ protected:
 	struct BlastText : TextObject {
 		Common::Rect rect;
 		bool center;
+
+		void clear() {
+			this->TextObject::clear();
+			rect = Common::Rect();
+			center = false;
+		}
 	};
 
 	int _blastTextQueuePos;
@@ -136,7 +158,7 @@ protected:
 	void useBompCursor(const byte *im, int w, int h);
 	void grabCursor(int x, int y, int w, int h);
 
-	void enqueueText(const byte *text, int x, int y, byte color, byte charset, bool center);
+	void enqueueText(const byte *text, int x, int y, byte color, byte charset, bool center, bool wrapped = false);
 	void drawBlastTexts();
 	void removeBlastTexts();
 

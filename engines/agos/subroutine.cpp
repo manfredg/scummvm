@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/debug-channels.h"
 #include "common/file.h"
 #include "common/textconsole.h"
+#include "common/memstream.h"
 
 #include "agos/agos.h"
 #include "agos/intern.h"
@@ -214,13 +214,13 @@ Subroutine *AGOSEngine::getSubroutineByID(uint subroutineId) {
 	}
 
 	debug(0,"getSubroutineByID: subroutine %d not found", subroutineId);
-	return NULL;
+	return nullptr;
 }
 
 void AGOSEngine::alignTableMem() {
-	if (!IS_ALIGNED(_tablesHeapPtr, 4)) {
-		_tablesHeapPtr += 2;
-		_tablesHeapCurPos += 2;
+	while (!IS_ALIGNED(_tablesHeapPtr, sizeof(byte *))) {
+		_tablesHeapPtr++;
+		_tablesHeapCurPos++;
 	}
 }
 
@@ -252,14 +252,16 @@ void AGOSEngine::endCutscene() {
 	_sound->stopVoice();
 
 	sub = getSubroutineByID(170);
-	if (sub != NULL)
+	if (sub != nullptr)
 		startSubroutineEx(sub);
 
 	_runScriptReturn1 = true;
 }
 
 Common::SeekableReadStream *AGOSEngine::openTablesFile(const char *filename) {
-	if (getFeatures() & GF_OLD_BUNDLE)
+	if (getPlatform() == Common::kPlatformPC98)
+		return openTablesFile_pak98(filename);
+	else if (getFeatures() & GF_OLD_BUNDLE)
 		return openTablesFile_simon1(filename);
 	else
 		return openTablesFile_gme(filename);
@@ -269,6 +271,13 @@ Common::SeekableReadStream *AGOSEngine::openTablesFile_simon1(const char *filena
 	Common::File *in = new Common::File();
 	if (!in->open(filename))
 		error("openTablesFile: Can't open '%s'", filename);
+	return in;
+}
+
+Common::SeekableReadStream *AGOSEngine::openTablesFile_pak98(const char *filename) {
+	Common::SeekableReadStream *in = createPak98FileStream(filename);
+	if (!in)
+		error("openTablesFile_pak98: Can't open '%s'", filename);
 	return in;
 }
 
@@ -287,9 +296,8 @@ bool AGOSEngine::loadTablesIntoMem(uint16 subrId) {
 	byte *p;
 	uint16 min_num, max_num, file_num;
 	Common::SeekableReadStream *in;
-	char filename[30];
 
-	if (_tblList == NULL)
+	if (_tblList == nullptr)
 		return 0;
 
 	p = _tblList + 32;
@@ -306,9 +314,8 @@ bool AGOSEngine::loadTablesIntoMem(uint16 subrId) {
 			_tablesHeapCurPos = _tablesHeapCurPosOrg;
 			_stringIdLocalMin = 1;
 			_stringIdLocalMax = 0;
-
-			sprintf(filename, "TABLES%.2d", file_num);
-			in = openTablesFile(filename);
+			Common::String filename = Common::String::format("TABLES%.2d%s", file_num, getPlatform() == Common::kPlatformPC98 ? ".PAK" : "");
+			in = openTablesFile(filename.c_str());
 			readSubroutineBlock(in);
 			closeTablesFile(in);
 
@@ -338,7 +345,7 @@ bool AGOSEngine_Waxworks::loadTablesIntoMem(uint16 subrId) {
 	Common::SeekableReadStream *in;
 
 	p = _tblList;
-	if (p == NULL)
+	if (p == nullptr)
 		return 0;
 
 	while (*p) {
@@ -405,7 +412,7 @@ bool AGOSEngine::loadXTablesIntoMem(uint16 subrId) {
 	Common::SeekableReadStream *in;
 
 	p = _xtblList;
-	if (p == NULL)
+	if (p == nullptr)
 		return 0;
 
 	while (*p) {
@@ -472,7 +479,7 @@ Subroutine *AGOSEngine::createSubroutine(uint16 id) {
 }
 
 SubroutineLine *AGOSEngine::createSubroutineLine(Subroutine *sub, int where) {
-	SubroutineLine *sl, *cur_sl = NULL, *last_sl = NULL;
+	SubroutineLine *sl, *cur_sl = nullptr, *last_sl = nullptr;
 
 	if (sub->id == 0)
 		sl = (SubroutineLine *)allocateTable(SUBROUTINE_LINE_BIG_SIZE);
@@ -491,7 +498,7 @@ SubroutineLine *AGOSEngine::createSubroutineLine(Subroutine *sub, int where) {
 		}
 	}
 
-	if (last_sl != NULL) {
+	if (last_sl != nullptr) {
 		// Insert the subroutine line in the middle of the link
 		last_sl->next = (byte *)sl - (byte *)sub;
 		sl->next = (byte *)cur_sl - (byte *)sub;
@@ -508,7 +515,7 @@ void AGOSEngine::runSubroutine101() {
 	Subroutine *sub;
 
 	sub = getSubroutineByID(101);
-	if (sub != NULL)
+	if (sub != nullptr)
 		startSubroutineEx(sub);
 
 	permitInput();
@@ -526,7 +533,7 @@ int AGOSEngine::startSubroutine(Subroutine *sub) {
 	int16 old_classMode1 = _classMode1;
 	int16 old_classMode2 = _classMode2;
 
-	_classLine = 0;
+	_classLine = nullptr;
 	_classMask = 0;
 	_classMode1 = 0;
 	_classMode2 = 0;
@@ -583,7 +590,7 @@ restart:
 		}
 		if (sub->id == 39126 && readVariable(84) == 2) {
 			Subroutine *tmpSub = getSubroutineByID(80);
-			if (tmpSub != NULL) {
+			if (tmpSub != nullptr) {
 				startSubroutine(tmpSub);
 			}
 		}
@@ -624,7 +631,7 @@ restart:
 	_classMask = old_classMask;
 	_classMode1 = old_classMode2;
 	_classMode2 = old_classMode1;
-	_findNextPtr = 0;
+	_findNextPtr = nullptr;
 
 	_recursionDepth--;
 	return result;

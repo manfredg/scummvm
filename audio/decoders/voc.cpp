@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,17 +78,17 @@ public:
 	VocStream(Common::SeekableReadStream *stream, bool isUnsigned, DisposeAfterUse::Flag disposeAfterUse);
 	~VocStream();
 
-	virtual int readBuffer(int16 *buffer, const int numSamples);
+	int readBuffer(int16 *buffer, const int numSamples) override;
 
-	virtual bool isStereo() const { return false; }
+	bool isStereo() const override { return false; }
 
-	virtual int getRate() const { return _rate; }
+	int getRate() const override { return _rate; }
 
-	virtual bool endOfData() const { return (_curBlock == _blocks.end()) && (_blockLeft == 0); }
+	bool endOfData() const override { return (_curBlock == _blocks.end()) && (_blockLeft == 0); }
 
-	virtual bool seek(const Timestamp &where);
+	bool seek(const Timestamp &where) override;
 
-	virtual Timestamp getLength() const { return _length; }
+	Timestamp getLength() const override { return _length; }
 private:
 	void preProcess();
 
@@ -554,14 +553,14 @@ SeekableAudioStream *makeVOCStream(Common::SeekableReadStream *stream, byte flag
 	if (!checkVOCHeader(*stream)) {
 		if (disposeAfterUse == DisposeAfterUse::YES)
 			delete stream;
-		return 0;
+		return nullptr;
 	}
 
 	SeekableAudioStream *audioStream = new VocStream(stream, (flags & Audio::FLAG_UNSIGNED) != 0, disposeAfterUse);
 
 	if (audioStream->endOfData()) {
 		delete audioStream;
-		return 0;
+		return nullptr;
 	} else {
 		return audioStream;
 	}

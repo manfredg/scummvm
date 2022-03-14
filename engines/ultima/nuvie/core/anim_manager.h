@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -202,11 +201,11 @@ typedef struct {
  */
 class TileAnim : public NuvieAnim {
 protected:
-	MapWindow *map_window;
-	uint32 tx, ty, // location on surface: in increments of "tile_pitch"
-	       px, py; // location on surface: pixel offset from tx,ty
+	MapWindow *_mapWindow;
+	uint32 _tx, _ty, // location on surface: in increments of "tile_pitch"
+	       _px, _py; // location on surface: pixel offset from tx,ty
 
-	vector<PositionedTile *> tiles;
+	vector<PositionedTile *> _tiles;
 
 	void display() override;
 
@@ -215,19 +214,19 @@ public:
 	~TileAnim() override;
 
 	MapCoord get_location() override {
-		return (MapCoord(tx, ty, 0));
+		return (MapCoord(_tx, _ty, 0));
 	}
 	void get_offset(uint32 &x_add, uint32 &y_add) {
-		x_add = px;
-		y_add = py;
+		x_add = _px;
+		y_add = _py;
 	}
 	sint32 get_tile_id(PositionedTile *find_tile);
 
 	void move(uint32 x, uint32 y, uint32 add_x = 0, uint32 add_y = 0) override {
-		tx = x;
-		ty = y;
-		px = add_x;
-		py = add_y;
+		_tx = x;
+		_ty = y;
+		_px = add_x;
+		_py = add_y;
 	}
 	void shift(sint32 sx, sint32 sy) override;
 	void shift_tile(uint32 ptile_num, sint32 sx, sint32 sy);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#if defined(POSIX) || defined(PLAYSTATION3) || defined(PSP2)
+#if defined(POSIX) || defined(PLAYSTATION3) || defined(PSP2) || defined(__DS__)
 
 // Re-enable some forbidden symbols to avoid clashes with stat.h and unistd.h.
-// Also with clock() in sys/time.h in some Mac OS X SDKs.
+// Also with clock() in sys/time.h in some macOS SDKs.
 #define FORBIDDEN_SYMBOL_EXCEPTION_time_h
 #define FORBIDDEN_SYMBOL_EXCEPTION_unistd_h
 #define FORBIDDEN_SYMBOL_EXCEPTION_mkdir
@@ -42,11 +41,9 @@
 #include <sys/types.h>
 #endif
 #ifdef PSP2
-#include "backends/fs/psp2/psp2-dirent.h"
 #define mkdir sceIoMkdir
-#else
-#include <dirent.h>
 #endif
+#include <dirent.h>
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -57,7 +54,7 @@
 #include <os2.h>
 #endif
 
-#if defined(__ANDROID__) && !defined(ANDROIDSDL)
+#if defined(ANDROID_PLAIN_PORT)
 #include "backends/platform/android/jni-android.h"
 #endif
 
@@ -70,7 +67,14 @@ bool POSIXFilesystemNode::isReadable() const {
 }
 
 bool POSIXFilesystemNode::isWritable() const {
-	return access(_path.c_str(), W_OK) == 0;
+	bool retVal = access(_path.c_str(), W_OK) == 0;
+#if defined(ANDROID_PLAIN_PORT)
+	if (!retVal) {
+		// Update return value if going through Android's SAF grants the permission
+		retVal = JNI::isDirectoryWritableWithSAF(_path);
+	}
+#endif // ANDROID_PLAIN_PORT
+	return retVal;
 }
 
 void POSIXFilesystemNode::setFlags() {
@@ -82,16 +86,6 @@ void POSIXFilesystemNode::setFlags() {
 
 POSIXFilesystemNode::POSIXFilesystemNode(const Common::String &p) {
 	assert(p.size() > 0);
-
-#ifdef PSP2
-	if (p == "/") {
-		_isDirectory = true;
-		_isValid = false;
-		_path = p;
-		_displayName = p;
-		return;
-	}
-#endif
 
 	// Expand "~/" to the value of the HOME env variable
 	if (p.hasPrefix("~/") || p == "~") {
@@ -169,7 +163,7 @@ bool POSIXFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, boo
 				char drive_root[] = "A:/";
 				drive_root[0] += i;
 
-                POSIXFilesystemNode *entry = new POSIXFilesystemNode();
+				POSIXFilesystemNode *entry = new POSIXFilesystemNode();
 				entry->_isDirectory = true;
 				entry->_isValid = true;
 				entry->_path = drive_root;
@@ -183,17 +177,8 @@ bool POSIXFilesystemNode::getChildren(AbstractFSList &myList, ListMode mode, boo
 		return true;
 	}
 #endif
-#ifdef PSP2
-	if (_path == "/") {
-		POSIXFilesystemNode *entry1 = new POSIXFilesystemNode("ux0:");
-		myList.push_back(entry1);
-		POSIXFilesystemNode *entry2 = new POSIXFilesystemNode("uma0:");
-		myList.push_back(entry2);
-		return true;
-	}
-#endif
 
-#if defined(__ANDROID__) && !defined(ANDROIDSDL)
+#if defined(ANDROID_PLAIN_PORT)
 	if (_path == "/") {
 		Common::Array<Common::String> list = JNI::getAllStorageLocations();
 		for (Common::Array<Common::String>::const_iterator it = list.begin(), end = list.end(); it != end; ++it) {
@@ -286,10 +271,12 @@ AbstractFSNode *POSIXFilesystemNode::getParent() const {
 	if (_path.size() == 3 && _path.hasSuffix(":/"))
 		// This is a root directory of a drive
 		return makeNode("/");   // return a virtual root for a list of drives
-#endif
-#ifdef PSP2
-	if (_path.hasSuffix(":"))
-		return makeNode("/");
+#elif defined(ANDROID_PLAIN_PORT)
+	Common::String pathCopy = _path;
+	pathCopy.trim();
+	if (pathCopy.empty()) {
+		return makeNode("/");   // return a virtual root for a list of drives
+	}
 #endif
 
 	const char *start = _path.c_str();
@@ -315,13 +302,24 @@ Common::SeekableReadStream *POSIXFilesystemNode::createReadStream() {
 	return PosixIoStream::makeFromPath(getPath(), false);
 }
 
-Common::WriteStream *POSIXFilesystemNode::createWriteStream() {
+Common::SeekableWriteStream *POSIXFilesystemNode::createWriteStream() {
 	return PosixIoStream::makeFromPath(getPath(), true);
 }
 
 bool POSIXFilesystemNode::createDirectory() {
 	if (mkdir(_path.c_str(), 0755) == 0)
 		setFlags();
+#if defined(ANDROID_PLAIN_PORT)
+	else {
+		// TODO eventually android specific stuff should be moved to an Android backend for fs
+		//      peterkohaut already has some work on that in his fork (moving the port to more native code)
+		//      However, I have not found a way to do this Storage Access Framework stuff natively yet.
+		if (JNI::createDirectoryWithSAF(_path)) {
+			setFlags();
+		}
+	}
+#endif // ANDROID_PLAIN_PORT
+
 
 	return _isValid && _isDirectory;
 }

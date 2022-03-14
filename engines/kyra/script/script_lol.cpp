@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -1397,23 +1396,28 @@ int LoLEngine::olol_countAllMonsters(EMCState *script) {
 int LoLEngine::olol_playEndSequence(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "LoLEngine::olol_playEndSequence(%p)", (const void *)script);
 
-	int c = 0;
-	if (_characters[0].id == -9)
-		c = 1;
-	else if (_characters[0].id == -5)
-		c = 3;
-	else if (_characters[0].id == -1)
-		c = 2;
+	if (_flags.isDemo) {
+		_screen->fadeToBlack(150);
+	} else {
+		int c = 0;
+		if (_characters[0].id == -9)
+			c = 1;
+		else if (_characters[0].id == -5)
+			c = 3;
+		else if (_characters[0].id == -1)
+			c = 2;
 
-	while (snd_updateCharacterSpeech())
-		delay(_tickLength);
+		while (snd_updateCharacterSpeech())
+			delay(_tickLength);
 
-	_eventList.clear();
-	_screen->hideMouse();
-	_screen->getPalette(1).clear();
+		_eventList.clear();
+		_screen->hideMouse();
+		_screen->getPalette(1).clear();
 
-	showOutro(c, (_monsterDifficulty == 2));
-	// Don't call quitGame() on a RTL request (because this would
+		showOutro(c, (_monsterDifficulty == 2));
+	}
+
+	// Don't call quitGame() on a return to launcher request (because this would
 	// make the next game launched from the launcher quit instantly.
 	if (!shouldQuit())
 		quitGame();
@@ -1459,9 +1463,9 @@ int LoLEngine::olol_checkForCertainPartyMember(EMCState *script) {
 }
 
 int LoLEngine::olol_printMessage(EMCState *script) {
-	debugC(3, kDebugLevelScriptFuncs, "LoLEngine::olol_printMessage(%p) (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d)", (const void *)script, stackPos(0), stackPos(1), stackPos(2), stackPos(3), stackPos(4), stackPos(5), stackPos(6), stackPos(7), stackPos(8), stackPos(9));
-	int snd = stackPos(2);
-	_txt->printMessage(stackPos(0), getLangString(stackPos(1)), stackPos(3), stackPos(4), stackPos(5), stackPos(6), stackPos(7), stackPos(8), stackPos(9));
+	debugC(3, kDebugLevelScriptFuncs, "LoLEngine::olol_printMessage(%p) (%d, %d, %d, %d, %d, %d, %d, %d, %d, %d)", (const void *)script, safeStackPos(0), safeStackPos(1), safeStackPos(2), safeStackPos(3), safeStackPos(4), safeStackPos(5), safeStackPos(6), safeStackPos(7), safeStackPos(8), safeStackPos(9));
+	int snd = safeStackPos(2);
+	_txt->printMessage(safeStackPos(0), getLangString(safeStackPos(1)), safeStackPos(3), safeStackPos(4), safeStackPos(5), safeStackPos(6), safeStackPos(7), safeStackPos(8), safeStackPos(9));
 
 	if (snd >= 0)
 		snd_playSoundEffect(snd, -1);
@@ -1579,7 +1583,7 @@ int LoLEngine::olol_addSpellToScroll(EMCState *script) {
 
 int LoLEngine::olol_playDialogueText(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "LoLEngine::olol_playDialogueText(%p) (%d)", (const void *)script, stackPos(0));
-	_txt->printDialogueText(3, getLangString(stackPos(0)), script, 0, 1);
+	_txt->printDialogueText2(3, getLangString(stackPos(0)), script, 0, 1);
 	return 1;
 }
 
@@ -1589,7 +1593,7 @@ int LoLEngine::olol_playDialogueTalkText(EMCState *script) {
 
 	if (!snd_playCharacterSpeech(track, 0, 0) || textEnabled()) {
 		char *s = getLangString(track);
-		_txt->printDialogueText(4, s, script, 0, 1);
+		_txt->printDialogueText2(4, s, script, 0, 1);
 	}
 
 	return 1;
@@ -1660,7 +1664,7 @@ int LoLEngine::olol_printWindowText(EMCState *script) {
 		_txt->clearCurDim();
 	if (flg & 3)
 		_txt->resetDimTextPositions(dim);
-	_txt->printDialogueText(dim, getLangString(stackPos(2)), script, 0, 3);
+	_txt->printDialogueText2(dim, getLangString(stackPos(2)), script, 0, 3);
 	return 1;
 }
 
@@ -1834,11 +1838,12 @@ int LoLEngine::olol_assignCustomSfx(EMCState *script) {
 	if (!c || i > 250)
 		return 0;
 
-	uint16 t = READ_LE_UINT16(&_ingameSoundIndex[i << 1]);
+	uint16 t = _ingameSoundIndex[i << 1];
 	if (t == 0xFFFF)
 		return 0;
 
-	strcpy(_ingameSoundList[t], c);
+	assert(t < _ingameSoundListSize);
+	_ingameSoundList[t] = c;
 
 	return 0;
 }
@@ -2545,7 +2550,7 @@ int LoLEngine::tlol_playMusicTrack(const TIM *tim, const uint16 *param) {
 int LoLEngine::tlol_playDialogueTalkText(const TIM *tim, const uint16 *param) {
 	debugC(3, kDebugLevelScriptFuncs, "LoLEngine::tlol_playDialogueTalkText(%p, %p) (%d)", (const void *)tim, (const void *)param, param[0]);
 	if (!snd_playCharacterSpeech(param[0], 0, 0) || textEnabled())
-		_txt->printDialogueText(4, getLangString(param[0]), 0, param, 1);
+		_txt->printDialogueText2(4, getLangString(param[0]), 0, param, 1);
 	return 1;
 }
 

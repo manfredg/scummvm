@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -167,7 +166,7 @@ static void setupHeader(ACodeHeader tmphdr) {
 static void loadAndCheckMemory(ACodeHeader tmphdr, Aword crc, char err[]) {
 	int i;
 	/* No memory allocated yet? */
-	if (memory == NULL) {
+	if (memory == nullptr) {
 		memory = (Aword *)allocate(tmphdr.size * sizeof(Aword));
 	}
 
@@ -428,12 +427,12 @@ static void initStaticData(void) {
 	}
 
 	/* Scores, if already allocated, copy initial data */
-	if (scores == NULL)
+	if (scores == nullptr)
 		scores = (Aword *)duplicate((Aword *) pointerTo(header->scores), header->scoreCount * sizeof(Aword));
 	else
 		memcpy(scores, pointerTo(header->scores), header->scoreCount * sizeof(Aword));
 
-	if (literals == NULL)
+	if (literals == nullptr)
 		literals = (LiteralEntry *)allocate(sizeof(Aword) * (MAXPARAMS + 1));
 
 	stxs = (SyntaxEntry *) pointerTo(header->syntaxTableAddress);
@@ -738,7 +737,7 @@ static void moveActor(CONTEXT, int theActor) {
 
 /*======================================================================*/
 void run(void) {
-	Stack theStack = NULL;
+	Stack theStack = nullptr;
 	Context ctx;
 
 	openFiles();

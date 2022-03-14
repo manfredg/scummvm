@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -157,7 +156,7 @@ void move_in_dir(int obj, int dir) {
 /*  Stack routines:   Manipulating the expression stack                */
 /* ------------------------------------------------------------------- */
 
-static long *stack = NULL;
+static long *stack = nullptr;
 static int sp = 0; /* Stack pointer */
 static int stacksize = 0; /* Actual space allocated to the stack */
 
@@ -232,7 +231,7 @@ static void op_stack(int opnum) {
 /* This is called from the disassembler */
 void print_tos(void) {
 	if (sp > 0)
-		dbgprintf("TOS(%d)", stack[sp - 1]);
+		dbgprintf("TOS(%ld)", stack[sp - 1]);
 	else
 		debugout("TOS(xxx)");
 }
@@ -249,13 +248,13 @@ void print_tos(void) {
 #define cretn(i,f) cret(tnoun(i) && noun[i-first_noun].f)
 #define cretc(i,f) cret(tcreat(i) && creature[i-first_creat].f)
 #define icretc(f) cret(do_disambig==1 || \
-                       (tcreat(iobj) && creature[iobj-first_creat].f))
+					   (tcreat(iobj) && creature[iobj-first_creat].f))
 
 static int obj_cond(int op_, int obj, int arg) {
 	switch (op_) {
 	case 0:
 		cret(in_scope(obj));  /* Present--
-                      Do we want to use visible here?? */
+					  Do we want to use visible here?? */
 	case 1:
 		cret(is_within(obj, 1000, 1)); /* IsWearing */
 	case 2:

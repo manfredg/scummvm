@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,7 @@
 #include "common/random.h"
 #include "common/array.h"
 #include "common/hashmap.h"
+#include "common/hash-str.h"
 #include "common/str.h"
 
 #include "cryomni3d/cryomni3d.h"
@@ -219,6 +219,11 @@ struct MsgBoxParameters {
 	uint timeoutChar;
 };
 
+struct SubtitleEntry {
+	uint32 frameStart;
+	Common::String text;
+};
+
 class CryOmni3DEngine_Versailles : public CryOmni3DEngine {
 	friend class Versailles_DialogsManager;
 protected:
@@ -324,7 +329,7 @@ private:
 
 	bool canVisit() const;
 	Common::String getSaveFileName(bool visit, uint saveNum) const;
-	void getSavesList(bool visit, Common::Array<Common::String> &saveNames);
+	void getSavesList(bool visit, Common::Array<Common::String> &saveNames, int &nextSaveNum);
 	void saveGame(bool visit, uint saveNum, const Common::String &saveName);
 	bool loadGame(bool visit, uint saveNum);
 
@@ -342,6 +347,7 @@ private:
 	bool showSubtitles() const;
 
 	void playInGameVideo(const Common::String &filename, bool restoreCursorPalette = true);
+	void playSubtitledVideo(const Common::String &filename);
 
 	void loadBMPs(const char *pattern, Graphics::Surface *bmps, uint count);
 
@@ -428,6 +434,12 @@ private:
 	bool doCountDown();
 	void doDrawCountdown(Graphics::ManagedSurface *surface);
 
+	// Video subtitles
+	Common::HashMap<Common::String, Common::Array<SubtitleEntry> > _subtitles;
+	const Common::Array<SubtitleEntry> *_currentSubtitleSet;
+	Common::Array<SubtitleEntry>::const_iterator _currentSubtitle;
+	void drawVideoSubtitles(uint frameNum);
+
 	// Objects
 	template<uint ID>
 	void genericDisplayObject();
@@ -439,6 +451,8 @@ private:
 	void obj_125();
 	void obj_126();
 	void obj_126hk(Graphics::ManagedSurface &surface);
+	void obj_129();
+	void obj_129hk(Graphics::ManagedSurface &surface);
 	void obj_142();
 	void obj_142hk(Graphics::ManagedSurface &surface);
 
@@ -545,15 +559,17 @@ private:
 	IMG_CB(88003d);
 	IMG_CB(88003e);
 	IMG_CB(88003f);
-	Common::String _bombPassword;
+	Common::U32String _bombAlphabet; // For Japanese edition
+	Common::U32String _bombPassword;
 	static const uint kBombPasswordSmallLength = 40;
 	static const uint kBombPasswordMaxLength = 60;
 	static const uint16 kBombLettersPos[2][kBombPasswordMaxLength][2];
 	bool handleBomb(ZonFixedImage *fimg);
+	void handleBombTranslation(Graphics::ManagedSurface &surface);
 	void drawBombLetters(Graphics::ManagedSurface &surface, const Graphics::Surface(&bmpLetters)[28],
 	                     const uint bombPasswordLength,
-	                     const unsigned char (&bombPossibilites)[kBombPasswordMaxLength][5],
-	                     const unsigned char (&bombCurrentLetters)[kBombPasswordMaxLength]);
+	                     const uint32(&bombPossibilites)[kBombPasswordMaxLength][5],
+	                     const byte(&bombCurrentLetters)[kBombPasswordMaxLength]);
 	IMG_CB(88004);
 	IMG_CB(88004b);
 #undef IMG_CB

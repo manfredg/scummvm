@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@ namespace Illusions {
 
 class IllusionsEngine_Duckman;
 
-struct CreditsItem {
+struct DCreditsItem {
 	uint32 objectId;
 	bool active;
 	int16 scrollPosIndex;
@@ -42,13 +41,13 @@ public:
 	~DuckmanCredits();
 	void start();
 public:
-	typedef Common::Array<CreditsItem> CreditsItems;
+	typedef Common::Array<DCreditsItem> DCreditsItems;
 	IllusionsEngine_Duckman *_vm;
 	uint32 _lastUpdateTicks;
 	uint32 _nextUpdateTicks;
 	int _lastItemIndex;
 	bool _endReached;
-	CreditsItems _creditsItems;
+	DCreditsItems _creditsItems;
 	char *_currText;
 	int update(uint flags);
 	char *readNextLine();

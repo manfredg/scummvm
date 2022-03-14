@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,6 +36,8 @@ namespace Sherlock {
 class SherlockEngine;
 
 struct ImageFrame {
+	uint32 _pos;
+	byte _decoded;
 	uint32 _size;
 	uint16 _width, _height;
 	int _paletteBase;
@@ -76,9 +77,12 @@ struct ImageFrame {
 	int sDrawYOffset(int scaleVal) const;
 };
 
-class ImageFile : public Common::Array<ImageFrame> {
+class ImageFile {
 private:
 	static SherlockEngine *_vm;
+	Common::Array<ImageFrame> _frames;
+	Common::String _name;
+	Common::SeekableReadStream *_stream;
 
 	/**
 	 * Load the data of the sprite
@@ -89,7 +93,13 @@ private:
 	 * Gets the palette at the start of the sprite file
 	 */
 	void loadPalette(Common::SeekableReadStream &stream);
+protected:
+	virtual void decodeFrame(ImageFrame &frame);
 public:
+	ImageFrame& operator[](uint index);
+	uint size();
+	void push_back(const ImageFrame &frame);
+
 	byte _palette[256 * 3];
 public:
 	ImageFile();
@@ -151,6 +161,9 @@ private:
 	 * Load Sherlock Holmes 3DO font file
 	 */
 	void loadFont(Common::SeekableReadStream &stream);
+
+protected:
+	void decodeFrame(ImageFrame &frame);
 
 public:
 	ImageFile3DO(const Common::String &name, ImageFile3DOType imageFile3DOType);

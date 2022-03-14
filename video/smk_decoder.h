@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef VIDEO_SMK_PLAYER_H
 #define VIDEO_SMK_PLAYER_H
 
+#include "common/bitarray.h"
 #include "common/bitstream.h"
 #include "common/rational.h"
+#include "common/rect.h"
 #include "graphics/pixelformat.h"
 #include "graphics/surface.h"
 #include "video/video_decoder.h"
@@ -56,6 +57,8 @@ class BigHuffmanTree;
  *  - sword1
  *  - sword2
  *  - toon
+ *  - trecision
+ *  - twine
  */
 class SmackerDecoder : public VideoDecoder {
 public:
@@ -64,8 +67,12 @@ public:
 
 	virtual bool loadStream(Common::SeekableReadStream *stream);
 	void close();
-
+	void forceSeekToFrame(uint frame);
 	bool rewind();
+
+	Common::Rational getFrameRate() const;
+
+	virtual const Common::Rect *getNextDirtyRect();
 
 protected:
 	void readNextPacket();
@@ -96,9 +103,11 @@ protected:
 		void decodeFrame(Common::BitStreamMemory8LSB &bs);
 		void unpackPalette(Common::SeekableReadStream *stream);
 
-	protected:
 		Common::Rational getFrameRate() const { return _frameRate; }
 
+		const Common::Rect *getNextDirtyRect();
+
+	protected:
 		Graphics::Surface *_surface;
 
 	private:
@@ -115,6 +124,9 @@ protected:
 		BigHuffmanTree *_MClrTree;
 		BigHuffmanTree *_FullTree;
 		BigHuffmanTree *_TypeTree;
+
+		Common::BitArray _dirtyBlocks;
+		Common::Rect _lastDirtyRect;
 
 		// Possible runs of blocks
 		static uint getBlockRun(int index) { return (index <= 58) ? index + 1 : 128 << (index - 59); }
@@ -175,6 +187,16 @@ private:
 		AudioInfo _audioInfo;
 	};
 
+	class SmackerEmptyTrack : public Track {
+		VideoDecoder::Track::TrackType getTrackType() const { return VideoDecoder::Track::kTrackTypeNone; }
+
+		bool endOfTrack() const { return true; }
+
+		bool isSeekable() const { return true; }
+		bool seek(const Audio::Timestamp &time) { return true; }
+	};
+
+protected:
 	// The FrameTypes section of a Smacker file contains an array of bytes, where
 	// the 8 bits of each byte describe the contents of the corresponding frame.
 	// The highest 7 bits correspond to audio frames (bit 7 is track 6, bit 6 track 5
@@ -182,6 +204,7 @@ private:
 	// (bit 0) is set, it denotes a frame that contains a palette record
 	byte *_frameTypes;
 
+private:
 	uint32 _firstFrameStart;
 };
 

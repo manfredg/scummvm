@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,9 +46,9 @@ int AgiLoader_v3::detectGame() {
 		Common::String f = file->getName();
 		f.toLowercase();
 
-		if (f.hasSuffix("vol.0")) {
+		if (f.hasSuffix("dir")) {
 			memset(_vm->_game.name, 0, 8);
-			strncpy(_vm->_game.name, f.c_str(), MIN((uint)8, f.size() > 5 ? f.size() - 5 : f.size()));
+			strncpy(_vm->_game.name, f.c_str(), MIN((uint)6, f.size() > 3 ? f.size() - 3 : f.size()));
 			debugC(3, kDebugLevelMain, "game.name = %s", _vm->_game.name);
 
 			ec = errOK;
@@ -67,13 +66,13 @@ int AgiLoader_v3::detectGame() {
 }
 
 int AgiLoader_v3::loadDir(struct AgiDir *agid, Common::File *fp,
-                          uint32 offs, uint32 len) {
+						  uint32 offs, uint32 len) {
 	int ec = errOK;
 	uint8 *mem;
 	unsigned int i;
 
 	fp->seek(offs, SEEK_SET);
-	if ((mem = (uint8 *)malloc(len + 32)) != NULL) {
+	if ((mem = (uint8 *)malloc(len + 32)) != nullptr) {
 		fp->read(mem, len);
 
 		// set all directory resources to gone
@@ -111,9 +110,6 @@ int AgiLoader_v3::init() {
 
 	if (_vm->getPlatform() == Common::kPlatformAmiga) {
 		path = Common::String("dirs");
-		_vm->_game.name[0] = 0; // Empty prefix
-	} else if (_vm->getFeatures() & GF_MACGOLDRUSH) {
-		path = "grdir";
 		_vm->_game.name[0] = 0; // Empty prefix
 	} else {
 		path = Common::String(_vm->_game.name) + DIR_;
@@ -202,12 +198,16 @@ int AgiLoader_v3::unloadResource(int16 resourceType, int16 resourceNr) {
  */
 uint8 *AgiLoader_v3::loadVolRes(AgiDir *agid) {
 	char x[8];
-	uint8 *data = NULL, *compBuffer;
+	uint8 *data = nullptr, *compBuffer;
 	Common::File fp;
 	Common::String path;
 
 	debugC(3, kDebugLevelResources, "(%p)", (void *)agid);
-	path = Common::String::format("%svol.%i", _vm->_game.name, agid->volume);
+	if (_vm->getPlatform() == Common::kPlatformMacintosh) {
+		path = Common::String::format("vol.%i", agid->volume);
+	} else {
+		path = Common::String::format("%svol.%i", _vm->_game.name, agid->volume);
+	}
 
 	if (agid->offset != _EMPTY && fp.open(path)) {
 		fp.seek(agid->offset, SEEK_SET);
@@ -261,7 +261,7 @@ uint8 *AgiLoader_v3::loadVolRes(AgiDir *agid) {
  */
 int AgiLoader_v3::loadResource(int16 resourceType, int16 resourceNr) {
 	int ec = errOK;
-	uint8 *data = NULL;
+	uint8 *data = nullptr;
 
 	if (resourceNr >= MAX_DIRECTORY_ENTRIES)
 		return errBadResource;
@@ -279,7 +279,7 @@ int AgiLoader_v3::loadResource(int16 resourceType, int16 resourceNr) {
 			_vm->_game.logics[resourceNr].data = data;
 
 			// uncompressed logic files need to be decrypted
-			if (data != NULL) {
+			if (data != nullptr) {
 				// resloaded flag gets set by decode logic
 				// needed to build string table
 				ec = _vm->decodeLogic(resourceNr);
@@ -305,7 +305,7 @@ int AgiLoader_v3::loadResource(int16 resourceType, int16 resourceNr) {
 		if (~_vm->_game.dirPic[resourceNr].flags & RES_LOADED) {
 			unloadResource(RESOURCETYPE_PICTURE, resourceNr);
 			data = loadVolRes(&_vm->_game.dirPic[resourceNr]);
-			if (data != NULL) {
+			if (data != nullptr) {
 				_vm->_game.pictures[resourceNr].rdata = data;
 				_vm->_game.dirPic[resourceNr].flags |= RES_LOADED;
 			} else {
@@ -318,7 +318,7 @@ int AgiLoader_v3::loadResource(int16 resourceType, int16 resourceNr) {
 			break;
 
 		data = loadVolRes(&_vm->_game.dirSound[resourceNr]);
-		if (data != NULL) {
+		if (data != nullptr) {
 			// Freeing of the raw resource from memory is delegated to the createFromRawResource-function
 			_vm->_game.sounds[resourceNr] = AgiSound::createFromRawResource(data, _vm->_game.dirSound[resourceNr].len, resourceNr, _vm->_soundemu);
 			_vm->_game.dirSound[resourceNr].flags |= RES_LOADED;
@@ -337,7 +337,7 @@ int AgiLoader_v3::loadResource(int16 resourceType, int16 resourceNr) {
 
 		unloadResource(RESOURCETYPE_VIEW, resourceNr);
 		data = loadVolRes(&_vm->_game.dirView[resourceNr]);
-		if (data != NULL) {
+		if (data != nullptr) {
 			_vm->_game.dirView[resourceNr].flags |= RES_LOADED;
 			ec = _vm->decodeView(data, _vm->_game.dirView[resourceNr].len, resourceNr);
 			free(data);

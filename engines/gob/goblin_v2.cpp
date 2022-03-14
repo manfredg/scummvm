@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -87,7 +86,7 @@ void Goblin_v2::placeObject(Gob_Object *objDesc, char animated,
 				(_vm->_scenery->_animBottom - _vm->_scenery->_animTop) - (y + 1) / 2;
 		*obj->pPosX = x * _vm->_map->getTilesWidth();
 	} else {
-		if ((obj->goblinStates != 0) && (obj->goblinStates[state] != 0)) {
+		if ((obj->goblinStates != nullptr) && (obj->goblinStates[state] != nullptr)) {
 			layer = obj->goblinStates[state][0].layer;
 			animation = obj->goblinStates[state][0].animation;
 			objAnim->state = state;
@@ -329,7 +328,7 @@ void Goblin_v2::moveAdvance(Mult::Mult_Object *obj, Gob_Object *gobDesc,
 	if (!obj->goblinStates)
 		return;
 
-	movePathFind(obj, 0, 0);
+	movePathFind(obj, nullptr, 0);
 	playSounds(obj);
 
 	Mult::Mult_AnimData *animData = obj->pAnimData;

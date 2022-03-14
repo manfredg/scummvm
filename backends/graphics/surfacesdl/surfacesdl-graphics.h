@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,8 +26,9 @@
 #include "backends/graphics/sdl/sdl-graphics.h"
 #include "graphics/pixelformat.h"
 #include "graphics/scaler.h"
+#include "graphics/scalerplugin.h"
 #include "common/events.h"
-#include "common/system.h"
+#include "common/mutex.h"
 
 #include "backends/events/sdl/sdl-events.h"
 
@@ -40,18 +40,7 @@
 #endif
 
 enum {
-	GFX_NORMAL = 0,
-	GFX_DOUBLESIZE = 1,
-	GFX_TRIPLESIZE = 2,
-	GFX_2XSAI = 3,
-	GFX_SUPER2XSAI = 4,
-	GFX_SUPEREAGLE = 5,
-	GFX_ADVMAME2X = 6,
-	GFX_ADVMAME3X = 7,
-	GFX_HQ2X = 8,
-	GFX_HQ3X = 9,
-	GFX_TV2X = 10,
-	GFX_DOTMATRIX = 11
+	GFX_SURFACESDL = 0
 };
 
 
@@ -75,41 +64,42 @@ public:
 	SurfaceSdlGraphicsManager(SdlEventSource *sdlEventSource, SdlWindow *window);
 	virtual ~SurfaceSdlGraphicsManager();
 
-	virtual void activateManager() override;
-	virtual void deactivateManager() override;
+	bool hasFeature(OSystem::Feature f) const override;
+	void setFeatureState(OSystem::Feature f, bool enable) override;
+	bool getFeatureState(OSystem::Feature f) const override;
 
-	virtual bool hasFeature(OSystem::Feature f) const override;
-	virtual void setFeatureState(OSystem::Feature f, bool enable) override;
-	virtual bool getFeatureState(OSystem::Feature f) const override;
-
-	virtual const OSystem::GraphicsMode *getSupportedGraphicsModes() const override;
-	virtual int getDefaultGraphicsMode() const override;
-	virtual bool setGraphicsMode(int mode) override;
-	virtual int getGraphicsMode() const override;
-	virtual void resetGraphicsScale() override;
+	const OSystem::GraphicsMode *getSupportedGraphicsModes() const override;
+	int getDefaultGraphicsMode() const override;
+	bool setGraphicsMode(int mode, uint flags = OSystem::kGfxModeNoFlags) override;
+	int getGraphicsMode() const override;
+	uint getDefaultScaler() const override;
+	uint getDefaultScaleFactor() const override;
+	bool setScaler(uint mode, int factor) override;
+	uint getScaler() const override;
+	uint getScaleFactor() const override;
 #ifdef USE_RGB_COLOR
-	virtual Graphics::PixelFormat getScreenFormat() const override { return _screenFormat; }
-	virtual Common::List<Graphics::PixelFormat> getSupportedFormats() const override;
+	Graphics::PixelFormat getScreenFormat() const override { return _screenFormat; }
+	Common::List<Graphics::PixelFormat> getSupportedFormats() const override;
 #endif
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-	virtual const OSystem::GraphicsMode *getSupportedStretchModes() const override;
-	virtual int getDefaultStretchMode() const override;
-	virtual bool setStretchMode(int mode) override;
-	virtual int getStretchMode() const override;
+	const OSystem::GraphicsMode *getSupportedStretchModes() const override;
+	int getDefaultStretchMode() const override;
+	bool setStretchMode(int mode) override;
+	int getStretchMode() const override;
 #endif
-	virtual void initSize(uint w, uint h, const Graphics::PixelFormat *format = NULL) override;
-	virtual int getScreenChangeID() const override { return _screenChangeCount; }
+	void initSize(uint w, uint h, const Graphics::PixelFormat *format = NULL) override;
+	int getScreenChangeID() const override { return _screenChangeCount; }
 
-	virtual void beginGFXTransaction() override;
-	virtual OSystem::TransactionError endGFXTransaction() override;
+	void beginGFXTransaction() override;
+	OSystem::TransactionError endGFXTransaction() override;
 
-	virtual int16 getHeight() const override;
-	virtual int16 getWidth() const override;
+	int16 getHeight() const override;
+	int16 getWidth() const override;
 
 protected:
 	// PaletteManager API
-	virtual void setPalette(const byte *colors, uint start, uint num) override;
-	virtual void grabPalette(byte *colors, uint start, uint num) const override;
+	void setPalette(const byte *colors, uint start, uint num) override;
+	void grabPalette(byte *colors, uint start, uint num) const override;
 
 	/**
 	 * Convert from the SDL pixel format to Graphics::PixelFormat
@@ -118,35 +108,35 @@ protected:
 	 */
 	Graphics::PixelFormat convertSDLPixelFormat(SDL_PixelFormat *in) const;
 public:
-	virtual void copyRectToScreen(const void *buf, int pitch, int x, int y, int w, int h) override;
-	virtual Graphics::Surface *lockScreen() override;
-	virtual void unlockScreen() override;
-	virtual void fillScreen(uint32 col) override;
-	virtual void updateScreen() override;
-	virtual void setFocusRectangle(const Common::Rect& rect) override;
-	virtual void clearFocusRectangle() override;
+	void copyRectToScreen(const void *buf, int pitch, int x, int y, int w, int h) override;
+	Graphics::Surface *lockScreen() override;
+	void unlockScreen() override;
+	void fillScreen(uint32 col) override;
+	void updateScreen() override;
+	void setFocusRectangle(const Common::Rect& rect) override;
+	void clearFocusRectangle() override;
 
-	virtual Graphics::PixelFormat getOverlayFormat() const override { return _overlayFormat; }
-	virtual void clearOverlay() override;
-	virtual void grabOverlay(void *buf, int pitch) const override;
-	virtual void copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h) override;
-	virtual int16 getOverlayHeight() const override { return _videoMode.overlayHeight; }
-	virtual int16 getOverlayWidth() const override { return _videoMode.overlayWidth; }
+	Graphics::PixelFormat getOverlayFormat() const override { return _overlayFormat; }
+	void clearOverlay() override;
+	void grabOverlay(Graphics::Surface &surface) const override;
+	void copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h) override;
+	int16 getOverlayHeight() const override { return _videoMode.overlayHeight; }
+	int16 getOverlayWidth() const override { return _videoMode.overlayWidth; }
 
-	virtual void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL) override;
-	virtual void setCursorPalette(const byte *colors, uint start, uint num) override;
+	void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL) override;
+	void setCursorPalette(const byte *colors, uint start, uint num) override;
 
 #ifdef USE_OSD
-	virtual void displayMessageOnOSD(const char *msg) override;
-	virtual void displayActivityIconOnOSD(const Graphics::Surface *icon) override;
+	void displayMessageOnOSD(const Common::U32String &msg) override;
+	void displayActivityIconOnOSD(const Graphics::Surface *icon) override;
 #endif
 
 	// Override from Common::EventObserver
-	virtual bool notifyEvent(const Common::Event &event) override;
+	bool notifyEvent(const Common::Event &event) override;
 
 	// SdlGraphicsManager interface
-	virtual void notifyVideoExpose() override;
-	virtual void notifyResize(const int width, const int height) override;
+	void notifyVideoExpose() override;
+	void notifyResize(const int width, const int height) override;
 
 protected:
 #ifdef USE_OSD
@@ -175,17 +165,18 @@ protected:
 	void drawOSD();
 #endif
 
-	virtual bool gameNeedsAspectRatioCorrection() const override {
+	bool gameNeedsAspectRatioCorrection() const override {
 		return _videoMode.aspectRatioCorrection;
 	}
-	virtual int getGameRenderScale() const override {
+	int getGameRenderScale() const override {
 		return _videoMode.scaleFactor;
 	}
 
-	virtual void handleResizeImpl(const int width, const int height, const int xdpi, const int ydpi) override;
+	void handleResizeImpl(const int width, const int height) override;
 
-	virtual int getGraphicsModeScale(int mode) const override;
-	virtual ScalerProc *getGraphicsScalerProc(int mode) const;
+	virtual void setupHardwareSize();
+
+	void fixupResolutionForAspectRatio(AspectRatio desiredAspectRatio, int &width, int &height) const;
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
 	/* SDL2 features a different API for 2D graphics. We create a wrapper
@@ -200,6 +191,7 @@ protected:
 	int SDL_SetColors(SDL_Surface *surface, SDL_Color *colors, int firstcolor, int ncolors);
 	int SDL_SetAlpha(SDL_Surface *surface, Uint32 flag, Uint8 alpha);
 	int SDL_SetColorKey(SDL_Surface *surface, Uint32 flag, Uint32 key);
+	bool _vsync;
 #endif
 
 	/** Unseen game screen */
@@ -222,6 +214,7 @@ protected:
 	SDL_Surface *_tmpscreen2;
 
 	SDL_Surface *_overlayscreen;
+	bool _useOldSrc;
 	Graphics::PixelFormat _overlayFormat;
 
 	enum {
@@ -270,7 +263,7 @@ protected:
 		int stretchMode;
 #endif
 
-		int mode;
+		uint scalerIndex;
 		int scaleFactor;
 
 		int screenWidth, screenHeight;
@@ -291,7 +284,7 @@ protected:
 			stretchMode = 0;
 #endif
 
-			mode = 0;
+			scalerIndex = 0;
 			scaleFactor = 0;
 
 			screenWidth = 0;
@@ -324,12 +317,16 @@ protected:
 	uint8 _originalBitsPerPixel;
 #endif
 
-	ScalerProc *_scalerProc;
-	int _scalerType;
 	int _transactionMode;
 
 	// Indicates whether it is needed to free _hwSurface in destructor
 	bool _displayDisabled;
+
+	const PluginList &_scalerPlugins;
+	ScalerPluginObject *_scalerPlugin;
+	Scaler *_scaler;
+	uint _maxExtraPixels;
+	uint _extraPixels;
 
 	bool _screenIsLocked;
 	Graphics::Surface _framebuffer;
@@ -398,7 +395,7 @@ protected:
 	 * Mutex which prevents multiple threads from interfering with each other
 	 * when accessing the screen.
 	 */
-	OSystem::MutexRef _graphicsMutex;
+	Common::Mutex _graphicsMutex;
 
 #ifdef USE_SDL_DEBUG_FOCUSRECT
 	bool _enableFocusRectDebugCode;
@@ -421,12 +418,12 @@ protected:
 	virtual void setAspectRatioCorrection(bool enable);
 	void setFilteringMode(bool enable);
 
-	virtual bool saveScreenshot(const Common::String &filename) const override;
+	bool saveScreenshot(const Common::String &filename) const override;
 	virtual void setGraphicsModeIntern();
 
 private:
 	void setFullscreenMode(bool enable);
-	void handleScalerHotkeys(int scalefactor, int scalerType);
+	void handleScalerHotkeys(uint mode, int factor);
 
 	/**
 	 * Converts the given point from the overlay's coordinate space to the
@@ -453,6 +450,14 @@ private:
 		return Common::Point(x * getOverlayWidth() / getWidth(),
 							 y * getOverlayHeight() / getHeight());
 	}
+
+	/**
+	 * Special case for scalers that use the useOldSrc feature (currently
+	 * only the Edge scalers). The variable is checked after closing the
+	 * overlay, so that the creation of a new output buffer for the scaler
+	 * can be triggered.
+	 */
+	bool _needRestoreAfterOverlay;
 };
 
 #endif

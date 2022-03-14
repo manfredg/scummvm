@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,8 +63,8 @@ void *ltk_sigsuballoc(errcxdef *errcx, size_t siz) {
   /* allocate the memory */
   if (!(ptr = ltk_suballoc(siz)))
   {
-    /* signal an error */
-    errsigf(errcx, "LTK", 0);
+	/* signal an error */
+	errsigf(errcx, "LTK", 0);
   }
 
   /* return the memory */
@@ -106,8 +105,8 @@ void *ltk_sigalloc(errcxdef *errcx, size_t siz) {
   void *ptr;                                 /* pointer to allocated memory */
 
   if (!(ptr = ltk_alloc(siz))) {
-    /* signal error */
-    errsigf(errcx, "LTK", 0);
+	/* signal error */
+	errsigf(errcx, "LTK", 0);
   }
 
   /* return a ptr to the allocated memory */
@@ -119,7 +118,7 @@ void *ltk_sigalloc(errcxdef *errcx, size_t siz) {
 /*
  * ltk_free - free a block of memory allocated by ltk_alloc.  This
  * takes the memory handle stashed just behind the allocation, and frees
- * the block of memory.  
+ * the block of memory.
  */
 void ltk_free(void *mem) {
 	free(mem);

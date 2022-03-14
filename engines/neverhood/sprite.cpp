@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +27,8 @@ namespace Neverhood {
 // Sprite
 
 Sprite::Sprite(NeverhoodEngine *vm, int objectPriority)
-	: Entity(vm, objectPriority), _x(0), _y(0), _spriteUpdateCb(NULL), _filterXCb(NULL), _filterYCb(NULL),
-	_dataResource(vm), _doDeltaX(false), _doDeltaY(false), _needRefresh(false), _flags(0), _surface(NULL) {
+	: Entity(vm, objectPriority), _x(0), _y(0), _spriteUpdateCb(nullptr), _filterXCb(nullptr), _filterYCb(nullptr),
+	_dataResource(vm), _doDeltaX(false), _doDeltaY(false), _needRefresh(false), _flags(0), _surface(nullptr) {
 
 	_drawOffset.x = 0;
 	_drawOffset.y = 0;
@@ -213,9 +212,9 @@ void AnimatedSprite::init() {
 	_plFirstFrameIndex = 0;
 	_currFrameIndex = 0;
 	_currStickFrameIndex = -1;
-	_finalizeStateCb = NULL;
-	_currStateCb = NULL;
-	_nextStateCb = NULL;
+	_finalizeStateCb = nullptr;
+	_currStateCb = nullptr;
+	_nextStateCb = nullptr;
 	_newStickFrameIndex = -1;
 	_newStickFrameHash = 0;
 	_frameChanged = false;
@@ -477,10 +476,10 @@ void AnimatedSprite::setFinalizeState(AnimationCb finalizeStateCb) {
 void AnimatedSprite::gotoState(AnimationCb currStateCb) {
 	if (_finalizeStateCb) {
 		AnimationCb cb = _finalizeStateCb;
-		_finalizeStateCb = NULL;
+		_finalizeStateCb = nullptr;
 		(this->*cb)();
 	}
-	_nextStateCb = NULL;
+	_nextStateCb = nullptr;
 	_currStateCb = currStateCb;
 	if (_currStateCb)
 		(this->*_currStateCb)();
@@ -489,15 +488,15 @@ void AnimatedSprite::gotoState(AnimationCb currStateCb) {
 void AnimatedSprite::gotoNextState() {
 	if (_finalizeStateCb) {
 		AnimationCb cb = _finalizeStateCb;
-		_finalizeStateCb = NULL;
+		_finalizeStateCb = nullptr;
 		(this->*cb)();
 	}
 	if (_nextStateCb) {
 		_currStateCb = _nextStateCb;
-		_nextStateCb = NULL;
+		_nextStateCb = nullptr;
 		(this->*_currStateCb)();
 	} else {
-		_currStateCb = NULL;
+		_currStateCb = nullptr;
 	}
 }
 

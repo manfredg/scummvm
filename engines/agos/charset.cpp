@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,11 +64,11 @@ void AGOSEngine_Feeble::doOutput(const byte *src, uint len) {
 void AGOSEngine::doOutput(const byte *src, uint len) {
 	uint idx;
 
-	if (_textWindow == NULL)
+	if (_textWindow == nullptr)
 		return;
 
 	while (len-- != 0) {
-		if (*src != 12 && _textWindow->iconPtr != NULL &&
+		if (*src != 12 && _textWindow->iconPtr != nullptr &&
 				_fcsData1[idx = getWindowNum(_textWindow)] != 2) {
 
 			_fcsData1[idx] = 2;
@@ -148,6 +147,11 @@ void AGOSEngine::justifyOutPut(byte chr) {
 		_printCharPixelCount = 0;
 		doOutput(&chr, 1);
 		clsCheck(_textWindow);
+	} else if (getLanguage() == Common::JA_JPN && !_forceAscii) {
+		// Japanese has no word wrapping
+		_lettersToPrintBuf[0] = chr;
+		_lettersToPrintBuf[1] = '\0';
+		doOutput(_lettersToPrintBuf, 1);
 	} else if (chr == 0 || chr == ' ' || chr == 10) {
 		bool fit;
 
@@ -215,6 +219,7 @@ void AGOSEngine_PN::windowPutChar(WindowBlock *window, byte c, byte b) {
 
 void AGOSEngine::windowPutChar(WindowBlock *window, byte c, byte b) {
 	byte width = 6;
+	byte textColumnWidth = 8;
 
 	if (c == 12) {
 		clearWindow(window);
@@ -256,8 +261,9 @@ void AGOSEngine::windowPutChar(WindowBlock *window, byte c, byte b) {
 			return;
 		}
 
-		// Ignore invalid characters
-		if (c - 32 > 98)
+		if (_language == Common::JA_JPN && !_forceAscii)
+			textColumnWidth = width = 4;
+		else if (c - 32 > 98) // Ignore invalid characters
 			return;
 
 		if (window->textLength == window->textMaxLength) {
@@ -278,16 +284,15 @@ void AGOSEngine::windowPutChar(WindowBlock *window, byte c, byte b) {
 			windowDrawChar(window, (window->width + window->x - window->textColumn) * 8, window->textRow * 8 + window->y, c);
 			window->textLength++;
 		} else {
-			windowDrawChar(window, (window->textColumn + window->x) * 8, window->textRow * 8 + window->y, c);
-
+			windowDrawChar(window, window->x * 8 + window->textColumn * textColumnWidth, window->textRow * 8 + window->y, c);
 			window->textLength++;
-			window->textColumnOffset += 6;
+			window->textColumnOffset += width;
 			if (getGameType() == GType_SIMON1 || getGameType() == GType_SIMON2) {
 				if (c == 'i' || c == 'l')
 					window->textColumnOffset -= 2;
 			}
-			if (window->textColumnOffset >= 8) {
-				window->textColumnOffset -= 8;
+			if (window->textColumnOffset >= textColumnWidth) {
+				window->textColumnOffset -= textColumnWidth;
 				window->textColumn++;
 			}
 		}
@@ -354,24 +359,37 @@ void AGOSEngine::windowScroll(WindowBlock *window) {
 	_videoLockOut |= 0x8000;
 
 	if (window->height != 1) {
-		Graphics::Surface *screen = _system->lockScreen();
+		Graphics::Surface *screen = getBackendSurface();
 
 		byte *src, *dst;
-		uint16 w, h;
+		uint16 w1, h1, w2, h2;
 
-		w = window->width * 8;
-		h = (window->height -1) * 8;
+		w1 = w2 = window->width * 8;
+		h1 = h2 = (window->height -1) * 8;
 
 		dst = (byte *)screen->getBasePtr(window->x * 8, window->y);
 		src = dst + 8 * screen->pitch;
 
 		do {
-			memcpy(dst, src, w);
+			memcpy(dst, src, w1);
 			src += screen->pitch;
 			dst += screen->pitch;
-		} while (--h);
+		} while (--h1);
 
-		_system->unlockScreen();
+		if (getGameId() == GID_ELVIRA1 && getPlatform() == Common::kPlatformPC98) {
+			w1 = w2 << 1;
+			h1 = h2 << 1;
+			dst = (byte *)_scaleBuf->getBasePtr(window->x * 16, window->y * 2);
+			src = dst + 16 * screen->pitch;
+			do {
+				memcpy(dst, src, w1);
+				src += screen->pitch;
+				dst += screen->pitch;
+			} while (--h1);
+		}
+
+		Common::Rect dirtyRect(window->x * 8, window->y, window->x * 8 + w2, window->y + h2);
+		updateBackendSurface(&dirtyRect);
 	}
 
 	colorBlock(window, window->x * 8, (window->height - 1) * 8 + window->y, window->width * 8, 8);

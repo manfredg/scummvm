@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,6 +34,7 @@
 #include "common/config-manager.h"
 #include "common/fs.h"
 #include "common/rendermode.h"
+#include "common/savefile.h"
 #include "common/system.h"
 #include "common/textconsole.h"
 #include "common/tokenizer.h"
@@ -42,6 +42,8 @@
 #include "gui/ThemeEngine.h"
 
 #include "audio/musicplugin.h"
+
+#include "graphics/renderer.h"
 
 #define DETECTOR_TESTING_HACK
 #define UPGRADE_ALL_TARGETS_HACK
@@ -67,8 +69,13 @@ static const char HELP_STRING[] =
 	"  -v, --version            Display ScummVM version information and exit\n"
 	"  -h, --help               Display a brief help text and exit\n"
 	"  -z, --list-games         Display list of supported games and exit\n"
+	"  --list-all-games         Display list of all detected games and exit\n"
 	"  -t, --list-targets       Display list of configured targets and exit\n"
-	"  --list-engines           Display list of suppported engines and exit\n"
+	"  --list-engines           Display list of supported engines and exit\n"
+	"  --list-all-engines       Display list of all detection engines and exit\n"
+	"  --list-debugflags=engine Display list of engine specified debugflags\n"
+	"                           if engine=global or engine is not specified, then it will list global debugflags\n"
+	"  --list-all-debugflags    Display list of all engine specified debugflags\n"
 	"  --list-saves             Display a list of saved games for the target specified\n"
 	"                           with --game=TARGET, or all targets if none is specified\n"
 	"  -a, --add                Add all games from current or specified directory.\n"
@@ -79,6 +86,8 @@ static const char HELP_STRING[] =
 	"                           Use --path=PATH to specify a directory.\n"
 	"  --game=ID                In combination with --add or --detect only adds or attempts to\n"
 	"                           detect the game with id ID.\n"
+	"  --engine=ID              In combination with --list-games or --list-all-games only lists\n"
+	"                           games for this engine.\n"
 	"  --auto-detect            Display a list of games from current or specified directory\n"
 	"                           and start the first one. Use --path=PATH to specify a directory.\n"
 	"  --recursive              In combination with --add or --detect recurse down all subdirectories\n"
@@ -87,16 +96,26 @@ static const char HELP_STRING[] =
 #endif
 	"\n"
 	"  -c, --config=CONFIG      Use alternate configuration file\n"
+#if defined(SDL_BACKEND)
+	"  -l, --logfile=PATH       Use alternate path for log file\n"
+	"  --screenshotpath=PATH    Specify path where screenshot files are created\n"
+#endif
 	"  -p, --path=PATH          Path to where the game is installed\n"
 	"  -x, --save-slot[=NUM]    Save game slot to load (default: autosave)\n"
 	"  -f, --fullscreen         Force full-screen mode\n"
 	"  -F, --no-fullscreen      Force windowed mode\n"
-	"  -g, --gfx-mode=MODE      Select graphics scaler (1x,2x,3x,2xsai,super2xsai,\n"
-	"                           supereagle,advmame2x,advmame3x,hq2x,hq3x,tv2x,\n"
-	"                           dotmatrix)\n"
-	"  --stretch-mode=MODE      Select stretch mode (center, integral, fit, stretch)"
+	"  -g, --gfx-mode=MODE      Select graphics mode\n"
+	"  --stretch-mode=MODE      Select stretch mode (center, pixel-perfect, even-pixels,\n"
+	"                           fit, stretch, fit_force_aspect)\n"
+	"  --scaler=MODE            Select graphics scaler (normal,hq,edge,advmame,sai,\n"
+	"                           supersai,supereagle,pm,dotmatrix,tv2x)\n"
+	"  --scale-factor=FACTOR    Factor to scale the graphics by\n"
 	"  --filtering              Force filtered graphics mode\n"
 	"  --no-filtering           Force unfiltered graphics mode\n"
+#ifdef USE_OPENGL
+	"  --window-size=W,H        Set the ScummVM window size to the specified dimensions\n"
+	"                           (OpenGL only)\n"
+#endif
 	"  --gui-theme=THEME        Select GUI theme\n"
 	"  --themepath=PATH         Path to where GUI themes are stored\n"
 	"  --list-themes            Display list of all usable GUI themes\n"
@@ -137,22 +156,33 @@ static const char HELP_STRING[] =
 	"  --output-rate=RATE       Select output sample rate in Hz (e.g. 22050)\n"
 	"  --opl-driver=DRIVER      Select AdLib (OPL) emulator (db, mame"
 #ifndef DISABLE_NUKED_OPL
-                                                                     ", nuked"
+																	 ", nuked"
+#endif
+#ifdef USE_ALSA
+																	 ", alsa"
 #endif
 #ifdef ENABLE_OPL2LPT
-                                                                     ", opl2lpt"
+																	 ", opl2lpt"
 #endif
-                                                                              ")\n"
+																			  ")\n"
+	"  --show-fps               Set the turn on display FPS info in 3D games\n"
+	"  --no-show-fps            Set the turn off display FPS info in 3D games\n"
+	"  --renderer=RENDERER      Select 3D renderer (software, opengl, opengl_shaders)\n"
 	"  --aspect-ratio           Enable aspect ratio correction\n"
+	"  --[no-]dirtyrects        Enable dirty rectangles optimisation in software renderer\n"
+	"                           (default: enabled)\n"
 	"  --render-mode=MODE       Enable additional render modes (hercGreen, hercAmber,\n"
 	"                           cga, ega, vga, amiga, fmtowns, pc9821, pc9801, 2gs,\n"
-	"                           atari, macintosh)\n"
+	"                           atari, macintosh, macintoshbw)\n"
 #ifdef ENABLE_EVENTRECORDER
 	"  --record-mode=MODE       Specify record mode for event recorder (record, playback,\n"
-	"                           passthrough [default])\n"
+	"                           info, update, passthrough [default])\n"
 	"  --record-file-name=FILE  Specify record file name\n"
 	"  --disable-display        Disable any gfx output. Used for headless events\n"
 	"                           playback by Event Recorder\n"
+	"  --screenshot-period=NUM  When recording, trigger a screenshot every NUM milliseconds\n"
+	"                           (default: 60000)\n"
+	"  --list-records           Display a list of recordings for the target specified\n"
 #endif
 	"\n"
 #if defined(ENABLE_SKY) || defined(ENABLE_QUEEN)
@@ -162,20 +192,21 @@ static const char HELP_STRING[] =
 	"  --copy-protection        Enable copy protection in games, when\n"
 	"                           ScummVM disables it by default.\n"
 	"  --talkspeed=NUM          Set talk speed for games (default: 60)\n"
+	"                           Grim Fandango or EMI (default: 179).\n"
 #if defined(ENABLE_SCUMM) || defined(ENABLE_GROOVIE)
 	"  --demo-mode              Start demo mode of Maniac Mansion or The 7th Guest\n"
 #endif
 #if defined(ENABLE_DIRECTOR)
-	"  --start-movie=NAME       Start movie for Director\n"
+	"  --start-movie=NAME@NUM   Start movie at frame for Director\n"
+	"							Either can be specified without the other.\n"
 #endif
 #ifdef ENABLE_SCUMM
 	"  --tempo=NUM              Set music tempo (in percent, 50-200) for SCUMM games\n"
 	"                           (default: 100)\n"
-#ifdef ENABLE_SCUMM_7_8
-	"  --dimuse-tempo=NUM       Set internal Digital iMuse tempo (10 - 100) per second\n"
-	"                           (default: 10)\n"
 #endif
-#endif
+	"  --engine-speed=NUM       Set frame per second limit (0 - 100), 0 = no limit\n"
+	"                           (default: 60)\n"
+	"                           Grim Fandango or Escape from Monkey Island\n"
 	"\n"
 	"The meaning of boolean long options can be inverted by prefixing them with\n"
 	"\"no-\", e.g. \"--no-aspect-ratio\".\n"
@@ -184,7 +215,7 @@ static const char HELP_STRING[] =
 
 static const char *s_appName = "scummvm";
 
-static void NORETURN_PRE usage(const char *s, ...) GCC_PRINTF(1, 2) NORETURN_POST;
+static void NORETURN_PRE usage(MSVC_PRINTF const char *s, ...) GCC_PRINTF(1, 2) NORETURN_POST;
 
 static void usage(const char *s, ...) {
 	char buf[STRINGBUFLEN];
@@ -223,7 +254,12 @@ void registerDefaults() {
 	ConfMan.registerDefault("render_mode", "default");
 	ConfMan.registerDefault("desired_screen_aspect_ratio", "auto");
 	ConfMan.registerDefault("stretch_mode", "default");
+	ConfMan.registerDefault("scaler", "default");
+	ConfMan.registerDefault("scale_factor", -1);
 	ConfMan.registerDefault("shader", "default");
+	ConfMan.registerDefault("show_fps", false);
+	ConfMan.registerDefault("dirtyrects", true);
+	ConfMan.registerDefault("vsync", true);
 
 	// Sound & Music
 	ConfMan.registerDefault("music_volume", 192);
@@ -272,17 +308,13 @@ void registerDefaults() {
 #endif
 #ifdef ENABLE_SCUMM
 	ConfMan.registerDefault("tempo", 0);
-#ifdef ENABLE_SCUMM_7_8
-	ConfMan.registerDefault("dimuse_tempo", 10);
 #endif
-#endif
-
 #if defined(ENABLE_SKY) || defined(ENABLE_QUEEN)
 	ConfMan.registerDefault("alt_intro", false);
 #endif
 
 	// Miscellaneous
-	ConfMan.registerDefault("joystick_num", -1);
+	ConfMan.registerDefault("joystick_num", 0);
 	ConfMan.registerDefault("confirm_exit", false);
 	ConfMan.registerDefault("disable_sdl_parachute", false);
 
@@ -295,6 +327,12 @@ void registerDefaults() {
 
 	ConfMan.registerDefault("gui_browser_show_hidden", false);
 	ConfMan.registerDefault("gui_browser_native", true);
+	ConfMan.registerDefault("gui_return_to_launcher_at_exit", false);
+	ConfMan.registerDefault("gui_launcher_chooser", "list");
+	// Specify threshold for scanning directories in the launcher
+	// If number of game entries in scummvm.ini exceeds the specified
+	// number, then skip scanning. -1 = scan always
+	ConfMan.registerDefault("gui_list_max_scan_entries", -1);
 	ConfMan.registerDefault("game", "");
 
 #ifdef USE_FLUIDSYNTH
@@ -315,6 +353,9 @@ void registerDefaults() {
 	ConfMan.registerDefault("fluidsynth_reverb_level", 90);
 
 	ConfMan.registerDefault("fluidsynth_misc_interpolation", "4th");
+#endif
+#ifdef USE_DISCORD
+	ConfMan.registerDefault("discord_rpc", true);
 #endif
 }
 
@@ -476,7 +517,7 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 	// Iterate over all command line arguments and parse them into our string map.
 	for (int i = 1; i < argc; ++i) {
 		s = argv[i];
-		s2 = (i < argc-1) ? argv[i+1] : 0;
+		s2 = (i < argc-1) ? argv[i+1] : nullptr;
 
 		if (s[0] != '-') {
 			// The argument doesn't start with a dash, so it's not an option.
@@ -488,7 +529,7 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 			// We defer checking whether this is a valid target to a later point.
 			return s;
 		} else {
-			// On MacOS X prior to 10.9 the OS is sometimes adding a -psn_X_XXXXXX argument (where X are digits)
+			// On macOS prior to 10.9 the OS is sometimes adding a -psn_X_XXXXXX argument (where X are digits)
 			// to pass the process serial number. We need to ignore it to avoid an error.
 			// When using XCode it also adds -NSDocumentRevisionsDebugMode YES argument if XCode option
 			// "Allow debugging when using document Versions Browser" is on (which is the default).
@@ -515,7 +556,21 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 			DO_COMMAND('z', "list-games")
 			END_COMMAND
 
+			DO_LONG_COMMAND("list-all-games")
+			END_COMMAND
+
+			DO_LONG_COMMAND("list-all-debugflags")
+			END_COMMAND
+
+			DO_OPTION_OPT(0, "list-debugflags", "global")
+				ensureFirstCommand(command, "list-debugflags");
+				command = "list-debugflags";
+			END_OPTION
+
 			DO_LONG_COMMAND("list-engines")
+			END_COMMAND
+
+			DO_LONG_COMMAND("list-all-engines")
 			END_COMMAND
 
 			DO_COMMAND('a', "add")
@@ -544,6 +599,20 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 
 			DO_OPTION('c', "config")
 			END_OPTION
+
+#if defined(SDL_BACKEND)
+			DO_OPTION('l', "logfile")
+			END_OPTION
+
+			DO_LONG_OPTION("screenshotpath")
+				Common::FSNode path(option);
+				if (!path.exists()) {
+					usage("Non-existent game path '%s'", option);
+				} else if (!path.isWritable()) {
+					usage("Non-writable screenshot path '%s'", option);
+				}
+			END_OPTION
+#endif
 
 			DO_OPTION_INT('b', "boot-param")
 			END_OPTION
@@ -574,6 +643,24 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 
 			DO_LONG_OPTION_BOOL("crt_emulation")
 			END_OPTION
+#ifdef USE_OPENGL
+			DO_LONG_OPTION("window-size")
+				Common::StringTokenizer tokenizer(option, ",");
+				if (tokenizer.empty())
+					usage("Invalid window format specified: %s", option);
+				Common::String w = tokenizer.nextToken();
+				if (tokenizer.empty())
+					usage("Invalid window format specified: %s", option);
+				Common::String h = tokenizer.nextToken();
+
+				if (atoi(w.c_str()) == 0 || atoi(h.c_str()) == 0)
+					usage("Invalid window format specified: %s", option);
+
+				settings["last_window_width"] = w;
+				settings["last_window_height"] = h;
+				settings.erase("window_size");
+			END_OPTION
+#endif
 
 #ifdef ENABLE_EVENTRECORDER
 			DO_LONG_OPTION_INT("disable-display")
@@ -584,6 +671,12 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 
 			DO_LONG_OPTION("record-file-name")
 			END_OPTION
+
+			DO_LONG_COMMAND("list-records")
+			END_COMMAND
+
+			DO_LONG_OPTION_INT("screenshot-period")
+			END_OPTION
 #endif
 
 			DO_LONG_OPTION("opl-driver")
@@ -593,6 +686,12 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 			END_OPTION
 
 			DO_LONG_OPTION("stretch-mode")
+			END_OPTION
+
+			DO_LONG_OPTION("scaler")
+			END_OPTION
+
+			DO_LONG_OPTION_INT("scale-factor")
 			END_OPTION
 
 			DO_LONG_OPTION("shader")
@@ -680,6 +779,21 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 					usage("Unrecognized render mode '%s'", option);
 			END_OPTION
 
+			DO_LONG_OPTION_BOOL("dirtyrects")
+			END_OPTION
+
+			DO_LONG_OPTION("gamma")
+			END_OPTION
+
+			DO_LONG_OPTION("renderer")
+				Graphics::RendererType renderer = Graphics::parseRendererTypeCode(option);
+				if (renderer == Graphics::kRendererTypeDefault)
+					usage("Unrecognized renderer type '%s'", option);
+			END_OPTION
+
+			DO_LONG_OPTION_BOOL("show-fps")
+			END_OPTION
+
 			DO_LONG_OPTION("savepath")
 				Common::FSNode path(option);
 				if (!path.exists()) {
@@ -710,6 +824,9 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 			DO_LONG_OPTION("game")
 			END_OPTION
 
+			DO_LONG_OPTION("engine")
+			END_OPTION
+
 			DO_LONG_OPTION_BOOL("recursive")
 			END_OPTION
 
@@ -731,11 +848,8 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 #ifdef ENABLE_SCUMM
 			DO_LONG_OPTION_INT("tempo")
 			END_OPTION
-#ifdef ENABLE_SCUMM_7_8
-			DO_LONG_OPTION_INT("dimuse-tempo")
-			END_OPTION
 #endif
-#endif
+
 #if defined(ENABLE_SCUMM) || defined(ENABLE_GROOVIE)
 			DO_LONG_OPTION_BOOL("demo-mode")
 			END_OPTION
@@ -745,6 +859,9 @@ Common::String parseCommandLine(Common::StringMap &settings, int argc, const cha
 			DO_LONG_OPTION_BOOL("alt-intro")
 			END_OPTION
 #endif
+
+			DO_LONG_OPTION_INT("engine-speed")
+			END_OPTION
 
 #ifdef IPHONE
 			// This is automatically set when launched from the Springboard.
@@ -772,30 +889,75 @@ unknownOption:
 	return command;
 }
 
-/** List all supported game IDs, i.e. all games which any loaded plugin supports. */
-static void listGames() {
+/** List all available game IDs, i.e. all games which any loaded plugin supports. */
+static void listGames(const Common::String &engineID) {
+	const bool all = engineID.empty();
+
+	printf("Game ID                        Full Title                                                 \n"
+	       "------------------------------ -----------------------------------------------------------\n");
+
+	const PluginList &plugins = EngineMan.getPlugins(PLUGIN_TYPE_ENGINE);
+	for (PluginList::const_iterator iter = plugins.begin(); iter != plugins.end(); ++iter) {
+		const Plugin *p = EngineMan.findPlugin((*iter)->getName());
+		/* If for some reason, we can't find the MetaEngine for this Engine, just ignore it */
+		if (!p) {
+			continue;
+		}
+
+		if (all || (p->getEngineId() == engineID)) {
+			PlainGameList list = p->get<MetaEngineDetection>().getSupportedGames();
+			for (PlainGameList::const_iterator v = list.begin(); v != list.end(); ++v) {
+				printf("%-30s %s\n", buildQualifiedGameName(p->get<MetaEngineDetection>().getEngineId(), v->gameId).c_str(), v->description);
+			}
+		}
+	}
+}
+
+/** List all known game IDs, i.e. all games which can be detected. */
+static void listAllGames(const Common::String &engineID) {
+	const bool any = engineID.empty();
+
 	printf("Game ID                        Full Title                                                 \n"
 	       "------------------------------ -----------------------------------------------------------\n");
 
 	const PluginList &plugins = EngineMan.getPlugins();
 	for (PluginList::const_iterator iter = plugins.begin(); iter != plugins.end(); ++iter) {
-		const MetaEngine &metaengine = (*iter)->get<MetaEngine>();
+		const MetaEngineDetection &metaEngine = (*iter)->get<MetaEngineDetection>();
 
-		PlainGameList list = metaengine.getSupportedGames();
-		for (PlainGameList::const_iterator v = list.begin(); v != list.end(); ++v) {
-			printf("%-30s %s\n", buildQualifiedGameName(metaengine.getEngineId(), v->gameId).c_str(), v->description);
+		if (any || (metaEngine.getEngineId() == engineID)) {
+			PlainGameList list = metaEngine.getSupportedGames();
+			for (PlainGameList::const_iterator v = list.begin(); v != list.end(); ++v) {
+				printf("%-30s %s\n", buildQualifiedGameName(metaEngine.getEngineId(), v->gameId).c_str(), v->description);
+			}
 		}
 	}
 }
 
-/** List all supported engines, i.e. all loaded plugins. */
+/** List all supported engines, i.e. all loaded engine plugins. */
 static void listEngines() {
+	printf("Engine ID       Engine Name                                           \n"
+	       "--------------- ------------------------------------------------------\n");
+
+	const PluginList &plugins = EngineMan.getPlugins(PLUGIN_TYPE_ENGINE);
+	for (PluginList::const_iterator iter = plugins.begin(); iter != plugins.end(); ++iter) {
+		const Plugin *p = EngineMan.findPlugin((*iter)->getName());
+		/* If for some reason, we can't find the MetaEngine for this Engine, just ignore it */
+		if (!p) {
+			continue;
+		}
+
+		printf("%-15s %s\n", p->get<MetaEngineDetection>().getEngineId(), p->get<MetaEngineDetection>().getName());
+	}
+}
+
+/** List all detection engines, i.e. all loaded detection plugins. */
+static void listAllEngines() {
 	printf("Engine ID       Engine Name                                           \n"
 	       "--------------- ------------------------------------------------------\n");
 
 	const PluginList &plugins = EngineMan.getPlugins();
 	for (PluginList::const_iterator iter = plugins.begin(); iter != plugins.end(); ++iter) {
-		const MetaEngine &metaEngine = (*iter)->get<MetaEngine>();
+		const MetaEngineDetection &metaEngine = (*iter)->get<MetaEngineDetection>();
 		printf("%-15s %s\n", metaEngine.getEngineId(), metaEngine.getName());
 	}
 }
@@ -813,7 +975,7 @@ static void listTargets() {
 
 	for (iter = domains.begin(); iter != domains.end(); ++iter) {
 		Common::String name(iter->_key);
-		Common::String description(iter->_value.getVal("description"));
+		Common::String description(iter->_value.getValOrDefault("description"));
 
 		// If there's no description, fallback on the default description.
 		if (description.empty()) {
@@ -834,22 +996,117 @@ static void listTargets() {
 		printf("%s\n", i->c_str());
 }
 
+static void printDebugFlags(const DebugChannelDef *debugChannels) {
+	if (!debugChannels)
+		return;
+	for (uint i = 0; debugChannels[i].channel != 0; i++) {
+		printf("%-15s %s\n", debugChannels[i].name, debugChannels[i].description);
+	}
+}
+
+/** List debug flags*/
+static void listDebugFlags(const Common::String &engineID) {
+	if (engineID == "global")
+		printDebugFlags(gDebugChannels);
+	else {
+		const PluginList &plugins = EngineMan.getPlugins();
+		for (PluginList::const_iterator iter = plugins.begin(); iter != plugins.end(); ++iter) {
+			const MetaEngineDetection &metaEngine = (*iter)->get<MetaEngineDetection>();
+			if (metaEngine.getEngineId() == engineID) {
+				printf("Flag name       Flag description                                           \n");
+				printf("--------------- ------------------------------------------------------\n");
+				printf("ID=%-12s Name=%s\n", metaEngine.getEngineId(), metaEngine.getName());
+				printDebugFlags(metaEngine.getDebugChannels());
+				return;
+			}
+		}
+		printf("Cannot find engine %s\n", engineID.c_str());
+	}
+}
+
+/** List all engine specified debug channels */
+static void listAllEngineDebugFlags() {
+	printf("Flag name       Flag description                                           \n");
+
+	const PluginList &plugins = EngineMan.getPlugins();
+	for (PluginList::const_iterator iter = plugins.begin(); iter != plugins.end(); ++iter) {
+		const MetaEngineDetection &metaEngine = (*iter)->get<MetaEngineDetection>();
+		printf("--------------- ------------------------------------------------------\n");
+		printf("ID=%-12s Name=%s\n", metaEngine.getEngineId(), metaEngine.getName());
+		printDebugFlags(metaEngine.getDebugChannels());
+	}
+}
+
+static void assembleTargets(const Common::String &singleTarget, Common::Array<Common::String> &targets) {
+	if (!singleTarget.empty()) {
+		targets.push_back(singleTarget);
+		return;
+	}
+
+	// If no target is specified, list save games for all known targets
+	const Common::ConfigManager::DomainMap &domains = ConfMan.getGameDomains();
+	Common::ConfigManager::DomainMap::const_iterator iter;
+
+	targets.reserve(domains.size());
+	for (iter = domains.begin(); iter != domains.end(); ++iter) {
+		targets.push_back(iter->_key);
+	}
+}
+
+#ifdef ENABLE_EVENTRECORDER
+static Common::Error listRecords(const Common::String &singleTarget) {
+	Common::Error result = Common::kNoError;
+
+	Common::Array<Common::String> targets;
+	assembleTargets(singleTarget, targets);
+
+	// FIXME HACK
+	g_system->initBackend();
+
+	Common::String oldDomain = ConfMan.getActiveDomainName();
+
+	for (Common::Array<Common::String>::const_iterator i = targets.begin(), end = targets.end(); i != end; ++i) {
+		Common::String currentTarget;
+		QualifiedGameDescriptor game;
+
+		if (ConfMan.hasGameDomain(*i)) {
+			// The name is a known target
+			currentTarget = *i;
+			EngineMan.upgradeTargetIfNecessary(*i);
+			const Plugin *metaEnginePlugin = nullptr;
+			game = EngineMan.findTarget(*i, &metaEnginePlugin);
+		} else if (game = findGameMatchingName(*i), !game.gameId.empty()) {
+			currentTarget = createTemporaryTarget(game.engineId, game.gameId);
+		} else {
+			return Common::Error(Common::kEnginePluginNotFound, Common::String::format("target '%s'", singleTarget.c_str()));
+		}
+
+		const Common::String &qualifiedGameId = buildQualifiedGameName(game.engineId, game.gameId);
+		ConfMan.setActiveDomain(currentTarget);
+		Common::String pattern(currentTarget + ".r??");
+		const Common::StringArray &files = g_system->getSavefileManager()->listSavefiles(pattern);
+		if (files.empty()) {
+			continue;
+		}
+		printf("Recordings for target '%s' (gameid '%s'):\n", i->c_str(), qualifiedGameId.c_str());
+		for (Common::StringArray::const_iterator x = files.begin(); x != files.end(); ++x) {
+			printf("  %s\n", x->c_str());
+		}
+	}
+
+	// Revert to the old active domain
+	ConfMan.setActiveDomain(oldDomain);
+
+	return result;
+}
+#endif
+
 /** List all saves states for the given target. */
 static Common::Error listSaves(const Common::String &singleTarget) {
 	Common::Error result = Common::kNoError;
 
-	// If no target is specified, list save games for all known targets
 	Common::Array<Common::String> targets;
-	if (!singleTarget.empty())
-		targets.push_back(singleTarget);
-	else {
-		const Common::ConfigManager::DomainMap &domains = ConfMan.getGameDomains();
-		Common::ConfigManager::DomainMap::const_iterator iter;
-
-		targets.reserve(domains.size());
-		for (iter = domains.begin(); iter != domains.end(); ++iter)
-			targets.push_back(iter->_key);
-	}
+	assembleTargets(singleTarget, targets);
 
 	// FIXME HACK
 	g_system->initBackend();
@@ -862,15 +1119,18 @@ static Common::Error listSaves(const Common::String &singleTarget) {
 		// the specified game name, or alternatively whether there is a matching game id.
 		Common::String currentTarget;
 		QualifiedGameDescriptor game;
-		const Plugin *plugin = nullptr;
+
+		const Plugin *metaEnginePlugin = nullptr;
+		const Plugin *enginePlugin = nullptr;
+
 		if (ConfMan.hasGameDomain(*i)) {
 			// The name is a known target
 			currentTarget = *i;
 			EngineMan.upgradeTargetIfNecessary(*i);
-			game = EngineMan.findTarget(*i, &plugin);
+			game = EngineMan.findTarget(*i, &metaEnginePlugin);
 		} else if (game = findGameMatchingName(*i), !game.gameId.empty()) {
 			// The name is a known game id
-			plugin = EngineMan.findPlugin(game.engineId);
+			metaEnginePlugin = EngineMan.findPlugin(game.engineId);
 			currentTarget = createTemporaryTarget(game.engineId, game.gameId);
 		} else {
 			return Common::Error(Common::kEnginePluginNotFound, Common::String::format("target '%s'", singleTarget.c_str()));
@@ -879,16 +1139,27 @@ static Common::Error listSaves(const Common::String &singleTarget) {
 		// If we actually found a domain, we're going to change the domain
 		ConfMan.setActiveDomain(currentTarget);
 
-		if (!plugin) {
+		if (!metaEnginePlugin) {
 			// If the target was specified, treat this as an error, and otherwise skip it.
 			if (!singleTarget.empty())
-				return Common::Error(Common::kEnginePluginNotFound,
+				return Common::Error(Common::kMetaEnginePluginNotFound,
 				                     Common::String::format("target '%s'", i->c_str()));
-			printf("Plugin could not be loaded for target '%s'\n", i->c_str());
+			printf("MetaEnginePlugin could not be loaded for target '%s'\n", i->c_str());
 			continue;
+		} else {
+			enginePlugin = PluginMan.getEngineFromMetaEngine(metaEnginePlugin);
+
+			if (!enginePlugin) {
+				// If the target was specified, treat this as an error, and otherwise skip it.
+				if (!singleTarget.empty())
+					return Common::Error(Common::kEnginePluginNotFound,
+				                     	 Common::String::format("target '%s'", i->c_str()));
+				printf("EnginePlugin could not be loaded for target '%s'\n", i->c_str());
+				continue;
+			}
 		}
 
-		const MetaEngine &metaEngine = plugin->get<MetaEngine>();
+		const MetaEngine &metaEngine = enginePlugin->get<MetaEngine>();
 		Common::String qualifiedGameId = buildQualifiedGameName(game.engineId, game.gameId);
 
 		if (!metaEngine.hasFeature(MetaEngine::kSupportsListSaves)) {
@@ -912,7 +1183,7 @@ static Common::Error listSaves(const Common::String &singleTarget) {
 					   "  ---- ------------------------------------------------------\n");
 
 			for (SaveStateList::const_iterator x = saveList.begin(); x != saveList.end(); ++x) {
-				printf("  %-4d %s\n", x->getSaveSlot(), x->getDescription().c_str());
+				printf("  %-4d %s\n", x->getSaveSlot(), x->getDescription().encode().c_str());
 				// TODO: Could also iterate over the full hashmap, printing all key-value pairs
 			}
 			atLeastOneFound = true;
@@ -975,8 +1246,8 @@ static DetectedGames getGameList(const Common::FSNode &dir) {
 	DetectionResults detectionResults = EngineMan.detectGames(files);
 
 	if (detectionResults.foundUnknownGames()) {
-		Common::String report = detectionResults.generateUnknownGameReport(false, 80);
-		g_system->logMessage(LogMessageType::kInfo, report.c_str());
+		Common::U32String report = detectionResults.generateUnknownGameReport(false, 80);
+		g_system->logMessage(LogMessageType::kInfo, report.encode().c_str());
 	}
 
 	return detectionResults.listRecognizedGames();
@@ -1197,7 +1468,7 @@ void upgradeTargets() {
 		DetectionResults detectionResults = EngineMan.detectGames(files);
 		DetectedGames candidates = detectionResults.listRecognizedGames();
 
-		DetectedGame *g = 0;
+		DetectedGame *g = nullptr;
 
 		// We proceed as follows:
 		// * If detection failed to produce candidates, skip.
@@ -1231,14 +1502,14 @@ void upgradeTargets() {
 		// the target referred to by dom. We update several things
 
 		// Always set the engine ID and game ID explicitly (in case of legacy targets)
-		dom["engineid"] = g->engineId;
-		dom["gameid"] = g->gameId;
+		dom.setVal("engineid", g->engineId);
+		dom.setVal("gameid", g->gameId);
 
 		// Always set the GUI options. The user should not modify them, and engines might
 		// gain more features over time, so we want to keep this list up-to-date.
 		if (!g->getGUIOptions().empty()) {
 			printf("  -> update guioptions to '%s'\n", g->getGUIOptions().c_str());
-			dom["guioptions"] = g->getGUIOptions();
+			dom.setVal("guioptions", g->getGUIOptions());
 		} else if (dom.contains("guioptions")) {
 			dom.erase("guioptions");
 		}
@@ -1246,13 +1517,13 @@ void upgradeTargets() {
 		// Update the language setting but only if none has been set yet.
 		if (lang == Common::UNK_LANG && g->language != Common::UNK_LANG) {
 			printf("  -> set language to '%s'\n", Common::getLanguageCode(g->language));
-			dom["language"] = Common::getLanguageCode(g->language);
+			dom.setVal("language", Common::getLanguageCode(g->language));
 		}
 
 		// Update the platform setting but only if none has been set yet.
 		if (plat == Common::kPlatformUnknown && g->platform != Common::kPlatformUnknown) {
 			printf("  -> set platform to '%s'\n", Common::getPlatformCode(g->platform));
-			dom["platform"] = Common::getPlatformCode(g->platform);
+			dom.setVal("platform", Common::getPlatformCode(g->platform));
 		}
 
 		// TODO: We could also update the description. But not everybody will want that.
@@ -1262,7 +1533,7 @@ void upgradeTargets() {
 #if 0
 		if (desc != g->description) {
 			printf("  -> update desc from '%s' to\n                      '%s' ?\n", desc.c_str(), g->description.c_str());
-			dom["description"] = g->description;
+			dom.setVal("description", = g->description);
 		}
 #endif
 	}
@@ -1303,12 +1574,29 @@ bool processSettings(Common::String &command, Common::StringMap &settings, Commo
 	if (command == "list-targets") {
 		listTargets();
 		return true;
+	} else if (command == "list-all-debugflags") {
+		listAllEngineDebugFlags();
+		return true;
+	} else if (command == "list-debugflags") {
+		listDebugFlags(settings["list-debugflags"]);
+		return true;
 	} else if (command == "list-games") {
-		listGames();
+		listGames(settings["engine"]);
+		return true;
+	} else if (command == "list-all-games") {
+		listAllGames(settings["engine"]);
 		return true;
 	} else if (command == "list-engines") {
 		listEngines();
 		return true;
+	} else if (command == "list-all-engines") {
+		listAllEngines();
+		return true;
+#ifdef ENABLE_EVENTRECORDER
+	} else if (command == "list-records") {
+		err = listRecords(settings["game"]);
+		return true;
+#endif
 	} else if (command == "list-saves") {
 		err = listSaves(settings["game"]);
 		return true;
@@ -1350,19 +1638,17 @@ bool processSettings(Common::String &command, Common::StringMap &settings, Commo
 	} else if (command == "add") {
 		addGames(settings["path"], gameOption.engineId, gameOption.gameId, settings["recursive"] == "true");
 		return true;
-	}
 #ifdef DETECTOR_TESTING_HACK
-	else if (command == "test-detector") {
+	} else if (command == "test-detector") {
 		runDetectorTest();
 		return true;
-	}
 #endif
 #ifdef UPGRADE_ALL_TARGETS_HACK
-	else if (command == "upgrade-targets") {
+	} else if (command == "upgrade-targets") {
 		upgradeTargets();
 		return true;
-	}
 #endif
+	}
 
 #endif // DISABLE_COMMAND_LINE
 

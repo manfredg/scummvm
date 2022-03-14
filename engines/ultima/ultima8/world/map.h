@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,8 +28,6 @@ namespace Ultima {
 namespace Ultima8 {
 
 class Item;
-class IDataSource;
-class ODataSource;
 
 class Map {
 	friend class CurrentMap;
@@ -40,21 +37,22 @@ public:
 
 	void clear();
 
-	void loadNonFixed(IDataSource *ds);
-	void loadFixed(IDataSource *ds);
+	void loadNonFixed(Common::SeekableReadStream *rs);
+	void loadFixed(Common::SeekableReadStream *rs);
 	void unloadFixed();
 
 	bool isEmpty() const {
 		return _fixedItems.size() == 0 && _dynamicItems.size() == 0;
 	}
 
-	void save(ODataSource *ods);
-	bool load(IDataSource *ids, uint32 version);
+	void save(Common::WriteStream *ods);
+	bool load(Common::ReadStream *rs, uint32 version);
 
 private:
 
 	// load items from something formatted like 'fixed.dat'
-	void loadFixedFormatObjects(Std::list<Item *> &itemlist, IDataSource *ds,
+	void loadFixedFormatObjects(Std::list<Item *> &itemlist,
+								Common::SeekableReadStream *rs,
 	                            uint32 extendedflags);
 
 	// Add a fixed item to patch game data errors

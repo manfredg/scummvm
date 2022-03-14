@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -77,7 +76,7 @@ int MacM68kDriver::open() {
 		}
 	}
 
-	_mixBuffer = 0;
+	_mixBuffer = nullptr;
 	_mixBufferLength = 0;
 
 	// We set the output sound type to music here to allow sound volume
@@ -101,9 +100,9 @@ void MacM68kDriver::close() {
 	}
 	_instruments.clear();
 	delete[] _volumeTable;
-	_volumeTable = 0;
+	_volumeTable = nullptr;
 	delete[] _mixBuffer;
-	_mixBuffer = 0;
+	_mixBuffer = nullptr;
 	_mixBufferLength = 0;
 }
 
@@ -122,7 +121,7 @@ MidiChannel *MacM68kDriver::allocateChannel() {
 		}
 	}
 
-	return 0;
+	return nullptr;
 }
 
 MacM68kDriver::Instrument MacM68kDriver::getInstrument(int idx) const {
@@ -273,7 +272,7 @@ void MacM68kDriver::VoiceChannel::off() {
 	}
 
 	part->removeVoice(this);
-	part = 0;
+	part = nullptr;
 }
 
 void MacM68kDriver::MidiChannel_MacM68k::release() {
@@ -352,7 +351,7 @@ void MacM68kDriver::MidiChannel_MacM68k::noteOn(byte note, byte velocity) {
 		voice->out.loopStart = _instrument.data + _instrument.loopStart;
 		voice->out.loopEnd   = _instrument.data + _instrument.loopEnd;
 	} else {
-		voice->out.loopStart = 0;
+		voice->out.loopStart = nullptr;
 		voice->out.loopEnd   = voice->out.soundEnd;
 	}
 
@@ -440,7 +439,7 @@ bool MacM68kDriver::MidiChannel_MacM68k::allocate() {
 	}
 
 	_allocated = true;
-	_voice = 0;
+	_voice = nullptr;
 	_priority = 0;
 	memset(&_instrument, 0, sizeof(_instrument));
 	_pitchBend = 0;
@@ -451,7 +450,7 @@ bool MacM68kDriver::MidiChannel_MacM68k::allocate() {
 
 void MacM68kDriver::MidiChannel_MacM68k::addVoice(VoiceChannel *voice) {
 	voice->next = _voice;
-	voice->prev = 0;
+	voice->prev = nullptr;
 	voice->part = this;
 	if (_voice) {
 		_voice->prev = voice;
@@ -479,7 +478,7 @@ void MacM68kDriver::MidiChannel_MacM68k::removeVoice(VoiceChannel *voice) {
 }
 
 MacM68kDriver::VoiceChannel *MacM68kDriver::allocateVoice(int priority) {
-	VoiceChannel *channel = 0;
+	VoiceChannel *channel = nullptr;
 	for (int i = 0; i < kChannelCount; ++i) {
 		if (++_lastUsedVoiceChannel == kChannelCount) {
 			_lastUsedVoiceChannel = 0;

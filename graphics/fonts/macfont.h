@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,8 @@
 
 namespace Graphics {
 
+#define SLANTDEEP 2
+
 class MacFontFamily {
 public:
 	MacFontFamily();
@@ -37,6 +38,7 @@ public:
 
 	bool load(Common::SeekableReadStream &stream);
 	int getKerningOffset(uint style, int32 left, uint32 right) const;
+	int getGlyphWidth(uint style, uint c);
 
 	struct AsscEntry {
 		uint16 _fontSize;
@@ -96,21 +98,31 @@ private:
 
 	uint16 _ffNumKerns;
 	Common::Array<KernEntry> _ffKernEntries;
+
+	struct StyleWidthEntry {
+		uint16 _style;
+		Common::Array<uint16> _widths;
+	};
+
+	uint16 _ffNumStyleWidths;
+	Common::Array<StyleWidthEntry> _ffStyleWidths;
 };
 
 struct MacGlyph {
 	void clear() {
 		bitmapOffset = 0;
-		width = 0;
+		width1 = 0;
 		height = 0;
 		bitmapWidth = 0;
 		kerningOffset = 0;
+		width = 0;
 	}
 
 	uint16 bitmapOffset;
-	byte width;
 	uint16 height;
 	uint16 bitmapWidth;
+	uint16 width1;	// this width is from glyph-table, which has the higher priority
+	byte width;	// this width is from width/offset table
 	int kerningOffset;
 };
 
@@ -128,6 +140,7 @@ struct MacFONTdata {
 	uint16 _descent;
 	uint16 _leading;
 	uint16 _rowWords;
+	uint16 _surfHeight;
 
 	byte *_bitImage;
 
@@ -137,6 +150,9 @@ struct MacFONTdata {
 	MacFontFamily *_family;
 	int _size;
 	int _style;
+
+	// currently only available in generated fonts
+	int _slant;
 };
 
 /**
@@ -149,6 +165,7 @@ public:
 	virtual ~MacFONTFont();
 
 	virtual int getFontHeight() const { return _data._fRectHeight; }
+	virtual int getFontAscent() const { return _data._ascent; }
 	virtual int getMaxCharWidth() const { return _data._maxWidth; }
 	virtual int getCharWidth(uint32 chr) const;
 	virtual void drawChar(Surface *dst, uint32 chr, int x, int y, uint32 color) const;
@@ -159,7 +176,7 @@ public:
 
 	int getFontSize() const { return _data._size; }
 
-	static MacFONTFont *scaleFont(const MacFONTFont *src, int newSize, bool bold = false, bool italic = false);
+	static MacFONTFont *scaleFont(const MacFONTFont *src, int newSize, int slant);
 	static void testBlit(const MacFONTFont *src, ManagedSurface *dst, int color, int x0, int y0, int width);
 
 private:

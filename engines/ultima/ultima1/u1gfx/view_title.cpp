@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -185,7 +184,7 @@ void ViewTitle::drawTrademarksView() {
 		s.writeString(game->_res->TITLE_MESSAGES[10], TextPoint(2, 18));
 		s.writeString(game->_res->TITLE_MESSAGES[11], TextPoint(11, 19));
 		s.writeString(game->_res->TITLE_MESSAGES[12], TextPoint(6, 23));
-	}	
+	}
 }
 
 void ViewTitle::drawMainMenu() {
@@ -214,12 +213,12 @@ void ViewTitle::setCastlePalette() {
 	getGame()->setEGAPalette(PALETTE);
 }
 
-bool ViewTitle::FrameMsg(CFrameMsg &msg) {
+bool ViewTitle::FrameMsg(CFrameMsg *msg) {
 	uint32 time = getGame()->getMillis();
 	if (time < _expiryTime)
 		return true;
 	setDirty();
-	
+
 	switch (_mode) {
 	case TITLEMODE_COPYRIGHT:
 		setMode(TITLEMODE_PRESENTS);
@@ -281,7 +280,7 @@ void ViewTitle::setMode(TitleMode mode) {
 	}
 }
 
-bool ViewTitle::ShowMsg(CShowMsg &msg) {
+bool ViewTitle::ShowMsg(CShowMsg *msg) {
 	Shared::Gfx::VisualItem::ShowMsg(msg);
 
 	if (_mode == TITLEMODE_MAIN_MENU) {
@@ -292,16 +291,16 @@ bool ViewTitle::ShowMsg(CShowMsg &msg) {
 	return true;
 }
 
-bool ViewTitle::KeypressMsg(CKeypressMsg &msg) {
+bool ViewTitle::KeypressMsg(CKeypressMsg *msg) {
 	uint32 time = getGame()->getMillis();
 
 	if (_mode == TITLEMODE_MAIN_MENU) {
-		if (msg._keyState.keycode == Common::KEYCODE_a || msg._keyState.keycode == Common::KEYCODE_b) {
+		if (msg->_keyState.keycode == Common::KEYCODE_a || msg->_keyState.keycode == Common::KEYCODE_b) {
 			// Hide the cursor
 			Shared::Gfx::TextCursor *textCursor = getGame()->_textCursor;
 			textCursor->setVisible(false);
 
-			if (msg._keyState.keycode == Common::KEYCODE_a) {
+			if (msg->_keyState.keycode == Common::KEYCODE_a) {
 				setView("CharGen");
 			} else {
 				if (!g_vm->loadGameDialog())

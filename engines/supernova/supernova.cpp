@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,9 @@
 #include "common/str.h"
 #include "common/system.h"
 #include "common/translation.h"
+#include "common/text-to-speech.h"
 #include "engines/util.h"
+#include "engines/advancedDetector.h"
 #include "graphics/cursorman.h"
 #include "graphics/surface.h"
 #include "graphics/screen.h"
@@ -99,12 +100,10 @@ SupernovaEngine::SupernovaEngine(OSystem *syst)
 		_MSPart = 0;
 
 	_improved = ConfMan.getBool("improved");
-	DebugMan.addDebugChannel(kDebugGeneral, "general", "Supernova general debug channel");
+
 }
 
 SupernovaEngine::~SupernovaEngine() {
-	DebugMan.clearAllDebugChannels();
-
 	delete _sleepAutoSave;
 	delete _gm;
 	delete _sound;
@@ -113,6 +112,10 @@ SupernovaEngine::~SupernovaEngine() {
 }
 
 Common::Error SupernovaEngine::run() {
+	Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+	if (ttsMan != nullptr)
+		ttsMan->setLanguage(ConfMan.get("language"));
+
 	init();
 
 	while (!shouldQuit()) {
@@ -161,7 +164,7 @@ void SupernovaEngine::init() {
 
 bool SupernovaEngine::hasFeature(EngineFeature f) const {
 	switch (f) {
-	case kSupportsRTL:
+	case kSupportsReturnToLauncher:
 		return true;
 	case kSupportsLoadingDuringRuntime:
 		return true;
@@ -197,6 +200,7 @@ Common::Error SupernovaEngine::loadGameStrings() {
 		_gameStrings.push_back(s);
 		size -= s.size() + 1;
 	}
+
 	return Common::kNoError;
 }
 
@@ -824,14 +828,13 @@ bool SupernovaEngine::saveGame(int slot, const Common::String &description) {
 
 void SupernovaEngine::errorTempSave(bool saving) {
 	GUIErrorMessage(saving
-		? "Failed to save temporary game state. Make sure your save game directory is set in ScummVM and that you can write to it."
-		: "Failed to load temporary game state.");
+		? _("Failed to save temporary game state. Make sure your save game directory is set in ScummVM and that you can write to it.")
+		: _("Failed to load temporary game state."));
 	error("Unrecoverable error");
 }
 
 void SupernovaEngine::stopSound() {
 	_sound->stop();
 }
-
 
 }

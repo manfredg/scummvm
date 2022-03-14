@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -95,7 +94,7 @@ void Parallaction_br::setupSubtitles(const char *s, const char *s2, int y) {
 		_subtitle[1] = _gfx->createLabel(_labelFont, s2, color);
 		_gfx->showLabel(_subtitle[1], CENTER_LABEL_HORIZONTAL, _subtitleY + 5 + _labelFont->height());
 	} else {
-		_subtitle[1] = 0;
+		_subtitle[1] = nullptr;
 	}
 #if 0	// disabled because no references to lip sync has been found in the scripts
 	_subtitleLipSync = 0;
@@ -107,13 +106,13 @@ void Parallaction_br::clearSubtitles() {
 		_gfx->hideLabel(_subtitle[0]);
 	}
 	delete _subtitle[0];
-	_subtitle[0] = 0;
+	_subtitle[0] = nullptr;
 
 	if (_subtitle[1]) {
 		_gfx->hideLabel(_subtitle[1]);
 	}
 	delete _subtitle[1];
-	_subtitle[1] = 0;
+	_subtitle[1] = nullptr;
 }
 
 
@@ -272,21 +271,43 @@ DECLARE_COMMAND_OPCODE(scroll) {
 
 
 DECLARE_COMMAND_OPCODE(swap) {
-	warning("Parallaction_br::cmdOp_swap not yet implemented");
+	warning("Parallaction_br::cmdOp_swap does not handle a follower yet");
+
+	/*
+		TODO:
+		- fixup follower
+		- change mouse pointer
+	*/
+
+	const char *newCharacterName = ctxt._cmd->_string.c_str();
+	AnimationPtr newCharacterAnimation = _vm->_location.findAnimation(newCharacterName);
+	AnimationPtr oldCharaterAnimation = _vm->_char._ani;
+
+	Common::strlcpy(oldCharaterAnimation->_name, _vm->_char.getName(), ZONENAME_LENGTH);
+	_vm->_char.setName(newCharacterName);
+
+	_vm->_char._ani = newCharacterAnimation;
+	_vm->_char._talk = _vm->_disk->loadTalk(newCharacterName);
+	Common::strlcpy(_vm->_char._ani->_name, "yourself", ZONENAME_LENGTH);
+
+	_vm->linkUnlinkedZoneAnimations();
+
+	_vm->_inventory = _vm->findInventory(newCharacterName);
+	_vm->_inventoryRenderer->setInventory(_vm->_inventory);
+
+	_vm->_input->setCharacterPointer(newCharacterName);
 }
 
 
 DECLARE_COMMAND_OPCODE(give) {
-	warning("Parallaction_br::cmdOp_give not yet implemented");
+	int item = ctxt._cmd->_object;
+	Inventory *targetInventory = _vm->findInventory(ctxt._cmd->_characterName.c_str());
 
-	/* NOTE: the following code is disabled until I deal with _inventory and
-	 * _charInventories not being public
-	 */
-/*  int item = ctxt._cmd->_object;
-	int recipient = ctxt._cmd->_characterId;
-	_vm->_charInventories[recipient]->addItem(item);
+	if (targetInventory) {
+		targetInventory->addItem(item);
+	}
+
 	_vm->_inventory->removeItem(item);
-*/
 }
 
 
@@ -335,7 +356,7 @@ DECLARE_COMMAND_OPCODE(clear) {
 
 DECLARE_COMMAND_OPCODE(speak) {
 	// WORKAROUND: this avoids crashing when the zone is not parsed, like in the case
-	// of script bug in ticket #2718449.
+	// of script bug in ticket #4251.
 	if (!ctxt._cmd->_zone) {
 		return;
 	}
@@ -471,6 +492,7 @@ DECLARE_INSTRUCTION_OPCODE(move) {
 DECLARE_INSTRUCTION_OPCODE(color) {
 	InstructionPtr inst = ctxt._inst;
 	_vm->_gfx->_palette.setEntry(inst->_opB.getValue(), inst->_colors[0], inst->_colors[1], inst->_colors[2]);
+	_vm->_gfx->setPalette(_vm->_gfx->_palette);
 }
 
 
@@ -532,7 +554,7 @@ DECLARE_INSTRUCTION_OPCODE(stop) {
 	ZonePtr z = ctxt._inst->_z;
 
 	// Prevent execution if zone is missing. The known case is "PART2/insegui.scr", which has
-	// "STOP insegui", which doesn't exist (see ticket #3021744 for the gory details)
+	// "STOP insegui", which doesn't exist (see ticket #9193 for the gory details)
 	if (!z) return;
 
 	if (ACTIONTYPE(z) == kZoneHear) {
@@ -562,7 +584,7 @@ DECLARE_INSTRUCTION_OPCODE(show) {
 }
 
 DECLARE_INSTRUCTION_OPCODE(call) {
-	_vm->callFunction(ctxt._inst->_immediate, 0);
+	_vm->callFunction(ctxt._inst->_immediate, nullptr);
 }
 
 
@@ -579,7 +601,7 @@ DECLARE_INSTRUCTION_OPCODE(endscript) {
 
 
 CommandExec_br::CommandExec_br(Parallaction_br* vm) : CommandExec(vm), _vm(vm) {
-	CommandOpcodeSet *table = 0;
+	CommandOpcodeSet *table = nullptr;
 
 	SetOpcodeTable(_opcodes);
 	COMMAND_OPCODE(invalid);
@@ -630,7 +652,7 @@ CommandExec_br::CommandExec_br(Parallaction_br* vm) : CommandExec(vm), _vm(vm) {
 ProgramExec_br::ProgramExec_br(Parallaction_br *vm) : _vm(vm) {
 	_instructionNames = _instructionNamesRes_br;
 
-	ProgramOpcodeSet *table = 0;
+	ProgramOpcodeSet *table = nullptr;
 
 	SetOpcodeTable(_opcodes);
 	INSTRUCTION_OPCODE(invalid);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,9 @@
 #include "common/random.h"
 #include "common/savefile.h"
 #include "common/util.h"
+
 #include "engines/engine.h"
+
 #include "sherlock/animation.h"
 #include "sherlock/debugger.h"
 #include "sherlock/events.h"
@@ -48,6 +49,7 @@
 #include "sherlock/sound.h"
 #include "sherlock/talk.h"
 #include "sherlock/user_interface.h"
+#include "sherlock/detection.h"
 
 namespace Sherlock {
 
@@ -56,11 +58,6 @@ enum {
 	kDebugLevelAdLibDriver = 2 << 0,
 	kDebugLevelMT32Driver  = 3 << 0,
 	kDebugLevelMusic       = 4 << 0
-};
-
-enum GameType {
-	GType_SerratedScalpel = 0,
-	GType_RoseTattoo = 1
 };
 
 #define SHERLOCK_SCREEN_WIDTH _vm->_screen->width()
@@ -74,13 +71,10 @@ enum GameType {
 #define COL_PEN_COLOR (IS_SERRATED_SCALPEL ? (byte)Scalpel::PEN_COLOR : (byte)Tattoo::PEN_COLOR)
 #define COL_PEN_HIGHLIGHT (IS_SERRATED_SCALPEL ? 15 : 129)
 
-struct SherlockGameDescription;
-
 class Resource;
 
 class SherlockEngine : public Engine {
 private:
-\
 	/**
 	 * Main loop for displaying a scene and handling all that occurs within it
 	 */
@@ -135,6 +129,7 @@ public:
 	bool _showOriginalSavesDialog;
 	bool _interactiveFl;
 	bool _isScreenDoubled;
+	bool _startupAutosave;
 public:
 	SherlockEngine(OSystem *syst, const SherlockGameDescription *gameDesc);
 	~SherlockEngine() override;

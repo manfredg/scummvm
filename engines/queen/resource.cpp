@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,7 +47,8 @@ const RetailGameVersion Resource::_gameVersions[] = {
 	{ "PEint", 1, 0x00103838,   1915913 },
 	{ "aEM10", 2, 0x00103F1E,    351775 },
 	{ "CE101", 2, 0x00107D8D,    563335 },
-	{ "PE100", 2, 0x001086D4,    597032 }
+	{ "PE100", 2, 0x001086D4,    597032 },
+	{ "aGM10", 3, 0x00108C6A,    344575 }
 };
 
 static int compareResourceEntry(const void *a, const void *b) {
@@ -58,7 +58,7 @@ static int compareResourceEntry(const void *a, const void *b) {
 }
 
 Resource::Resource()
-	: _resourceEntries(0), _resourceTable(NULL) {
+	: _resourceEntries(0), _resourceTable(nullptr) {
 	memset(&_version, 0, sizeof(_version));
 
 	_currentResourceFileNum = 1;
@@ -94,7 +94,7 @@ ResourceEntry *Resource::resourceEntry(const char *filename) const {
 	Common::String entryName(filename);
 	entryName.toUppercase();
 
-	ResourceEntry *re = NULL;
+	ResourceEntry *re = nullptr;
 	re = (ResourceEntry *)bsearch(entryName.c_str(), _resourceTable, _resourceEntries, sizeof(ResourceEntry), compareResourceEntry);
 	return re;
 }
@@ -102,9 +102,9 @@ ResourceEntry *Resource::resourceEntry(const char *filename) const {
 uint8 *Resource::loadFile(const char *filename, uint32 skipBytes, uint32 *size) {
 	debug(7, "Resource::loadFile('%s')", filename);
 	ResourceEntry *re = resourceEntry(filename);
-	assert(re != NULL);
+	assert(re != nullptr);
 	uint32 sz = re->size - skipBytes;
-	if (size != NULL) {
+	if (size != nullptr) {
 		*size = sz;
 	}
 	byte *dstBuf = new byte[sz];
@@ -116,7 +116,7 @@ uint8 *Resource::loadFile(const char *filename, uint32 skipBytes, uint32 *size) 
 void Resource::loadTextFile(const char *filename, Common::StringArray &stringList) {
 	debug(7, "Resource::loadTextFile('%s')", filename);
 	ResourceEntry *re = resourceEntry(filename);
-	assert(re != NULL);
+	assert(re != nullptr);
 	seekResourceFile(re->bundle, re->offset);
 	Common::SeekableSubReadStream stream(&_resourceFile, re->offset, re->offset + re->size);
 	while (true) {
@@ -139,7 +139,7 @@ bool Resource::detectVersion(DetectedGameVersion *ver, Common::File *f) {
 		ver->queenTblOffset = 0;
 	} else {
 		const RetailGameVersion *gameVersion = detectGameVersionFromSize(f->size());
-		if (gameVersion == NULL) {
+		if (gameVersion == nullptr) {
 			warning("Unknown/unsupported FOTAQ version");
 			return false;
 		}
@@ -169,8 +169,8 @@ bool Resource::detectVersion(DetectedGameVersion *ver, Common::File *f) {
 	case 'E':
 		if (Common::parseLanguage(ConfMan.get("language")) == Common::RU_RUS) {
 			ver->language = Common::RU_RUS;
-		} else if (Common::parseLanguage(ConfMan.get("language")) == Common::GR_GRE) {
-			ver->language = Common::GR_GRE;
+		} else if (Common::parseLanguage(ConfMan.get("language")) == Common::EL_GRC) {
+			ver->language = Common::EL_GRC;
 		} else {
 			ver->language = Common::EN_ANY;
 		}
@@ -191,7 +191,7 @@ bool Resource::detectVersion(DetectedGameVersion *ver, Common::File *f) {
 		ver->language = Common::ES_ESP;
 		break;
 	case 'g':
-		ver->language = Common::GR_GRE;
+		ver->language = Common::EL_GRC;
 		break;
 	case 'R':
 		ver->language = Common::RU_RUS;
@@ -234,7 +234,7 @@ void Resource::checkJASVersion() {
 		return;
 	}
 	ResourceEntry *re = resourceEntry("QUEEN.JAS");
-	assert(re != NULL);
+	assert(re != nullptr);
 	uint32 offset = re->offset;
 	if (isDemo())
 		offset += JAS_VERSION_OFFSET_DEMO;
@@ -305,18 +305,18 @@ const RetailGameVersion *Resource::detectGameVersionFromSize(uint32 size) {
 			return &_gameVersions[i];
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 Common::File *Resource::findSound(const char *filename, uint32 *size) {
-	assert(strstr(filename, ".SB") != NULL || strstr(filename, ".AMR") != NULL || strstr(filename, ".INS") != NULL);
+	assert(strstr(filename, ".SB") != nullptr || strstr(filename, ".AMR") != nullptr || strstr(filename, ".INS") != nullptr);
 	ResourceEntry *re = resourceEntry(filename);
 	if (re) {
 		*size = re->size;
 		seekResourceFile(re->bundle, re->offset);
 		return &_resourceFile;
 	}
-	return NULL;
+	return nullptr;
 }
 
 } // End of namespace Queen

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -585,7 +584,7 @@ void AnimationSequencePlayer::syncTime() {
 				}
 				break;
 			case Common::EVENT_QUIT:
-			case Common::EVENT_RTL:
+			case Common::EVENT_RETURN_TO_LAUNCHER:
 				_seqNum = 1;
 				break;
 			default:
@@ -603,14 +602,14 @@ Audio::RewindableAudioStream *AnimationSequencePlayer::loadSound(int index, Anim
 		return stream;
 
 	Common::String fileName = Common::String::format("audio/%s", _audioFileNamesTable[index]);
-	Common::File f;
-	if (f.open(fileName)) {
+	Common::File *f = new Common::File();
+	if (f->open(fileName)) {
 		int size = 0, rate = 0;
 		uint8 flags = 0;
 		switch (type) {
 		case kAnimationSoundType8BitsRAW:
 		case kAnimationSoundType16BitsRAW:
-			size = f.size();
+			size = f->size();
 			rate = 22050;
 			flags = Audio::FLAG_UNSIGNED;
 			if (type == kAnimationSoundType16BitsRAW)
@@ -619,18 +618,21 @@ Audio::RewindableAudioStream *AnimationSequencePlayer::loadSound(int index, Anim
 			if (size != 0) {
 				uint8 *sampleData = (uint8 *)malloc(size);
 				if (sampleData) {
-					f.read(sampleData, size);
+					f->read(sampleData, size);
 					stream = Audio::makeRawStream(sampleData, size, rate, flags);
 				}
 			}
+			delete f;
 			break;
 		case kAnimationSoundTypeWAV:
-			stream = Audio::makeWAVStream(&f, DisposeAfterUse::NO);
+			stream = Audio::makeWAVStream(f, DisposeAfterUse::YES);
 			break;
 		default:
+			delete f;
 			break;
 		}
-
+	} else {
+		delete f;
 	}
 	return stream;
 }

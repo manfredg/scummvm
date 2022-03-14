@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +43,7 @@ Sprite::Sprite(SagaEngine *vm) : _vm(vm) {
 
 	// Load sprite module resource context
 	_spriteContext = _vm->_resource->getContext(GAME_RESOURCEFILE);
-	if (_spriteContext == NULL) {
+	if (_spriteContext == nullptr) {
 		error("Sprite::Sprite resource context not found");
 	}
 
@@ -178,7 +177,7 @@ void Sprite::getScaledSpriteBuffer(SpriteList &spriteList, uint spriteNumber, in
 			scaleBuffer(&spriteInfo->decodedBuffer.front(), spriteInfo->width, spriteInfo->height, scale, outLength);
 			buffer = &_decodeBuf.front();
 		} else {
-			buffer = NULL;
+			buffer = nullptr;
 		}
 	} else {
 		xAlign = spriteInfo->xAlign;
@@ -273,7 +272,7 @@ void Sprite::drawClip(const Point &spritePointer, int width, int height, const b
 }
 
 void Sprite::draw(SpriteList &spriteList, uint spriteNumber, const Point &screenCoord, int scale, bool clipToScene) {
-	const byte *spriteBuffer = NULL;
+	const byte *spriteBuffer = nullptr;
 	int width  = 0;
 	int height = 0;
 	int xAlign = 0;
@@ -289,7 +288,7 @@ void Sprite::draw(SpriteList &spriteList, uint spriteNumber, const Point &screen
 }
 
 void Sprite::draw(SpriteList &spriteList, uint spriteNumber, const Rect &screenRect, int scale, bool clipToScene) {
-	const byte *spriteBuffer = NULL;
+	const byte *spriteBuffer = nullptr;
 	int width  = 0;
 	int height = 0;
 	int xAlign = 0;
@@ -313,7 +312,7 @@ void Sprite::draw(SpriteList &spriteList, uint spriteNumber, const Rect &screenR
 }
 
 bool Sprite::hitTest(SpriteList &spriteList, uint spriteNumber, const Point &screenCoord, int scale, const Point &testPoint) {
-	const byte *spriteBuffer = NULL;
+	const byte *spriteBuffer = nullptr;
 	int i, j;
 	const byte *srcRowPointer;
 	int width  = 0;
@@ -340,7 +339,7 @@ bool Sprite::hitTest(SpriteList &spriteList, uint spriteNumber, const Point &scr
 }
 
 void Sprite::drawOccluded(SpriteList &spriteList, uint spriteNumber, const Point &screenCoord, int scale, int depth) {
-	const byte *spriteBuffer = NULL;
+	const byte *spriteBuffer = nullptr;
 	int x, y;
 	byte *destRowPointer;
 	const byte *sourceRowPointer;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,20 +23,15 @@
 #define ULTIMA8_FILESYS_FLEXFILE_H
 
 #include "ultima/ultima8/filesys/archive_file.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-class IDataSource;
-
 class FlexFile : public ArchiveFile {
 public:
-	ENABLE_RUNTIME_CLASSTYPE()
-
 	//! create FlexFile from datasource; FlexFile takes ownership of ds
 	//! and deletes it when destructed
-	explicit FlexFile(IDataSource *ds);
+	explicit FlexFile(Common::SeekableReadStream *rs);
 	~FlexFile() override;
 
 	bool exists(uint32 index) override {
@@ -51,13 +45,13 @@ public:
 			return false;
 	}
 
-	uint8 *getObject(uint32 index, uint32 *size = 0) override;
-	uint8 *getObject(const Std::string &name, uint32 *size = 0) override {
+	uint8 *getObject(uint32 index, uint32 *size = nullptr) override;
+	uint8 *getObject(const Std::string &name, uint32 *size = nullptr) override {
 		uint32 index;
 		if (nameToIndex(name, index))
 			return getObject(index, size);
 		else
-			return 0;
+			return nullptr;
 	}
 
 
@@ -85,12 +79,12 @@ public:
 		return false;
 	}
 
-	static bool isFlexFile(IDataSource *ds);
+	static bool isFlexFile(Common::SeekableReadStream *rs);
 
 protected:
 	bool nameToIndex(const Std::string &name, uint32 &index) const;
 
-	IDataSource *_ds;
+	Common::SeekableReadStream *_rs;
 	uint32 _count;
 
 private:

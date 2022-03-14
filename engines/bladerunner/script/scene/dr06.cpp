@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,7 @@ void SceneScriptDR06::InitializeScene() {
 	) {
 		Scene_Exit_Add_2D_Exit(1, 0, 272, 46, 477, 2);
 	}
-	if (_vm->_cutContent && !Game_Flag_Query(kFlagMcCoyCommentsOnFans)) {
+	if (_vm->_cutContent && !Game_Flag_Query(kFlagMcCoyCommentsOnStatues)) {
 		Scene_2D_Region_Add(0, 300,  80, 360, 190); // statue 1
 		Scene_2D_Region_Add(1,  60, 120, 155, 260); // statue 2
 		Scene_2D_Region_Add(2, 378, 270, 420, 320); // statue 3
@@ -85,7 +84,7 @@ bool SceneScriptDR06::ClickedOn3DObject(const char *objectName, bool a2) {
 			Game_Flag_Set(kFlagDR06JesterActive);
 		} else {
 			Overlay_Play("DR06over", 0, true, true, 0);
-			Ambient_Sounds_Remove_Looping_Sound(kSfxJESTMOV1, 0);
+			Ambient_Sounds_Remove_Looping_Sound(kSfxJESTMOV1, 0u);
 			Game_Flag_Reset(kFlagDR06JesterActive);
 		}
 		return true;
@@ -98,19 +97,19 @@ bool SceneScriptDR06::ClickedOn3DObject(const char *objectName, bool a2) {
 		} else {
 			if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -684.94f, 136.6f, -1136.12f, 0, true, false, false)) {
 				Actor_Face_Object(kActorMcCoy, "X2_MON01A04", true);
-				Actor_Says(kActorAnsweringMachine, 10, 3);
-				Actor_Says(kActorAnsweringMachine, 20, 3);
-				Actor_Says(kActorAnsweringMachine, 30, 3);
+				Actor_Says(kActorAnsweringMachine, 10, kAnimationModeTalk);
+				Actor_Says(kActorAnsweringMachine, 20, kAnimationModeTalk);
+				Actor_Says(kActorAnsweringMachine, 30, kAnimationModeTalk);
 				Actor_Says(kActorMcCoy, 1025, 13);
-				Actor_Says(kActorSebastian, 0, 3);
-				Actor_Says(kActorSebastian, 10, 3);
-				Actor_Says(kActorSebastian, 20, 3);
-				Actor_Says(kActorSebastian, 30, 3);
-				Actor_Says(kActorSebastian, 40, 3);
-				Actor_Says(kActorSebastian, 50, 3);
-				Actor_Says(kActorAnsweringMachine, 40, 3);
+				Actor_Says(kActorSebastian, 0, kAnimationModeTalk);
+				Actor_Says(kActorSebastian, 10, kAnimationModeTalk);
+				Actor_Says(kActorSebastian, 20, kAnimationModeTalk);
+				Actor_Says(kActorSebastian, 30, kAnimationModeTalk);
+				Actor_Says(kActorSebastian, 40, kAnimationModeTalk);
+				Actor_Says(kActorSebastian, 50, kAnimationModeTalk);
+				Actor_Says(kActorAnsweringMachine, 40, kAnimationModeTalk);
 				Actor_Says(kActorMcCoy, 1030, 13);
-				Actor_Says(kActorAnsweringMachine, 50, 3);
+				Actor_Says(kActorAnsweringMachine, 50, kAnimationModeTalk);
 				Actor_Clue_Acquire(kActorMcCoy, kClueAnsweringMachineMessage, true, kActorAnsweringMachine);
 			}
 		}
@@ -253,6 +252,9 @@ void SceneScriptDR06::ActorChangedGoal(int actorId, int newGoal, int oldGoal, bo
 
 void SceneScriptDR06::PlayerWalkedIn() {
 	if (Game_Flag_Query(kFlagDR04toDR06)) {
+		if (_vm->_cutContent) {
+			ADQ_Add(kActorAnsweringMachine, 60, kAnimationModeTalk);
+		}
 		Loop_Actor_Walk_To_XYZ(kActorMcCoy, -729.57f, 136.6f, -1016.0f, 0, false, false, false);
 	}
 	Game_Flag_Reset(kFlagDR04toDR06);
@@ -262,7 +264,7 @@ void SceneScriptDR06::PlayerWalkedIn() {
 void SceneScriptDR06::PlayerWalkedOut() {
 	Overlay_Remove("DR06over");
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(false);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 }
 
 void SceneScriptDR06::DialogueQueueFlushed(int a1) {

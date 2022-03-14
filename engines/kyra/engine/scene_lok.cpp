@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -270,7 +269,7 @@ void KyraEngine_LoK::moveCharacterToPos(int character, int facing, int xpos, int
 }
 
 void KyraEngine_LoK::setCharacterPositionWithUpdate(int character) {
-	setCharacterPosition(character, 0);
+	setCharacterPosition(character, nullptr);
 	_sprites->updateSceneAnims();
 	_timer->update();
 	_animator->updateAllObjectShapes();
@@ -290,7 +289,7 @@ int KyraEngine_LoK::setCharacterPosition(int character, int *facingTable) {
 		_characterList[character].x1 += _charAddXPosTable[_characterList[character].facing];
 		_characterList[character].y1 += _charAddYPosTable[_characterList[character].facing];
 		if (_characterList[character].sceneId == _currentCharacter->sceneId)
-			setCharacterPositionHelper(character, 0);
+			setCharacterPositionHelper(character, nullptr);
 	}
 	return 0;
 }
@@ -384,7 +383,7 @@ void KyraEngine_LoK::loadSceneMsc() {
 	strcat(fileNameBuffer, ".MSC");
 	_screen->fillRect(0, 0, 319, 199, 0, 5);
 	_res->exists(fileNameBuffer, true);
-	_screen->loadBitmap(fileNameBuffer, 3, 5, 0);
+	_screen->loadBitmap(fileNameBuffer, 3, 5, nullptr);
 }
 
 void KyraEngine_LoK::startSceneScript(int brandonAlive) {
@@ -397,9 +396,9 @@ void KyraEngine_LoK::startSceneScript(int brandonAlive) {
 	_screen->clearPage(3);
 	_res->exists(fileNameBuffer, true);
 	// FIXME: check this hack for amiga version
-	_screen->loadBitmap(fileNameBuffer, 3, 3, (_flags.platform == Common::kPlatformAmiga ? &_screen->getPalette(0) : 0));
+	_screen->loadBitmap(fileNameBuffer, 3, 3, (_flags.platform == Common::kPlatformAmiga ? &_screen->getPalette(0) : nullptr));
 	_sprites->loadSceneShapes();
-	_exitListPtr = 0;
+	_exitListPtr = nullptr;
 
 	_scaleMode = 1;
 	for (int i = 0; i < 145; ++i)
@@ -806,6 +805,20 @@ void KyraEngine_LoK::initSceneScreen(int brandonAlive) {
 		}
 	}
 
+	// WORKAROUND for bug #12635 ("KYRA: Missing subtitle(also in original game)")
+	// This is a script bug that seems to be present in early English talkie versions, but
+	// not in later versions (e. g. German talkie). Unfortunately it seems to have made its
+	// way into several fan translations (e.g. Hebrew, Spanish), since these were based on
+	// the bugged English version. The opcodes have to be rearranged a bit...
+	if (_flags.isTalkie && !scumm_strnicmp("POTION.EMC", _scriptClick.dataPtr->filename, 12)) {
+		assert(_scriptClick.dataPtr->dataSize >= 0x99E);
+		uint16 *loc = &_scriptClick.dataPtr->data[0x4CA];
+		if (*loc == 0x4e35) {
+			for (int i = 0; i < 4; ++i)
+				SWAP(loc[i], loc[i + 1]);
+		}
+	}
+
 	if (!_emc->start(&_scriptClick, 2))
 		error("Could not start script function 2 of scene script");
 
@@ -935,7 +948,7 @@ int KyraEngine_LoK::processSceneChange(int *table, int unk1, int frameReset) {
 
 		int temp = 0;
 		if (table == tableStart || table[1] == 8)
-			temp = setCharacterPosition(0, 0);
+			temp = setCharacterPosition(0, nullptr);
 		else
 			temp = setCharacterPosition(0, table);
 

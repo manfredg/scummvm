@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/savefile.h"
+#include "common/system.h"
 
-#include "sludge/allfiles.h"
-#include "sludge/moreio.h"
 #include "sludge/newfatal.h"
 #include "sludge/savedata.h"
 #include "sludge/variable.h"
@@ -131,24 +129,24 @@ bool CustomSaveHelper::fileToStack(const Common::String &filename, StackHandler 
 			if (fp->eos())
 				break;
 			switch (i) {
-				case 0: {
-					Common::String g = readStringEncoded(fp);
-					stringVar.makeTextVar(g);
-				}
-					break;
+			case 0: {
+				Common::String g = readStringEncoded(fp);
+				stringVar.makeTextVar(g);
+			}
+				break;
 
-				case 1:
-					stringVar.setVariable(SVT_INT, fp->readUint32LE());
-					break;
+			case 1:
+				stringVar.setVariable(SVT_INT, fp->readUint32LE());
+				break;
 
-				case 2:
-					stringVar.setVariable(SVT_INT, fp->readByte());
-					break;
+			case 2:
+				stringVar.setVariable(SVT_INT, fp->readByte());
+				break;
 
-				default:
-					fatal(LOAD_ERROR "Corrupt custom data file:", filename);
-					delete fp;
-					return false;
+			default:
+				fatal(LOAD_ERROR "Corrupt custom data file:", filename);
+				delete fp;
+				return false;
 			}
 		} else {
 			char *line = readTextPlain(fp);
@@ -196,26 +194,26 @@ bool CustomSaveHelper::stackToFile(const Common::String &filename, const Variabl
 	while (hereWeAre) {
 		if (_saveEncoding) {
 			switch (hereWeAre -> thisVar.varType) {
-				case SVT_STRING:
-					fp->writeByte(_encode1);
-					writeStringEncoded(hereWeAre -> thisVar.varData.theString, fp);
-					break;
+			case SVT_STRING:
+				fp->writeByte(_encode1);
+				writeStringEncoded(hereWeAre -> thisVar.varData.theString, fp);
+				break;
 
-				case SVT_INT:
-					// Small enough to be stored as a char
-					if (hereWeAre -> thisVar.varData.intValue >= 0 && hereWeAre -> thisVar.varData.intValue < 256) {
-						fp->writeByte(2 ^ _encode1);
-						fp->writeByte(hereWeAre -> thisVar.varData.intValue);
-					} else {
-						fp->writeByte(1 ^ _encode1);
-						fp->writeUint32LE(hereWeAre -> thisVar.varData.intValue);
-					}
-					break;
+			case SVT_INT:
+				// Small enough to be stored as a char
+				if (hereWeAre -> thisVar.varData.intValue >= 0 && hereWeAre -> thisVar.varData.intValue < 256) {
+					fp->writeByte(2 ^ _encode1);
+					fp->writeByte(hereWeAre -> thisVar.varData.intValue);
+				} else {
+					fp->writeByte(1 ^ _encode1);
+					fp->writeUint32LE(hereWeAre -> thisVar.varData.intValue);
+				}
+				break;
 
-				default:
-					fatal("Can't create an encoded custom data file containing anything other than numbers and strings", filename);
-					delete fp;
-					return false;
+			default:
+				fatal("Can't create an encoded custom data file containing anything other than numbers and strings", filename);
+				delete fp;
+				return false;
 			}
 		} else {
 			Common::String makeSureItsText = hereWeAre->thisVar.getTextFromAnyVar();

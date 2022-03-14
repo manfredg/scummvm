@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,8 +23,6 @@
 #define BACKENDS_PLATFORM_IOS7_IOS7_COMMON_H
 
 #include "graphics/surface.h"
-
-#define ENABLE_IOS7_SCALERS
 
 
 enum InputEvent {
@@ -39,6 +36,9 @@ enum InputEvent {
 	kInputKeyPressed,
 	kInputApplicationSuspended,
 	kInputApplicationResumed,
+	kInputApplicationSaveState,
+	kInputApplicationClearState,
+	kInputApplicationRestoreState,
 	kInputSwipe,
 	kInputTap,
 	kInputMainMenu
@@ -46,6 +46,7 @@ enum InputEvent {
 
 enum ScreenOrientation {
 	kScreenOrientationPortrait,
+	kScreenOrientationFlippedPortrait,
 	kScreenOrientationLandscape,
 	kScreenOrientationFlippedLandscape
 };
@@ -62,26 +63,11 @@ enum UIViewTapDescription {
 	kUIViewTapDouble = 2
 };
 
-enum GraphicsModes {
-	kGraphicsModeNone = 1,
-
-	kGraphicsMode2xSaI,
-	kGraphicsModeSuper2xSaI,
-	kGraphicsModeSuperEagle,
-	kGraphicsModeAdvMame2x,
-	kGraphicsModeAdvMame3x,
-	kGraphicsModeHQ2x,
-	kGraphicsModeHQ3x,
-	kGraphicsModeTV2x,
-	kGraphicsModeDotMatrix
-};
-
 struct VideoContext {
 	VideoContext() : asprectRatioCorrection(), screenWidth(), screenHeight(), overlayVisible(false),
 	                 overlayWidth(), overlayHeight(), mouseX(), mouseY(),
 	                 mouseHotspotX(), mouseHotspotY(), mouseWidth(), mouseHeight(),
-	                 mouseIsVisible(), graphicsMode(kGraphicsModeNone), filtering(false),
-	                 shakeXOffset(), shakeYOffset() {
+	                 mouseIsVisible(), filtering(false), shakeXOffset(), shakeYOffset() {
 	}
 
 	// Game screen state
@@ -102,7 +88,6 @@ struct VideoContext {
 	Graphics::Surface mouseTexture;
 
 	// Misc state
-	GraphicsModes graphicsMode;
 	bool filtering;
 	int shakeXOffset;
 	int shakeYOffset;
@@ -127,6 +112,7 @@ bool iOS7_isBigDevice();
 
 void iOS7_buildSharedOSystemInstance();
 void iOS7_main(int argc, char **argv);
+void *iOS7_getProcAddress(const char *name);
 const char *iOS7_getDocumentsDir();
 bool iOS7_touchpadModeEnabled();
 

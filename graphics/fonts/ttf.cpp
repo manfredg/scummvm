@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,9 @@
 #include "graphics/fonts/ttf.h"
 #include "graphics/font.h"
 #include "graphics/surface.h"
+#include "graphics/managed_surface.h"
 
+#include "common/ustr.h"
 #include "common/file.h"
 #include "common/config-manager.h"
 #include "common/singleton.h"
@@ -42,9 +43,37 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_BITMAP_H
 #include FT_GLYPH_H
+#include FT_SFNT_NAMES_H
+#include FT_TRUETYPE_IDS_H
 #include FT_TRUETYPE_TABLES_H
 #include FT_TRUETYPE_TAGS_H
+
+#if (FREETYPE_MAJOR > 2 ||                                                          \
+		(FREETYPE_MAJOR == 2 && (FREETYPE_MINOR > 3 ||                              \
+								 (FREETYPE_MINOR == 3 && FREETYPE_PATCH >= 8))))
+// FT2.3.8+, nothing to do, FT_GlyphSlot_Own_Bitmap is in FT_BITMAP_H
+#define FAKE_BOLD 2
+#elif (FREETYPE_MAJOR > 2 ||                                                        \
+		(FREETYPE_MAJOR == 2 && (FREETYPE_MINOR > 2 ||                              \
+								 (FREETYPE_MINOR == 2 && FREETYPE_PATCH >= 0))))
+// FT2.2.0+ have FT_GlyphSlot_Own_Bitmap in FT_SYNTHESIS_H
+#include FT_SYNTHESIS_H
+#define FAKE_BOLD 2
+#elif (FREETYPE_MAJOR > 2 ||                                                        \
+		(FREETYPE_MAJOR == 2 && (FREETYPE_MINOR > 1 ||                              \
+								 (FREETYPE_MINOR == 1 && FREETYPE_PATCH >= 10))))
+// FT2.1.10+ don't have FT_GlyphSlot_Own_Bitmap but they have FT_Bitmap_Embolden, do workaround
+#define FAKE_BOLD 1
+#else
+// Older versions don't have FT_Bitmap_Embolden
+#define FAKE_BOLD 0
+#endif
+
+#if FREETYPE_MAJOR > 2 || ( FREETYPE_MAJOR == 2 &&  FREETYPE_MINOR >= 9)
+#include FT_TRUETYPE_DRIVER_H
+#endif
 
 namespace Graphics {
 
@@ -70,7 +99,7 @@ public:
 	 */
 	bool isInitialized() const { return _initialized; }
 
-	bool loadFont(const uint8 *file, const uint32 size, FT_Face &face);
+	bool loadFont(const uint8 *file, const int32 face_index, const uint32 size, FT_Face &face);
 	void closeFont(FT_Face &face);
 private:
 	FT_Library _library;
@@ -95,10 +124,10 @@ TTFLibrary::~TTFLibrary() {
 	}
 }
 
-bool TTFLibrary::loadFont(const uint8 *file, const uint32 size, FT_Face &face) {
+bool TTFLibrary::loadFont(const uint8 *file, const int32 face_index, const uint32 size, FT_Face &face) {
 	assert(_initialized);
 
-	return (FT_New_Memory_Face(_library, file, size, 0, &face) == 0);
+	return (FT_New_Memory_Face(_library, file, size, face_index, &face) == 0);
 }
 
 void TTFLibrary::closeFont(FT_Face &face) {
@@ -112,9 +141,14 @@ public:
 	TTFFont();
 	virtual ~TTFFont();
 
-	bool load(Common::SeekableReadStream &stream, int size, TTFSizeMode sizeMode, uint dpi, TTFRenderMode renderMode, const uint32 *mapping);
+	bool load(Common::SeekableReadStream &stream, int size, TTFSizeMode sizeMode,
+	          uint dpi, TTFRenderMode renderMode, const uint32 *mapping, bool stemDarkening);
+	bool load(uint8 *ttfFile, uint32 sizeFile, int32 faceIndex, bool fakeBold, bool fakeItalic,
+	          int size, TTFSizeMode sizeMode, uint dpi, TTFRenderMode renderMode, const uint32 *mapping, bool stemDarkening);
 
 	virtual int getFontHeight() const;
+
+	virtual int getFontAscent() const;
 
 	virtual int getMaxCharWidth() const;
 
@@ -125,6 +159,8 @@ public:
 	virtual Common::Rect getBoundingBox(uint32 chr) const;
 
 	virtual void drawChar(Surface *dst, uint32 chr, int x, int y, uint32 color) const;
+	virtual void drawChar(ManagedSurface *dst, uint32 chr, int x, int y, uint32 color) const;
+
 private:
 	bool _initialized;
 	FT_Face _face;
@@ -153,16 +189,21 @@ private:
 	int computePointSize(int size, TTFSizeMode sizeMode) const;
 	int readPointSizeFromVDMXTable(int height) const;
 	int computePointSizeFromHeaders(int height) const;
+	void drawChar(Surface *dst, uint32 chr, int x, int y, uint32 color,
+		const uint32 *transparentColor) const;
 
 	FT_Int32 _loadFlags;
 	FT_Render_Mode _renderMode;
 	bool _hasKerning;
+
+	bool _fakeBold;
+	bool _fakeItalic;
 };
 
 TTFFont::TTFFont()
-    : _initialized(false), _face(), _ttfFile(0), _size(0), _width(0), _height(0), _ascent(0),
-      _descent(0), _glyphs(), _loadFlags(FT_LOAD_TARGET_NORMAL), _renderMode(FT_RENDER_MODE_NORMAL),
-      _hasKerning(false), _allowLateCaching(false) {
+	: _initialized(false), _face(), _ttfFile(0), _size(0), _width(0), _height(0), _ascent(0),
+	  _descent(0), _glyphs(), _loadFlags(FT_LOAD_TARGET_NORMAL), _renderMode(FT_RENDER_MODE_NORMAL),
+	  _hasKerning(false), _allowLateCaching(false), _fakeBold(false), _fakeItalic(false) {
 }
 
 TTFFont::~TTFFont() {
@@ -179,50 +220,102 @@ TTFFont::~TTFFont() {
 	}
 }
 
-bool TTFFont::load(Common::SeekableReadStream &stream, int size, TTFSizeMode sizeMode, uint dpi, TTFRenderMode renderMode, const uint32 *mapping) {
+bool TTFFont::load(Common::SeekableReadStream &stream, int size, TTFSizeMode sizeMode,
+				   uint dpi, TTFRenderMode renderMode, const uint32 *mapping, bool stemDarkening) {
 	if (!g_ttf.isInitialized())
 		return false;
 
-	_size = stream.size();
+	uint32 sizeFile = stream.size();
+	if (!sizeFile)
+		return false;
+
+	uint8 *ttfFile = new uint8[sizeFile];
+	assert(ttfFile);
+
+	if (stream.read(ttfFile, sizeFile) != sizeFile) {
+		delete[] ttfFile;
+		return false;
+	}
+
+	if (!load(ttfFile, sizeFile, 0, false, false, size, sizeMode, dpi, renderMode, mapping, stemDarkening)) {
+		delete[] ttfFile;
+		return false;
+	}
+
+	// Don't delete ttfFile as it's now owned by the class
+	return true;
+}
+
+bool TTFFont::load(uint8 *ttfFile, uint32 sizeFile, int32 faceIndex, bool bold, bool italic,
+				   int size, TTFSizeMode sizeMode, uint dpi, TTFRenderMode renderMode, const uint32 *mapping, bool stemDarkening) {
+	_initialized = false;
+
+	if (!g_ttf.isInitialized())
+		return false;
+
+	_size = sizeFile;
 	if (!_size)
 		return false;
 
-	_ttfFile = new uint8[_size];
+	_ttfFile = ttfFile;
 	assert(_ttfFile);
 
-	if (stream.read(_ttfFile, _size) != _size) {
-		delete[] _ttfFile;
+	if (!g_ttf.loadFont(_ttfFile, faceIndex, _size, _face)) {
+		// Don't delete ttfFile as we return fail
 		_ttfFile = 0;
 
 		return false;
 	}
 
-	if (!g_ttf.loadFont(_ttfFile, _size, _face)) {
-		delete[] _ttfFile;
-		_ttfFile = 0;
-
-		return false;
-	}
-
-	// We only support scalable fonts.
+	// Check if the fixed font has the requested size
 	if (!FT_IS_SCALABLE(_face)) {
-		delete[] _ttfFile;
-		_ttfFile = 0;
+		FT_Pos reqsize = computePointSize(size, sizeMode) * 64;
+		bool found = false;
 
-		g_ttf.closeFont(_face);
+		for (int i = 0; i < _face->num_fixed_sizes; i++)
+			if (_face->available_sizes[i].size == reqsize) {
+				found = true;
+				break;
+			}
 
-		return false;
+		if (!found) {
+			warning("The non-scalable font has no requested size: %ld", reqsize);
+
+			g_ttf.closeFont(_face);
+
+			// Don't delete ttfFile as we return fail
+			_ttfFile = 0;
+
+			return false;
+		}
+	}
+	if (stemDarkening) {
+#if FREETYPE_MAJOR > 2 || ( FREETYPE_MAJOR == 2 &&  FREETYPE_MINOR >= 9)
+		FT_Parameter param;
+		param.tag = FT_PARAM_TAG_STEM_DARKENING;
+		param.data = &stemDarkening;
+		FT_Face_Properties(_face, 1, &param);
+#else
+		warning("Stem darkening is not available with this version of FreeType");
+#endif
 	}
 
 	// Check whether we have kerning support
 	_hasKerning = (FT_HAS_KERNING(_face) != 0);
 
 	if (FT_Set_Char_Size(_face, 0, computePointSize(size, sizeMode) * 64, dpi, dpi)) {
-		delete[] _ttfFile;
+		g_ttf.closeFont(_face);
+
+		// Don't delete ttfFile as we return fail
 		_ttfFile = 0;
 
 		return false;
 	}
+
+	bool fontBold = ((_face->style_flags & FT_STYLE_FLAG_BOLD) != 0);
+	_fakeBold = bold && !fontBold;
+	bool fontItalic = ((_face->style_flags & FT_STYLE_FLAG_ITALIC) != 0);
+	_fakeItalic = italic && !fontItalic;
 
 	switch (renderMode) {
 	case kTTFRenderModeNormal:
@@ -251,6 +344,29 @@ bool TTFFont::load(Common::SeekableReadStream &stream, int size, TTFSizeMode siz
 	_width = ftCeil26_6(FT_MulFix(_face->max_advance_width, _face->size->metrics.x_scale));
 	_height = _ascent - _descent + 1;
 
+#if FAKE_BOLD > 0
+	// Width isn't modified when we can't fake bold
+	if (_fakeBold) {
+		// Embolden by 1 pixel width
+		_width += 1;
+	}
+#endif
+
+	// Apply a matrix transform for all loaded glyphs
+	if (_fakeItalic) {
+		// This matrix is taken from Wine source code
+		// 16.16 fixed-point
+		FT_Matrix slantMat;
+		slantMat.xx = (1 << 16);      // 1.
+		slantMat.xy = (1 << 16) >> 2; // .25
+		slantMat.yx = 0;              // 0.
+		slantMat.yy = (1 << 16);      // 1.
+		FT_Set_Transform(_face, &slantMat, nullptr);
+
+		// Don't try to load bitmap version of font as we have to transform the strokes
+		_loadFlags |= FT_LOAD_NO_BITMAP;
+	}
+
 	if (!mapping) {
 		// Allow loading of all unicode characters.
 		_allowLateCaching = true;
@@ -272,14 +388,30 @@ bool TTFFont::load(Common::SeekableReadStream &stream, int size, TTFSizeMode siz
 			// that is the case.
 			if (!cacheGlyph(_glyphs[i], unicode)) {
 				_glyphs.erase(i);
-				if (isRequired)
+				if (isRequired) {
+					g_ttf.closeFont(_face);
+
+					// Don't delete ttfFile as we return fail
+					_ttfFile = 0;
+
 					return false;
+				}
 			}
 		}
 	}
 
-	_initialized = (_glyphs.size() != 0);
-	return _initialized;
+	if (_glyphs.size() == 0) {
+		g_ttf.closeFont(_face);
+
+		// Don't delete ttfFile as we return fail
+		_ttfFile = 0;
+
+		return false;
+	} else {
+		_initialized = true;
+		// At this point we get ownership of _ttfFile
+		return true;
+	}
 }
 
 int TTFFont::computePointSize(int size, TTFSizeMode sizeMode) const {
@@ -408,6 +540,10 @@ int TTFFont::getFontHeight() const {
 	return _height;
 }
 
+int TTFFont::getFontAscent() const {
+	return _ascent;
+}
+
 int TTFFont::getMaxCharWidth() const {
 	return _width;
 }
@@ -469,8 +605,10 @@ Common::Rect TTFFont::getBoundingBox(uint32 chr) const {
 namespace {
 
 template<typename ColorType>
-void renderGlyph(uint8 *dstPos, const int dstPitch, const uint8 *srcPos, const int srcPitch, const int w, const int h, ColorType color, const PixelFormat &dstFormat) {
-	uint8 sR, sG, sB;
+static void renderGlyph(uint8 *dstPos, const int dstPitch, const uint8 *srcPos,
+		const int srcPitch, const int w, const int h, ColorType color,
+		const PixelFormat &dstFormat, const uint32 *transparentColor) {
+	uint8 sA, sR, sG, sB;
 	dstFormat.colorToRGB(color, sR, sG, sB);
 
 	for (int y = 0; y < h; ++y) {
@@ -481,16 +619,25 @@ void renderGlyph(uint8 *dstPos, const int dstPitch, const uint8 *srcPos, const i
 			if (*src == 255) {
 				*rDst = color;
 			} else if (*src) {
-				const uint8 a = *src;
+				sA = *src;
 
-				uint8 dR, dG, dB;
-				dstFormat.colorToRGB(*rDst, dR, dG, dB);
+				uint8 dA, dR, dG, dB;
+				if (transparentColor && *rDst == *transparentColor) {
+					dA = dR = dG = dB = 0;
+				} else {
+					dstFormat.colorToARGB(*rDst, dA, dR, dG, dB);
+				}
 
-				dR = ((255 - a) * dR + a * sR) / 255;
-				dG = ((255 - a) * dG + a * sG) / 255;
-				dB = ((255 - a) * dB + a * sB) / 255;
+				double sAn = (double)sA / 255.0;
+				double dAn = (double)dA / 255.0;
+				double oAn = sAn + dAn * (1.0 - sAn);
 
-				*rDst = dstFormat.RGBToColor(dR, dG, dB);
+				dR = static_cast<uint8>(sR * sAn + dR * dAn * (1.0 - sAn) / oAn);
+				dG = static_cast<uint8>(sG * sAn + dG * dAn * (1.0 - sAn) / oAn);
+				dB = static_cast<uint8>(sB * sAn + dB * dAn * (1.0 - sAn) / oAn);
+				dA = static_cast<uint8>(oAn * 255.0);
+
+				*rDst = dstFormat.ARGBToColor(dA, dR, dG, dB);
 			}
 
 			++rDst;
@@ -505,6 +652,24 @@ void renderGlyph(uint8 *dstPos, const int dstPitch, const uint8 *srcPos, const i
 } // End of anonymous namespace
 
 void TTFFont::drawChar(Surface *dst, uint32 chr, int x, int y, uint32 color) const {
+	drawChar(dst, chr, x, y, color, nullptr);
+}
+
+void TTFFont::drawChar(ManagedSurface *dst, uint32 chr, int x, int y, uint32 color) const {
+	if (dst->hasTransparentColor()) {
+		uint32 transColor = dst->getTransparentColor();
+		drawChar(dst->surfacePtr(), chr, x, y, color, &transColor);
+	} else {
+		drawChar(dst->surfacePtr(), chr, x, y, color, nullptr);
+	}
+
+	Common::Rect charBox = getBoundingBox(chr);
+	charBox.translate(x, y);
+	dst->addDirtyRect(charBox);
+}
+
+void TTFFont::drawChar(Surface * dst, uint32 chr, int x, int y, uint32 color,
+		const uint32 *transparentColor) const {
 	assureCached(chr);
 	GlyphCache::const_iterator glyphEntry = _glyphs.find(chr);
 	if (glyphEntry == _glyphs.end())
@@ -571,9 +736,9 @@ void TTFFont::drawChar(Surface *dst, uint32 chr, int x, int y, uint32 color) con
 			srcPos += glyph.image.pitch;
 		}
 	} else if (dst->format.bytesPerPixel == 2) {
-		renderGlyph<uint16>(dstPos, dst->pitch, srcPos, glyph.image.pitch, w, h, color, dst->format);
+		renderGlyph<uint16>(dstPos, dst->pitch, srcPos, glyph.image.pitch, w, h, color, dst->format, transparentColor);
 	} else if (dst->format.bytesPerPixel == 4) {
-		renderGlyph<uint32>(dstPos, dst->pitch, srcPos, glyph.image.pitch, w, h, color, dst->format);
+		renderGlyph<uint32>(dstPos, dst->pitch, srcPos, glyph.image.pitch, w, h, color, dst->format, transparentColor);
 	}
 }
 
@@ -585,7 +750,7 @@ bool TTFFont::cacheGlyph(Glyph &glyph, uint32 chr) const {
 	glyph.slot = slot;
 
 	// We use the light target and render mode to improve the looks of the
-	// glyphs. It is most noticable in FreeSansBold.ttf, where otherwise the
+	// glyphs. It is most noticeable in FreeSansBold.ttf, where otherwise the
 	// 't' glyph looks like it is cut off on the right side.
 	if (FT_Load_Glyph(_face, slot, _loadFlags))
 		return false;
@@ -601,26 +766,65 @@ bool TTFFont::cacheGlyph(Glyph &glyph, uint32 chr) const {
 
 	glyph.advance = ftCeil26_6(_face->glyph->advance.x);
 
-	const FT_Bitmap &bitmap = _face->glyph->bitmap;
-	glyph.image.create(bitmap.width, bitmap.rows, PixelFormat::createFormatCLUT8());
+	const FT_Bitmap *bitmap;
+#if FAKE_BOLD == 1
+	FT_Bitmap ownBitmap;
+#endif
 
-	const uint8 *src = bitmap.buffer;
-	int srcPitch = bitmap.pitch;
+	if (_fakeBold) {
+#if FAKE_BOLD >= 2
+		// Embolden by 1 pixel in x and 0 in y
+		glyph.advance += 1;
+
+		if (FT_GlyphSlot_Own_Bitmap(_face->glyph))
+			return false;
+
+		// That's 26.6 fixed-point units
+		if (FT_Bitmap_Embolden(_face->glyph->library, &_face->glyph->bitmap, 1 << 6, 0))
+			return false;
+
+		bitmap = &_face->glyph->bitmap;
+#elif FAKE_BOLD >= 1
+		FT_Bitmap_New(&ownBitmap);
+
+		if (FT_Bitmap_Copy(_face->glyph->library, &_face->glyph->bitmap, &ownBitmap))
+			return false;
+
+		// Embolden by 1 pixel in x and 0 in y
+		glyph.advance += 1;
+
+		// That's 26.6 fixed-point units
+		if (FT_Bitmap_Embolden(_face->glyph->library, &ownBitmap, 1 << 6, 0))
+			return false;
+
+		bitmap = &ownBitmap;
+#else
+		// Can't do anything, just don't fake bold
+		bitmap = &_face->glyph->bitmap;
+#endif
+	} else {
+		bitmap = &_face->glyph->bitmap;
+	}
+
+
+	glyph.image.create(bitmap->width, bitmap->rows, PixelFormat::createFormatCLUT8());
+
+	const uint8 *src = bitmap->buffer;
+	int srcPitch = bitmap->pitch;
 	if (srcPitch < 0) {
-		src += (bitmap.rows - 1) * srcPitch;
+		src += (bitmap->rows - 1) * srcPitch;
 		srcPitch = -srcPitch;
 	}
 
 	uint8 *dst = (uint8 *)glyph.image.getPixels();
-	memset(dst, 0, glyph.image.h * glyph.image.pitch);
 
-	switch (bitmap.pixel_mode) {
+	switch (bitmap->pixel_mode) {
 	case FT_PIXEL_MODE_MONO:
-		for (int y = 0; y < (int)bitmap.rows; ++y) {
+		for (int y = 0; y < (int)bitmap->rows; ++y) {
 			const uint8 *curSrc = src;
 			uint8 mask = 0;
 
-			for (int x = 0; x < (int)bitmap.width; ++x) {
+			for (int x = 0; x < (int)bitmap->width; ++x) {
 				if ((x % 8) == 0)
 					mask = *curSrc++;
 
@@ -636,18 +840,24 @@ bool TTFFont::cacheGlyph(Glyph &glyph, uint32 chr) const {
 		break;
 
 	case FT_PIXEL_MODE_GRAY:
-		for (int y = 0; y < (int)bitmap.rows; ++y) {
-			memcpy(dst, src, bitmap.width);
+		for (int y = 0; y < (int)bitmap->rows; ++y) {
+			memcpy(dst, src, bitmap->width);
 			dst += glyph.image.pitch;
 			src += srcPitch;
 		}
 		break;
 
 	default:
-		warning("TTFFont::cacheGlyph: Unsupported pixel mode %d", bitmap.pixel_mode);
+		warning("TTFFont::cacheGlyph: Unsupported pixel mode %d", bitmap->pixel_mode);
 		glyph.image.free();
 		return false;
 	}
+
+#if FAKE_BOLD == 1
+	if (_fakeBold) {
+		FT_Bitmap_Done(_face->glyph->library, &ownBitmap);
+	}
+#endif
 
 	return true;
 }
@@ -663,10 +873,10 @@ void TTFFont::assureCached(uint32 chr) const {
 	}
 }
 
-Font *loadTTFFont(Common::SeekableReadStream &stream, int size, TTFSizeMode sizeMode, uint dpi, TTFRenderMode renderMode, const uint32 *mapping) {
+Font *loadTTFFont(Common::SeekableReadStream &stream, int size, TTFSizeMode sizeMode, uint dpi, TTFRenderMode renderMode, const uint32 *mapping, bool stemDarkening) {
 	TTFFont *font = new TTFFont();
 
-	if (!font->load(stream, size, sizeMode, dpi, renderMode, mapping)) {
+	if (!font->load(stream, size, sizeMode, dpi, renderMode, mapping, stemDarkening)) {
 		delete font;
 		return 0;
 	}
@@ -701,6 +911,168 @@ Font *loadTTFFontFromArchive(const Common::String &filename, int size, TTFSizeMo
 	return font;
 }
 
+static bool matchFaceName(const Common::U32String &faceName, const FT_Face &face) {
+	if (faceName == Common::U32String(face->family_name, Common::kASCII)) {
+		// International name in ASCII match
+		return true;
+	}
+
+	// Try to match with localized name
+	// Loosely copied from freetype2-demos
+	FT_SfntName aname;
+	FT_UInt num_strings = FT_Get_Sfnt_Name_Count(face);
+	for (FT_UInt j = 0; j < num_strings; j++) {
+		if (FT_Get_Sfnt_Name(face, j, &aname)) {
+			continue;
+		}
+		if (aname.name_id != TT_NAME_ID_FONT_FAMILY) {
+			continue;
+		}
+
+		if (aname.platform_id == TT_PLATFORM_MICROSOFT &&
+		        aname.language_id != TT_MS_LANGID_ENGLISH_UNITED_STATES) {
+			if (aname.encoding_id == TT_MS_ID_SYMBOL_CS ||
+			        aname.encoding_id == TT_MS_ID_UNICODE_CS) {
+				// MS local name in UTF-16
+				// string_len is in bytes length, we take wchar_t length
+				Common::U32String localName = Common::U32String::decodeUTF16BE((uint16 *) aname.string, aname.string_len / 2);
+
+				if (faceName == localName) {
+					return true;
+				}
+			} else {
+				// No conversion: try to match with 1 byte encoding
+				if (faceName == Common::U32String((char *)aname.string, aname.string_len, Common::kLatin1)) {
+					return true;
+				}
+			}
+		} else if (aname.platform_id == TT_PLATFORM_MACINTOSH &&
+		           aname.language_id != TT_MAC_LANGID_ENGLISH) {
+			// No conversion
+			if (faceName == Common::U32String((char *)aname.string, aname.string_len, Common::kLatin1)) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+Font *findTTFace(const Common::Array<Common::String> &files, const Common::U32String &faceName,
+				 bool bold, bool italic, int size, uint dpi, TTFRenderMode renderMode, const uint32 *mapping) {
+	if (!g_ttf.isInitialized())
+		return nullptr;
+
+	uint8 *bestTTFFile = nullptr;
+	uint32 bestSize = 0;
+	uint32 bestFaceId = (uint32) -1;
+	uint32 bestPenalty = (uint32) -1;
+
+	for (Common::Array<Common::String>::const_iterator it = files.begin(); it != files.end(); it++) {
+		Common::File ttf;
+		if (!ttf.open(*it)) {
+			continue;
+		}
+		uint32 sizeFile = ttf.size();
+		if (!sizeFile) {
+			continue;
+		}
+		uint8 *ttfFile = new uint8[sizeFile];
+		assert(ttfFile);
+
+		if (ttf.read(ttfFile, sizeFile) != sizeFile) {
+			delete[] ttfFile;
+			ttfFile = 0;
+
+			continue;
+		}
+
+		ttf.close();
+
+		FT_Face face;
+
+		// Load face index -1 to get the count
+		if (!g_ttf.loadFont(ttfFile, -1, sizeFile, face)) {
+			delete[] ttfFile;
+			ttfFile = 0;
+
+			continue;
+		}
+
+		FT_Long num_faces = face->num_faces;
+
+		g_ttf.closeFont(face);
+
+		for (FT_Long i = 0; i < num_faces; i++) {
+			if (!g_ttf.loadFont(ttfFile, i, sizeFile, face)) {
+				continue;
+			}
+
+			if (!matchFaceName(faceName, face)) {
+				// No match on names: we don't do like Windows, we don't take a random font
+				g_ttf.closeFont(face);
+				continue;
+			}
+
+			bool fontBold = ((face->style_flags & FT_STYLE_FLAG_BOLD) != 0);
+			bool fontItalic = ((face->style_flags & FT_STYLE_FLAG_ITALIC) != 0);
+
+			g_ttf.closeFont(face);
+
+			// These scores are taken from Microsoft docs (table 1):
+			// https://docs.microsoft.com/en-us/previous-versions/ms969909(v=msdn.10)
+			uint32 penalty = 0;
+			if (italic != fontItalic) {
+				penalty += 4;
+			}
+			if (bold != fontBold) {
+				penalty += 120;
+			}
+			if (penalty < bestPenalty) {
+				// Better font
+				// Cleanup old best font if it's not the same file as the current one
+				if (bestTTFFile != ttfFile) {
+					delete [] bestTTFFile;
+				}
+
+				bestPenalty = penalty;
+				bestTTFFile = ttfFile;
+				bestFaceId = i;
+				bestSize = sizeFile;
+			}
+		}
+
+		// Don't free the file if it has been elected the best
+		if (bestTTFFile != ttfFile) {
+			delete [] ttfFile;
+		}
+		ttfFile = nullptr;
+	}
+
+	if (!bestTTFFile) {
+		return nullptr;
+	}
+
+	TTFFont *font = new TTFFont();
+
+	TTFSizeMode sizeMode = kTTFSizeModeCell;
+	if (size < 0) {
+		size = -size;
+		sizeMode = kTTFSizeModeCharacter;
+	}
+	if (dpi == 0) {
+		dpi = 96;
+	}
+
+	if (!font->load(bestTTFFile, bestSize, bestFaceId, bold, italic, size, sizeMode,
+	                dpi, renderMode, mapping, false)) {
+		delete font;
+		delete [] bestTTFFile;
+		return nullptr;
+	}
+
+	return font;
+}
+
 } // End of namespace Graphics
 
 namespace Common {
@@ -708,4 +1080,3 @@ DECLARE_SINGLETON(Graphics::TTFLibrary);
 } // End of namespace Common
 
 #endif
-

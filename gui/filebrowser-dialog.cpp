@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,17 +38,21 @@ enum {
 	kChooseCmd = 'Chos'
 };
 
-FileBrowserDialog::FileBrowserDialog(const char *title, const char *fileExtension, int mode)
+FileBrowserDialog::FileBrowserDialog(const char *title, const char *fileExtension, int mode, const char *fileMask)
 	: Dialog("FileBrowser"), _mode(mode), _fileExt(fileExtension) {
 
-	_fileMask = "*.";
-	_fileMask += fileExtension;
+	if (fileMask == NULL) {
+		_fileMask = "*.";
+		_fileMask += fileExtension;
+	} else {
+		_fileMask = fileMask;
+	}
 	_fileList = nullptr;
 
-	new StaticTextWidget(this, "FileBrowser.Headline", title ? title :
+	new StaticTextWidget(this, "FileBrowser.Headline", title ? Common::convertToU32String(title) :
 					mode == kFBModeLoad ? _("Choose file for loading") : _("Enter filename for saving"));
 
-	_fileName = new EditTextWidget(this, "FileBrowser.Filename", "");
+	_fileName = new EditTextWidget(this, "FileBrowser.Filename", Common::U32String());
 
 	if (mode == kFBModeLoad)
 		_fileName->setEnabled(false);
@@ -62,8 +65,8 @@ FileBrowserDialog::FileBrowserDialog(const char *title, const char *fileExtensio
 	_backgroundType = GUI::ThemeEngine::kDialogBackgroundPlain;
 
 	// Buttons
-	new ButtonWidget(this, "FileBrowser.Cancel", _("Cancel"), nullptr, kCloseCmd);
-	new ButtonWidget(this, "FileBrowser.Choose", _("Choose"), nullptr, kChooseCmd);
+	new ButtonWidget(this, "FileBrowser.Cancel", _("Cancel"), Common::U32String(), kCloseCmd);
+	new ButtonWidget(this, "FileBrowser.Choose", _("Choose"), Common::U32String(), kChooseCmd);
 }
 
 void FileBrowserDialog::open() {
@@ -88,7 +91,7 @@ void FileBrowserDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 
 		close();
 		break;
 	case kListSelectionChangedCmd:
-		_fileName->setEditString(_fileList->getList().operator[](_fileList->getSelected()).c_str());
+		_fileName->setEditString(_fileList->getList().operator[](_fileList->getSelected()));
 		_fileName->markAsDirty();
 		break;
 	case kListItemActivatedCmd:
@@ -107,9 +110,9 @@ void FileBrowserDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 
 }
 
 void FileBrowserDialog::normalieFileName() {
-	Common::String filename = _fileName->getEditString();
+	Common::String filename = Common::convertFromU32String(_fileName->getEditString());
 
-	if (filename.matchString(_fileMask))
+	if (filename.matchString(_fileMask, true))
 		return;
 
 	_fileName->setEditString(filename + "." + _fileExt);
@@ -122,7 +125,7 @@ bool FileBrowserDialog::isProceedSave() {
 	if (_mode == kFBModeLoad)
 		return true;
 
-	for (ListWidget::StringArray::const_iterator file = _fileList->getList().begin(); file != _fileList->getList().end(); ++file) {
+	for (Common::U32StringArray::const_iterator file = _fileList->getList().begin(); file != _fileList->getList().end(); ++file) {
 		if (*file == _fileName->getEditString()) {
 			matched = true;
 			break;
@@ -142,13 +145,13 @@ bool FileBrowserDialog::isProceedSave() {
 void FileBrowserDialog::updateListing() {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 
-	ListWidget::StringArray list;
+	Common::U32StringArray list;
 
 	Common::StringArray filenames = saveFileMan->listSavefiles(_fileMask);
 	Common::sort(filenames.begin(), filenames.end());
 
 	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
-		list.push_back(file->c_str());
+		list.push_back(Common::U32String(*file));
 	}
 
 	_fileList->setList(list);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,6 @@
 #include "common/rect.h"
 #include "common/events.h"
 #include "backends/base-backend.h"
-#include "graphics/colormasks.h"
 #include "graphics/palette.h"
 #include "graphics/surface.h"
 #include "audio/mixer_intern.h"
@@ -53,7 +51,7 @@ extern void wii_memstats(void);
 }
 #endif
 
-class OSystem_Wii : public EventsBaseBackend, public PaletteManager {
+class OSystem_Wii final : public EventsBaseBackend, public PaletteManager {
 private:
 	s64 _startup_time;
 
@@ -85,9 +83,9 @@ private:
 	s32 _configGraphicsMode;
 	s32 _actualGraphicsMode;
 	bool _bilinearFilter;
-#ifdef USE_RGB_COLOR
 	const Graphics::PixelFormat _pfRGB565;
 	const Graphics::PixelFormat _pfRGB3444;
+#ifdef USE_RGB_COLOR
 	Graphics::PixelFormat _pfGame;
 	Graphics::PixelFormat _pfGameTexture;
 	Graphics::PixelFormat _pfCursor;
@@ -142,80 +140,76 @@ public:
 	OSystem_Wii();
 	virtual ~OSystem_Wii();
 
-	virtual void initBackend();
-	virtual void engineInit();
-	virtual void engineDone();
+	void initBackend() override;
+	void engineInit() override;
+	void engineDone() override;
 
-	virtual bool hasFeature(Feature f);
-	virtual void setFeatureState(Feature f, bool enable);
-	virtual bool getFeatureState(Feature f);
-	virtual const GraphicsMode *getSupportedGraphicsModes() const;
-	virtual int getDefaultGraphicsMode() const;
-	virtual bool setGraphicsMode(int mode);
+	bool hasFeature(Feature f) override;
+	void setFeatureState(Feature f, bool enable) override;
+	bool getFeatureState(Feature f) override;
+	const GraphicsMode *getSupportedGraphicsModes() const override;
+	int getDefaultGraphicsMode() const override;
+	bool setGraphicsMode(int mode, uint flags = kGfxModeNoFlags) override;
 #ifdef USE_RGB_COLOR
-	virtual Graphics::PixelFormat getScreenFormat() const;
-	virtual Common::List<Graphics::PixelFormat> getSupportedFormats() const;
+	Graphics::PixelFormat getScreenFormat() const override;
+	Common::List<Graphics::PixelFormat> getSupportedFormats() const override;
 #endif
-	virtual int getGraphicsMode() const;
+	int getGraphicsMode() const override;
 	virtual void initSize(uint width, uint height,
-							const Graphics::PixelFormat *format);
-	virtual int16 getWidth();
-	virtual int16 getHeight();
+							const Graphics::PixelFormat *format) override;
+	int16 getWidth() override;
+	int16 getHeight() override;
 
-	virtual PaletteManager *getPaletteManager() { return this; }
+	PaletteManager *getPaletteManager() override { return this; }
 protected:
-	virtual void setPalette(const byte *colors, uint start, uint num);
-	virtual void grabPalette(byte *colors, uint start, uint num) const;
+	void setPalette(const byte *colors, uint start, uint num) override;
+	void grabPalette(byte *colors, uint start, uint num) const override;
 public:
-	virtual void setCursorPalette(const byte *colors, uint start, uint num);
+	void setCursorPalette(const byte *colors, uint start, uint num) override;
 	virtual void copyRectToScreen(const void *buf, int pitch, int x, int y,
-									int w, int h);
-	virtual void updateScreen();
-	virtual Graphics::Surface *lockScreen();
-	virtual void unlockScreen();
-	virtual void setShakePos(int shakeXOffset, int shakeYOffset);
+									int w, int h) override;
+	void updateScreen() override;
+	Graphics::Surface *lockScreen() override;
+	void unlockScreen() override;
+	void setShakePos(int shakeXOffset, int shakeYOffset) override;
 
-	virtual void showOverlay();
-	virtual void hideOverlay();
-	virtual void clearOverlay();
-	virtual void grabOverlay(void *buf, int pitch);
+	void showOverlay() override;
+	void hideOverlay() override;
+	bool isOverlayVisible() const override { return _overlayVisible; }
+	void clearOverlay() override;
+	void grabOverlay(Graphics::Surface &surface) override;
 	virtual void copyRectToOverlay(const void *buf, int pitch,
-									int x, int y, int w, int h);
-	virtual int16 getOverlayWidth();
-	virtual int16 getOverlayHeight();
-	virtual Graphics::PixelFormat getOverlayFormat() const;
+									int x, int y, int w, int h) override;
+	int16 getOverlayWidth() override;
+	int16 getOverlayHeight() override;
+	Graphics::PixelFormat getOverlayFormat() const override;
 
-	virtual bool showMouse(bool visible);
+	bool showMouse(bool visible) override;
 
-	virtual void warpMouse(int x, int y);
+	void warpMouse(int x, int y) override;
 	virtual void setMouseCursor(const void *buf, uint w, uint h, int hotspotX,
 								int hotspotY, uint32 keycolor,
 								bool dontScale,
-								const Graphics::PixelFormat *format);
+								const Graphics::PixelFormat *format) override;
 
-	virtual bool pollEvent(Common::Event &event);
-	virtual uint32 getMillis(bool skipRecord = false);
-	virtual void delayMillis(uint msecs);
+	bool pollEvent(Common::Event &event) override;
+	uint32 getMillis(bool skipRecord = false) override;
+	void delayMillis(uint msecs) override;
 
-	virtual MutexRef createMutex();
-	virtual void lockMutex(MutexRef mutex);
-	virtual void unlockMutex(MutexRef mutex);
-	virtual void deleteMutex(MutexRef mutex);
+	Common::MutexInternal *createMutex() override;
 
 	typedef void (*SoundProc)(void *param, byte *buf, int len);
 
-	virtual void quit();
+	void quit() override;
 
-	virtual void setWindowCaption(const char *caption);
+	Audio::Mixer *getMixer() override;
+	FilesystemFactory *getFilesystemFactory() override;
+	void getTimeAndDate(TimeDate &td, bool skipRecord = false) const override;
 
-	virtual Audio::Mixer *getMixer();
-	virtual FilesystemFactory *getFilesystemFactory();
-	virtual void getTimeAndDate(TimeDate &t) const;
-
-	virtual void logMessage(LogMessageType::Type type, const char *message);
+	void logMessage(LogMessageType::Type type, const char *message) override;
 
 #ifndef GAMECUBE
-	virtual Common::String getSystemLanguage() const;
+	Common::String getSystemLanguage() const override;
 #endif // GAMECUBE
 };
 

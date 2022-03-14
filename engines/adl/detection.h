@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef ADL_DETECTION_H
 #define ADL_DETECTION_H
+
+#include "engines/advancedDetector.h"
 
 namespace Adl {
 
@@ -59,16 +60,17 @@ enum GameVersion {
 	GAME_VER_NONE = 0,
 	GAME_VER_HR1_SIMI = 0,
 	GAME_VER_HR1_COARSE,
+	GAME_VER_HR1_VF1,
+	GAME_VER_HR1_VF2,
 	GAME_VER_HR1_PD
 };
 
-struct AdlGameDescription;
-
-Common::String getDiskImageName(const AdlGameDescription &adlDesc, byte volume);
-GameType getGameType(const AdlGameDescription &desc);
-GameVersion getGameVersion(const AdlGameDescription &desc);
-Common::Platform getPlatform(const AdlGameDescription &desc);
+struct AdlGameDescription {
+	ADGameDescription desc;
+	GameType gameType;
+	GameVersion version;
+};
 
 } // End of namespace Adl
 
-#endif
+#endif // ADL_DETECTION_H

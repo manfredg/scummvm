@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "dragons/bigfile.h"
@@ -25,20 +24,23 @@
 namespace Dragons {
 
 uint32 BigfileArchive::getResourceId(const char *filename) {
-	for (uint32 i = 0; i < DRAGONS_BIGFILE_TOTAL_FILES; i++) {
+	for (uint32 i = 0; i < _totalRecords; i++) {
 		if (scumm_stricmp(_fileInfoTbl[i].filename.c_str(), filename) == 0) {
 			return i;
 		}
 	}
 
-	return DRAGONS_BIGFILE_TOTAL_FILES;
+	return _totalRecords;
 }
 
-BigfileArchive::BigfileArchive(DragonsEngine *vm, const char *filename) :_vm(vm), _fd(0) {
+BigfileArchive::BigfileArchive(DragonsEngine *vm, const char *filename) :_vm(vm), _fd(nullptr) {
 	_fd = new Common::File();
 	if (!_fd->open(filename)) {
 		error("BigfileArchive::BigfileArchive() Could not open %s", filename);
 	}
+
+	_totalRecords = _vm->getBigFileTotalRecords();
+	_fileInfoTbl.resize(_totalRecords);
 
 	loadFileInfoTbl();
 }
@@ -57,7 +59,7 @@ void BigfileArchive::loadFileInfoTbl() {
 
 	fd.seek(_vm->getBigFileInfoTblFromDragonEXE());
 
-	for (int i = 0; i < DRAGONS_BIGFILE_TOTAL_FILES; i++) {
+	for (int i = 0; i < _totalRecords; i++) {
 		fd.read(filename, 16);
 		filename[15] = 0;
 		_fileInfoTbl[i].filename = filename;
@@ -69,7 +71,7 @@ void BigfileArchive::loadFileInfoTbl() {
 
 byte *BigfileArchive::load(const char *filename, uint32 &dataSize) {
 	uint32 id = getResourceId(filename);
-	if (id >= DRAGONS_BIGFILE_TOTAL_FILES) {
+	if (id >= _totalRecords) {
 		error("Invalid resourceID for input filename: %s", filename);
 	}
 
@@ -85,7 +87,7 @@ byte *BigfileArchive::load(const char *filename, uint32 &dataSize) {
 
 bool BigfileArchive::doesFileExist(const char *filename) {
 	uint32 id = getResourceId(filename);
-	return (id < DRAGONS_BIGFILE_TOTAL_FILES);
+	return (id < _totalRecords);
 }
 
 

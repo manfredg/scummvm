@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,13 +28,13 @@
 #include "mohawk/riven_video.h"
 
 #include "common/system.h"
+#include "common/memstream.h"
 
 #include "engines/util.h"
 
 #include "graphics/fontman.h"
 #include "graphics/font.h"
 #include "graphics/fonts/ttf.h"
-#include "graphics/colormasks.h"
 
 namespace Mohawk {
 
@@ -270,8 +269,8 @@ public:
 	}
 
 	bool drawFrame(uint32 elapsed) override {
-		assert(_effectScreen->format == _mainScreen->format);
-		assert(_effectScreen->format == _system->getScreenFormat());
+		assert(_mainScreen->format.bytesPerPixel == 2);
+		assert(_effectScreen->format.bytesPerPixel == 2);
 
 		if (elapsed == _duration) {
 			_effectScreen->copyRectToSurface(*_mainScreen, 0, 0, Common::Rect(_mainScreen->w, _mainScreen->h));
@@ -281,14 +280,14 @@ public:
 			Graphics::Surface *screen = _system->lockScreen();
 
 			uint alpha = elapsed * 255 / _duration;
-			for (uint y = 0; y < _mainScreen->h; y++) {
+			for (int y = 0; y < _mainScreen->h; y++) {
 				uint16 *src1 = (uint16 *) _mainScreen->getBasePtr(0, y);
 				uint16 *src2 = (uint16 *) _effectScreen->getBasePtr(0, y);
 				uint16 *dst = (uint16 *) screen->getBasePtr(0, y);
-				for (uint x = 0; x < _mainScreen->w; x++) {
+				for (int x = 0; x < _mainScreen->w; x++) {
 					uint8 r1, g1, b1, r2, g2, b2;
-					Graphics::colorToRGB< Graphics::ColorMasks<565> >(*src1++, r1, g1, b1);
-					Graphics::colorToRGB< Graphics::ColorMasks<565> >(*src2++, r2, g2, b2);
+					_mainScreen->format.colorToRGB(*src1++, r1, g1, b1);
+					_effectScreen->format.colorToRGB(*src2++, r2, g2, b2);
 
 					uint r = r1 * alpha + r2 * (255 - alpha);
 					uint g = g1 * alpha + g2 * (255 - alpha);
@@ -298,7 +297,7 @@ public:
 					g /= 255;
 					b /= 255;
 
-					*dst++ = (uint16) Graphics::RGBToColor< Graphics::ColorMasks<565> >(r, g, b);
+					*dst++ = (uint16) screen->format.RGBToColor(r, g, b);
 				}
 			}
 
@@ -328,7 +327,7 @@ RivenGraphics::RivenGraphics(MohawkEngine_Riven* vm) :
 	_bitmapDecoder = new MohawkBitmap();
 
 	// Restrict ourselves to a single pixel format to simplify the effects implementation
-	_pixelFormat = Graphics::createPixelFormat<565>();
+	_pixelFormat = Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
 	initGraphics(608, 436, &_pixelFormat);
 
 	// The actual game graphics only take up the first 392 rows. The inventory
@@ -339,7 +338,9 @@ RivenGraphics::RivenGraphics(MohawkEngine_Riven* vm) :
 	_effectScreen = new Graphics::Surface();
 	_effectScreen->create(608, 392, _pixelFormat);
 
-	loadMenuFont();
+	if (_vm->isGameVariant(GF_25TH)) {
+		loadMenuFont();
+	}
 }
 
 RivenGraphics::~RivenGraphics() {
@@ -354,7 +355,11 @@ RivenGraphics::~RivenGraphics() {
 }
 
 MohawkSurface *RivenGraphics::decodeImage(uint16 id) {
-	MohawkSurface *surface = _bitmapDecoder->decodeImage(_vm->getResource(ID_TBMP, id));
+	Common::SeekableReadStream *resourceStream = _vm->getResource(ID_TBMP, id);
+	Common::SeekableReadStream *memResourceStream = resourceStream->readStream(resourceStream->size());
+	delete resourceStream;
+
+	MohawkSurface *surface = _bitmapDecoder->decodeImage(memResourceStream);
 	surface->convertToTrueColor();
 	return surface;
 }
@@ -516,6 +521,17 @@ void RivenGraphics::setTransitionMode(RivenTransitionMode mode) {
 		default:
 			error("Unknown transition mode %d", _transitionMode);
 	}
+}
+
+RivenTransitionMode RivenGraphics::sanitizeTransitionMode(int mode) {
+	if (mode != kRivenTransitionModeDisabled
+	    && mode != kRivenTransitionModeFastest
+	    && mode != kRivenTransitionModeNormal
+	    && mode != kRivenTransitionModeBest) {
+		return kRivenTransitionModeFastest;
+	}
+
+	return static_cast<RivenTransitionMode>(mode);
 }
 
 void RivenGraphics::scheduleTransition(RivenTransition id, const Common::Rect &rect) {
@@ -686,8 +702,8 @@ void RivenGraphics::updateCredits() {
 		runScheduledTransition();
 	} else {
 		// Otherwise, we're scrolling
-		// This is done by 1) moving the screen up one row and 
-		// 2) adding a new row at the bottom that is the current row of the current image or 
+		// This is done by 1) moving the screen up one row and
+		// 2) adding a new row at the bottom that is the current row of the current image or
 		// not and it defaults to being empty (a black row).
 
 		// Move the screen up one row
@@ -698,7 +714,7 @@ void RivenGraphics::updateCredits() {
 			Graphics::Surface *frame = findImage(_creditsImage)->getSurface();
 			memcpy(_mainScreen->getBasePtr(124, _mainScreen->h - 1), frame->getBasePtr(0, _creditsPos), frame->pitch);
 			_creditsPos++;
-			if (_creditsPos == _mainScreen->h) {
+			if (_creditsPos == (uint)_mainScreen->h) {
 				_creditsImage++;
 				_creditsPos = 0;
 			}
@@ -786,6 +802,9 @@ void RivenGraphics::drawText(const Common::U32String &text, const Common::Rect &
 }
 
 void RivenGraphics::loadMenuFont() {
+	delete _menuFont;
+	_menuFont = nullptr;
+
 	const char *fontName;
 
 	if (_vm->getLanguage() != Common::JA_JPN) {

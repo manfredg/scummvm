@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,10 +34,10 @@
 
 namespace Lure {
 
-static Game *int_game = NULL;
+static Game *int_game = nullptr;
 
 bool Game::isCreated() {
-	return int_game != NULL;
+	return int_game != nullptr;
 }
 
 Game &Game::getReference() {
@@ -208,7 +207,7 @@ void Game::execute() {
 					case Common::KEYCODE_KP_PLUS:
 						if (_debugFlag) {
 							while (++roomNum <= 51)
-								if (res.getRoom(roomNum) != NULL) break;
+								if (res.getRoom(roomNum) != nullptr) break;
 							if (roomNum == 52) roomNum = 1;
 							room.setRoomNumber(roomNum);
 						}
@@ -217,7 +216,7 @@ void Game::execute() {
 					case Common::KEYCODE_KP_MINUS:
 						if (_debugFlag) {
 							if (roomNum == 1) roomNum = 55;
-							while (res.getRoom(--roomNum) == NULL)
+							while (res.getRoom(--roomNum) == nullptr)
 								;
 							room.setRoomNumber(roomNum);
 						}
@@ -274,12 +273,19 @@ void Game::execute() {
 
 		// If Skorl catches player, show the catching animation
 		if ((_state & GS_CAUGHT) != 0) {
+			if (!engine.isEGA())
+				screen.paletteFadeOut();
+
 			Palette palette(SKORL_CATCH_PALETTE_ID);
-			AnimationSequence *anim = new AnimationSequence(SKORL_CATCH_ANIM_ID, palette, false);
 			mouse.cursorOff();
-			Sound.addSound(0x33);
+
+			static const AnimSoundSequence catchSound[] = { { 12, 0xFF, 0xFF, 1, false }, { 1, 41, 41, 1, false }, {0, 0, 0, 0, false} };
+			AnimationSequence *anim = new AnimationSequence(SKORL_CATCH_ANIM_ID, palette, true, 5, catchSound);
 			anim->show();
 			delete anim;
+
+			if (!engine.isEGA())
+				screen.paletteFadeOut();
 		}
 
 		// If the Restart/Restore dialog is needed, show it
@@ -384,44 +390,73 @@ void Game::displayChuteAnimation() {
 	ValueTableData &fields = res.fieldList();
 	Palette palette(CHUTE_PALETTE_ID);
 
+	mouse.setCursorNum(CURSOR_DISK);
+	if (!LureEngine::getReference().isEGA())
+		Screen::getReference().paletteFadeOut();
+
 	debugC(ERROR_INTERMEDIATE, kLureDebugAnimations, "Starting chute animation");
 	mouse.cursorOff();
 
 	Sound.killSounds();
-	Sound.musicInterface_Play(0x40, 0);
 
-	AnimationSequence *anim = new AnimationSequence(CHUTE_ANIM_ID, palette, false);
-	anim->show();
+	AnimationSequence *anim = new AnimationSequence(CHUTE_ANIM_ID, palette, true);
+	Sound.musicInterface_Play(0x40, true);
+	AnimAbortType result = anim->show();
 	delete anim;
 
-	anim = new AnimationSequence(CHUTE2_ANIM_ID, palette, false);
-	anim->show();
-	delete anim;
+	if (result != ABORT_END_INTRO) {
+		anim = new AnimationSequence(CHUTE2_ANIM_ID, palette, true, 5, nullptr, 4);
+		result = anim->show();
+		delete anim;
+	}
 
-	anim = new AnimationSequence(CHUTE3_ANIM_ID, palette, false);
-	anim->show();
-	delete anim;
+	if (result != ABORT_END_INTRO) {
+		anim = new AnimationSequence(CHUTE3_ANIM_ID, palette, false);
+		anim->show();
+		delete anim;
+	}
 
 	Sound.killSounds();
 	mouse.cursorOn();
 	fields.setField(AREA_FLAG, 1);
+
+	// WORKAROUND When outside in the town, the game plays an ambient sound
+	// of twittering birds. When first entering town after falling through
+	// the chute, this sound does not play; it starts playing after you
+	// enter and exit a building. Calling removeSounds here triggers the
+	// function which manages the ambient sounds in town, so the bird
+	// sounds start playing. Because all other sounds have already been
+	// removed, this has no side effects.
+	Sound.removeSounds();
 }
 
 void Game::displayBarrelAnimation() {
 	Mouse &mouse = Mouse::getReference();
 	Resources &res = Resources::getReference();
+	LureEngine &engine = LureEngine::getReference();
+	Screen &screen = Screen::getReference();
+
+	mouse.setCursorNum(CURSOR_DISK);
+	if (!engine.isEGA())
+		screen.paletteFadeOut();
 
 	debugC(ERROR_INTERMEDIATE, kLureDebugAnimations, "Starting barrel animation");
 	Palette palette(BARREL_PALETTE_ID);
-	AnimationSequence *anim = new AnimationSequence(BARREL_ANIM_ID, palette, false);
 	mouse.cursorOff();
 
 	Sound.killSounds();
-	Sound.musicInterface_Play(0x3B, 0);
+	Sound.musicInterface_Play(0x3B, true);
 
+	AnimationSequence *anim = new AnimationSequence(BARREL_ANIM_ID, palette, true);
 	anim->show();
 
 	delete anim;
+
+	if (!engine.shouldQuit() && !engine.isEGA())
+		screen.paletteFadeOut();
+
+	Sound.killSounds();
+	mouse.cursorOn();
 
 	// Disable town NPCs that are no longer needed
 	res.deactivateHotspot(SKORL_ID);
@@ -432,9 +467,6 @@ void Game::displayBarrelAnimation() {
 	res.deactivateHotspot(GOEWIN_ID);
 	res.deactivateHotspot(MONK2_ID);
 	res.deactivateHotspot(WAYNE_ID);
-
-	Sound.killSounds();
-	mouse.cursorOn();
 }
 
 void Game::handleClick() {
@@ -506,7 +538,7 @@ void Game::handleRightClickMenu() {
 		actions &= 0xFF7FFFFF;
 
 	action = NONE;
-	hotspot = NULL;
+	hotspot = nullptr;
 
 	bool breakFlag = false;
 	while (!breakFlag) {
@@ -594,14 +626,14 @@ void Game::handleRightClickMenu() {
 	if (action != NONE) {
 		player->stopWalking();
 
-		if (hotspot == NULL) {
+		if (hotspot == nullptr) {
 			doAction(action, 0, itemId);
 		} else {
 			if (action != TELL) {
 				// Add the hotspot name to the status line and then go do the action
 				if ((itemId != 0xffff) && (action != GIVE) && (action != USE)) {
 					HotspotData *itemHotspot = res.getHotspot(itemId);
-					if (itemHotspot != NULL)
+					if (itemHotspot != nullptr)
 						strings.getString(itemHotspot->nameId, statusLine);
 				}
 				else

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,6 +49,61 @@ uint hashit_lower(const char *p) {
 		size++;
 	}
 	return hash ^ size;
+}
+
+
+template<> void unknownKeyError(::Common::String key) {
+	error("Unknown key \"%s\"", key.c_str());
+}
+
+template<> void unknownKeyError(signed char key) {
+	error("Unknown key \"%hhi\"", key);
+}
+
+template<> void unknownKeyError(unsigned char key) {
+	error("Unknown key \"%hhu\"", key);
+}
+
+template<> void unknownKeyError(short signed key) {
+	error("Unknown key \"%hi\"", key);
+}
+
+template<> void unknownKeyError(short unsigned key) {
+	error("Unknown key \"%hu\"", key);
+}
+
+template<> void unknownKeyError(long signed key) {
+	error("Unknown key \"%li\"", key);
+}
+
+template<> void unknownKeyError(long unsigned key) {
+	error("Unknown key \"%lu\"", key);
+}
+
+template<>
+void unknownKeyError(signed int key) {
+	error("Unknown key \"%i\"", key);
+}
+
+template<>
+void unknownKeyError(unsigned int key) {
+	error("Unknown key \"%u\"", key);
+}
+
+template<> void unknownKeyError(long long signed key) {
+	error("Unknown key \"%lli\"", key);
+}
+
+template<> void unknownKeyError(long long unsigned key) {
+	error("Unknown key \"%llu\"", key);
+}
+
+template<> void unknownKeyError(void *key) {
+	error("Unknown key \"%p\"", key);
+}
+
+template<> void unknownKeyError(const char *key) {
+	error("Unknown key \"%s\"", key);
 }
 
 #ifdef DEBUG_HASH_COLLISIONS

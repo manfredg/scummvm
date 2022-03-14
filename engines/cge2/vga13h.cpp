@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 /*
  * This code is based on original Sfinx source code
- * Copyright (c) 1994-1997 Janus B. Wisniewski and L.K. Avalon
+ * Copyright (c) 1994-1997 Janusz B. Wisniewski and L.K. Avalon
  */
 
 #include "common/array.h"
@@ -127,17 +126,17 @@ Seq Sprite::_stdSeq8[] =
 
 SprExt::SprExt(CGE2Engine *vm)
 	: _p0(vm, 0, 0), _p1(vm, 0, 0),
-     _b0(nullptr), _b1(nullptr), _shpList(nullptr),
-     _location(0), _seq(nullptr), _name(nullptr) {
+	 _b0(nullptr), _b1(nullptr), _shpList(nullptr),
+	 _location(0), _seq(nullptr), _name(nullptr) {
 	for (int i = 0; i < kActions; i++)
 		_actions[i] = nullptr;
 }
 
 Sprite::Sprite(CGE2Engine *vm)
 	: _siz(_vm, 0, 0), _seqPtr(kNoSeq), _seqCnt(0), _shpCnt(0),
-      _next(nullptr), _prev(nullptr), _time(0),
-      _ext(nullptr), _ref(-1), _scene(0), _vm(vm),
-      _pos2D(_vm, kScrWidth >> 1, 0), _pos3D(kScrWidth >> 1, 0, 0) {
+	  _next(nullptr), _prev(nullptr), _time(0),
+	  _ext(nullptr), _ref(-1), _scene(0), _vm(vm),
+	  _pos2D(_vm, kScrWidth >> 1, 0), _pos3D(kScrWidth >> 1, 0, 0) {
 	memset(_actionCtrl, 0, sizeof(_actionCtrl));
 	memset(_file, 0, sizeof(_file));
 	memset(&_flags, 0, sizeof(_flags));
@@ -146,9 +145,9 @@ Sprite::Sprite(CGE2Engine *vm)
 
 Sprite::Sprite(CGE2Engine *vm, BitmapPtr shpP, int cnt)
 	: _siz(_vm, 0, 0), _seqPtr(kNoSeq), _seqCnt(0), _shpCnt(0),
-     _next(nullptr), _prev(nullptr), _time(0),
-     _ext(nullptr), _ref(-1), _scene(0), _vm(vm),
-     _pos2D(_vm, kScrWidth >> 1, 0), _pos3D(kScrWidth >> 1, 0, 0) {
+	 _next(nullptr), _prev(nullptr), _time(0),
+	 _ext(nullptr), _ref(-1), _scene(0), _vm(vm),
+	 _pos2D(_vm, kScrWidth >> 1, 0), _pos3D(kScrWidth >> 1, 0, 0) {
 	memset(_actionCtrl, 0, sizeof(_actionCtrl));
 	memset(_file, 0, sizeof(_file));
 	memset(&_flags, 0, sizeof(_flags));
@@ -247,7 +246,7 @@ int Sprite::labVal(Action snq, int lab) {
 		_vm->mergeExt(tmpStr, _file, kSprExt);
 
 		if (_vm->_resman->exist(tmpStr)) { // sprite description file exist
-			EncryptedStream sprf(_vm, tmpStr);
+			EncryptedStream sprf(_vm->_resman, tmpStr);
 			if (sprf.err())
 				error("Bad SPR [%s]", tmpStr);
 
@@ -337,7 +336,7 @@ Sprite *Sprite::expand() {
 		curSeq = new Seq[_seqCnt];
 
 	if (_vm->_resman->exist(fname)) { // sprite description file exist
-		EncryptedStream sprf(_vm, fname);
+		EncryptedStream sprf(_vm->_resman, fname);
 		if (sprf.err())
 			error("Bad SPR [%s]", fname);
 

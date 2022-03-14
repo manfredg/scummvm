@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -383,6 +382,10 @@ const char *SpellsDialog::setSpellText(Character *c, int mode) {
 		if (c->getMaxSP() == 0) {
 			return Res.NOT_A_SPELL_CASTER;
 		} else {
+			// Debug cheat "open all spells"
+			//for (int spellIndex = 0; spellIndex < SPELLS_PER_CLASS; ++spellIndex){
+			//	c->_spells[spellIndex] = true;
+			//}
 			for (int spellIndex = 0; spellIndex < SPELLS_PER_CLASS; ++spellIndex) {
 				if (c->_spells[spellIndex]) {
 					int spellId = Res.SPELLS_ALLOWED[category][spellIndex];
@@ -501,13 +504,12 @@ int CastSpell::execute(Character *&c) {
 			checkEvents(_vm);
 		} while (!_vm->shouldExit() && events.timeElapsed() < 1 && !_buttonValue);
 
-		switch (_buttonValue) {
-		case Common::KEYCODE_F1:
-		case Common::KEYCODE_F2:
-		case Common::KEYCODE_F3:
-		case Common::KEYCODE_F4:
-		case Common::KEYCODE_F5:
-		case Common::KEYCODE_F6:
+		if (Common::KEYCODE_F1 == _buttonValue ||
+			Common::KEYCODE_F2 == _buttonValue ||
+			Common::KEYCODE_F3 == _buttonValue ||
+			Common::KEYCODE_F4 == _buttonValue ||
+			Common::KEYCODE_F5 == _buttonValue ||
+			Common::KEYCODE_F6 == _buttonValue) {
 			// Only allow changing character if the party is not in combat
 			if (_oldMode != MODE_COMBAT) {
 				_vm->_mode = (Mode)_oldMode;
@@ -518,30 +520,21 @@ int CastSpell::execute(Character *&c) {
 					intf.highlightChar(_buttonValue);
 					spells._lastCaster = _buttonValue;
 					redrawFlag = true;
-					break;
 				}
 			}
-			break;
 
-		case Common::KEYCODE_ESCAPE:
+		} else if (Common::KEYCODE_ESCAPE == _buttonValue) {
 			spellId = -1;
-			break;
 
-		case Common::KEYCODE_c:
+		} else if (Res.KeyConstants.DialogsSpells.KEY_CAST == _buttonValue) {
 			// Cast spell - return the selected spell Id to be cast
 			if (c->_currentSpell != -1 && !c->noActions())
 				_buttonValue = Common::KEYCODE_ESCAPE;
-			break;
-
-		case Common::KEYCODE_n:
+		} else if (Res.KeyConstants.DialogsSpells.KEY_NEW == _buttonValue) {
 			// Select new spell
 			_vm->_mode = (Mode)_oldMode;
 			c = SpellsDialog::show(_vm, this, c, SPELLS_DIALOG_SELECT);
 			redrawFlag = true;
-			break;
-
-		default:
-			break;
 		}
 	} while (!_vm->shouldExit() && _buttonValue != Common::KEYCODE_ESCAPE);
 
@@ -552,8 +545,10 @@ int CastSpell::execute(Character *&c) {
 
 void CastSpell::loadButtons() {
 	_iconSprites.load("cast.icn");
-	addButton(Common::Rect(234, 108, 259, 128), Common::KEYCODE_c, &_iconSprites);
-	addButton(Common::Rect(261, 108, 285, 128), Common::KEYCODE_n, &_iconSprites);
+
+	addButton(Common::Rect(234, 108, 259, 128), Res.KeyConstants.DialogsSpells.KEY_CAST, &_iconSprites);
+	addButton(Common::Rect(261, 108, 285, 128), Res.KeyConstants.DialogsSpells.KEY_NEW, &_iconSprites);
+
 	addButton(Common::Rect(288, 108, 312, 128), Common::KEYCODE_ESCAPE, &_iconSprites);
 	addPartyButtons(_vm);
 }
@@ -680,26 +675,17 @@ int SelectElement::execute(int spellId) {
 			} while (!_buttonValue && events.timeElapsed() < 1);
 		} while (!_buttonValue);
 
-		switch (_buttonValue) {
-		case Common::KEYCODE_ESCAPE:
+		if (Common::KEYCODE_ESCAPE == _buttonValue) {
 			result = -1;
 			spells.addSpellCost(*combat._oldCharacter, spellId);
-			break;
-
-		case Common::KEYCODE_a:
+		} else if (Res.KeyConstants.DialogsSpells.KEY_ACID == _buttonValue) {
 			result = DT_POISON;
-			break;
-		case Common::KEYCODE_c:
+		} else if (Res.KeyConstants.DialogsSpells.KEY_COLD == _buttonValue) {
 			result = DT_COLD;
-			break;
-		case Common::KEYCODE_e:
+		} else if (Res.KeyConstants.DialogsSpells.KEY_ELEC == _buttonValue) {
 			result = DT_ELECTRICAL;
-			break;
-		case Common::KEYCODE_f:
+		} else if (Res.KeyConstants.DialogsSpells.KEY_FIRE == _buttonValue) {
 			result = DT_FIRE;
-			break;
-		default:
-			break;
 		}
 	}
 
@@ -710,10 +696,11 @@ int SelectElement::execute(int spellId) {
 
 void SelectElement::loadButtons() {
 	_iconSprites.load("element.icn");
-	addButton(Common::Rect(60, 92, 84, 112), Common::KEYCODE_f, &_iconSprites);
-	addButton(Common::Rect(90, 92, 114, 112), Common::KEYCODE_e, &_iconSprites);
-	addButton(Common::Rect(120, 92, 144, 112), Common::KEYCODE_c, &_iconSprites);
-	addButton(Common::Rect(150, 92, 174, 112), Common::KEYCODE_a, &_iconSprites);
+
+	addButton(Common::Rect(60, 92, 84, 112),   Res.KeyConstants.DialogsSpells.KEY_FIRE, &_iconSprites);
+	addButton(Common::Rect(90, 92, 114, 112),  Res.KeyConstants.DialogsSpells.KEY_ELEC, &_iconSprites);
+	addButton(Common::Rect(120, 92, 144, 112), Res.KeyConstants.DialogsSpells.KEY_COLD, &_iconSprites);
+	addButton(Common::Rect(150, 92, 174, 112), Res.KeyConstants.DialogsSpells.KEY_ACID, &_iconSprites);
 }
 
 /*------------------------------------------------------------------------*/
@@ -807,8 +794,7 @@ bool LloydsBeacon::execute() {
 			} while (!_buttonValue && events.timeElapsed() < 1);
 		} while (!_buttonValue);
 
-		switch (_buttonValue) {
-		case Common::KEYCODE_r:
+		if (Res.KeyConstants.DialogsSpells.KEY_RETURN == _buttonValue) {
 			if (!ccNum && c._lloydMap >= XEEN_CASTLE1 && c._lloydMap <= XEEN_CASTLE4 && party._cloudsCompleted) {
 				// Xeen's Castle has already been destroyed
 				result = false;
@@ -823,21 +809,16 @@ bool LloydsBeacon::execute() {
 			}
 
 			_buttonValue = Common::KEYCODE_ESCAPE;
-			break;
-
-		case Common::KEYCODE_s:
-		case Common::KEYCODE_t:
+		} else if (Res.KeyConstants.DialogsSpells.KEY_SET == _buttonValue ||
+				   Common::KEYCODE_s == _buttonValue) {
 			sound.playFX(20);
 			c._lloydMap = party._mazeId;
 			c._lloydPosition = party._mazePosition;
 			c._lloydSide = ccNum;
 
 			_buttonValue = Common::KEYCODE_ESCAPE;
-			break;
-
-		default:
-			break;
 		}
+
 	} while (_buttonValue != Common::KEYCODE_ESCAPE);
 
 	w.close();
@@ -847,8 +828,8 @@ bool LloydsBeacon::execute() {
 void LloydsBeacon::loadButtons() {
 	_iconSprites.load("lloyds.icn");
 
-	addButton(Common::Rect(281, 108, 305, 128), Common::KEYCODE_r, &_iconSprites);
-	addButton(Common::Rect(242, 108, 266, 128), Common::KEYCODE_t, &_iconSprites);
+	addButton(Common::Rect(281, 108, 305, 128), Res.KeyConstants.DialogsSpells.KEY_RETURN, &_iconSprites);
+	addButton(Common::Rect(242, 108, 266, 128), Res.KeyConstants.DialogsSpells.KEY_SET, &_iconSprites);
 }
 
 /*------------------------------------------------------------------------*/
@@ -1044,7 +1025,7 @@ void DetectMonsters::execute() {
 	int grid[7][7];
 
 	SpriteResource sprites(ccNum ? "detectmn.icn" : "detctmon.icn");
-	Common::fill(&grid[0][0], &grid[6][6], 0);
+	Common::fill(&grid[0][0], &grid[6][7], 0);
 
 	w.open();
 	w.writeString(Res.DETECT_MONSTERS);

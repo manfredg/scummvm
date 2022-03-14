@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@ DECLARE_SINGLETON(Networking::ConnectionManager);
 
 namespace Networking {
 
-ConnectionManager::ConnectionManager(): _multi(0), _timerStarted(false), _frame(0) {
+ConnectionManager::ConnectionManager(): _multi(nullptr), _timerStarted(false), _frame(0) {
 	curl_global_init(CURL_GLOBAL_ALL);
 	_multi = curl_multi_init();
 }
@@ -130,7 +129,7 @@ void connectionsThread(void *ignored) {
 
 void ConnectionManager::startTimer(int interval) {
 	Common::TimerManager *manager = g_system->getTimerManager();
-	if (manager->installTimerProc(connectionsThread, interval, 0, "Networking::ConnectionManager's Timer")) {
+	if (manager->installTimerProc(connectionsThread, interval, nullptr, "Networking::ConnectionManager's Timer")) {
 		_timerStarted = true;
 	} else {
 		warning("Failed to install Networking::ConnectionManager's timer");

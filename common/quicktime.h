@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,7 @@
 
 #include "common/array.h"
 #include "common/scummsys.h"
+#include "common/path.h"
 #include "common/stream.h"
 #include "common/rational.h"
 #include "common/types.h"
@@ -41,13 +41,18 @@ namespace Common {
 	class MacResManager;
 
 /**
- * Parser for QuickTime/MPEG-4 files.
+ * @defgroup common_quicktime Quicktime file parser
+ * @ingroup common
  *
- * File parser used in engines:
- *  - groovie
- *  - mohawk
- *  - sci
+ * @brief Parser for QuickTime/MPEG-4 files.
+ *
+ * @details File parser used in engines:
+ *          - groovie
+ *          - mohawk
+ *          - sci
+ * @{
  */
+
 class QuickTimeParser {
 public:
 	QuickTimeParser();
@@ -57,7 +62,7 @@ public:
 	 * Load a QuickTime file
 	 * @param filename	the filename to load
 	 */
-	bool parseFile(const String &filename);
+	bool parseFile(const Path &filename);
 
 	/**
 	 * Load a QuickTime file from a SeekableReadStream
@@ -87,7 +92,7 @@ protected:
 
 	struct TimeToSampleEntry {
 		int count;
-		int duration;
+		int duration; // media time
 	};
 
 	struct SampleToChunkEntry {
@@ -97,9 +102,9 @@ protected:
 	};
 
 	struct EditListEntry {
-		uint32 trackDuration;
-		uint32 timeOffset;
-		int32 mediaTime;
+		uint32 trackDuration; // movie time
+		uint32 timeOffset;    // movie time
+		int32 mediaTime;      // media time
 		Rational mediaRate;
 	};
 
@@ -142,7 +147,7 @@ protected:
 		uint32 *sampleSizes;
 		uint32 keyframeCount;
 		uint32 *keyframes;
-		int32 timeScale;
+		int32 timeScale; // media time
 
 		uint16 width;
 		uint16 height;
@@ -152,18 +157,17 @@ protected:
 
 		Common::Array<EditListEntry> editList;
 
-		uint32 frameCount;
-		uint32 duration;
-		uint32 mediaDuration;
-		uint32 startTime;
+		uint32 frameCount;    // from stts
+		uint32 duration;      // movie time
+		uint32 mediaDuration; // media time
 		Rational scaleFactorX;
 		Rational scaleFactorY;
 	};
 
 	virtual SampleDesc *readSampleDesc(Track *track, uint32 format, uint32 descSize) = 0;
 
-	uint32 _timeScale;
-	uint32 _duration;
+	uint32 _timeScale;      // movie time
+	uint32 _duration;       // movie time
 	Rational _scaleFactorX;
 	Rational _scaleFactorY;
 	Array<Track *> _tracks;
@@ -210,6 +214,8 @@ private:
 	int readESDS(Atom atom);
 	int readSMI(Atom atom);
 };
+
+/** @} */
 
 } // End of namespace Common
 

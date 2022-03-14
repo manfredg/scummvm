@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -102,7 +101,7 @@ private:
 
 	struct IOUnit {
 		IOUnit() : program(0), block(0), volume(63), currentLevel(0), fadeTargetLevel(0), fadeLevelDelta(0), fadeLevelMod(0), levelFadeTriggerDC(0), fadeLevelTicks(0),
-			fadeLevelTicker(0), fadeLevelDuration(0), releaseData(0), releaseDataSize(0), repeatData(0), repeatDataSize(0), envelopeState(kReady) {}
+			fadeLevelTicker(0), fadeLevelDuration(0), releaseData(nullptr), releaseDataSize(0), repeatData(nullptr), repeatDataSize(0), envelopeState(kReady) {}
 		uint8 program;
 		uint8 block;
 		uint8 volume;
@@ -175,15 +174,15 @@ private:
 	IMuseDriver_Amiga *_driver;
 };
 
-SoundChannel_Amiga::SoundChannel_Amiga(IMuseDriver_Amiga *driver, int id, Instrument_Amiga *instruments) : _driver(driver), _id(id), _instruments(instruments), 
-	_assign(0), _next(0), _prev(0), _sustain(false), _note(0) {
+SoundChannel_Amiga::SoundChannel_Amiga(IMuseDriver_Amiga *driver, int id, Instrument_Amiga *instruments) : _driver(driver), _id(id), _instruments(instruments),
+	_assign(nullptr), _next(nullptr), _prev(nullptr), _sustain(false), _note(0) {
 	assert(id > -1 && id < 4);
 	_channels[id] = this;
 	createVolumeTable();
 }
 
 SoundChannel_Amiga::~SoundChannel_Amiga() {
-	_channels[_id] = 0;
+	_channels[_id] = nullptr;
 
 	// delete volume table only if this is the last remaining SoundChannel_Amiga object
 	for (int i = 0; i < 4; ++i) {
@@ -192,11 +191,11 @@ SoundChannel_Amiga::~SoundChannel_Amiga() {
 	}
 
 	delete[] _volTable;
-	_volTable = 0;
+	_volTable = nullptr;
 }
- 
+
 SoundChannel_Amiga *SoundChannel_Amiga::allocate(int prio) {
-	SoundChannel_Amiga *res = 0;
+	SoundChannel_Amiga *res = nullptr;
 
 	for (int i = 0; i < 4; i++) {
 		if (++_allocCurPos == 4)
@@ -227,7 +226,7 @@ void SoundChannel_Amiga::connect(IMusePart_Amiga *part) {
 
 	_assign = part;
 	_next = part->getChannel();
-	_prev = 0;
+	_prev = nullptr;
 	part->setChannel(this);
 	if (_next)
 		_next->_prev = this;
@@ -245,7 +244,7 @@ void SoundChannel_Amiga::disconnect() {
 		p->_next = n;
 	else
 		_assign->setChannel(n);
-	_assign = 0;
+	_assign = nullptr;
 }
 
 void SoundChannel_Amiga::noteOn(byte note, byte volume, byte program, int8 transpose, int16 pitchBend) {
@@ -276,22 +275,22 @@ void SoundChannel_Amiga::noteOn(byte note, byte volume, byte program, int8 trans
 	_driver->disableChannel(_id);
 	setVelocity(0, 0);
 	setVolume(volume);
-	
+
 	if (s->type > 1)
 		return;
-	
+
 	uint16 period = calculatePeriod(pitchBend + ((_note + transpose) << 7), s->baseNote, s->rate);
 
 	if (s->type == 1) {
-		keyOn(s->data, s->numSamples, 0, 0, period);
-		setRepeatData(0, 0);
+		keyOn(s->data, s->numSamples, nullptr, 0, period);
+		setRepeatData(nullptr, 0);
 	} else {
 		if (s->dr_numSamples) {
 			keyOn(s->data, s->dr_numSamples, s->data + s->dr_offset, s->dr_numSamples - s->dr_offset, period);
 			setRepeatData(s->data + s->dr_numSamples, s->numSamples - s->dr_numSamples);
 		} else {
 			keyOn(s->data, s->numSamples, s->data + s->dr_offset, s->numSamples - s->dr_offset, period);
-			setRepeatData(0, 0);
+			setRepeatData(nullptr, 0);
 		}
 	}
 }
@@ -412,7 +411,7 @@ void SoundChannel_Amiga::setVelocity(uint8 velo, int delay) {
 	} else {
 		_driver->setChannelVolume(_id, _volTable[(_ioUnit.volume << 5) + velo]);
 		_ioUnit.currentLevel = _ioUnit.fadeTargetLevel = velo;
-		_ioUnit.fadeLevelMod = 0;		
+		_ioUnit.fadeLevelMod = 0;
 	}
 }
 
@@ -469,13 +468,13 @@ void SoundChannel_Amiga::createVolumeTable() {
 
 uint8 SoundChannel_Amiga::_allocCurPos = 0;
 
-const uint8 *SoundChannel_Amiga::_volTable = 0;
+const uint8 *SoundChannel_Amiga::_volTable = nullptr;
 
-SoundChannel_Amiga *SoundChannel_Amiga::_channels[4] = { 0, 0, 0, 0 };
+SoundChannel_Amiga *SoundChannel_Amiga::_channels[4] = { nullptr, nullptr, nullptr, nullptr };
 
 const int8 SoundChannel_Amiga::_muteData[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-IMusePart_Amiga::IMusePart_Amiga(IMuseDriver_Amiga *driver, int id) : _driver(driver), _id(id), _allocated(false), _out(0), _priority(0), _program(0),
+IMusePart_Amiga::IMusePart_Amiga(IMuseDriver_Amiga *driver, int id) : _driver(driver), _id(id), _allocated(false), _out(nullptr), _priority(0), _program(0),
 	_pitchBend(0), _pitchBendSensitivity(2), _volume(0), _modulation(0), _transpose(0), _sustain(false) {
 }
 
@@ -596,11 +595,10 @@ void IMusePart_Amiga::controlSustain(byte value) {
 }
 
 IMuseDriver_Amiga::IMuseDriver_Amiga(Audio::Mixer *mixer) : Paula(true, mixer->getOutputRate(), (mixer->getOutputRate() * 1000) / 181818), _mixer(mixer), _isOpen(false), _soundHandle(),
-	_numParts(24), _baseTempo(5500), _internalTempo(5500), _timerProc(0), _timerProcPara(0), _parts(0), _chan(0), _instruments(0), _missingFiles(0), _ticker(0) {
+	_numParts(24), _baseTempo(5500), _internalTempo(5500), _timerProc(nullptr), _timerProcPara(nullptr), _parts(nullptr), _chan(nullptr), _instruments(nullptr), _missingFiles(0), _ticker(0) {
 	setAudioFilter(true);
 
-	_instruments = new Instrument_Amiga[129];
-	memset(_instruments, 0, sizeof(Instrument_Amiga) * 129);
+	_instruments = new Instrument_Amiga[129]();
 	loadInstrument(128);
 
 	_parts = new IMusePart_Amiga*[_numParts];
@@ -622,14 +620,14 @@ IMuseDriver_Amiga::~IMuseDriver_Amiga() {
 			delete _chan[i];
 		delete[] _chan;
 	}
-	_chan = 0;
+	_chan = nullptr;
 
 	if (_parts) {
 		for (int i = 0; i < _numParts; i++)
 			delete _parts[i];
 		delete[] _parts;
 	}
-	_parts = 0;
+	_parts = nullptr;
 
 	delete[] _instruments;
 }
@@ -651,13 +649,13 @@ int IMuseDriver_Amiga::open() {
 	// when playing from the floppy disks. Obviously we don't need the redundancy files. The error dialog will display
 	// only the required files. These are different for MI2 and INDY4.
 	if (_missingFiles) {
-		Common::String message = _("This AMIGA version is missing (at least) the following file(s):\n\n");
+		Common::U32String message = _("This AMIGA version is missing (at least) the following file(s):\n\n");
 		for (int i = 0; i < 11; ++i) {
 			if (_missingFiles & (1 << i))
 				message += Common::String::format("AMIGA%d.IMS\n", i + 1);
 		}
 		message += _("\nPlease copy these file(s) into the game data directory.\n\n");
-		::GUI::displayErrorDialog(message.c_str());
+		::GUI::displayErrorDialog(message);
 		return MERR_DEVICE_NOT_AVAILABLE;
 	}
 
@@ -677,7 +675,7 @@ void IMuseDriver_Amiga::close() {
 	_isOpen = false;
 
 	stopPaula();
-	setTimerCallback(0, 0);
+	setTimerCallback(nullptr, nullptr);
 	_mixer->stopHandle(_soundHandle);
 
 	Common::StackLock lock(_mutex);
@@ -733,25 +731,25 @@ uint32 IMuseDriver_Amiga::getBaseTempo() {
 
 MidiChannel *IMuseDriver_Amiga::allocateChannel() {
 	if (!_isOpen)
-		return 0;
+		return nullptr;
 
 	for (int i = 0; i < _numParts; ++i) {
 		if (_parts[i]->allocate())
 			return _parts[i];
 	}
 
-	return 0;
+	return nullptr;
 }
 
 MidiChannel *IMuseDriver_Amiga::getPercussionChannel() {
-	return 0;
+	return nullptr;
 }
 
 void IMuseDriver_Amiga::interrupt() {
 	if (!_isOpen)
 		return;
 
-	for (_ticker += _internalTempo; _ticker >= _baseTempo; _ticker -= _baseTempo) {	
+	for (_ticker += _internalTempo; _ticker >= _baseTempo; _ticker -= _baseTempo) {
 		updateParser();
 		updateSounds();
 	}
@@ -791,7 +789,7 @@ void IMuseDriver_Amiga::loadInstrument(int program) {
 	for (int i = 0; i < 8; ++i) {
 		if (_instruments[program].samples[i].data) {
 			delete[] _instruments[program].samples[i].data;
-			_instruments[program].samples[i].data = 0;
+			_instruments[program].samples[i].data = nullptr;
 		}
 	}
 
@@ -831,12 +829,12 @@ void IMuseDriver_Amiga::loadInstrument(int program) {
 
 		if (size <= 0)
 			break;
-			
+
 		size -= 38;
 		Instrument_Amiga::Samples *s = &_instruments[program].samples[block];
 		ims.seek(594 + offset + header[block], SEEK_SET);
 		int8 *buf = new int8[size];
-		
+
 		s->rate = ims.readUint16BE();
 		s->baseNote = ims.readUint16BE();
 		s->noteRangeMin = ims.readSint16BE();

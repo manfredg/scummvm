@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,16 +70,29 @@ protected:
 		Channel() : _changeFrequency(false), _freqCtr(0), _freqCtrChange(0),
 			_freqChange(0), _volume(0), _totalLevel(0), _frequency(0), _isFx(false) {}
 	};
+	enum StreamType {
+		stMUSIC,
+		stFX,
+
+		stLAST
+	};
+	class Stream {
+	public:
+		Stream() {}
+		Stream(const CommandFn *commands) : _playing(false), _countdownTimer(0), _dataPtr(nullptr), _startPtr(nullptr), _commands(commands) {}
+
+		bool _playing;
+		int _countdownTimer;
+		const byte *_dataPtr;
+		const byte *_startPtr;
+		const CommandFn *_commands;
+	};
+
 private:
 	static const CommandFn FX_COMMANDS[16];
 	static const CommandFn MUSIC_COMMANDS[16];
 private:
 	Common::Stack<Subroutine> _musSubroutines, _fxSubroutines;
-	int _musCountdownTimer;
-	int _fxCountdownTimer;
-	const byte *_fxDataPtr, *_musDataPtr;
-	const byte *_fxStartPtr;
-	const byte *_musStartPtr;
 	uint _frameCtr;
 private:
 	/**
@@ -89,11 +101,12 @@ private:
 	 * @returns		If true, execution of commands for the current timer call stops
 	 */
 	bool command(const byte *&srcP);
+
+	Stream *tickStream();
 protected:
 	Common::Array<Channel> _channels;
-	bool _exclude7;
-	bool _musicPlaying;
-	bool _fxPlaying;
+	Stream _streams[stLAST];
+
 protected:
 	/**
 	 * Executes a series of commands until instructed to stop
@@ -175,7 +188,7 @@ public:
 	/**
 	 * Returns whether music is currently playing
 	 */
-	bool isPlaying() const { return _musicPlaying; }
+	bool isPlaying() const { return _streams[stMUSIC]._playing; }
 };
 
 } // End of namespace Xeen

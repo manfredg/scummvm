@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,6 +35,9 @@ namespace Wintermute {
 class BaseRegion;
 class BaseSubFrame;
 class BaseObject;
+#ifdef ENABLE_WME3D
+class ModelX;
+#endif
 class BaseActiveRect: BaseClass {
 public:
 	void clipRect();
@@ -43,6 +45,9 @@ public:
 	float _zoomX;
 	float _zoomY;
 	BaseSubFrame *_frame;
+#ifdef ENABLE_WME3D
+	ModelX *_modelX;
+#endif
 	BaseObject *_owner;
 	BaseRegion *_region;
 	int32 _offsetX;
@@ -51,6 +56,9 @@ public:
 	BaseActiveRect(BaseGame *inGameOwner = nullptr);
 	BaseActiveRect(BaseGame *inGameOwner, BaseObject *owner, BaseSubFrame *frame, int x, int y, int width, int height, float zoomX = 100, float zoomY = 100, bool precise = true);
 	BaseActiveRect(BaseGame *inGame, BaseObject *owner, BaseRegion *region, int offsetX, int offsetY);
+#ifdef ENABLE_WME3D
+	BaseActiveRect(BaseGame *inGame, BaseObject *owner, ModelX *model, int x, int y, int width, int height, bool precise = true);
+#endif
 	~BaseActiveRect() override;
 
 };

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,15 +55,15 @@ void TopMenu::init() {
 	int x = kMenuX;
 	int y = kMenuY;
 
-	_whatButton = new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight, "What is it?", kCmdWhat);
-	_musicButton = new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight, "Music", kCmdMusic);
-	_soundFXButton = new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight, "Sound FX", kCmdSoundFX);
-	_saveButton = new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight, "Save game", kCmdSave);
-	_loadButton = new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight, "Load game", kCmdLoad);
-	_recallButton = new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight, "Recall last command", kCmdRecall);
-	_turboButton = new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight, "Turbo", kCmdTurbo);
-	_lookButton = new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight, "Description of the scene", kCmdLook);
-	_inventButton = new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight, "Inventory", kCmdInvent);
+	_whatButton    =  new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight,	Common::U32String("What is it?"),              kCmdWhat);
+	_musicButton   =  new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight,	Common::U32String("Music"),                    kCmdMusic);
+	_soundFXButton =  new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight,	Common::U32String("Sound FX"),                 kCmdSoundFX);
+	_saveButton    =  new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight,	Common::U32String("Save game"),                kCmdSave);
+	_loadButton    =  new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight,	Common::U32String("Load game"),                kCmdLoad);
+	_recallButton  =  new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight,	Common::U32String("Recall last command"),      kCmdRecall);
+	_turboButton   =  new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight,	Common::U32String("Turbo"),                    kCmdTurbo);
+	_lookButton    =  new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight,	Common::U32String("Description of the scene"), kCmdLook);
+	_inventButton  =  new GUI::PicButtonWidget(this, x, y, kButtonWidth, kButtonHeight,	Common::U32String("Inventory"),                kCmdInvent);
 }
 
 void TopMenu::reflowLayout() {
@@ -73,6 +72,8 @@ void TopMenu::reflowLayout() {
 	int scale = (_w > 320 ? 2 : 1);
 
 	_h = kMenuHeight * scale;
+
+	resize(_x, _y, _w, _h);
 
 	int x = kMenuX * scale;
 	int y = kMenuY * scale;
@@ -124,7 +125,7 @@ void TopMenu::reflowLayout() {
 void TopMenu::loadBmpArr(Common::SeekableReadStream &in) {
 	_arraySize = in.readUint16BE();
 
-	delete _arrayBmp;
+	delete[] _arrayBmp;
 	_arrayBmp = new Graphics::Surface *[_arraySize * 2];
 	for (int i = 0; i < _arraySize; i++) {
 		uint16 bmpSize = in.readUint16BE();
@@ -276,14 +277,14 @@ EntryDialog::EntryDialog(const Common::String &title, const Common::String &butt
 								lines[i], Graphics::kTextAlignCenter);
 	}
 
-	_text = new GUI::EditTextWidget(this, 10, 10 + lineCount * (kLineHeight + 1), _w - 20, kLineHeight, "", "", 0, kCmdFinishEdit);
+	_text = new GUI::EditTextWidget(this, 10, 10 + lineCount * (kLineHeight + 1), _w - 20, kLineHeight, Common::U32String(), Common::U32String(), 0, kCmdFinishEdit);
 	_text->setEditString(defaultValue);
 
 	_h += kLineHeight + 5;
 
 	buttonPos = (_w - buttonWidth) / 2;
 
-	new GUI::ButtonWidget(this, buttonPos, _h - buttonHeight - 8, buttonWidth, buttonHeight, buttonLabel, 0, kCmdButton, Common::ASCII_RETURN);	// Confirm dialog
+	new GUI::ButtonWidget(this, buttonPos, _h - buttonHeight - 8, buttonWidth, buttonHeight, buttonLabel, Common::U32String(), kCmdButton, Common::ASCII_RETURN);	// Confirm dialog
 
 }
 

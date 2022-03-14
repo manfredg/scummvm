@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -131,41 +130,41 @@ Common::Error HDBGame::loadGameState(int slot) {
 }
 
 void HDBGame::saveGame(Common::OutSaveFile *out) {
-	debug(1, "HDBGame::saveGame: start at %u", out->pos());
+	debug(1, "HDBGame::saveGame: start at %u", (uint32)out->pos());
 
 	// Save Map Name and Time
 	out->writeUint32LE(_saveHeader.seconds);
 	out->write(_inMapName, 32);
 
-	debug(1, "HDBGame::saveGame: map at %u", out->pos());
+	debug(1, "HDBGame::saveGame: map at %u", (uint32)out->pos());
 	// Save Map Object Data
 	_map->save(out);
 
 	// Save Window Object Data
-	debug(1, "HDBGame::saveGame: window at %u", out->pos());
+	debug(1, "HDBGame::saveGame: window at %u", (uint32)out->pos());
 	_window->save(out);
 
 	// Save Gfx Object Data
-	debug(1, "HDBGame::saveGame: gfx at %u", out->pos());
+	debug(1, "HDBGame::saveGame: gfx at %u", (uint32)out->pos());
 	_gfx->save(out);
 
 	// Save Sound Object Data
-	debug(1, "HDBGame::saveGame: sound at %u", out->pos());
+	debug(1, "HDBGame::saveGame: sound at %u", (uint32)out->pos());
 	_sound->save(out);
 
 	// Save Game Object Data
-	debug(1, "HDBGame::saveGame: game object at %u", out->pos());
+	debug(1, "HDBGame::saveGame: game object at %u", (uint32)out->pos());
 	save(out);
 
 	// Save AI Object Data
-	debug(1, "HDBGame::saveGame: ai at %u", out->pos());
+	debug(1, "HDBGame::saveGame: ai at %u", (uint32)out->pos());
 	_ai->save(out);
 
-	debug(1, "HDBGame::saveGame: end at %u", out->pos());
+	debug(1, "HDBGame::saveGame: end at %u", (uint32)out->pos());
 }
 
 void HDBGame::loadGame(Common::InSaveFile *in) {
-	debug(1, "HDBGame::loadGame: start at %u", in->pos());
+	debug(1, "HDBGame::loadGame: start at %u", (uint32)in->pos());
 
 	// Load Map Name and Time
 	_timeSeconds = in->readUint32LE();
@@ -177,30 +176,30 @@ void HDBGame::loadGame(Common::InSaveFile *in) {
 	Common::strlcpy(_saveHeader.mapName, _inMapName, sizeof(_saveHeader.mapName));
 
 	// Load Map Object Data
-	debug(1, "HDBGame::loadGame: map at %u", in->pos());
+	debug(1, "HDBGame::loadGame: map at %u", (uint32)in->pos());
 	_map->loadSaveFile(in);
 
 	// Load Window Object Data
-	debug(1, "HDBGame::loadGame: window at %u", in->pos());
+	debug(1, "HDBGame::loadGame: window at %u", (uint32)in->pos());
 	_window->loadSaveFile(in);
 
 	// Load Gfx Object Data
-	debug(1, "HDBGame::loadGame: gfx at %u", in->pos());
+	debug(1, "HDBGame::loadGame: gfx at %u", (uint32)in->pos());
 	_gfx->loadSaveFile(in);
 
 	// Load Sound Object Data
-	debug(1, "HDBGame::loadGame: sound at %u", in->pos());
+	debug(1, "HDBGame::loadGame: sound at %u", (uint32)in->pos());
 	_sound->loadSaveFile(in);
 
 	// Load Game Object Data
-	debug(1, "HDBGame::loadGame: game object at %u", in->pos());
+	debug(1, "HDBGame::loadGame: game object at %u", (uint32)in->pos());
 	loadSaveFile(in);
 
 	// Load AI Object Data
-	debug(1, "HDBGame::loadGame: ai at %u", in->pos());
+	debug(1, "HDBGame::loadGame: ai at %u", (uint32)in->pos());
 	_ai->loadSaveFile(in);
 
-	debug(1, "HDBGame::loadGame: end at %u", in->pos());
+	debug(1, "HDBGame::loadGame: end at %u", (uint32)in->pos());
 
 	_gfx->turnOffFade();
 }
@@ -315,8 +314,8 @@ void AIEntity::load(Common::InSaveFile *in) {
 	FuncPtr init, init2, use, action;
 	EntFuncPtr drawf;
 
-	action = init = init2 = use = NULL;
-	drawf = NULL;
+	action = init = init2 = use = nullptr;
+	drawf = nullptr;
 
 	// Read 32-char names for the function ptrs we have in entity struct
 	in->read(funcString, 32);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #ifndef DRAGONS_DRAGONS_H
@@ -25,17 +24,9 @@
 #include "gui/EventRecorder.h"
 #include "engines/engine.h"
 #include "dragons/specialopcodes.h"
+#include "dragons/detection.h"
 
 namespace Dragons {
-
-enum {
-	kGameIdDragons = 1
-};
-
-struct DragonsGameDescription {
-	ADGameDescription desc;
-	int gameId;
-};
 
 struct SaveHeader {
 	Common::String description;
@@ -94,12 +85,41 @@ enum UnkFlags {
 	ENGINE_UNK1_FLAG_80 = 0x80
 };
 
+enum MouseWheel {
+	MOUSE_WHEEL_NO_EVENT,
+	MOUSE_WHEEL_DOWN,
+	MOUSE_WHEEL_UP
+};
+
 struct PaletteCyclingInstruction {
 	int16 paletteType;
 	int16 startOffset;
 	int16 endOffset;
 	int16 updateInterval;
 	int16 updateCounter;
+};
+
+enum DragonsAction {
+	kDragonsActionNone,
+	kDragonsActionUp,
+	kDragonsActionDown,
+	kDragonsActionLeft,
+	kDragonsActionRight,
+	kDragonsActionSquare,
+	kDragonsActionTriangle,
+	kDragonsActionCircle,
+	kDragonsActionCross,
+	kDragonsActionL1,
+	kDragonsActionR1,
+	kDragonsActionSelect,
+	kDragonsActionChangeCommand,
+	kDragonsActionInventory,
+	kDragonsActionEnter,
+	kDragonsActionMenu,
+	kDragonsActionPause,
+	kDragonsActionDebug,
+	kDragonsActionDebugGfx,
+	kDragonsActionQuit
 };
 
 class BigfileArchive;
@@ -117,6 +137,7 @@ class Inventory;
 class Scene;
 class Screen;
 class ActorManager;
+class Actor;
 class SequenceOpcodes;
 class ScriptOpcodes;
 class Talk;
@@ -124,6 +145,24 @@ class SoundManager;
 class StrPlayer;
 struct DragonINI;
 
+struct LoadingScreenState {
+	Actor *flames[10];
+	uint16 quads[10];
+	int16 baseYOffset;
+	int16 flameOffsetIdx;
+	int16 loadingFlamesUpdateCounter;
+	int16 loadingFlamesRiseCounter;
+
+	LoadingScreenState() {
+		baseYOffset = 0;
+		flameOffsetIdx = 0;
+		loadingFlamesUpdateCounter = 0;
+		loadingFlamesRiseCounter = 0;
+
+		memset(flames, 0, ARRAYSIZE(flames)*sizeof(flames[0]));
+		memset(quads, 0, ARRAYSIZE(quads)*sizeof(quads[0]));
+	}
+};
 
 class DragonsEngine : public Engine {
 public:
@@ -172,12 +211,16 @@ private:
 
 	uint32 _randomState;
 
+	LoadingScreenState *_loadingScreenState;
+
 	// input
 	bool _leftMouseButtonUp;
 	bool _leftMouseButtonDown;
 	bool _rightMouseButtonUp;
 	bool _iKeyUp;
+	bool _downKeyDown;
 	bool _downKeyUp;
+	bool _upKeyDown;
 	bool _upKeyUp;
 	bool _enterKeyUp;
 
@@ -191,6 +234,7 @@ private:
 	bool _dKeyDown;
 	bool _oKeyDown;
 	bool _pKeyDown;
+	MouseWheel _mouseWheel;
 
 	bool _debugMode;
 	bool _isGamePaused;
@@ -199,7 +243,7 @@ private:
 	void (*_sceneUpdateFunction)();
 	void (*_vsyncUpdateFunction)();
 protected:
-	virtual bool hasFeature(EngineFeature f) const override;
+	bool hasFeature(EngineFeature f) const override;
 public:
 	DragonsEngine(OSystem *syst, const ADGameDescription *desc);
 	~DragonsEngine();
@@ -215,6 +259,7 @@ public:
 	bool canLoadGameStateCurrently() override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave) override;
 	bool canSaveGameStateCurrently() override;
+	void syncSoundSettings() override;
 
 	void updateActorSequences();
 	void setFlags(uint32 flags);
@@ -240,9 +285,13 @@ public:
 
 	void playOrStopSound(uint16 soundId);
 
-	//TODO what are these functions really doing?
-	void call_fade_related_1f();
-	void fade_related(uint32 flags);
+	void fadeFromBlack();
+	void fadeFromBlackExcludingFont();
+	void fadeFromBlack(uint32 flags);
+
+	void fadeToBlack();
+	void fadeToBlackExcludingFont();
+	void fadeToBlack(uint32 flags);
 
 	uint16 ipt_img_file_related();
 	void performAction();
@@ -256,6 +305,7 @@ public:
 
 	void runSceneUpdaterFunction();
 	void setSceneUpdateFunction(void (*newUpdateFunction)());
+	void clearSceneUpdateFunction();
 	void (*getSceneUpdateFunction())();
 
 	void setVsyncUpdateFunction(void (*newUpdateFunction)());
@@ -276,6 +326,8 @@ public:
 	bool checkForActionButtonRelease();
 	bool checkForDownKeyRelease();
 	bool checkForUpKeyRelease();
+	bool checkForWheelUp();
+	bool checkForWheelDown();
 
 	bool isDebugMode();
 
@@ -285,12 +337,22 @@ public:
 
 	bool isInMenu();
 
+	void loadingScreenUpdate();
+
+	void clearAllText();
+
 	//TODO this logic should probably go in its own class.
+	uint16 getBigFileTotalRecords();
 	uint32 getBigFileInfoTblFromDragonEXE();
 	uint32 getFontOffsetFromDragonEXE();
 	uint32 getSpeechTblOffsetFromDragonEXE();
 	uint32 getCutscenePaletteOffsetFromDragonEXE();
 	uint32 defaultResponseOffsetFromDragonEXE();
+	uint16 getCursorHandPointerSequenceID();
+	uint32 getMiniGame3StartingDialog();
+	uint32 getMiniGame3PickAHatDialog();
+	uint32 getMiniGame3DataOffset();
+	uint32 getDialogTextId(uint32 textId);
 private:
 	bool savegame(const char *filename, const char *description);
 	bool loadgame(const char *filename);
@@ -322,7 +384,16 @@ private:
 
 	void initSubtitleFlag();
 
+	void loadingScreen();
+
 	void mainMenu();
+
+	bool checkAudioVideoFiles();
+	bool validateAVFile(const char *filename);
+
+	uint32 getDialogTextIdGrb(uint32 textId);
+	uint32 getDialogTextIdDe(uint32 textId);
+	uint32 getDialogTextIdFr(uint32 textId);
 };
 
 DragonsEngine *getEngine();

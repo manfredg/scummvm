@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,23 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/world/actors/resurrection_process.h"
 #include "ultima/ultima8/world/actors/actor.h"
 #include "ultima/ultima8/world/get_object.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-// p_dynamic_cast stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE(ResurrectionProcess, Process)
+DEFINE_RUNTIME_CLASSTYPE_CODE(ResurrectionProcess)
 
 ResurrectionProcess::ResurrectionProcess() : Process() {
 
@@ -59,7 +54,7 @@ void ResurrectionProcess::run() {
 		return;
 	}
 
-	if (a->getFlags() & Item::FLG_GUMP_OPEN) {
+	if (a->hasFlags(Item::FLG_GUMP_OPEN)) {
 		// first close gump in case player is still rummaging through us
 		a->closeGump();
 	}
@@ -74,19 +69,20 @@ void ResurrectionProcess::run() {
 	}
 
 	// go into combat mode
-	a->setInCombat();
+	// Note: only happens in U8, so activity num is not important.
+	a->setInCombat(0);
 
 	// we should already be killed by going into combat mode.
 	if (!(_flags & PROC_TERMINATED))
 		terminate();
 }
 
-void ResurrectionProcess::saveData(ODataSource *ods) {
-	Process::saveData(ods);
+void ResurrectionProcess::saveData(Common::WriteStream *ws) {
+	Process::saveData(ws);
 }
 
-bool ResurrectionProcess::loadData(IDataSource *ids, uint32 version) {
-	if (!Process::loadData(ids, version)) return false;
+bool ResurrectionProcess::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Process::loadData(rs, version)) return false;
 
 	return true;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,8 @@
 
 #include <UIKit/UIKit.h>
 #include <SystemConfiguration/SCNetworkReachability.h>
-#include "common/translation.h"
+#include "backends/platform/ios7/ios7_app_delegate.h"
+#include "backends/platform/ios7/ios7_video.h"
 
 static inline void execute_on_main_thread_async(void (^block)(void)) {
 	if ([NSThread currentThread] == [NSThread mainThread]) {
@@ -38,46 +38,61 @@ static inline void execute_on_main_thread_async(void (^block)(void)) {
 }
 
 Common::String OSystem_iOS7::getSystemLanguage() const {
-	NSString *locale = [[NSLocale currentLocale] localeIdentifier];
-	if (locale == nil)
+	NSString *language = [[NSLocale preferredLanguages] firstObject];
+	if (language == nil)
 		return Common::String();
-	return Common::String([locale cStringUsingEncoding:NSISOLatin1StringEncoding]);
+	Common::String lang([language cStringUsingEncoding:NSISOLatin1StringEncoding]);
+	// Depending on the iOS version this may use an underscore (e.g. en_US) or a
+	// dash (en-US). Make sure we always return one with an underscore.
+	Common::replace(lang, "-", "_");
+	return lang;
 }
 
 bool OSystem_iOS7::hasTextInClipboard() {
 	return [[UIPasteboard generalPasteboard] containsPasteboardTypes:UIPasteboardTypeListString];
 }
 
-Common::String OSystem_iOS7::getTextFromClipboard() {
+Common::U32String OSystem_iOS7::getTextFromClipboard() {
 	if (!hasTextInClipboard())
-		return Common::String();
+		return Common::U32String();
 
 	UIPasteboard *pb = [UIPasteboard generalPasteboard];
 	NSString *str = pb.string;
 	if (str == nil)
-		return Common::String();
+		return Common::U32String();
 
 	// If translations are supported, use the current TranslationManager charset and otherwise
 	// use ASCII. If the string cannot be represented using the requested encoding we get a null
 	// pointer below, which is fine as ScummVM would not know what to do with the string anyway.
-#ifdef USE_TRANSLATION
-	NSString* encStr = [NSString stringWithCString:TransMan.getCurrentCharset().c_str() encoding:NSASCIIStringEncoding];
-	NSStringEncoding encoding = CFStringConvertEncodingToNSStringEncoding(CFStringConvertIANACharSetNameToEncoding((CFStringRef)encStr));
+#ifdef SCUMM_LITTLE_ENDIAN
+	NSStringEncoding stringEncoding = NSUTF32LittleEndianStringEncoding;
 #else
-	NSStringEncoding encoding = NSISOLatin1StringEncoding;
+	NSStringEncoding stringEncoding = NSUTF32BigEndianStringEncoding;
 #endif
-	return Common::String([str cStringUsingEncoding:encoding]);
+	NSUInteger textLength = [str length];
+	uint32 *text = new uint32[textLength];
+
+	if (![str getBytes:text maxLength:4*textLength usedLength:NULL encoding: stringEncoding options:0 range:NSMakeRange(0, textLength) remainingRange:NULL]) {
+		delete[] text;
+		return Common::U32String();
+	}
+
+	Common::U32String u32String(text, textLength);
+	delete[] text;
+
+	return u32String;
 }
 
-bool OSystem_iOS7::setTextInClipboard(const Common::String &text) {
-#ifdef USE_TRANSLATION
-	NSString* encStr = [NSString stringWithCString:TransMan.getCurrentCharset().c_str() encoding:NSASCIIStringEncoding];
-	NSStringEncoding encoding = CFStringConvertEncodingToNSStringEncoding(CFStringConvertIANACharSetNameToEncoding((CFStringRef)encStr));
+bool OSystem_iOS7::setTextInClipboard(const Common::U32String &text) {
+#ifdef SCUMM_LITTLE_ENDIAN
+	NSStringEncoding stringEncoding = NSUTF32LittleEndianStringEncoding;
 #else
-	NSStringEncoding encoding = NSISOLatin1StringEncoding;
+	NSStringEncoding stringEncoding = NSUTF32BigEndianStringEncoding;
 #endif
 	UIPasteboard *pb = [UIPasteboard generalPasteboard];
-	[pb setString:[NSString stringWithCString:text.c_str() encoding:encoding]];
+	NSString *nsstring = [[NSString alloc] initWithBytes:text.c_str() length:4*text.size() encoding: stringEncoding];
+	[pb setString:nsstring];
+	[nsstring release];
 	return true;
 }
 
@@ -107,4 +122,18 @@ bool OSystem_iOS7::isConnectionLimited() {
 	SCNetworkReachabilityGetFlags(ref, &flags);
 	CFRelease(ref);
 	return (flags & kSCNetworkReachabilityFlagsIsWWAN);
+}
+
+void OSystem_iOS7::handleEvent_applicationSaveState() {
+	[[iOS7AppDelegate iPhoneView] beginBackgroundSaveStateTask];
+	saveState();
+	[[iOS7AppDelegate iPhoneView] endBackgroundSaveStateTask];
+}
+
+void OSystem_iOS7::handleEvent_applicationRestoreState() {
+	restoreState();
+}
+
+void OSystem_iOS7::handleEvent_applicationClearState() {
+	clearState();
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,8 +26,7 @@
 #include "common/scummsys.h"
 #include "common/str.h"
 
-#include "graphics/surface.h"
-#include "graphics/transparent_surface.h"
+#include "graphics/managed_surface.h"
 
 #include "gui/ThemeEngine.h"
 
@@ -38,14 +36,21 @@ namespace Graphics {
 class VectorRenderer;
 struct DrawStep;
 
+/**
+ * @defgroup graphics_vector_renderer Vector renderer
+ * @ingroup graphics
+ *
+ * @brief VectorRenderer for drawing on a given surface.
+ *
+ * @{
+ */
 
 typedef void (VectorRenderer::*DrawingFunctionCallback)(const Common::Rect &, const Graphics::DrawStep &);
 
 
 struct DrawStep {
 	DrawingFunctionCallback drawingCall; /**< Pointer to drawing function */
-	Graphics::Surface* blitSrc;
-	Graphics::TransparentSurface* blitAlphaSrc;
+	Graphics::ManagedSurface *blitSrc;
 
 	struct Color {
 		uint8 r, g, b;
@@ -92,7 +97,6 @@ struct DrawStep {
 	DrawStep() {
 		drawingCall = nullptr;
 		blitSrc = nullptr;
-		blitAlphaSrc = nullptr;
 		// fgColor, bgColor, gradColor1, gradColor2, bevelColor initialized by Color default constructor
 		autoWidth = autoHeight = false;
 		x = y = w = h = 0;
@@ -130,7 +134,7 @@ VectorRenderer *createRenderer(int mode);
 class VectorRenderer {
 public:
 	VectorRenderer() : _activeSurface(NULL), _fillMode(kFillDisabled), _shadowOffset(0), _shadowFillMode(kShadowExponential),
-		_disableShadows(false), _strokeWidth(1), _gradientFactor(1) {
+		_disableShadows(false), _strokeWidth(1), _gradientFactor(1), _bevel(0), _dynamicData(0) {
 
 	}
 
@@ -234,8 +238,9 @@ public:
 	 * @param w Width of the tab
 	 * @param h Height of the tab
 	 * @param r Radius of the corners of the tab (0 for squared tabs).
+	 * @param s Shadow size
 	 */
-	virtual void drawTab(int x, int y, int r, int w, int h) = 0;
+	virtual void drawTab(int x, int y, int r, int w, int h, int s) = 0;
 
 	/**
 	 * Simple helper function to draw a cross.
@@ -292,14 +297,14 @@ public:
 	 *
 	 * @param surface Pointer to a Surface object.
 	 */
-	virtual void setSurface(TransparentSurface *surface) {
+	virtual void setSurface(ManagedSurface *surface) {
 		_activeSurface = surface;
 	}
 
 	/**
 	 * Returns the currently active drawing surface
 	 */
-	virtual TransparentSurface *getActiveSurface() {
+	virtual ManagedSurface *getActiveSurface() {
 		return _activeSurface;
 	}
 
@@ -446,19 +451,13 @@ public:
 	void drawCallback_TAB(const Common::Rect &area, const DrawStep &step) {
 		uint16 x, y, w, h;
 		stepGetPositions(step, area, x, y, w, h);
-		drawTab(x, y, stepGetRadius(step, area), w, h);
+		drawTab(x, y, stepGetRadius(step, area), w, h, step.shadow);
 	}
 
 	void drawCallback_BITMAP(const Common::Rect &area, const DrawStep &step) {
 		uint16 x, y, w, h;
 		stepGetPositions(step, area, x, y, w, h);
-		blitKeyBitmap(step.blitSrc, Common::Point(x, y));
-	}
-
-	void drawCallback_ALPHABITMAP(const Common::Rect &area, const DrawStep &step) {
-		uint16 x, y, w, h;
-		stepGetPositions(step, area, x, y, w, h);
-		blitAlphaBitmap(step.blitAlphaSrc, Common::Rect(x, y, x + w, y + h), step.autoscale, step.xAlign, step.yAlign); // TODO
+		blitKeyBitmap(step.blitSrc, Common::Point(x, y), true);
 	}
 
 	void drawCallback_CROSS(const Common::Rect &area, const DrawStep &step) {
@@ -507,26 +506,15 @@ public:
 	 * @param source Surface to blit into the drawing surface.
 	 * @param r Position in the active drawing surface to do the blitting.
 	 */
-	virtual void blitSurface(const Graphics::Surface *source, const Common::Rect &r) = 0;
+	virtual void blitSurface(const Graphics::ManagedSurface *source, const Common::Rect &r) = 0;
 
-	/**
-	 * Blits a given graphics surface at the specified position of the current drawing surface.
-	 */
-	virtual void blitSubSurface(const Graphics::Surface *source, const Common::Point &p) = 0;
-
-	virtual void blitKeyBitmap(const Graphics::Surface *source, const Common::Point &p) = 0;
-
-	virtual void blitAlphaBitmap(Graphics::TransparentSurface *source, const Common::Rect &r,
-			GUI::ThemeEngine::AutoScaleMode autoscale = GUI::ThemeEngine::kAutoScaleNone,
-			Graphics::DrawStep::VectorAlignment xAlign = Graphics::DrawStep::kVectorAlignManual,
-			Graphics::DrawStep::VectorAlignment yAlign = Graphics::DrawStep::kVectorAlignManual,
-			int alpha = 255) = 0;
+	virtual void blitKeyBitmap(const Graphics::ManagedSurface *source, const Common::Point &p, bool themeTrans) = 0;
 
 	/**
 	 * Draws a string into the screen. Wrapper for the Graphics::Font string drawing
 	 * method.
 	 */
-	virtual void drawString(const Graphics::Font *font, const Common::String &text,
+	virtual void drawString(const Graphics::Font *font, const Common::U32String &text,
 	                        const Common::Rect &area, Graphics::TextAlign alignH,
 	                        GUI::ThemeEngine::TextAlignVertical alignV, int deltax, bool useEllipsis, const Common::Rect &textDrawableArea) = 0;
 
@@ -544,7 +532,7 @@ public:
 	virtual void applyScreenShading(GUI::ThemeEngine::ShadingStyle) = 0;
 
 protected:
-	TransparentSurface *_activeSurface; /**< Pointer to the surface currently being drawn */
+	ManagedSurface *_activeSurface; /**< Pointer to the surface currently being drawn */
 
 	FillMode _fillMode; /**< Defines in which way (if any) are filled the drawn shapes */
 	ShadowFillMode _shadowFillMode;
@@ -557,7 +545,7 @@ protected:
 
 	int _gradientFactor; /**< Multiplication factor of the active gradient */
 };
-
+/** @} */
 } // End of namespace Graphics
 
 #endif

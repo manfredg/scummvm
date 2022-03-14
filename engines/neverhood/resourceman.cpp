@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 namespace Neverhood {
 
 ResourceHandle::ResourceHandle()
-	: _resourceFileEntry(NULL), _data(NULL) {
+	: _resourceFileEntry(nullptr), _data(nullptr) {
 }
 
 ResourceHandle::~ResourceHandle() {
@@ -62,7 +61,7 @@ void ResourceMan::addArchive(const Common::String &filename) {
 
 ResourceFileEntry *ResourceMan::findEntrySimple(uint32 fileHash) {
 	EntriesMap::iterator p = _entries.find(fileHash);
-	return p != _entries.end() ? &(*p)._value : NULL;
+	return p != _entries.end() ? &(*p)._value : nullptr;
 }
 
 ResourceFileEntry *ResourceMan::findEntry(uint32 fileHash, ResourceFileEntry **firstEntry) {
@@ -76,13 +75,13 @@ ResourceFileEntry *ResourceMan::findEntry(uint32 fileHash, ResourceFileEntry **f
 
 Common::SeekableReadStream *ResourceMan::createStream(uint32 fileHash) {
 	ResourceFileEntry *entry = findEntry(fileHash);
-	return entry ? entry->archive->createStream(entry->archiveEntry) : NULL;
+	return entry ? entry->archive->createStream(entry->archiveEntry) : nullptr;
 }
 
 void ResourceMan::queryResource(uint32 fileHash, ResourceHandle &resourceHandle) {
 	ResourceFileEntry *firstEntry;
 	resourceHandle._resourceFileEntry = findEntry(fileHash, &firstEntry);
-	resourceHandle._extData = firstEntry ? firstEntry->archiveEntry->extData : NULL;
+	resourceHandle._extData = firstEntry ? firstEntry->archiveEntry->extData : nullptr;
 }
 
 struct EntrySizeFix {
@@ -127,7 +126,7 @@ static const EntrySizeFix entrySizeFixes[] = {
 };
 
 void ResourceMan::loadResource(ResourceHandle &resourceHandle, bool applyResourceFixes) {
-	resourceHandle._data = NULL;
+	resourceHandle._data = nullptr;
 	if (resourceHandle.isValid()) {
 		const uint32 fileHash = resourceHandle.fileHash();
 		ResourceData *resourceData = _data[fileHash];
@@ -135,7 +134,7 @@ void ResourceMan::loadResource(ResourceHandle &resourceHandle, bool applyResourc
 			resourceData = new ResourceData();
 			_data[fileHash] = resourceData;
 		}
-		if (resourceData->data != NULL) {
+		if (resourceData->data != nullptr) {
 			resourceData->dataRefCount++;
 		} else {
 			BlbArchiveEntry *entry = resourceHandle._resourceFileEntry->archiveEntry;
@@ -162,8 +161,8 @@ void ResourceMan::unloadResource(ResourceHandle &resourceHandle) {
 		ResourceData *resourceData = _data[resourceHandle.fileHash()];
 		if (resourceData && resourceData->dataRefCount > 0)
 			--resourceData->dataRefCount;
-		resourceHandle._resourceFileEntry = NULL;
-		resourceHandle._data = NULL;
+		resourceHandle._resourceFileEntry = nullptr;
+		resourceHandle._data = nullptr;
 	}
 }
 
@@ -172,7 +171,7 @@ void ResourceMan::purgeResources() {
 		ResourceData *resourceData = (*it)._value;
 		if (resourceData->dataRefCount == 0) {
 			delete[] resourceData->data;
-			resourceData->data = NULL;
+			resourceData->data = nullptr;
 		}
 	}
 }

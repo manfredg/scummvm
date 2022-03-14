@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,12 +23,11 @@
 #define ULTIMA8_CONVERT_CONVERTSHAPE_H
 
 #include "common/scummsys.h"
+#include "common/stream.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-class IDataSource;
-class ODataSource;
 
 // Convert shape C
 
@@ -79,17 +77,11 @@ struct ConvertShapeFrame {
 	int32				_bytes_rle;			// Number of bytes of RLE Data
 	uint8				*_rle_data;
 
-	void Free() {
-		delete [] _line_offsets;
-		_line_offsets = 0;
+	void Free();
 
-		delete [] _rle_data;
-		_rle_data = 0;
-	}
+	void Read(Common::SeekableReadStream &source, const ConvertShapeFormat *csf, uint32 frame_length);
 
-	void Read(IDataSource *source, const ConvertShapeFormat *csf, uint32 frame_length);
-
-	void ReadCmpFrame(IDataSource *source, const ConvertShapeFormat *csf, const uint8 special[256], ConvertShapeFrame *prev);
+	void ReadCmpFrame(Common::SeekableReadStream &source, const ConvertShapeFormat *csf, const uint8 special[256], ConvertShapeFrame *prev);
 
 	void GetPixels(uint8 *buf, int32 count, int32 x, int32 y);
 };
@@ -104,39 +96,27 @@ class ConvertShape
 	ConvertShapeFrame	*_frames;
 
 public:
-	ConvertShape() : _num_frames(0), _frames(0)
-	{
-	}
+	ConvertShape();
 
 	~ConvertShape()
 	{
 		Free();
 	}
 
-	void Free()
-	{
-		if (_frames)
-			for(uint32 i = 0; i < _num_frames; ++i)
-				_frames[i].Free();
-		
-		delete [] _frames;
-		_frames = 0;
-		_num_frames = 0;
-	}
+	void Free();
 
-
-	void Read(IDataSource *source, const ConvertShapeFormat *csf, uint32 real_len);
-	void Write(ODataSource *source, const ConvertShapeFormat *csf, uint32 &write_len);
+	void Read(Common::SeekableReadStream &source, const ConvertShapeFormat *csf, uint32 real_len);
+	void Write(Common::SeekableWriteStream &source, const ConvertShapeFormat *csf, uint32 &write_len);
 
 	// This will check to see if a Shape is of a certain type. Return true if ok, false if bad
-	static bool Check(IDataSource *source, const ConvertShapeFormat *csf, uint32 real_len);
+	static bool Check(Common::SeekableReadStream &source, const ConvertShapeFormat *csf, uint32 real_len);
 
 	// This will also check to see if a shape is of a certain type. However it won't check
 	// the rle data, it only checks headers. Return true if ok, false if bad
-	static bool CheckUnsafe(IDataSource *source, const ConvertShapeFormat *csf, uint32 real_len);
+	static bool CheckUnsafe(Common::SeekableReadStream &source, const ConvertShapeFormat *csf, uint32 real_len);
 
 	// Algorithmically calculate the number of frames
-	static int CalcNumFrames(IDataSource *source, const ConvertShapeFormat *csf, uint32 real_len, uint32 start_pos);
+	static int CalcNumFrames(Common::SeekableReadStream &source, const ConvertShapeFormat *csf, uint32 real_len, uint32 start_pos);
 };
 
 // Shape format configuration for Pentagram format

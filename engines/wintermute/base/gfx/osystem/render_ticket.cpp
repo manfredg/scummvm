@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,18 +29,22 @@
 #include "engines/wintermute/base/base_game.h"
 #include "engines/wintermute/base/gfx/osystem/render_ticket.h"
 #include "engines/wintermute/base/gfx/osystem/base_surface_osystem.h"
+
 #include "graphics/transform_tools.h"
+#include "graphics/transparent_surface.h"
+
 #include "common/textconsole.h"
 
 namespace Wintermute {
 
-RenderTicket::RenderTicket(BaseSurfaceOSystem *owner, const Graphics::Surface *surf, Common::Rect *srcRect, Common::Rect *dstRect, Graphics::TransformStruct transform) :
-	_owner(owner),
-	_srcRect(*srcRect),
-	_dstRect(*dstRect),
-	_isValid(true),
-	_wantsDraw(true),
-	_transform(transform) {
+RenderTicket::RenderTicket(BaseSurfaceOSystem *owner, const Graphics::Surface *surf,
+                           Common::Rect *srcRect, Common::Rect *dstRect, Graphics::TransformStruct transform) :
+	        _owner(owner),
+	        _srcRect(*srcRect),
+	        _dstRect(*dstRect),
+	        _isValid(true),
+	        _wantsDraw(true),
+	        _transform(transform) {
 	if (surf) {
 		_surface = new Graphics::Surface();
 		_surface->create((uint16)srcRect->width(), (uint16)srcRect->height(), surf->format);
@@ -59,26 +62,14 @@ RenderTicket::RenderTicket(BaseSurfaceOSystem *owner, const Graphics::Surface *s
 		// (Mirroring should most likely be done before rotation. See also
 		// TransformTools.)
 		if (_transform._angle != Graphics::kDefaultAngle) {
-			Graphics::TransparentSurface src(*_surface, false);
-			Graphics::Surface *temp;
-			if (owner->_gameRef->getBilinearFiltering()) {
-				temp = src.rotoscaleT<Graphics::FILTER_BILINEAR>(transform);
-			} else {
-				temp = src.rotoscaleT<Graphics::FILTER_NEAREST>(transform);
-			}
+			Graphics::Surface *temp = _surface->rotoscale(transform, owner->_gameRef->getBilinearFiltering());
 			_surface->free();
 			delete _surface;
 			_surface = temp;
 		} else if ((dstRect->width() != srcRect->width() ||
 					dstRect->height() != srcRect->height()) &&
 					_transform._numTimesX * _transform._numTimesY == 1) {
-			Graphics::TransparentSurface src(*_surface, false);
-			Graphics::Surface *temp;
-			if (owner->_gameRef->getBilinearFiltering()) {
-				temp = src.scaleT<Graphics::FILTER_BILINEAR>(dstRect->width(), dstRect->height());
-			} else {
-				temp = src.scaleT<Graphics::FILTER_NEAREST>(dstRect->width(), dstRect->height());
-			}
+			Graphics::Surface *temp = _surface->scale(dstRect->width(), dstRect->height(), owner->_gameRef->getBilinearFiltering());
 			_surface->free();
 			delete _surface;
 			_surface = temp;

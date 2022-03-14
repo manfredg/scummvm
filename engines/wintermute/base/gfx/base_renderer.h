@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,7 @@
 
 #include "engines/wintermute/math/rect32.h"
 #include "engines/wintermute/base/base.h"
+
 #include "common/rect.h"
 #include "common/array.h"
 
@@ -41,6 +41,9 @@ class BaseActiveRect;
 class BaseObject;
 class BaseSurface;
 class BasePersistenceManager;
+#ifdef ENABLE_WME3D
+class Camera3D;
+#endif
 
 /**
  * @class BaseRenderer a common interface for the rendering portion of WME
@@ -86,8 +89,8 @@ public:
 	 */
 	virtual void fadeToColor(byte r, byte g, byte b, byte a) = 0;
 
-	virtual bool drawLine(int x1, int y1, int x2, int y2, uint32 color); 	// Unused outside indicator-display
-	virtual bool drawRect(int x1, int y1, int x2, int y2, uint32 color, int width = 1); 	// Unused outside indicator-display
+	virtual bool drawLine(int x1, int y1, int x2, int y2, uint32 color); // Unused outside indicator-display
+	virtual bool drawRect(int x1, int y1, int x2, int y2, uint32 color, int width = 1); // Unused outside indicator-display
 	BaseRenderer(BaseGame *inGame = nullptr);
 	~BaseRenderer() override;
 	virtual bool setProjection() {
@@ -120,6 +123,9 @@ public:
 	virtual bool forcedFlip() = 0;
 	virtual void initLoop();
 	virtual bool setup2D(bool force = false);
+#ifdef ENABLE_WME3D
+	virtual bool setup3D(Camera3D *camera = nullptr, bool force = false);
+#endif
 	virtual bool setupLines();
 
 	/**
@@ -230,6 +236,12 @@ private:
 };
 
 BaseRenderer *makeOSystemRenderer(BaseGame *inGame); // Implemented in BRenderSDL.cpp
+#ifdef ENABLE_WME3D
+class BaseRenderer3D;
+
+BaseRenderer3D *makeOpenGL3DRenderer(BaseGame *inGame);
+BaseRenderer3D *makeOpenGL3DShaderRenderer(BaseGame *inGame);
+#endif
 
 } // End of namespace Wintermute
 

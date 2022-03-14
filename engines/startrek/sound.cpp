@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,11 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "startrek/resource.h"
 #include "startrek/sound.h"
 
 #include "common/file.h"
@@ -43,7 +43,6 @@ Sound::Sound(StarTrekEngine *vm) : _vm(vm) {
 		_midiDevice = MidiDriver::detectDevice(MDT_PCSPK | MDT_ADLIB | MDT_MIDI | MDT_PREFER_MT32);
 		_midiDriver = MidiDriver::createMidi(_midiDevice);
 		_midiDriver->open();
-		_midiDriver->setTimerCallback(this, Sound::midiDriverCallback);
 
 		for (int i = 0; i < NUM_MIDI_SLOTS; i++) {
 			_midiSlots[i].slot = i;
@@ -58,10 +57,13 @@ Sound::Sound(StarTrekEngine *vm) : _vm(vm) {
 			_midiSlots[i].midiParser->setMidiDriver(_midiDriver);
 			_midiSlots[i].midiParser->setTimerRate(_midiDriver->getBaseTempo());
 		}
+
+		_midiDriver->setTimerCallback(this, Sound::midiDriverCallback);
 	}
 
 	_soundHandle = new Audio::SoundHandle();
-	loadedSoundData = nullptr;
+	_loadedSoundData = nullptr;
+	_loadedSoundDataSize = 0;
 
 	for (int i = 1; i < NUM_MIDI_SLOTS; i++) {
 		_midiSlotList.push_back(&_midiSlots[i]);
@@ -82,7 +84,7 @@ Sound::~Sound() {
 		delete _midiSlots[i].midiParser;
 	delete _midiDriver;
 	delete _soundHandle;
-	delete[] loadedSoundData;
+	delete[] _loadedSoundData;
 }
 
 
@@ -96,13 +98,17 @@ void Sound::playMidiTrack(int track) {
 	if (!_vm->_musicEnabled || !_vm->_musicWorking)
 		return;
 
-	assert(loadedSoundData != nullptr);
+	// TODO: Demo music
+	if (_vm->getFeatures() & GF_DEMO)
+		return;
+
+	assert(_loadedSoundData != nullptr);
 
 	// Check if a midi slot for this track exists already
 	for (int i = 1; i < NUM_MIDI_SLOTS; i++) {
 		if (_midiSlots[i].track == track) {
 			debugC(6, kDebugSound, "Playing MIDI track %d (slot %d)", track, i);
-			_midiSlots[i].midiParser->loadMusic(loadedSoundData, sizeof(loadedSoundData));
+			_midiSlots[i].midiParser->loadMusic(_loadedSoundData, _loadedSoundDataSize);
 			_midiSlots[i].midiParser->setTrack(track);
 
 			// Shift this to the back (most recently used)
@@ -120,14 +126,14 @@ void Sound::playMidiTrack(int track) {
 }
 
 void Sound::playMidiTrackInSlot(int slot, int track) {
-	assert(loadedSoundData != nullptr);
+	assert(_loadedSoundData != nullptr);
 	debugC(6, kDebugSound, "Playing MIDI track %d (slot %d)", track, slot);
 
 	clearMidiSlot(slot);
 
 	if (track != -1) {
 		_midiSlots[slot].track = track;
-		_midiSlots[slot].midiParser->loadMusic(loadedSoundData, sizeof(loadedSoundData));
+		_midiSlots[slot].midiParser->loadMusic(_loadedSoundData, _loadedSoundDataSize);
 		_midiSlots[slot].midiParser->setTrack(track);
 	}
 }
@@ -145,6 +151,8 @@ bool Sound::isMidiPlaying() {
 }
 
 void Sound::loadMusicFile(const Common::String &baseSoundName) {
+	bool isDemo = _vm->getFeatures() & GF_DEMO;
+
 	clearAllMidiSlots();
 
 	if (baseSoundName == _loadedMidiFilename)
@@ -152,16 +160,15 @@ void Sound::loadMusicFile(const Common::String &baseSoundName) {
 
 	_loadedMidiFilename = baseSoundName;
 
-	/*
-	if (_vm->getPlatform() == Common::kPlatformAmiga)
-		playAmigaSound(baseSoundName);
-	else if (_vm->getPlatform() == Common::kPlatformMacintosh)
-		playMacSMFSound(baseSoundName);
-	else if (_vm->getFeatures() & GF_DEMO)
-		playSMFSound(baseSoundName);
-	else
-	*/
-	loadPCMusicFile(baseSoundName);
+	if (_vm->getPlatform() == Common::kPlatformDOS && !isDemo) {
+		loadPCMusicFile(baseSoundName);
+	} else if (_vm->getPlatform() == Common::kPlatformDOS && isDemo) {
+		//playSMFSound(baseSoundName);
+	} else if (_vm->getPlatform() == Common::kPlatformAmiga) {
+		//playAmigaSound(baseSoundName);
+	} else if (_vm->getPlatform() == Common::kPlatformMacintosh) {
+		//playMacSMFSound(baseSoundName);
+	}
 }
 
 void Sound::playMidiMusicTracks(int startTrack, int loopTrack) {
@@ -338,6 +345,10 @@ void Sound::playSoundEffectIndex(int index) {
 	}
 }
 
+void Sound::toggleMusic() {
+	setMusicEnabled(!_vm->_musicEnabled);
+}
+
 void Sound::setMusicEnabled(bool enable) {
 	if (!_vm->_musicWorking || _vm->_musicEnabled == enable)
 		return;
@@ -348,6 +359,10 @@ void Sound::setMusicEnabled(bool enable) {
 		playMidiMusicTracks(_loopingMidiTrack, _loopingMidiTrack);
 	else
 		clearMidiSlot(0);
+}
+
+void Sound::toggleSfx() {
+	setSfxEnabled(!_vm->_sfxEnabled);
 }
 
 void Sound::setSfxEnabled(bool enable) {
@@ -402,15 +417,16 @@ void Sound::loadPCMusicFile(const Common::String &baseSoundName) {
 	}
 
 	debugC(5, kDebugSound, "Loading midi \'%s\'\n", soundName.c_str());
-	Common::MemoryReadStreamEndian *soundStream = _vm->loadFile(soundName.c_str());
+	Common::MemoryReadStreamEndian *soundStream = _vm->_resource->loadFile(soundName.c_str());
 
-	if (loadedSoundData != nullptr)
-		delete[] loadedSoundData;
-	loadedSoundData = new byte[soundStream->size()];
-	soundStream->read(loadedSoundData, soundStream->size());
+	if (_loadedSoundData != nullptr)
+		delete[] _loadedSoundData;
+	_loadedSoundDataSize = soundStream->size();
+	_loadedSoundData = new byte[_loadedSoundDataSize];
+	soundStream->read(_loadedSoundData, _loadedSoundDataSize);
 
 	// FIXME: should music start playing when this is called?
-	//_midiSlots[0].midiParser->loadMusic(loadedSoundData, soundStream->size());
+	//_midiSlots[0].midiParser->loadMusic(_loadedSoundData, soundStream->size());
 
 	delete soundStream;
 }

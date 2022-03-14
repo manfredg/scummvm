@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,15 +23,13 @@
 #define ULTIMA8_FILESYS_NAMEDARCHIVEFILE_H
 
 #include "ultima/ultima8/filesys/archive_file.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
+#include "ultima/ultima8/misc/classtype.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
 class NamedArchiveFile : public ArchiveFile {
 public:
-	ENABLE_RUNTIME_CLASSTYPE()
-
 	NamedArchiveFile() : _indexCount(0) { }
 	~NamedArchiveFile() override { }
 
@@ -44,14 +41,16 @@ public:
 
 	uint8 *getObject(uint32 index, uint32 *size = 0) override {
 		Std::string name;
-		if (!indexToName(index, name)) return 0;
+		if (!indexToName(index, name))
+			return nullptr;
 		return getObject(name, size);
 	}
 	uint8 *getObject(const Std::string &name, uint32 *size = 0) override = 0;
 
 	uint32 getSize(uint32 index) const override {
 		Std::string name;
-		if (!indexToName(index, name)) return 0;
+		if (!indexToName(index, name))
+			return 0;
 		return getSize(name);
 	}
 	uint32 getSize(const Std::string &name) const override = 0;

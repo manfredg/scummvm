@@ -4,10 +4,10 @@
 # are too numerous to list here. Please refer to the COPYRIGHT
 # file distributed with this source distribution.
 #
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
 import os, re
@@ -91,22 +90,22 @@ class parser:
 	def get_offset(self, name):
 		name = name.lower()
 		return self.__offsets[name]
-	
+
 	def include(self, basedir, fname):
 		path = fname.split('\\')[self.strip_path:]
 		path = os.path.join(basedir, os.path.pathsep.join(path))
 		#print "including %s" %(path)
-		
+
 		self.parse(path)
 
 	def eval(self, stmt):
-		try: 
+		try:
 			return self.parse_int(stmt)
 		except:
 			pass
 		value = self.__globals[stmt.lower()].value
 		return int(value)
-	
+
 	def expr_callback(self, match):
 		name = match.group(1).lower()
 		g = self.get_global(name)
@@ -114,16 +113,16 @@ class parser:
 			return g.value
 		else:
 			return "0x%04x" %g.offset
-	
+
 	def eval_expr(self, expr):
 		n = 1
 		while n > 0:
 			expr, n = re.subn(r'\b([a-zA-Z_]+[a-zA-Z0-9_]*)', self.expr_callback, expr)
 		return eval(expr)
-	
+
 	def expand_globals(self, text):
 		return text
-	
+
 	def fix_dollar(self, v):
 		print("$ = %d" %len(self.binary_data))
 		return re.sub(r'\$', "%d" %len(self.binary_data), v)
@@ -134,7 +133,7 @@ class parser:
 		if re.match(r'[\+-]?[0-9a-f]+h$', v):
 			v = int(v[:-1], 16)
 		return int(v)
-	
+
 	def compact_data(self, width, data):
 		#print "COMPACTING %d %s" %(width, data)
 		r = []
@@ -148,7 +147,7 @@ class parser:
 				for i in xrange(1, len(v) - 1):
 					r.append(ord(v[i]))
 				continue
-			
+
 			m = re.match(r'(\w+)\s+dup\s+\((\s*\S+\s*)\)', v)
 			if m is not None:
 				#we should parse that
@@ -163,7 +162,7 @@ class parser:
 						r.append(v & 0xff);
 						v >>= 8
 				continue
-			
+
 			try:
 				v = self.parse_int(v)
 				if v < 0:
@@ -178,7 +177,7 @@ class parser:
 					print "unknown address %s" %(v)
 					self.link_later.append((len(self.binary_data) + len(r), v))
 					v = 0
-		
+
 			for b in xrange(0, width):
 				r.append(v & 0xff);
 				v >>= 8
@@ -214,7 +213,7 @@ class parser:
 			cmd = line.split()
 			if len(cmd) == 0:
 				continue
-			
+
 			cmd0 = str(cmd[0])
 			if cmd0 == 'if':
 				self.push_if(cmd[1])
@@ -225,7 +224,7 @@ class parser:
 			elif cmd0 == 'endif':
 				self.pop_if()
 				continue
-			
+
 			if not self.visible():
 				continue
 
@@ -249,7 +248,7 @@ class parser:
 				self.proc.add(cmd0)
 				self.proc.add(" ".join(cmd[1:]))
 				continue
-			
+
 			if len(cmd) >= 3:
 				cmd1 = cmd[1]
 				if cmd1 == 'equ':
@@ -285,7 +284,7 @@ class parser:
 			else:
 				#print line
 				pass
-			
+
 		fd.close()
 		return self
 

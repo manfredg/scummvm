@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * $URL: https://scummvm-startrek.googlecode.com/svn/trunk/graphics.h $
  * $Id: graphics.h 2 2009-09-12 20:13:40Z clone2727 $
@@ -42,12 +41,13 @@ namespace StarTrek {
 // the rectangle, but ScummVM rects are not. Functions from Trek have been adapted to use
 // ScummVM's rect format. Be wary of off-by-1 errors...
 
-struct Sprite : Common::Serializable {
+class Sprite : Common::Serializable {
+public:
 	Common::Point pos;
 	uint16 drawPriority;
 	uint16 drawPriority2; // If two sprites' drawPriorities are equal, this is checked.
 	Common::String field8;
-	SharedPtr<Bitmap> bitmap;
+	Bitmap *bitmap;
 	uint16 drawMode;
 	uint16 textColor;
 	bool bitmapChanged;
@@ -60,6 +60,7 @@ struct Sprite : Common::Serializable {
 	int16 drawX, drawY;
 
 	Sprite();
+	virtual ~Sprite();
 
 	void setBitmap(Bitmap *b);
 	void setBitmap(Common::MemoryReadStreamEndian *stream);

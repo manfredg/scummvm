@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,12 +43,12 @@ struct runcxdef;
  * Text i/o context
  */
 struct tiocxdef {
-    errcxdef *tiocxerr;                           /* error handling context */
+	errcxdef *tiocxerr;                           /* error handling context */
 };
 
 /**
  *   Initialize the output formatter subsystem.  This must be called once
- *   at startup. 
+ *   at startup.
  */
 void out_init();
 
@@ -71,7 +70,7 @@ void out_init();
 
 /* set up format strings in output subsystem */
 void tiosetfmt(tiocxdef *ctx, runcxdef *rctx, uchar *fmtbase,
-               uint fmtlen);
+			   uint fmtlen);
 
 /* tell tio subsystem the current actor */
 void tiosetactor(tiocxdef *ctx, objnum actor);
@@ -106,10 +105,10 @@ void outflush(void);
 /* reset output state */
 void outreset(void);
 
-/* 
+/*
  *   Get a string from the keyboard.  Returns non-zero if an error occurs
  *   (in particular, if no more input is available from the keyboard),
- *   zero on success.  
+ *   zero on success.
  */
 int getstring(const char *prompt, char *buf, int bufl);
 
@@ -128,17 +127,17 @@ int tiologcls(tiocxdef *ctx);
  *   automatically copy text to the log file; any text that the caller
  *   knows should be in the log file during times when more mode is turned
  *   off can be explicitly added with this function.
- *   
+ *
  *   If nl is true, we'll add a newline at the end of this text.  The
  *   caller should not include any newlines in the text being displayed
- *   here.  
+ *   here.
  */
 void out_logfile_print(const char *txt, int nl);
 
 
 /*
  *   Check output status.  Indicate whether output is currently hidden,
- *   and whether any hidden output has occurred. 
+ *   and whether any hidden output has occurred.
  */
 void outstat(int *hidden, int *output_occurred);
 
@@ -155,23 +154,14 @@ void outblank(void);
 /* start/end watchpoint evaluation */
 void outwx(int flag);
 
-/* Begin/end capturing */
-void tiocapture(tiocxdef *tioctx, mcmcxdef *memctx, int flag);
-
 /* clear all captured output */
 void tioclrcapture(tiocxdef *tioctx);
 
-/* 
+/*
  *   clear captured output back to a given point -- this can be used to
- *   remove captured output in an inner capture from an enclosing capture 
+ *   remove captured output in an inner capture from an enclosing capture
  */
 void tiopopcapture(tiocxdef *tioctx, uint orig_size);
-
-/* get the object handle of the captured output */
-mcmon tiogetcapture(tiocxdef *ctx);
-
-/* get the amount of text captured */
-uint tiocapturesize(tiocxdef *ctx);
 
 /* turn MORE mode on or off */
 int setmore(int state);
@@ -192,10 +182,10 @@ char *qasgets(char *buf, int bufl);
  *   expansions.  The HTML run-time uses its own expansion mechanism, so
  *   it will ignore this information.  The standard character-mode TADS
  *   run-time, however, uses this information to map HTML entities to the
- *   local character set. 
+ *   local character set.
  */
 void tio_set_html_expansion(unsigned int html_char_val,
-                            const char *expansion, size_t expansion_len);
+							const char *expansion, size_t expansion_len);
 
 /* check for HTML mode - returns true if an "\H+" sequence is active */
 int tio_is_html_mode();
@@ -210,7 +200,7 @@ void out_set_doublespace(int dbl);
  *   Ask for a filename, using a system-defined dialog (via os_askfile) if
  *   possible.  Uses the same interface as os_askfile(), which we will
  *   call directly for graphical implementations.  We'll use formatted
- *   text for text-only implementations.  
+ *   text for text-only implementations.
  */
 int tio_askfile(const char *prompt, char *reply, int replen, int prompt_type, os_filetype_t file_type);
 
@@ -218,11 +208,11 @@ int tio_askfile(const char *prompt, char *reply, int replen, int prompt_type, os
  *   Display a dialog, using a system-defined dialog (via os_input_dialog)
  *   if possible.  Uses the same interface as os_input_dialog(), which we
  *   will call directly for graphical implementations.  We'll use
- *   formatted text for text-only implementations.  
+ *   formatted text for text-only implementations.
  */
 int tio_input_dialog(int icon_id, const char *prompt, int standard_button_set,
-                     const char **buttons, int button_count,
-                     int default_index, int cancel_index);
+					 const char **buttons, int button_count,
+					 int default_index, int cancel_index);
 
 
 } // End of namespace TADS2

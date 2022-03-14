@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,14 +68,14 @@ public:
 	void loadPDA(const Common::String &pageName);
 
 	void onKeyboardButtonClick(Common::KeyCode code);
-	void onLeftButtonClick(const Common::Point point);
+	void onLeftButtonClick(Common::Point point);
 	void onLeftButtonUp();
-	void onRightButtonClick(const Common::Point point);
+	virtual void onRightButtonClick(Common::Point point);
 
-	void onMouseMove(const Common::Point point);
+	void onMouseMove(Common::Point point);
 
-	void onMouseOverWithItem(const Common::Point point, const Common::String &itemName, Pink::CursorMgr *cursorMgr) override;
-	void onMouseOver(const Common::Point point, CursorMgr *mgr) override;
+	void onMouseOverWithItem(Common::Point point, const Common::String &itemName, Pink::CursorMgr *cursorMgr) override;
+	void onMouseOver(Common::Point point, CursorMgr *mgr) override;
 
 	void onLeftClickMessage() override;
 	virtual void onVariableSet() {}
@@ -92,14 +91,14 @@ public:
 
 	AudioInfoMgr *getAudioInfoMgr() { return &_audioInfoMgr; }
 
-	Actor *getActorByPoint(const Common::Point point);
+	Actor *getActorByPoint(Common::Point point);
 
 	Actor *findActor(const Common::String &name);
 
 protected:
 	void forceUpdateCursor();
 
-	virtual void updateCursor(const Common::Point point);
+	virtual void updateCursor(Common::Point point);
 
 	virtual void sendUseClickMessage(Actor *actor);
 	void sendLeftClickMessage(Actor *actor);
@@ -140,11 +139,13 @@ class PubPink : public LeadActor {
 public:
 	void toConsole() const override;
 
+	void onRightButtonClick(Common::Point point) override;
+
 	void onLeftClickMessage() override;
 	void onVariableSet() override;
 
 protected:
-	void updateCursor(const Common::Point point) override;
+	void updateCursor(Common::Point point) override;
 
 	void sendUseClickMessage(Actor *actor) override;
 

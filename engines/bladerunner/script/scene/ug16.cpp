@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -148,7 +147,7 @@ bool SceneScriptUG16::ClickedOnExit(int exitId) {
 	if (exitId == 0) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -322.0f, -34.0f, -216.0f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagUG16toUG15b);
 			Set_Enter(kSetUG15, kSceneUG15);
 		}
@@ -158,7 +157,7 @@ bool SceneScriptUG16::ClickedOnExit(int exitId) {
 	if (exitId == 1) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -322.0f, -34.0f, -404.0f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagUG16toUG15a);
 			Set_Enter(kSetUG15, kSceneUG15);
 		}
@@ -170,7 +169,7 @@ bool SceneScriptUG16::ClickedOnExit(int exitId) {
 			Actor_Face_Heading(kActorMcCoy, 0, false);
 			Loop_Actor_Travel_Stairs(kActorMcCoy, 13, true, kAnimationModeIdle);
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagUG16toDR06);
 			Set_Enter(kSetDR06, kSceneDR06);
 		}
@@ -185,7 +184,7 @@ bool SceneScriptUG16::ClickedOn2DRegion(int region) {
 
 void SceneScriptUG16::SceneFrameAdvanced(int frame) {
 	if (frame == 132) {
-		Ambient_Sounds_Remove_Looping_Sound(kSfxELECLAB1, 1);
+		Ambient_Sounds_Remove_Looping_Sound(kSfxELECLAB1, 1u);
 	}
 }
 
@@ -237,8 +236,8 @@ void SceneScriptUG16::dialogueWithLuther() {
 	Dialogue_Menu_Clear_List();
 	DM_Add_To_List_Never_Repeat_Once_Selected(1400, 5, 6, 2); // REPLICANTS
 	DM_Add_To_List_Never_Repeat_Once_Selected(1410, 5, 4, 8); // WORK
-	if (Game_Flag_Query(kFlagUG16LutherLanceTalkReplicants1)
-	 || Game_Flag_Query(kFlagUG16LutherLanceTalkReplicants2)
+	if (Game_Flag_Query(kFlagUG16LutherLanceTalkReplicants)
+	 || Game_Flag_Query(kFlagUG16LutherLanceTalkHumans)
 	) {
 		DM_Add_To_List_Never_Repeat_Once_Selected(1420, 6, 4, 5); // LIFESPAN
 		DM_Add_To_List_Never_Repeat_Once_Selected(1430, 6, 4, 5); // CLOVIS
@@ -287,7 +286,7 @@ void SceneScriptUG16::dialogueWithLuther() {
 			Actor_Says(kActorLance, 140, 16);
 			Actor_Says(kActorMcCoy, 5790, 13);
 			Actor_Says(kActorLuther, 170, 14);
-			Game_Flag_Set(kFlagUG16LutherLanceTalkReplicants1);
+			Game_Flag_Set(kFlagUG16LutherLanceTalkReplicants);
 			Actor_Modify_Friendliness_To_Other(kActorLuther, kActorMcCoy, 5);
 		} else {
 			Actor_Says(kActorLuther, 180, 14);
@@ -295,7 +294,7 @@ void SceneScriptUG16::dialogueWithLuther() {
 			Actor_Says(kActorLance, 150, 17);
 			Actor_Says(kActorMcCoy, 5800, 13);
 			Actor_Says(kActorLuther, 190, 15);
-			Game_Flag_Set(kFlagUG16LutherLanceTalkReplicants2);
+			Game_Flag_Set(kFlagUG16LutherLanceTalkHumans);
 			Actor_Modify_Friendliness_To_Other(kActorLuther, kActorMcCoy, -10);
 		}
 		break;

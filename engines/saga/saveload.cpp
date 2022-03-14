@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -140,7 +139,7 @@ void SagaEngine::fillSaveList() {
 		slotNumber = atoi(slot);
 		if (slotNumber >= 0 && slotNumber < MAX_SAVES) {
 			name = calcSaveFileName(slotNumber);
-			if ((in = _saveFileMan->openForLoading(name)) != NULL) {
+			if ((in = _saveFileMan->openForLoading(name)) != nullptr) {
 				_saveHeader.type = in->readUint32BE();
 				_saveHeader.size = in->readUint32LE();
 				_saveHeader.version = in->readUint32LE();
@@ -151,7 +150,14 @@ void SagaEngine::fillSaveList() {
 					i++;
 					continue;
 				}
-				strcpy(_saveFiles[_saveFilesCount].name, _saveHeader.name);
+
+				Common::CodePage cp = Common::kDos850;
+				if (getGameId() == GID_ITE) {
+					if (getLanguage() == Common::JA_JPN)
+						cp = Common::kWindows932;
+				}
+
+				Common::strlcpy(_saveFiles[_saveFilesCount].name, Common::U32String(_saveHeader.name).encode(cp).c_str(), sizeof(_saveFiles[_saveFilesCount].name));
 				_saveFiles[_saveFilesCount].slotNumber = slotNumber;
 				delete in;
 				_saveFilesCount++;

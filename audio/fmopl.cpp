@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "audio/fmopl.h"
 
 #include "audio/mixer.h"
+#ifdef USE_RETROWAVE
+#include "audio/rwopl3.h"
+#endif
 #include "audio/softsynth/opl/dosbox.h"
 #include "audio/softsynth/opl/mame.h"
 #include "audio/softsynth/opl/nuked.h"
@@ -49,6 +51,12 @@ namespace OPL2LPT {
 } // End of namespace OPL2LPT
 #endif // ENABLE_OPL2LPT
 
+#ifdef USE_RETROWAVE
+namespace RetroWaveOPL3 {
+	OPL *create(Config::OplType type);
+} // End of namespace RetroWaveOPL3
+#endif // ENABLE_RETROWAVE_OPL3
+
 // Config implementation
 
 enum OplEmulator {
@@ -58,7 +66,8 @@ enum OplEmulator {
 	kALSA = 3,
 	kNuked = 4,
 	kOPL2LPT = 5,
-	kOPL3LPT = 6
+	kOPL3LPT = 6,
+	kRWOPL3 = 7
 };
 
 OPL::OPL() {
@@ -83,7 +92,10 @@ const Config::EmulatorDescription Config::_drivers[] = {
 	{ "opl2lpt", _s("OPL2LPT"), kOPL2LPT, kFlagOpl2},
 	{ "opl3lpt", _s("OPL3LPT"), kOPL3LPT, kFlagOpl2 | kFlagOpl3 },
 #endif
-	{ 0, 0, 0, 0 }
+#ifdef USE_RETROWAVE
+	{"rwopl3", _s("RetroWave OPL3"), kRWOPL3, kFlagOpl2 | kFlagOpl3},
+#endif
+	{ nullptr, nullptr, 0, 0 }
 };
 
 Config::DriverId Config::parse(const Common::String &name) {
@@ -101,7 +113,7 @@ const Config::EmulatorDescription *Config::findDriver(DriverId id) {
 			return &_drivers[i];
 	}
 
-	return 0;
+	return nullptr;
 }
 
 Config::DriverId Config::detect(OplType type) {
@@ -181,7 +193,7 @@ OPL *Config::create(DriverId driver, OplType type) {
 		// be found, thus stop here.
 		if (driver == -1) {
 			warning("No OPL emulator available for type %d", type);
-			return 0;
+			return nullptr;
 		}
 	}
 
@@ -191,7 +203,7 @@ OPL *Config::create(DriverId driver, OplType type) {
 			return new MAME::OPL();
 		else
 			warning("MAME OPL emulator only supports OPL2 emulation");
-		return 0;
+		return nullptr;
 
 #ifndef DISABLE_DOSBOX_OPL
 	case kDOSBox:
@@ -225,11 +237,20 @@ OPL *Config::create(DriverId driver, OplType type) {
 		return 0;
 #endif
 
+#ifdef USE_RETROWAVE
+	case kRWOPL3:
+		if (type == kDualOpl2) {
+			warning("RetroWave OPL3 does not support dual OPL2");
+			return 0;
+		}
+		return RetroWaveOPL3::create(type);
+#endif
+
 	default:
 		warning("Unsupported OPL emulator %d", driver);
 		// TODO: Maybe we should add some dummy emulator too, which just outputs
 		// silence as sound?
-		return 0;
+		return nullptr;
 	}
 }
 

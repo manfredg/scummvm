@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -502,8 +501,9 @@ DECLARE_LOCATION_PARSER(zeta)  {
 DECLARE_COMMAND_PARSER(ifchar)  {
 	debugC(7, kDebugParser, "COMMAND_PARSER(ifchar) ");
 
-	if (!scumm_stricmp(_vm->_char.getName(), _tokens[1]))
+	if (scumm_stricmp(_vm->_char.getName(), _tokens[1])) {
 		_script->skip("endif");
+	}
 }
 
 
@@ -652,17 +652,17 @@ DECLARE_COMMAND_PARSER(give)  {
 
 	createCommand(_parser->_lookup);
 
-	ctxt.cmd->_object = 4 + atoi(_tokens[1]);
+	ctxt.cmd->_object = 4 + _vm->_objectsNames->lookup(_tokens[1]);
 	ctxt.nextToken++;
 
 	if (!scumm_stricmp("dino", _tokens[2])) {
-		ctxt.cmd->_characterId = 1;
+		ctxt.cmd->_characterName = "dino";
 	} else
 	if (!scumm_stricmp("doug", _tokens[2])) {
-		ctxt.cmd->_characterId = 2;
+		ctxt.cmd->_characterName = "doug";
 	} else
 	if (!scumm_stricmp("donna", _tokens[2])) {
-		ctxt.cmd->_characterId = 3;
+		ctxt.cmd->_characterName = "donna";
 	} else
 		error("unknown recipient '%s' in give command", _tokens[2]);
 
@@ -836,21 +836,21 @@ void LocationParser_br::parseNoneData(ZonePtr z) {
 
 typedef void (LocationParser_br::*ZoneTypeParser)(ZonePtr);
 static ZoneTypeParser parsers[] = {
-	0,	// no type
+	nullptr,	// no type
 	&LocationParser_br::parseExamineData,
 	&LocationParser_br::parseDoorData,
 	&LocationParser_br::parseGetData,
 	&LocationParser_br::parseMergeData,
-	0,	// taste
+	nullptr,	// taste
 	&LocationParser_br::parseHearData,
-	0,	// feel
+	nullptr,	// feel
 	&LocationParser_br::parseSpeakData,
 	&LocationParser_br::parseNoneData,
-	0,	// trap
-	0,	// you
-	0,	// command
+	nullptr,	// trap
+	nullptr,	// you
+	nullptr,	// command
 	&LocationParser_br::parsePathData,
-	0,	// box
+	nullptr,	// box
 };
 
 void LocationParser_br::parseZoneTypeBlock(ZonePtr z) {
@@ -1132,7 +1132,7 @@ void LocationParser_br::init() {
 	_locationZoneStmt = new Table(ARRAYSIZE(_locationZoneStmtRes_br), _locationZoneStmtRes_br);
 	_locationAnimStmt = new Table(ARRAYSIZE(_locationAnimStmtRes_br), _locationAnimStmtRes_br);
 
-	Common::Array<const Opcode *> *table = 0;
+	Common::Array<const Opcode *> *table = nullptr;
 
 	SetOpcodeTable(_commandParsers);
 	WARNING_PARSER(unexpected);
@@ -1235,7 +1235,7 @@ void ProgramParser_br::init() {
 
 	_instructionNames = new Table(ARRAYSIZE(_instructionNamesRes_br), _instructionNamesRes_br);
 
-	Common::Array<const Opcode *> *table = 0;
+	Common::Array<const Opcode *> *table = nullptr;
 
 	SetOpcodeTable(_instructionParsers);
 	INSTRUCTION_PARSER(defLocal);	// invalid opcode -> local definition

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,12 +34,12 @@ Codec37Decoder::Codec37Decoder(int width, int height) {
 	_frameSize = _width * _height;
 	_deltaSize = _frameSize * 3 + 0x13600;
 	_deltaBuf = (byte *)calloc(_deltaSize, sizeof(byte));
-	if (_deltaBuf == 0)
+	if (_deltaBuf == nullptr)
 		error("unable to allocate decoder buffer");
 	_deltaBufs[0] = _deltaBuf + 0x4D80;
 	_deltaBufs[1] = _deltaBuf + 0xE880 + _frameSize;
 	_offsetTable = new int16[255];
-	if (_offsetTable == 0)
+	if (_offsetTable == nullptr)
 		error("unable to allocate decoder offset table");
 	_curtable = 0;
 	_prevSeqNb = 0;
@@ -51,16 +50,16 @@ Codec37Decoder::Codec37Decoder(int width, int height) {
 Codec37Decoder::~Codec37Decoder() {
 	if (_offsetTable) {
 		delete[] _offsetTable;
-		_offsetTable = 0;
+		_offsetTable = nullptr;
 		_tableLastPitch = -1;
 		_tableLastIndex = -1;
 	}
 	if (_deltaBuf) {
 		free(_deltaBuf);
 		_deltaSize = 0;
-		_deltaBuf = 0;
-		_deltaBufs[0] = 0;
-		_deltaBufs[1] = 0;
+		_deltaBuf = nullptr;
+		_deltaBufs[0] = nullptr;
+		_deltaBufs[1] = nullptr;
 	}
 }
 

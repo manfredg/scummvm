@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -144,7 +143,7 @@ bool SceneScriptNR03::ClickedOnExit(int exitId) {
 	if (exitId == 0) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, 410.0f, -70.19f, -715.0f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagNR03toNR01);
 			Set_Enter(kSetNR01, kSceneNR01);
 		}
@@ -157,21 +156,34 @@ bool SceneScriptNR03::ClickedOnExit(int exitId) {
 				AI_Movement_Track_Pause(kActorHanoi);
 				Actor_Face_Actor(kActorHanoi, kActorMcCoy, true);
 				Actor_Face_Actor(kActorMcCoy, kActorHanoi, true);
-				int warnings = Global_Variable_Query(kVariableHanoiNR04Warnings);
-				if (warnings == 0) {
+				switch (Global_Variable_Query(kVariableHanoiNR04Warnings)) {
+				case 0:
 					Actor_Says(kActorHanoi, 50, 13);
 					AI_Movement_Track_Unpause(kActorHanoi);
-				} else if (warnings == 1) {
+					break;
+				case 1:
 					Actor_Says(kActorHanoi, 210, 15);
 					AI_Movement_Track_Unpause(kActorHanoi);
-				} else if (warnings == 2) {
+					break;
+				case 2:
+					// fall through
+				default:
+#if !BLADERUNNER_ORIGINAL_BUGS
+					// Needed delay, otherwise McCoy's animation of being thrown out won't play
+					Delay(150);
+#endif
 					Actor_Set_Goal_Number(kActorHanoi, kGoalHanoiThrowOutMcCoy);
+					break;
 				}
-				// game bug? after reentering this does nothing as variable is never reset or checked for > 2
 				Global_Variable_Increment(kVariableHanoiNR04Warnings, 1);
+#if !BLADERUNNER_ORIGINAL_BUGS
+				if (Global_Variable_Query(kVariableHanoiNR04Warnings) > 2) {
+					Global_Variable_Set(kVariableHanoiNR04Warnings, 1);
+				}
+#endif
 			} else {
 				Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-				Ambient_Sounds_Remove_All_Looping_Sounds(1);
+				Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 				Game_Flag_Set(kFlagNR03toNR04);
 				Set_Enter(kSetNR04, kSceneNR04);
 			}
@@ -191,23 +203,31 @@ bool SceneScriptNR03::ClickedOnExit(int exitId) {
 				Actor_Change_Animation_Mode(kActorMcCoy, kAnimationModeIdle);
 				AI_Movement_Track_Pause(kActorHanoi);
 				Actor_Face_Actor(kActorHanoi, kActorMcCoy, true);
-
-				int warnings = Global_Variable_Query(kVariableHanoiNR05Warnings);
-				if (warnings == 0) {
+				switch (Global_Variable_Query(kVariableHanoiNR05Warnings)) {
+				case 0:
 					Actor_Says(kActorHanoi, 0, 15);
 					Actor_Face_Actor(kActorMcCoy, kActorHanoi, true);
 					Actor_Says(kActorMcCoy, 3335, 13);
 					Actor_Says(kActorHanoi, 10, 16);
 					AI_Movement_Track_Unpause(kActorHanoi);
-				} else if (warnings == 1) {
+					break;
+				case 1:
 					Actor_Face_Actor(kActorMcCoy, kActorHanoi, true);
 					Actor_Says(kActorHanoi, 210, 12);
 					AI_Movement_Track_Unpause(kActorHanoi);
-				} else if (warnings == 2) {
+					break;
+				case 2:
+					// fall through
+				default:
 					Actor_Set_Goal_Number(kActorHanoi, kGoalHanoiThrowOutMcCoy);
+					break;
 				}
-				// game bug? after reentering this does nothing as variable is never reset or checked for > 2
 				Global_Variable_Increment(kVariableHanoiNR05Warnings, 1);
+#if !BLADERUNNER_ORIGINAL_BUGS
+				if (Global_Variable_Query(kVariableHanoiNR05Warnings) > 2) {
+					Global_Variable_Set(kVariableHanoiNR05Warnings, 1);
+				}
+#endif
 			} else {
 				Player_Loses_Control();
 				Player_Set_Combat_Mode(false);
@@ -215,7 +235,7 @@ bool SceneScriptNR03::ClickedOnExit(int exitId) {
 				Actor_Face_Heading(kActorMcCoy, 656, false);
 				Actor_Change_Animation_Mode(kActorMcCoy, 53);
 				Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-				Ambient_Sounds_Remove_All_Looping_Sounds(1);
+				Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 				Game_Flag_Set(kFlagNR03toNR05);
 				Set_Enter(kSetNR05_NR08, kSceneNR05);
 				Scene_Loop_Start_Special(kSceneLoopModeChangeSet, kNR03LoopTableSwivel, false);
@@ -287,9 +307,7 @@ void SceneScriptNR03::SceneFrameAdvanced(int frame) {
 		Sound_Play(kSfxMAGMOVE2, 62, -70, -70, 50);
 	}
 
-	if (frame > 70
-	 && frame < 110
-	) {
+	if (frame > 70 && frame < 110) {
 		rotateActorOnTable(frame);
 	} else if (frame == 110) {
 		if (Actor_Query_Goal_Number(kActorGuzza) == kGoalGuzzaSitAtNR03) {
@@ -320,6 +338,8 @@ void SceneScriptNR03::PlayerWalkedIn() {
 		Game_Flag_Reset(kFlagNR01toNR03);
 	}
 
+	// This seems redundant since we set the combat mode to false at start of WalkedIn() method
+	// Probably a last minute original behavior fix to be more user friendly (not being tossed off the bar immediately upon entering)
 	if (Player_Query_Combat_Mode()) {
 		Actor_Set_Goal_Number(kActorHanoi, kGoalHanoiThrowOutMcCoy);
 	}
@@ -328,7 +348,7 @@ void SceneScriptNR03::PlayerWalkedIn() {
 
 void SceneScriptNR03::PlayerWalkedOut() {
 	if (!Game_Flag_Query(kFlagNR03toNR04)) {
-		Music_Stop(2);
+		Music_Stop(2u);
 	}
 	if (Game_Flag_Query(kFlagNR03toNR05)) {
 		Player_Gains_Control();
@@ -382,15 +402,19 @@ void SceneScriptNR03::rotateActorOnTable(int frame) {
 
 void SceneScriptNR03::playNextMusic() {
 	if (Music_Is_Playing()) {
-		Music_Adjust(51, 0, 2);
+		Music_Adjust(51, 0, 2u);
 	} else {
 		int track = Global_Variable_Query(kVariableEarlyQFrontMusic);
+		int loop = kMusicLoopPlayOnce;
+		if (_vm->_cutContent && Random_Query(0, 2) == 1) {
+			loop = kMusicLoopPlayOnceRandomStart;
+		}
 		if (track == 0) {
-			Music_Play(kMusicGothic2, 51, 0, 2, -1, 0, 0);
+			Music_Play(kMusicGothic2, 51, 0, 2, -1, loop, 0);
 		} else if (track == 1) {
-			Music_Play(kMusicGothic1, 51, 0, 2, -1, 0, 0);
+			Music_Play(kMusicGothic1, 51, 0, 2, -1, loop, 0);
 		} else if (track == 2) {
-			Music_Play(kMusicGothic3, 51, 0, 2, -1, 0, 0);
+			Music_Play(kMusicGothic3, 51, 0, 2, -1, loop, 0);
 		}
 		++track;
 		if (track > 2) {

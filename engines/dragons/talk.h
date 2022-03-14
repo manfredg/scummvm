@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -103,8 +102,8 @@ private:
 	uint16 *findCharInU16Str(uint16 *text, uint16 chr);
 	void drawDialogBox(uint32 x1, uint32 y1, uint32 x2, uint32 y2, uint16 unk);
 	uint16 *UTF16ToUTF16Z(uint16 *dest, uint16 *src);
-	uint16 FindLastPositionOf5cChar(uint16 *text);
-	uint32 FUN_80031c28(uint16 *srcText, uint16 *destText, uint32 cutLength, uint16 param_4);
+	uint16 findLastPositionOf5cChar(uint16 *text);
+	uint32 truncateDialogText(uint16 *srcText, uint16 *destText, uint32 srcLength, uint16 destLength);
 
 	uint32 extractTextIndex(Common::File *fd, uint16 offset);
 };

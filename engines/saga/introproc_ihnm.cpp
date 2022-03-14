@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -68,7 +67,7 @@ int Scene::IHNMStartProc() {
 				// Play the title music
 				_vm->_music->play(1, MUSIC_NORMAL);
 				// Play title screen
-				playTitle(2, _vm->_music->isAdlib() ? 20 : 27);
+				playTitle(2, 20);
 			}
 		}
 	} else {
@@ -79,7 +78,10 @@ int Scene::IHNMStartProc() {
 		playTitle(2, 12);
 	}
 
-	_vm->_music->setVolume(0, 1000);
+	fadeMusic();
+	if (_vm->shouldQuit())
+		return !SUCCESS;
+
 	_vm->_anim->clearCutawayList();
 
 	// Queue first scene
@@ -109,7 +111,7 @@ int Scene::IHNMCreditsProc() {
 		playTitle(3, 60, true);
 	}
 
-	_vm->_music->setVolume(0, 1000);
+	fadeMusic();
 	_vm->_anim->clearCutawayList();
 
 	return SUCCESS;
@@ -144,7 +146,7 @@ bool Scene::checkKey() {
 
 	while (_vm->_eventMan->pollEvent(event)) {
 		switch (event.type) {
-		case Common::EVENT_RTL:
+		case Common::EVENT_RETURN_TO_LAUNCHER:
 		case Common::EVENT_QUIT:
 			res = true;
 			break;
@@ -161,6 +163,19 @@ bool Scene::checkKey() {
 	}
 
 	return res;
+}
+
+void Scene::fadeMusic() {
+	if (!_vm->_music->isPlaying())
+		return;
+
+	_vm->_music->setVolume(0, 1000);
+	while (!_vm->shouldQuit() && _vm->_music->isFading()) {
+		_vm->_system->delayMillis(10);
+		if (checkKey()) {
+			_vm->_music->setVolume(0);
+		}
+	}
 }
 
 bool Scene::playTitle(int title, int time, int mode) {

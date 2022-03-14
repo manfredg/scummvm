@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,36 +15,28 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/world/actors/grant_peace_process.h"
 #include "ultima/ultima8/world/world.h"
-#include "ultima/ultima8/world/actors/actor.h"
 #include "ultima/ultima8/world/current_map.h"
 #include "ultima/ultima8/gumps/target_gump.h"
-#include "ultima/ultima8/world/weapon_info.h"
 #include "ultima/ultima8/graphics/palette_fader_process.h"
 #include "ultima/ultima8/usecode/uc_list.h"
 #include "ultima/ultima8/world/loop_script.h"
-#include "ultima/ultima8/misc/direction.h"
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/gumps/gump_notify_process.h"
 #include "ultima/ultima8/world/actors/main_actor.h"
 #include "ultima/ultima8/world/sprite_process.h"
 #include "ultima/ultima8/audio/audio_process.h"
 #include "ultima/ultima8/world/get_object.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-// p_dynamic_cast stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE(GrantPeaceProcess, Process)
+DEFINE_RUNTIME_CLASSTYPE_CODE(GrantPeaceProcess)
 
 GrantPeaceProcess::GrantPeaceProcess() : Process(), _haveTarget(false) {
 }
@@ -114,7 +106,7 @@ void GrantPeaceProcess::run() {
 
 			// undead?
 			if (t->getDefenseType() & WeaponInfo::DMG_UNDEAD) {
-				t->receiveHit(_itemNum, 8, target->getHP(),
+				t->receiveHit(_itemNum, dir_current, target->getHP(),
 				              (WeaponInfo::DMG_MAGIC |
 				               WeaponInfo::DMG_PIERCE |
 				               WeaponInfo::DMG_FIRE));
@@ -151,11 +143,11 @@ void GrantPeaceProcess::run() {
 	} else {
 		// not undead
 
-		if (!(target->getActorFlags() & (Actor::ACT_DEAD |
-		                                 Actor::ACT_IMMORTAL |
-		                                 Actor::ACT_INVINCIBLE))) {
+		if (!target->hasActorFlags(Actor::ACT_DEAD |
+								   Actor::ACT_IMMORTAL |
+								   Actor::ACT_INVINCIBLE)) {
 			if (getRandom() % 10 == 0) {
-				target->receiveHit(_itemNum, 8, target->getHP(),
+				target->receiveHit(_itemNum, dir_current, target->getHP(),
 				                   (WeaponInfo::DMG_MAGIC |
 				                    WeaponInfo::DMG_PIERCE |
 				                    WeaponInfo::DMG_FIRE));
@@ -194,21 +186,21 @@ void GrantPeaceProcess::run() {
 }
 
 uint32 GrantPeaceProcess::I_castGrantPeace(const uint8 *args,
-        unsigned int /*argsize*/) {
+		unsigned int /*argsize*/) {
 	MainActor *avatar = getMainActor();
 
 	GrantPeaceProcess *gpp = new GrantPeaceProcess(avatar);
 	Kernel::get_instance()->addProcess(gpp);
 
 	// start casting
-	ProcId anim1 = avatar->doAnim(Animation::cast1, 8);
+	ProcId anim1 = avatar->doAnim(Animation::cast1, dir_current);
 
 	// cast
-	ProcId anim2 = avatar->doAnim(Animation::cast3, 8);
+	ProcId anim2 = avatar->doAnim(Animation::cast3, dir_current);
 	Process *anim2p = Kernel::get_instance()->getProcess(anim2);
 
 	// end casting
-	ProcId anim3 = avatar->doAnim(Animation::cast2, 8);
+	ProcId anim3 = avatar->doAnim(Animation::cast2, dir_current);
 	Process *anim3p = Kernel::get_instance()->getProcess(anim3);
 
 	anim2p->waitFor(anim1);
@@ -218,17 +210,17 @@ uint32 GrantPeaceProcess::I_castGrantPeace(const uint8 *args,
 	return 0;
 }
 
-void GrantPeaceProcess::saveData(ODataSource *ods) {
-	Process::saveData(ods);
+void GrantPeaceProcess::saveData(Common::WriteStream *ws) {
+	Process::saveData(ws);
 
 	uint8 ht = _haveTarget ? 1 : 0;
-	ods->write1(ht);
+	ws->writeByte(ht);
 }
 
-bool GrantPeaceProcess::loadData(IDataSource *ids, uint32 version) {
-	if (!Process::loadData(ids, version)) return false;
+bool GrantPeaceProcess::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Process::loadData(rs, version)) return false;
 
-	_haveTarget = (ids->read1() != 0);
+	_haveTarget = (rs->readByte() != 0);
 
 	return true;
 }

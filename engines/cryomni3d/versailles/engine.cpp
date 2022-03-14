@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ const FixedImageConfiguration CryOmni3DEngine_Versailles::kFixedImageConfigurati
 };
 
 CryOmni3DEngine_Versailles::CryOmni3DEngine_Versailles(OSystem *syst,
-        const CryOmni3DGameDescription *gamedesc) : CryOmni3DEngine(syst, gamedesc),
+		const CryOmni3DGameDescription *gamedesc) : CryOmni3DEngine(syst, gamedesc),
 	_mainPalette(nullptr), _cursorPalette(nullptr), _transparentPaletteMap(nullptr),
 	_transparentSrcStart(uint(-1)), _transparentSrcStop(uint(-1)), _transparentDstStart(uint(-1)),
 	_transparentDstStop(uint(-1)), _transparentNewStart(uint(-1)), _transparentNewStop(uint(-1)),
@@ -257,7 +256,7 @@ bool CryOmni3DEngine_Versailles::shouldAbort() {
 }
 
 Common::String CryOmni3DEngine_Versailles::prepareFileName(const Common::String &baseName,
-        const char *const *extensions) const {
+		const char *const *extensions) const {
 	Common::String baseName_(baseName);
 	if (getPlatform() != Common::kPlatformMacintosh) {
 		// Replace dashes by underscores for PC versions
@@ -276,6 +275,31 @@ void CryOmni3DEngine_Versailles::setupFonts() {
 	// Explainations below are based on original binaries, debug is not used in this engine
 	// Fonts loaded are not always the same: FR Mac and EN DOS don't use the same font for debug doc/unused
 	// The important is that the loaded one is present in all versions
+
+	if (getLanguage() == Common::ZH_TWN) {
+		fonts.push_back("tw13.CRF"); // 0: Doc titles
+		fonts.push_back("tw18.CRF"); // 1: Menu and T0 in credits
+		fonts.push_back("tw13.CRF"); // 2: T1 and T3 in credits
+		fonts.push_back("tw12.CRF"); // 3: Menu title, options messages boxes buttons
+		fonts.push_back("tw12.CRF"); // 4: T2 in credits, text in docs
+		fonts.push_back("tw12.CRF"); // 5: objects description in toolbar, options messages boxes text, T4 in credits
+		fonts.push_back("tw12.CRF"); // 6: T5 in credits, doc subtitle
+		fonts.push_back("tw12.CRF"); // 7: dialogs texts
+		fonts.push_back("tw12.CRF"); // 8: unused
+		fonts.push_back("tw12.CRF"); // 9: Warp messages texts
+		fonts.push_back("tw12.CRF"); // 10: debug
+
+		_fontManager.loadFonts(fonts, Common::kWindows950);
+		return;
+	} else if (getLanguage() == Common::JA_JPN) {
+		_fontManager.loadTTFList("FONTS_JP.LST", Common::kWindows932);
+		return;
+	} else if (getLanguage() == Common::KO_KOR) {
+		_fontManager.loadTTFList("FONTS_KR.LST", Common::kWindows949);
+		return;
+	}
+
+	// Code below is for SBCS encodings (ie. non CJK)
 	uint8 fontsSet = getFeatures() & GF_VERSAILLES_FONTS_MASK;
 	switch (fontsSet) {
 	case GF_VERSAILLES_FONTS_NUMERIC:
@@ -352,13 +376,16 @@ void CryOmni3DEngine_Versailles::setupFonts() {
 		error("Font set invalid");
 	}
 
-	_fontManager.loadFonts(fonts);
+	// Use a SBCS codepage as a placeholder, we won't convert characters anyway
+	_fontManager.loadFonts(fonts, Common::kWindows1250);
 }
 
 void CryOmni3DEngine_Versailles::setupSprites() {
 	Common::File file;
 
-	if (!file.open("all_spr.bin")) {
+	Common::String fName = getLanguage() == Common::ZH_TWN ? "allsprtw.bin" : "all_spr.bin";
+
+	if (!file.open(fName)) {
 		error("Failed to open all_spr.bin file");
 	}
 	_sprites.loadSprites(file);
@@ -404,15 +431,13 @@ void CryOmni3DEngine_Versailles::loadCursorsPalette() {
 	}
 
 	_cursorPalette = new byte[3 * (bmpDecoder.getPaletteColorCount() +
-	                               bmpDecoder.getPaletteStartIndex())];
-	memset(_cursorPalette, 0, 3 * (bmpDecoder.getPaletteColorCount() +
-	                               bmpDecoder.getPaletteStartIndex()));
+	                               bmpDecoder.getPaletteStartIndex())]();
 	memcpy(_cursorPalette + 3 * bmpDecoder.getPaletteStartIndex(), bmpDecoder.getPalette(),
 	       3 * bmpDecoder.getPaletteColorCount());
 }
 
 void CryOmni3DEngine_Versailles::setupPalette(const byte *palette, uint start, uint num,
-        bool commit) {
+		bool commit) {
 	memcpy(_mainPalette + 3 * start, palette, 3 * num);
 	copySubPalette(_mainPalette, _cursorPalette, 240, 8);
 
@@ -508,13 +533,13 @@ void CryOmni3DEngine_Versailles::calculateTransparentMapping() {
 }
 
 void CryOmni3DEngine_Versailles::makeTranslucent(Graphics::Surface &dst,
-        const Graphics::Surface &src) const {
+		const Graphics::Surface &src) const {
 	assert(dst.w == src.w && dst.h == src.h);
 
 	const byte *srcP = (const byte *) src.getPixels();
 	byte *dstP = (byte *) dst.getPixels();
-	for (uint y = 0; y < dst.h; y++) {
-		for (uint x = 0; x < dst.w; x++) {
+	for (int y = 0; y < dst.h; y++) {
+		for (int x = 0; x < dst.w; x++) {
 			dstP[x] = _transparentPaletteMap[srcP[x]];
 		}
 		dstP += dst.pitch;
@@ -653,8 +678,7 @@ void CryOmni3DEngine_Versailles::playTransitionEndLevel(int level) {
 		}
 	}
 
-	// Videos are like music because if you mute music in game it will mute videos soundtracks
-	playHNM(video, Audio::Mixer::kMusicSoundType);
+	playSubtitledVideo(video);
 
 	clearKeys();
 	if (shouldAbort()) {
@@ -664,6 +688,22 @@ void CryOmni3DEngine_Versailles::playTransitionEndLevel(int level) {
 	fadeOutPalette();
 	if (shouldAbort()) {
 		return;
+	}
+
+	if (level == -2) {
+		if (getLanguage() == Common::JA_JPN && Common::File::exists("jvclogo.hnm")) {
+			// Display one more copyright
+			playHNM("jvclogo.hnm", Audio::Mixer::kMusicSoundType);
+			clearKeys();
+			if (shouldAbort()) {
+				return;
+			}
+
+			fadeOutPalette();
+			if (shouldAbort()) {
+				return;
+			}
+		}
 	}
 
 	// Display back cursor there once the palette has been zeroed
@@ -1077,7 +1117,7 @@ void CryOmni3DEngine_Versailles::fakeTransition(uint dstPlaceId) {
 }
 
 uint CryOmni3DEngine_Versailles::determineTransitionAnimation(uint srcPlaceId,
-        uint dstPlaceId, const Transition **transition_) {
+		uint dstPlaceId, const Transition **transition_) {
 	const Place *srcPlace = _wam.findPlaceById(srcPlaceId);
 	const Place *dstPlace = _wam.findPlaceById(dstPlaceId);
 	const Transition *transition = srcPlace->findTransition(dstPlaceId);
@@ -1227,7 +1267,7 @@ int CryOmni3DEngine_Versailles::handleWarp() {
 }
 
 bool CryOmni3DEngine_Versailles::handleWarpMouse(uint *actionId,
-        uint movingCursor) {
+		uint movingCursor) {
 	fixActionId(actionId);
 
 	if (getCurrentMouseButton() == 2 ||
@@ -1442,7 +1482,7 @@ void CryOmni3DEngine_Versailles::animateCursor(const Object *obj) {
 }
 
 void CryOmni3DEngine_Versailles::collectObject(Object *obj, const ZonFixedImage *fimg,
-        bool showObject) {
+		bool showObject) {
 	_inventory.add(obj);
 	Object::ViewCallback cb = obj->viewCallback();
 	if (showObject && cb) {
@@ -1458,7 +1498,7 @@ void CryOmni3DEngine_Versailles::collectObject(Object *obj, const ZonFixedImage 
 }
 
 void CryOmni3DEngine_Versailles::displayObject(const Common::String &imgName,
-        DisplayObjectHook hook) {
+		DisplayObjectHook hook) {
 	Image::ImageDecoder *imageDecoder = loadHLZ(imgName);
 	if (!imageDecoder) {
 		error("Can't display object");
@@ -1517,12 +1557,8 @@ void CryOmni3DEngine_Versailles::executeSeeAction(uint actionId) {
 		return;
 	}
 
-	const FixedImgCallback cb = _imgScripts.getVal(actionId, nullptr);
-	if (cb != nullptr) {
-		handleFixedImg(cb);
-	} else {
-		warning("Image script %u not found", actionId);
-	}
+	const FixedImgCallback cb = _imgScripts.getVal(actionId);
+	handleFixedImg(cb);
 }
 
 void CryOmni3DEngine_Versailles::executeSpeakAction(uint actionId) {
@@ -1585,7 +1621,7 @@ uint CryOmni3DEngine_Versailles::getFakeTransition(uint actionId) const {
 }
 
 void CryOmni3DEngine_Versailles::playInGameVideo(const Common::String &filename,
-        bool restoreCursorPalette) {
+		bool restoreCursorPalette) {
 	if (!_isPlaying) {
 		return;
 	}
@@ -1608,8 +1644,83 @@ void CryOmni3DEngine_Versailles::playInGameVideo(const Common::String &filename,
 	}
 }
 
+void CryOmni3DEngine_Versailles::playSubtitledVideo(const Common::String &filename) {
+	Common::HashMap<Common::String, Common::Array<SubtitleEntry> >::const_iterator it;
+
+	if (!showSubtitles() ||
+	        (it = _subtitles.find(filename)) == _subtitles.end() ||
+	        it->_value.size() == 0) {
+		// No subtitle, don't try to handle them frame by frame
+		// Videos are like music because if you mute music in game it will mute videos soundtracks
+		playHNM(filename, Audio::Mixer::kMusicSoundType);
+		return;
+	}
+
+	// Keep 2 colors for background and text
+	setPalette(&_cursorPalette[3 * 242], 254, 1);
+	setPalette(&_cursorPalette[3 * 247], 255, 1);
+	lockPalette(0, 253);
+
+	_currentSubtitleSet = &it->_value;
+	_currentSubtitle = _currentSubtitleSet->begin();
+
+	_fontManager.setCurrentFont(8);
+	_fontManager.setTransparentBackground(true);
+	_fontManager.setForeColor(254u);
+	_fontManager.setLineHeight(22);
+	_fontManager.setSpaceWidth(2);
+	_fontManager.setCharSpacing(1);
+
+	// Videos are like music because if you mute music in game it will mute videos soundtracks
+	playHNM(filename, Audio::Mixer::kMusicSoundType,
+	        static_cast<HNMCallback>(&CryOmni3DEngine_Versailles::drawVideoSubtitles), nullptr);
+
+	clearKeys();
+	unlockPalette();
+}
+
+void CryOmni3DEngine_Versailles::drawVideoSubtitles(uint frameNum) {
+	if (_currentSubtitle == _currentSubtitleSet->end()) {
+		// No next subtitle to draw, just return
+		return;
+	}
+
+	if (frameNum < _currentSubtitle->frameStart) {
+		// Not yet the good frame, just return
+		return;
+	}
+
+	const Common::String &text = _currentSubtitle->text;
+	_currentSubtitle++;
+
+	if (text.size() == 0) {
+		// Empty text, reset clipping
+		unsetHNMClipping();
+		return;
+	}
+
+	uint lines = _fontManager.getLinesCount(text, 640 - 8);
+	uint top = 480 - (2 * 4) - _fontManager.lineHeight() * lines;
+
+	Graphics::ManagedSurface tmp(640, 480 - top, Graphics::PixelFormat::createFormatCLUT8());
+
+	tmp.clear(255u);
+
+	_fontManager.setSurface(&tmp);
+	_fontManager.setupBlock(Common::Rect(4, 4, tmp.w - 4,
+	                                     tmp.h - 4)); // +1 because bottom,right is excluded
+
+	_fontManager.displayBlockText(text);
+
+	// Enable clipping to avoid refreshing text at every frame
+	setHNMClipping(Common::Rect(0, 0, 640, top));
+
+	g_system->copyRectToScreen(tmp.getPixels(), tmp.pitch, 0, top, tmp.w, tmp.h);
+	g_system->updateScreen();
+}
+
 void CryOmni3DEngine_Versailles::loadBMPs(const char *pattern, Graphics::Surface *bmps,
-        uint count) {
+		uint count) {
 	Image::BitmapDecoder bmpDecoder;
 	Common::File file;
 

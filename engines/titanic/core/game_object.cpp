@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -1469,6 +1468,16 @@ int CGameObject::getRandomNumber(int max, int *oldVal) {
 	} else {
 		return g_vm->getRandomNumber(max);
 	}
+}
+
+bool CGameObject::isBotDisallowedLocation() {
+	// 1) At the Embarkation SuccUBus
+	// 2) in front of the Deskbot's desk
+	// 3) When in the Gondola
+	// 4) At the top of the well
+	CString fullName = getFullViewName();
+	return fullName == "EmbLobby.Node 2.W" || fullName == "EmbLobby.Node 4.E" ||
+		fullName == "TopOfWell.Node 29.N" || fullName == "TopOfWell.Node 21.S";
 }
 
 /*------------------------------------------------------------------------*/

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +43,7 @@ class EdenGraphics;
 
 class EdenGame {
 private:
-	
+
 	EdenGraphics *_graphics;
 
 public:
@@ -67,15 +66,13 @@ public:
 
 	void stopMusic();
 
-	void setVolume(uint16 vol);
-
 	uint16 getMouseCenterX();
 	uint16 getMouseCenterY();
 
 	bool dialoscansvmas(Dialog *dial);
 	void musique();
 	void preloadDialogs(int16 vid);
-	void loadHnm(uint16 num);
+	Common::SeekableReadStream *loadSubStream(uint16 num);
 	bool personIsTalking();
 	bool animationIsActive();
 	byte *getImageDesc();
@@ -83,7 +80,7 @@ public:
 	byte getActionCursor(byte value);
 	int16 getNumTextLines();
 	int16 getScrollPos();
-	/* 
+	/*
 	 * Identify person based on current video number
 	 */
 	perso_t *personSubtitles();
@@ -240,7 +237,7 @@ private:
 	void my_bulle();
 	void my_pr_bulle();
 	void drawSubtitleChar(byte c, byte color, int16 width);
-	
+
 	void patchSentence();
 	void vavapers();
 	void citadelle();
@@ -518,6 +515,7 @@ private:
 	void displayObject(Cube *cube);
 	void loadMap(int file_id, byte *buffer);
 	void NEWcharge_objet_mob(Cube *cube, int fileNum, byte *texturePtr);
+	void DELETEcharge_objet_mob(Cube *cubep);
 	static int nextVal(char **ptr, char *error);
 	void selectMap(int16 num);
 	void Eden_dep_and_rot();
@@ -648,7 +646,6 @@ private:
 
 	CSoundChannel  *_musicChannel;
 	CSoundChannel  *_voiceChannel;
-	CSoundChannel *_hnmSoundChannel;
 
 	int   _demoCurrentTicks;
 	int   _demoStartTicks;
@@ -721,7 +718,7 @@ private:
 
 	uint8 tab_2CB1E[8][4];
 
-	const unsigned int kMaxMusicSize;  // largest .mus file size 
+	const unsigned int kMaxMusicSize;  // largest .mus file size
 
 	// Loaded from cryo.dat
 	Follower _followerList[15];

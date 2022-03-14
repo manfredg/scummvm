@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,8 +78,8 @@ protected:
 
 public:
 	SimpleRateConverter(st_rate_t inrate, st_rate_t outrate);
-	int flow(AudioStream &input, st_sample_t *obuf, st_size_t osamp, st_volume_t vol_l, st_volume_t vol_r);
-	int drain(st_sample_t *obuf, st_size_t osamp, st_volume_t vol) {
+	int flow(AudioStream &input, st_sample_t *obuf, st_size_t osamp, st_volume_t vol_l, st_volume_t vol_r) override;
+	int drain(st_sample_t *obuf, st_size_t osamp, st_volume_t vol) override {
 		return ST_SUCCESS;
 	}
 };
@@ -185,8 +184,8 @@ protected:
 
 public:
 	LinearRateConverter(st_rate_t inrate, st_rate_t outrate);
-	int flow(AudioStream &input, st_sample_t *obuf, st_size_t osamp, st_volume_t vol_l, st_volume_t vol_r);
-	int drain(st_sample_t *obuf, st_size_t osamp, st_volume_t vol) {
+	int flow(AudioStream &input, st_sample_t *obuf, st_size_t osamp, st_volume_t vol_l, st_volume_t vol_r) override;
+	int drain(st_sample_t *obuf, st_size_t osamp, st_volume_t vol) override {
 		return ST_SUCCESS;
 	}
 };
@@ -285,12 +284,12 @@ class CopyRateConverter : public RateConverter {
 	st_sample_t *_buffer;
 	st_size_t _bufferSize;
 public:
-	CopyRateConverter() : _buffer(0), _bufferSize(0) {}
+	CopyRateConverter() : _buffer(nullptr), _bufferSize(0) {}
 	~CopyRateConverter() {
 		free(_buffer);
 	}
 
-	virtual int flow(AudioStream &input, st_sample_t *obuf, st_size_t osamp, st_volume_t vol_l, st_volume_t vol_r) {
+	int flow(AudioStream &input, st_sample_t *obuf, st_size_t osamp, st_volume_t vol_l, st_volume_t vol_r) override {
 		assert(input.isStereo() == stereo);
 
 		st_sample_t *ptr;
@@ -332,7 +331,7 @@ public:
 		return (obuf - ostart) / 2;
 	}
 
-	virtual int drain(st_sample_t *obuf, st_size_t osamp, st_volume_t vol) {
+	int drain(st_sample_t *obuf, st_size_t osamp, st_volume_t vol) override {
 		return ST_SUCCESS;
 	}
 };

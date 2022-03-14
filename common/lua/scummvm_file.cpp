@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -185,6 +184,8 @@ Common::String LuaFileConfig::getLanguage() {
 		return "es";
 	case Common::FR_FRA:
 		return "fr";
+	case Common::HR_HRV:
+		return "hr";
 	case Common::HU_HUN:
 		return "hu";
 	case Common::IT_ITA:
@@ -213,6 +214,8 @@ void LuaFileConfig::setLanguage(const Common::String &lang) {
 		ConfMan.set("language", Common::getLanguageCode(Common::ES_ESP));
 	else if (lang == "fr")
 		ConfMan.set("language", Common::getLanguageCode(Common::FR_FRA));
+	else if (lang == "hr")
+		ConfMan.set("language", Common::getLanguageCode(Common::HR_HRV));
 	else if (lang == "hu")
 		ConfMan.set("language", Common::getLanguageCode(Common::HU_HUN));
 	else if (lang == "it")
@@ -224,7 +227,7 @@ void LuaFileConfig::setLanguage(const Common::String &lang) {
 	else if (lang == "ru")
 		ConfMan.set("language", Common::getLanguageCode(Common::RU_RUS));
 	else
-		error("Unknown language encountered");
+		error("Unknown language encountered: %s", lang.c_str());
 }
 
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,7 +42,7 @@ GfxMacIconBar::GfxMacIconBar() {
 	else
 		_inventoryIndex = 4;
 
-	_inventoryIcon = 0;
+	_inventoryIcon = nullptr;
 	_allDisabled = true;
 }
 
@@ -56,7 +55,7 @@ void GfxMacIconBar::initIcons(uint16 count, reg_t *objs) {
 	freeIcons();
 	_iconBarItems.clear();
 	_lastX = 0;
-	_inventoryIcon = 0;
+	_inventoryIcon = nullptr;
 	_allDisabled = true;
 
 	for (uint16 i = 0; i < count; i++) {
@@ -93,7 +92,7 @@ void GfxMacIconBar::addIcon(reg_t obj) {
 	if (iconIndex != _inventoryIndex)
 		item.selectedImage = createImage(iconIndex, true);
 	else
-		item.selectedImage = 0;
+		item.selectedImage = nullptr;
 
 	item.enabled = true;
 
@@ -195,7 +194,7 @@ void GfxMacIconBar::setIconEnabled(int16 iconIndex, bool enabled) {
 }
 
 void GfxMacIconBar::setInventoryIcon(int16 icon) {
-	Graphics::Surface *surface = 0;
+	Graphics::Surface *surface = nullptr;
 
 	if (icon >= 0)
 		surface = loadPict(ResourceId(kResourceTypeMacPict, icon));
@@ -206,7 +205,7 @@ void GfxMacIconBar::setInventoryIcon(int16 icon) {
 		if ((icon < 0) || surface) {
 			_inventoryIcon->free();
 			delete _inventoryIcon;
-			_inventoryIcon = 0;
+			_inventoryIcon = nullptr;
 		}
 	}
 
@@ -220,12 +219,12 @@ Graphics::Surface *GfxMacIconBar::loadPict(ResourceId id) {
 	Resource *res = g_sci->getResMan()->findResource(id, false);
 
 	if (!res || res->size() == 0)
-		return 0;
+		return nullptr;
 
 	Image::PICTDecoder pictDecoder;
 	Common::MemoryReadStream stream(res->toStream());
 	if (!pictDecoder.loadStream(stream))
-		return 0;
+		return nullptr;
 
 	Graphics::Surface *surface = new Graphics::Surface();
 	surface->copyFrom(*pictDecoder.getSurface());

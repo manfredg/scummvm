@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,28 +15,24 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/savefile.h"
+#include "common/system.h"
+
 #include "image/png.h"
 
-#include "sludge/allfiles.h"
-#include "sludge/backdrop.h"
 #include "sludge/errors.h"
 #include "sludge/graphics.h"
 #include "sludge/imgloader.h"
-#include "sludge/moreio.h"
 #include "sludge/newfatal.h"
-#include "sludge/sludger.h"
 #include "sludge/version.h"
 
 namespace Sludge {
 
-bool GraphicsManager::setThumbnailSize(int thumbWidth, int thumbHeight)
-{
+bool GraphicsManager::setThumbnailSize(int thumbWidth, int thumbHeight) {
 	if (checkSizeValide(thumbWidth, thumbHeight))
 	{
 		_thumbWidth = thumbWidth;
@@ -47,7 +43,6 @@ bool GraphicsManager::setThumbnailSize(int thumbWidth, int thumbHeight)
 }
 
 bool GraphicsManager::saveThumbnail(Common::WriteStream *stream) {
-
 	stream->writeUint32LE(_thumbWidth);
 	stream->writeUint32LE(_thumbHeight);
 

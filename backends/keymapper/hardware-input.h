@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,7 +56,7 @@ struct HardwareInput {
 	String id;
 
 	/** Human readable description */
-	String description;
+	U32String description;
 
 	/** Type tag */
 	HardwareInputType type;
@@ -79,11 +78,11 @@ struct HardwareInput {
 	HardwareInput()
 		: inputCode(0), type(kHardwareInputTypeInvalid) { }
 
-	static HardwareInput createCustom(const String &i, HardwareInputCode ic, const String &desc) {
+	static HardwareInput createCustom(const String &i, HardwareInputCode ic, const U32String &desc) {
 		return createSimple(kHardwareInputTypeCustom, i, ic, desc);
 	}
 
-	static HardwareInput createKeyboard(const String &i, KeyState ky, const String &desc) {
+	static HardwareInput createKeyboard(const String &i, KeyState ky, const U32String &desc) {
 		HardwareInput hardwareInput;
 		hardwareInput.id = i;
 		hardwareInput.description = desc;
@@ -93,20 +92,20 @@ struct HardwareInput {
 		return hardwareInput;
 	}
 
-	static HardwareInput createJoystickButton(const String &i, uint8 button, const String &desc) {
+	static HardwareInput createJoystickButton(const String &i, uint8 button, const U32String &desc) {
 		return createSimple(kHardwareInputTypeJoystickButton, i, button, desc);
 	}
 
-	static HardwareInput createJoystickHalfAxis(const String &i, uint8 axis, bool positiveHalf, const String &desc) {
+	static HardwareInput createJoystickHalfAxis(const String &i, uint8 axis, bool positiveHalf, const U32String &desc) {
 		return createSimple(kHardwareInputTypeJoystickHalfAxis, i, axis * 2 + (positiveHalf ? 1 : 0), desc);
 	}
 
-	static HardwareInput createMouse(const String &i, uint8 button, const String &desc) {
+	static HardwareInput createMouse(const String &i, uint8 button, const U32String &desc) {
 		return createSimple(kHardwareInputTypeMouse, i, button, desc);
 	}
 
 private:
-	static HardwareInput createSimple(HardwareInputType type, const String &i, HardwareInputCode ic, const String &desc) {
+	static HardwareInput createSimple(HardwareInputType type, const String &i, HardwareInputCode ic, const U32String &desc) {
 		HardwareInput hardwareInput;
 		hardwareInput.id = i;
 		hardwareInput.description = desc;

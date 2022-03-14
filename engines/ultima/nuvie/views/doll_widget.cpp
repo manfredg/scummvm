@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,10 +40,6 @@
 
 namespace Ultima {
 namespace Nuvie {
-
-#define USE_BUTTON 1 /* FIXME: put this in a common location */
-#define ACTION_BUTTON 3
-#define DRAG_BUTTON 1
 
 static const byte gump_blocked_tile_data[] = {
 	170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170, 170,
@@ -481,12 +476,12 @@ bool DollWidget::drag_accept_drop(int x, int y, int message, void *data) {
 	return false;
 }
 
-void DollWidget::drag_perform_drop(int x, int y, int message, void *data) {
+void DollWidget::drag_perform_drop(int /*x*/, int /*y*/, int message, void *data) {
 	DEBUG(0, LEVEL_DEBUGGING, "DollWidget::drag_perform_drop()\n");
 	Obj *obj;
 
-	x -= area.left;
-	y -= area.top;
+	//x -= area.left;
+	//y -= area.top;
 
 	if (message == GUI_DRAG_OBJ) {
 		DEBUG(0, LEVEL_DEBUGGING, "Ready item.\n");

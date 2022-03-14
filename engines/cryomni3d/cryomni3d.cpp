@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,11 +23,12 @@
 #include "common/error.h"
 #include "common/system.h"
 #include "common/textconsole.h"
-#include "common/translation.h"
 #include "common/debug-channels.h"
 
 #include "common/events.h"
 #include "common/file.h"
+
+#include "engines/util.h"
 
 #include "audio/mixer.h"
 #include "graphics/palette.h"
@@ -37,14 +37,14 @@
 #include "cryomni3d/datstream.h"
 
 #include "cryomni3d/image/hlz.h"
-#include "cryomni3d/video/hnm_decoder.h"
+#include "video/hnm_decoder.h"
 
 namespace CryOmni3D {
 
 CryOmni3DEngine::CryOmni3DEngine(OSystem *syst,
-                                 const CryOmni3DGameDescription *gamedesc) : Engine(syst), _gameDescription(gamedesc),
+								 const CryOmni3DGameDescription *gamedesc) : Engine(syst), _gameDescription(gamedesc),
 	_canLoadSave(false), _fontManager(), _sprites(), _dragStatus(kDragStatus_NoDrag), _lastMouseButton(0),
-	_autoRepeatNextEvent(uint(-1)) {
+	_autoRepeatNextEvent(uint(-1)), _hnmHasClip(false) {
 	if (!_mixer->isReady()) {
 		error("Sound initialization failed");
 	}
@@ -53,14 +53,9 @@ CryOmni3DEngine::CryOmni3DEngine(OSystem *syst,
 	syncSoundSettings();
 
 	unlockPalette();
-
-	DebugMan.addDebugChannel(kDebugFile, "File", "Track File Accesses");
-	DebugMan.addDebugChannel(kDebugVariable, "Variable", "Track Variable Accesses");
-	DebugMan.addDebugChannel(kDebugSaveLoad, "SaveLoad", "Track Save/Load Function");
 }
 
 CryOmni3DEngine::~CryOmni3DEngine() {
-	DebugMan.clearAllDebugChannels();
 }
 
 Common::Error CryOmni3DEngine::run() {
@@ -101,7 +96,7 @@ DATSeekableStream *CryOmni3DEngine::getStaticData(uint32 gameId, uint16 version)
 }
 
 Common::String CryOmni3DEngine::prepareFileName(const Common::String &baseName,
-        const char *const *extensions) const {
+		const char *const *extensions) const {
 	Common::String fname(baseName);
 
 	int lastDotPos = fname.size() - 1;
@@ -135,8 +130,8 @@ Common::String CryOmni3DEngine::prepareFileName(const Common::String &baseName,
 }
 
 void CryOmni3DEngine::playHNM(const Common::String &filename, Audio::Mixer::SoundType soundType,
-                              HNMCallback beforeDraw, HNMCallback afterDraw) {
-	const char *const extensions[] = { "hns", "hnm", nullptr };
+							  HNMCallback beforeDraw, HNMCallback afterDraw) {
+	const char *const extensions[] = { "hns", "hnm", "ubb", nullptr };
 	Common::String fname(prepareFileName(filename, extensions));
 
 	byte *currentPalette = new byte[256 * 3];
@@ -172,7 +167,16 @@ void CryOmni3DEngine::playHNM(const Common::String &filename, Audio::Mixer::Soun
 				if (beforeDraw) {
 					(this->*beforeDraw)(frameNum);
 				}
-				g_system->copyRectToScreen(frame->getPixels(), frame->pitch, 0, 0, width, height);
+
+				if (_hnmHasClip) {
+					Common::Rect rct(width, height);
+					rct.clip(_hnmClipping);
+					g_system->copyRectToScreen(frame->getPixels(), frame->pitch, rct.left, rct.top, rct.width(),
+					                           rct.height());
+				} else {
+					g_system->copyRectToScreen(frame->getPixels(), frame->pitch, 0, 0, width, height);
+				}
+
 				if (afterDraw) {
 					(this->*afterDraw)(frameNum);
 				}
@@ -206,7 +210,7 @@ Image::ImageDecoder *CryOmni3DEngine::loadHLZ(const Common::String &filename) {
 	if (!imageDecoder->loadStream(file)) {
 		warning("Failed to open hlz file %s", fname.c_str());
 		delete imageDecoder;
-		imageDecoder = 0;
+		imageDecoder = nullptr;
 		return nullptr;
 	}
 
@@ -485,4 +489,19 @@ void CryOmni3DEngine::fillSurface(byte color) {
 	g_system->fillScreen(color);
 	g_system->updateScreen();
 }
+
+Common::Error CryOmni3DEngine_HNMPlayer::run() {
+	CryOmni3DEngine::run();
+
+	initGraphics(640, 480);
+
+	syncSoundSettings();
+
+	for (int i = 0; _gameDescription->desc.filesDescriptions[i].fileName; i++) {
+		playHNM(_gameDescription->desc.filesDescriptions[i].fileName, Audio::Mixer::kMusicSoundType);
+	}
+
+	return Common::kNoError;
+}
+
 } // End of namespace CryOmni3D

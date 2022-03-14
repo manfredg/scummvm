@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,39 +28,56 @@
 
 namespace Xeen {
 
-static const int MONSTER_GRID_X[48] = {
-	1, 1, 1, 0, -1, -1, -1, 1, 1, 1, 0, -1,
-	-1, -1, 1, 1, 1, 0, -1, -1, -1, 1, 1, 1,
-	0, -1, -1, -1, 1, 1, 1, 0, -1, -1, -1, 1,
-	1, 1, 0, -1, -1, -1, 1, 1, 1, 0, -1, -1
+#define GRID_SIZE  (7 * 7)
+
+static const int MONSTER_GRID_X[GRID_SIZE] = {
+	1, 1, 1, 0, -1, -1, -1,
+	1, 1, 1, 0, -1, -1, -1,
+	1, 1, 1, 0, -1, -1, -1,
+	1, 1, 1, 0, -1, -1, -1,
+	1, 1, 1, 0, -1, -1, -1,
+	1, 1, 1, 0, -1, -1, -1,
+	1, 1, 1, 0, -1, -1, -1,
 };
 
-static const int MONSTER_GRID_Y[48] = {
-	0, 0, 0, -1, 0, 0, 0, 0, 0, 0, -1, 0,
-	0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-	0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0
+static const int MONSTER_GRID_Y[GRID_SIZE] = {
+	0, 0, 0, -1, 0, 0, 0,
+	0, 0, 0, -1, 0, 0, 0,
+	0, 0, 0, -1, 0, 0, 0,
+	0, 0, 0,  0, 0, 0, 0,
+	0, 0, 0, +1, 0, 0, 0,
+	0, 0, 0, +1, 0, 0, 0,
+	0, 0, 0, +1, 0, 0, 0,
 };
 
-static const int MONSTER_GRID3[48] = {
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	- 1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1,
-	0, -1, -1, -1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+static const int MONSTER_GRID3[GRID_SIZE] = {
+	-1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, -1, -1, -1,
+	+1, +1, +1,  0, -1, -1, -1,
+	+1, +1, +1, +1, +1, +1, +1,
+	+1, +1, +1, +1, +1, +1, +1,
+	+1, +1, +1, +1, +1, +1, +1,
 };
 
-static const int MONSTER_GRID_BITINDEX1[48] = {
-	1, 1, 1, 2, 3, 3, 3, 1, 1, 1, 2, 3,
-	3, 3, 1, 1, 1, 2, 3, 3, 3, 1, 1, 1,
-	0, 3, 3, 3, 1, 1, 1, 0, 3, 3, 3, 1,
-	1, 1, 0, 3, 3, 3, 1, 1, 1, 0, 3, 3
+static const int MONSTER_GRID_BITINDEX1[GRID_SIZE] = {
+	1, 1, 1, 2, 3, 3, 3,
+	1, 1, 1, 2, 3, 3, 3,
+	1, 1, 1, 2, 3, 3, 3,
+	1, 1, 1, 0, 3, 3, 3,
+	1, 1, 1, 0, 3, 3, 3,
+	1, 1, 1, 0, 3, 3, 3,
+	1, 1, 1, 0, 3, 3, 3,
 };
 
-static const int MONSTER_GRID_BITINDEX2[48] = {
-	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-	2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1,
-	0, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+static const int MONSTER_GRID_BITINDEX2[GRID_SIZE] = {
+	2, 2, 2, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 2,
+        2, 2, 2, 2, 2, 2, 2,
+        1, 1, 1, 0, 3, 3, 3,
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,
 };
 
 static const int ATTACK_TYPE_FX[23] = {
@@ -69,7 +85,7 @@ static const int ATTACK_TYPE_FX[23] = {
 	4, 5, 4, 9, 27, 29, 44, 51, 53, 61, 71
 };
 
-static const PowType MONSTER_SHOOT_POW[7] = { 
+static const PowType MONSTER_SHOOT_POW[7] = {
 	POW_MAGIC_ARROW, POW_SPARKLES, POW_FIREBALL,
 	POW_MEGAVOLTS, POW_COLD_RAY, POW_SPRAY, POW_ENERGY_BLAST
 };
@@ -85,7 +101,11 @@ static const int POW_WEAPON_VOCS[35] = {
 	5, 5, 5, 1, 3, 2, 5, 1, 1, 1, 0, 0, 0, 2, 2
 };
 
-static const int MONSTER_ITEM_RANGES[6] = { 10, 20, 50, 100, 100, 100 };
+static const int MONSTER_ITEM_RANGES[21] = {
+	10, 20, 50, 100, 100, 100, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0
+};
 
 #define monsterSavingThrow(MONINDEX) (_vm->getRandomNumber(1, 50 + (MONINDEX)) <= (MONINDEX))
 
@@ -94,7 +114,7 @@ static const int MONSTER_ITEM_RANGES[6] = { 10, 20, 50, 100, 100, 100 };
 Combat::Combat(XeenEngine *vm): _vm(vm), _missVoc("miss.voc") {
 	Common::fill(&_attackMonsters[0], &_attackMonsters[26], 0);
 	Common::fill(&_shootingRow[0], &_shootingRow[MAX_PARTY_COUNT], 0);
-	Common::fill(&_monsterMap[0][0], &_monsterMap[32][32], 0);
+	Common::fill(&_monsterMap[0][0], &_monsterMap[31][32], 0);
 	Common::fill(&_monsterMoved[0], &_monsterMoved[MAX_NUM_MONSTERS], false);
 	Common::fill(&_rangeAttacking[0], &_rangeAttacking[MAX_NUM_MONSTERS], false);
 	Common::fill(&_gmonHit[0], &_gmonHit[36], 0);
@@ -452,7 +472,7 @@ void Combat::moveMonsters() {
 	if (intf._charsShooting)
 		return;
 
-	Common::fill(&_monsterMap[0][0], &_monsterMap[32][32], 0);
+	Common::fill(&_monsterMap[0][0], &_monsterMap[31][32], 0);
 	Common::fill(&_monsterMoved[0], &_monsterMoved[MAX_NUM_MONSTERS], false);
 	Common::fill(&_rangeAttacking[0], &_rangeAttacking[MAX_NUM_MONSTERS], false);
 	Common::fill(&_gmonHit[0], &_gmonHit[36], -1);
@@ -1487,10 +1507,9 @@ void Combat::attack2(int damage, RangeType rangeType) {
 
 				for (uint idx = 0; idx < party._activeParty.size(); ++idx)
 					party._activeParty[idx].setAward(42, true);
-
-				if (_monster2Attack == 27 && party._mazeId == 29)
-					party._gameFlags[0][104] = true;
 			}
+			if (_monster2Attack == 27 && party._mazeId == 29)
+				party._gameFlags[0][104] = true;
 		}
 
 		giveExperience(monsterData._experience);
@@ -1510,7 +1529,7 @@ void Combat::attack2(int damage, RangeType rangeType) {
 
 			int itemDrop = monsterData._itemDrop;
 			if (itemDrop) {
-				if (MONSTER_ITEM_RANGES[itemDrop] >= _vm->getRandomNumber(1, 100)) {
+				if (MONSTER_ITEM_RANGES[itemDrop - 1] >= _vm->getRandomNumber(1, 100)) {
 					Character tempChar;
 					int category = tempChar.makeItem(itemDrop, 0, 0);
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,6 +46,7 @@ Render::Render(SagaEngine *vm, OSystem *system) {
 	_system = system;
 	_initialized = false;
 	_fullRefresh = true;
+	_dualSurface = (vm->getLanguage() == Common::JA_JPN);
 
 #ifdef SAGA_DEBUG
 	// Initialize FPS timer callback
@@ -54,6 +54,9 @@ Render::Render(SagaEngine *vm, OSystem *system) {
 #endif
 
 	_backGroundSurface.create(_vm->getDisplayInfo().width, _vm->getDisplayInfo().height, Graphics::PixelFormat::createFormatCLUT8());
+
+	if (_dualSurface)
+		_mergeSurface.create(_vm->getDisplayInfo().width << 1, _vm->getDisplayInfo().height << 1, Graphics::PixelFormat::createFormatCLUT8());
 
 	_flags = 0;
 
@@ -66,6 +69,7 @@ Render::~Render() {
 #endif
 
 	_backGroundSurface.free();
+	_mergeSurface.free();
 
 	_initialized = false;
 }
@@ -108,7 +112,7 @@ void Render::drawScene() {
 			}
 
 			// WORKAROUND
-			// Bug #2886130: "ITE: Graphic Glitches during Cat Tribe Celebration"
+			// Bug #4684: "ITE: Graphic Glitches during Cat Tribe Celebration"
 			if (_vm->_scene->currentSceneNumber() == 274) {
 				_vm->_interface->drawStatusBar();
 			}
@@ -242,13 +246,20 @@ void Render::addDirtyRect(Common::Rect r) {
 		_dirtyRects.push_back(r);
 }
 
+#define mCopyRectToScreen(x, y, w, h) \
+	if (_dualSurface) { \
+		scale2xAndMergeOverlay(x, y, w, h); \
+		_system->copyRectToScreen(_mergeSurface.getPixels(), _mergeSurface.pitch, x << 1, y << 1, w << 1, h << 1); \
+	} else \
+		_system->copyRectToScreen(_vm->_gfx->getBackBufferPixels(), _vm->_gfx->getBackBufferWidth(), x, y, w, h)
+
 void Render::restoreChangedRects() {
 	if (!_fullRefresh) {
-		Common::List<Common::Rect>::const_iterator it;
-		for (it = _dirtyRects.begin(); it != _dirtyRects.end(); ++it) {
+		for (Common::List<Common::Rect>::const_iterator it = _dirtyRects.begin(); it != _dirtyRects.end(); ++it) {
 			//_backGroundSurface.frameRect(*it, 1);		// DEBUG
-			if (_vm->_interface->getFadeMode() != kFadeOut)
-				g_system->copyRectToScreen(_vm->_gfx->getBackBufferPixels(), _backGroundSurface.w, it->left, it->top, it->width(), it->height());
+			if (_vm->_interface->getFadeMode() != kFadeOut) {
+				mCopyRectToScreen(it->left, it->top, it->width(), it->height());
+			}
 		}
 	}
 	_dirtyRects.clear();
@@ -256,18 +267,53 @@ void Render::restoreChangedRects() {
 
 void Render::drawDirtyRects() {
 	if (!_fullRefresh) {
-		Common::List<Common::Rect>::const_iterator it;
-		for (it = _dirtyRects.begin(); it != _dirtyRects.end(); ++it) {
+		for (Common::List<Common::Rect>::const_iterator it = _dirtyRects.begin(); it != _dirtyRects.end(); ++it) {
 			//_backGroundSurface.frameRect(*it, 2);		// DEBUG
-			if (_vm->_interface->getFadeMode() != kFadeOut)
-				g_system->copyRectToScreen(_vm->_gfx->getBackBufferPixels(), _backGroundSurface.w, it->left, it->top, it->width(), it->height());
+			if (_vm->_interface->getFadeMode() != kFadeOut) {
+				mCopyRectToScreen(it->left, it->top, it->width(), it->height());
+			}
 		}
 	} else {
-		_system->copyRectToScreen(_vm->_gfx->getBackBufferPixels(), _vm->_gfx->getBackBufferWidth(), 0, 0,
-								  _vm->_gfx->getBackBufferWidth(), _vm->_gfx->getBackBufferHeight());
+		mCopyRectToScreen(0, 0, _backGroundSurface.w, _backGroundSurface.h);
 	}
-
 	_dirtyRects.clear();
+}
+
+#undef mCopyRectToScreen
+
+void Render::scale2xAndMergeOverlay(int x, int y, int w, int h) {
+	int src0Pitch = _vm->_gfx->getBackBufferPitch();
+	int src1Pitch = _vm->_gfx->getSJISBackBufferPitch();
+	int dst1Pitch = _mergeSurface.pitch;
+	const byte *src00 = _vm->_gfx->getBackBufferPixels() + y * src0Pitch + x;
+	const byte *src10 = _vm->_gfx->getSJISBackBufferPixels() + y * 2 * src1Pitch + x * 2;
+	const byte *src11 = src10 + src1Pitch;
+	byte *dst10 = (byte*)_mergeSurface.getBasePtr(x << 1, y << 1);
+	byte *dst11 = dst10 + dst1Pitch;
+	src0Pitch -= w;
+	src1Pitch += (src1Pitch - (w << 1));
+	dst1Pitch += (dst1Pitch - (w << 1));
+
+	while (h--) {
+		for (int i = 0; i < w; ++i) {
+			// v0: pixels from "normal" surface that have to be scaled
+			// v1: pixels from hires text surface that go on top
+			uint8 v0 = *src00++;
+			uint8 v1 = *src10++;
+			*dst10++ = v1 ? v1 : v0;
+			v1 = *src10++;
+			*dst10++ = v1 ? v1 : v0;
+			v1 = *src11++;
+			*dst11++ = v1 ? v1 : v0;
+			v1 = *src11++;
+			*dst11++ = v1 ? v1 : v0;
+		}
+		src00 += src0Pitch;
+		src10 += src1Pitch;
+		src11 += src1Pitch;
+		dst10 += dst1Pitch;
+		dst11 += dst1Pitch;
+	}
 }
 
 #ifdef SAGA_DEBUG

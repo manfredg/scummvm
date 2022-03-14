@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -118,9 +117,9 @@ public:
 };
 
 /**
- * Create a codec given a bitmap/AVI compression tag.
+ * Create a codec given a bitmap/AVI compression tag and stream handler tag (can be 0)
  */
-Codec *createBitmapCodec(uint32 tag, int width, int height, int bitsPerPixel);
+Codec *createBitmapCodec(uint32 tag, uint32 streamTag, int width, int height, int bitsPerPixel);
 
 /**
  * Create a codec given a QuickTime compression tag.

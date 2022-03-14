@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,24 +56,15 @@ void ToonEngine::init() {
 	_mainSurface = new Graphics::Surface();
 	_mainSurface->create(TOON_BACKBUFFER_WIDTH, TOON_BACKBUFFER_HEIGHT, Graphics::PixelFormat::createFormatCLUT8());
 
-	_finalPalette = new uint8[768];
-	_backupPalette = new uint8[768];
-	_additionalPalette1 = new uint8[69];
-	_additionalPalette2 = new uint8[69];
-	_cutawayPalette = new uint8[768];
-	_universalPalette = new uint8[96];
-	_fluxPalette = new uint8[24];
+	_finalPalette = new uint8[768]();
+	_backupPalette = new uint8[768]();
+	_additionalPalette1 = new uint8[69]();
+	_additionalPalette2 = new uint8[69]();
+	_cutawayPalette = new uint8[768]();
+	_universalPalette = new uint8[96]();
+	_fluxPalette = new uint8[24]();
 
-	memset(_finalPalette, 0, 768);
-	memset(_backupPalette, 0, 768);
-	memset(_additionalPalette1, 0, 69);
-	memset(_additionalPalette2, 0, 69);
-	memset(_cutawayPalette, 0, 768);
-	memset(_universalPalette, 0, 96);
-	memset(_fluxPalette, 0, 24);
-
-	_conversationData = new int16[4096];
-	memset(_conversationData, 0, 4096 * sizeof(int16));
+	_conversationData = new int16[4096]();
 
 	_shouldQuit = false;
 	_scriptStep = 0;
@@ -222,12 +212,12 @@ void ToonEngine::parseInput() {
 				if (slotNum >= 0 && slotNum <= 9 && canSaveGameStateCurrently()) {
 					if (saveGame(slotNum, "")) {
 						// ok
-						Common::String buf = Common::String::format(_("Saved game in slot #%d "), slotNum);
+						Common::U32String buf = Common::U32String::format(_("Saved game in slot #%d "), slotNum);
 						GUI::TimedMessageDialog dialog(buf, 1000);
 						dialog.runModal();
 					} else {
-						Common::String buf = Common::String::format(_("Could not quick save into slot #%d"), slotNum);
-						GUI::MessageDialog dialog(buf, "OK", 0);
+						Common::U32String buf = Common::U32String::format(_("Could not quick save into slot #%d"), slotNum);
+						GUI::MessageDialog dialog(buf);
 						dialog.runModal();
 
 					}
@@ -239,13 +229,14 @@ void ToonEngine::parseInput() {
 				if (slotNum >= 0 && slotNum <= 9 && canLoadGameStateCurrently()) {
 					if (loadGame(slotNum)) {
 						// ok
-						Common::String buf = Common::String::format(_("Saved game #%d quick loaded"), slotNum);
+						Common::U32String buf = Common::U32String::format(_("Saved game #%d quick loaded"), slotNum);
 						GUI::TimedMessageDialog dialog(buf, 1000);
 						dialog.runModal();
 					} else {
-						Common::String buf = Common::String::format(_("Could not quick load the saved game #%d"), slotNum);
-						GUI::MessageDialog dialog(buf, "OK", 0);
-						warning("%s", buf.c_str());
+						const char *msg = _s("Could not quick load the saved game #%d");
+						Common::U32String buf = Common::U32String::format(_(msg), slotNum);
+						GUI::MessageDialog dialog(buf);
+						warning(msg, slotNum);
 						dialog.runModal();
 					}
 				}
@@ -625,33 +616,51 @@ static const MenuFile mainMenuFiles[] = {
 
 #define OPTIONMENU_ENTRYCOUNT 27
 static const MenuFile optionMenuFiles[] = {
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_PLAY,        "PLAYBUTN.CAF", 0 }, // "Start" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_QUIT,        "QUITBUTN.CAF", 0 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_VIDEO_MODE,        "VIDMODE.CAF", 0 }, // "Start" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_TEXTSPEED,        "TXTSPEED.CAF", 0 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_TEXT,        "TEXTDIAL.CAF", 0}, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_VOLUMESFX,        "SFXBUTN.CAF", 0 }, // "Start" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_VOLUMESFXSLIDER,        "SFXSLDR.CAF", 0 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_VOLUMEVOICE,        "VOICEBTN.CAF", 0 }, // "Start" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_VOLUMEVOICESLIDER,        "VOICESLD.CAF", 0 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_VOLUMEMUSIC,        "MUSICBTN.CAF", 0 }, // "Start" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_VOLUMEMUSICSLIDER,        "MUSICSLD.CAF", 0 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_SPEAKERBUTTON,        "XTRABUTN.CAF", 0 }, // "Start" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_SPEAKERLEVER,        "XTRALEVR.CAF", 0}, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "ANTENNAL.CAF", 6 }, // "Start" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "ANTENNAR.CAF", 6 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "BIGREDL.CAF", 6 }, // "Start" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "BIGREDR.CAF", 6 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "GRIDLTEL.CAF", 6 }, // "Start" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "GRIDLTER.CAF", 6 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "LSPEAKR.CAF", 0 }, // "Start" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "RSPEAKR.CAF", 0 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "STARLITL.CAF", 6 }, // "Start" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "STARLITR.CAF", 6 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "CHASE1.CAF", 6 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "CHASE2.CAF", 6 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "CHASE3.CAF", 6 }, // "Intro" button
-	{ OPTIONMENUMASK_EVERYWHERE,       OPTIONMENUHOTSPOT_NONE,        "CHASE4.CAF", 6 } // "Intro" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_PLAY,					"PLAYBUTN.CAF",	0 },	// "Play" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_QUIT,					"QUITBUTN.CAF",	0 },	// "Quit" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VIDEO_MODE,			"VIDMODE.CAF",	0 },	// "Video mode" slider
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_TEXTSPEED,			"TXTSPEED.CAF",	0 },	// "Text speed" slider
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_TEXT,					"TEXTDIAL.CAF",	0},		// "Text" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMESFX,			"SFXBUTN.CAF",	0 },	// "SFX" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMESFXSLIDER,		"SFXSLDR.CAF",	0 },	// "SFX volume" slider
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEVOICE,			"VOICEBTN.CAF",	0 },	// "Voice" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEVOICESLIDER,	"VOICESLD.CAF",	0 },	// "Voice volume" slider
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEMUSIC,			"MUSICBTN.CAF",	0 },	// "Music" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEMUSICSLIDER,	"MUSICSLD.CAF",	0 },	// "Music volume" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_SPEAKERBUTTON,		"XTRABUTN.CAF",	0 },	// Right speaker button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_SPEAKERLEVER,			"XTRALEVR.CAF",	0},		// Left speaker switch
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"ANTENNAL.CAF",	6 },	// Decorative animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"ANTENNAR.CAF",	6 },	// Decorative animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"BIGREDL.CAF",	6 },	// Decorative animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"BIGREDR.CAF",	6 },	// Decorative animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"GRIDLTEL.CAF",	6 },	// Decorative animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"GRIDLTER.CAF",	6 },	// Decorative animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"LSPEAKR.CAF",	0 },	// Left speaker animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"RSPEAKR.CAF",	0 },	// Right speaker animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"STARLITL.CAF",	6 },	// Decorative animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"STARLITR.CAF",	6 },	// Decorative animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"CHASE1.CAF",	6 },	// Decorative animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"CHASE2.CAF",	6 },	// Decorative animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"CHASE3.CAF",	6 },	// Decorative animation
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"CHASE4.CAF",	6 }		// Decorative animation
+};
+
+// English demo does not have most of the animations, but it has a random
+// sparkle effect instead.
+#define OPTIONMENU_ENTRYCOUNT_ENGLISH_DEMO 12
+static const MenuFile optionMenuFilesEnglishDemo[] = {
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_PLAY,					"PLAYBUTN.CAF",	0 },	// "Play" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_QUIT,					"QUITBUTN.CAF",	0 },	// "Quit" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VIDEO_MODE,			"VIDMODE.CAF",	0 },	// "Video mode" slider
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_TEXTSPEED,			"TXTSPEED.CAF",	0 },	// "Text speed" slider
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_TEXT,					"TEXTDIAL.CAF",	0},		// "Text" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMESFX,			"SFXBUTN.CAF",	0 },	// "SFX" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMESFXSLIDER,		"SFXSLDR.CAF",	0 },	// "SFX volume" slider
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEVOICE,			"VOICEBTN.CAF",	0 },	// "Voice" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEVOICESLIDER,	"VOICESLD.CAF",	0 },	// "Voice volume" slider
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEMUSIC,			"MUSICBTN.CAF",	0 },	// "Music" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_VOLUMEMUSICSLIDER,	"MUSICSLD.CAF",	0 },	// "Music volume" button
+	{ OPTIONMENUMASK_EVERYWHERE,	OPTIONMENUHOTSPOT_NONE,					"SPRKL.CAF",	6 }		// Sparkle animation
 };
 
 struct MenuEntry {
@@ -680,16 +689,19 @@ bool ToonEngine::showOptions() {
 	bool oldMouseHidden = _gameState->_mouseHidden;
 	_gameState->_mouseHidden = false;
 
-	MenuEntry entries[OPTIONMENU_ENTRYCOUNT];
+	// English demo options menu has less animations and no SFX
+	int optionMenuEntryCount = _isEnglishDemo ? OPTIONMENU_ENTRYCOUNT_ENGLISH_DEMO : OPTIONMENU_ENTRYCOUNT;
+	const MenuFile *optionMenuFilesPtr = _isEnglishDemo ? optionMenuFilesEnglishDemo : optionMenuFiles;
+	MenuEntry *entries = new MenuEntry[optionMenuEntryCount];
 
-	for (int entryNr = 0; entryNr < OPTIONMENU_ENTRYCOUNT; entryNr++) {
-		entries[entryNr].menuMask = optionMenuFiles[entryNr].menuMask;
-		entries[entryNr].id = optionMenuFiles[entryNr].id;
+	for (int entryNr = 0; entryNr < optionMenuEntryCount; entryNr++) {
+		entries[entryNr].menuMask = optionMenuFilesPtr[entryNr].menuMask;
+		entries[entryNr].id = optionMenuFilesPtr[entryNr].id;
 		entries[entryNr].animation = new Animation(this);
-		entries[entryNr].animation->loadAnimation(optionMenuFiles[entryNr].animationFile);
+		entries[entryNr].animation->loadAnimation(optionMenuFilesPtr[entryNr].animationFile);
 		if (entries[entryNr].id != OPTIONMENUHOTSPOT_NONE)
 			entries[entryNr].rect = entries[entryNr].animation->getRect();
-		entries[entryNr].animateOnFrame = optionMenuFiles[entryNr].animateOnFrame;
+		entries[entryNr].animateOnFrame = optionMenuFilesPtr[entryNr].animateOnFrame;
 		entries[entryNr].animateCurFrame = 0;
 		entries[entryNr].activeFrame = 0;
 		entries[entryNr].playOnce = false;
@@ -712,6 +724,11 @@ bool ToonEngine::showOptions() {
 	} else {
 		entries[4].activeFrame = 0;
 	}
+
+	// Variables for the English demo sparkle animation.
+	int sparkleDelay = 100;
+	int sparklePosX = 0;
+	int sparklePosY = 0;
 
 	setCursor(0);
 
@@ -739,8 +756,26 @@ bool ToonEngine::showOptions() {
 			}
 			clearDirtyRects();
 
-			for (int entryNr = 0; entryNr < OPTIONMENU_ENTRYCOUNT; entryNr++) {
+			for (int entryNr = 0; entryNr < optionMenuEntryCount; entryNr++) {
 				if (entries[entryNr].menuMask & menuMask) {
+					int animPosX = 0;
+					int animPosY = 0;
+					if (_isEnglishDemo && entryNr == 11) {
+						// Special handling for the sparkles in the English demo.
+						if (sparkleDelay > 0) {
+							// Don't show the next sparkle until the delay has
+							// counted down.
+							sparkleDelay--;
+							continue;
+						} else if (entries[entryNr].animateCurFrame == 0 && entries[entryNr].activeFrame == 0) {
+							// Start of a new sparkle animation. Generate a
+							// random position on the screen.
+							sparklePosX = randRange(0, 639 - entries[entryNr].animation->getWidth());
+							sparklePosY = randRange(0, 399 - entries[entryNr].animation->getHeight());
+						}
+						animPosX = sparklePosX;
+						animPosY = sparklePosY;
+					}
 					if (entries[entryNr].animateOnFrame) {
 						entries[entryNr].animateCurFrame++;
 						if (entries[entryNr].animateOnFrame <= entries[entryNr].animateCurFrame) {
@@ -754,12 +789,16 @@ bool ToonEngine::showOptions() {
 								if (entryNr == 20 && entries[entryNr].animateOnFrame > 0) {
 									playSFX(-3, 128);
 								}
+								if (_isEnglishDemo && entryNr == 11)
+									// Sparkle animation has finished. Generate
+									// a random delay until the next sparkle.
+									sparkleDelay = randRange(0, 100);
 							}
 							entries[entryNr].animateCurFrame = 0;
 						}
 					}
 					int32 frameNr = entries[entryNr].activeFrame;
-					entries[entryNr].animation->drawFrame(*_mainSurface, frameNr, 0, 0);
+					entries[entryNr].animation->drawFrame(*_mainSurface, frameNr, animPosX, animPosY);
 				}
 			}
 
@@ -775,7 +814,7 @@ bool ToonEngine::showOptions() {
 			if (_mouseButton & 1) {
 				// left mouse button pushed down
 				clickingOn = OPTIONMENUHOTSPOT_NONE;
-				for (int entryNr = 0; entryNr < OPTIONMENU_ENTRYCOUNT; entryNr++) {
+				for (int entryNr = 0; entryNr < optionMenuEntryCount; entryNr++) {
 					if (entries[entryNr].menuMask & menuMask) {
 						if (entries[entryNr].id != OPTIONMENUHOTSPOT_NONE) {
 							if (entries[entryNr].rect.contains(_mouseX, _mouseY)) {
@@ -842,7 +881,8 @@ bool ToonEngine::showOptions() {
 				entries[9].activeFrame = 0;
 				_audioManager->muteMusic(true);
 			}
-			playSFX(-7, 128);
+			if (!_isEnglishDemo)
+				playSFX(-7, 128);
 		}
 
 		if (clickingOn == OPTIONMENUHOTSPOT_VOLUMEVOICE) {
@@ -853,7 +893,8 @@ bool ToonEngine::showOptions() {
 				entries[7].activeFrame = 0;
 				_audioManager->muteVoice(true);
 			}
-			playSFX(-7, 128);
+			if (!_isEnglishDemo)
+				playSFX(-7, 128);
 		}
 
 		if (clickingOn == OPTIONMENUHOTSPOT_VOLUMESFX) {
@@ -864,7 +905,8 @@ bool ToonEngine::showOptions() {
 				entries[5].activeFrame = 0;
 				_audioManager->muteSfx(true);
 			}
-			playSFX(-7, 128);
+			if (!_isEnglishDemo)
+				playSFX(-7, 128);
 		}
 
 		if (clickingOn == OPTIONMENUHOTSPOT_SPEAKERBUTTON) {
@@ -875,7 +917,8 @@ bool ToonEngine::showOptions() {
 			entries[19].playOnce = true;
 
 			playSFX(-10, 128);
-			_audioManager->playVoice(316, true);
+			if (!_isEnglishDemo)
+				_audioManager->playVoice(316, true);
 		}
 
 		if (clickingOn == OPTIONMENUHOTSPOT_SPEAKERLEVER) {
@@ -888,7 +931,8 @@ bool ToonEngine::showOptions() {
 			} else {
 				entries[20].playOnce = true;
 			}
-			playSFX(-9, 128);
+			if (!_isEnglishDemo)
+				playSFX(-9, 128);
 		}
 
 		if (clickingOn == OPTIONMENUHOTSPOT_TEXT) {
@@ -906,7 +950,8 @@ bool ToonEngine::showOptions() {
 				entries[4].activeFrame = 0;
 			}
 
-			playSFX(-9, 128);
+			if (!_isEnglishDemo)
+				playSFX(-9, 128);
 		}
 
 		// don't allow change to video mode
@@ -917,14 +962,16 @@ bool ToonEngine::showOptions() {
 		if (clickingOn == OPTIONMENUHOTSPOT_PLAY) {
 			doExit = true;
 			exitGame = false;
-			_audioManager->playSFX(10, 128, true);
+			if (!_isEnglishDemo)
+				_audioManager->playSFX(10, 128, true);
 		}
 
 		if (clickingOn == OPTIONMENUHOTSPOT_QUIT) {
 			doExit = true;
 			exitGame = true;
 			_shouldQuit = true;
-			_audioManager->playSFX(10, 128, true);
+			if (!_isEnglishDemo)
+				_audioManager->playSFX(10, 128, true);
 		}
 	}
 
@@ -937,6 +984,7 @@ bool ToonEngine::showOptions() {
 	restorePalette();
 	dirtyAllScreen();
 
+	delete[] entries;
 	delete optionPicture;
 
 	return exitGame;
@@ -1131,10 +1179,12 @@ Common::Error ToonEngine::run() {
 	if (!loadedGame) {
 
 		// play producer intro
-		getMoviePlayer()->play("VIELOGOM.SMK", 0x10);
+		// not all demo versions include the logo video
+		getMoviePlayer()->play("VIELOGOM.SMK", _isDemo ? 0x12 : 0x10);
 
 		// show mainmenu
-		if (!showMainmenu(loadedGame)) {
+		// the demo does not have a menu and starts a new game right away
+		if (!_isDemo && !showMainmenu(loadedGame)) {
 			return Common::kNoError;
 		}
 	}
@@ -1160,19 +1210,7 @@ ToonEngine::ToonEngine(OSystem *syst, const ADGameDescription *gameDescription)
 	_showConversationText = true;
 	_useAlternativeFont = false;
 	_isDemo = _gameDescription->flags & ADGF_DEMO;
-
-	DebugMan.addDebugChannel(kDebugAnim, "Anim", "Animation debug level");
-	DebugMan.addDebugChannel(kDebugCharacter, "Character", "Character debug level");
-	DebugMan.addDebugChannel(kDebugAudio, "Audio", "Audio debug level");
-	DebugMan.addDebugChannel(kDebugHotspot, "Hotspot", "Hotspot debug level");
-	DebugMan.addDebugChannel(kDebugFont, "Font", "Font debug level");
-	DebugMan.addDebugChannel(kDebugPath, "Path", "Path debug level");
-	DebugMan.addDebugChannel(kDebugMovie, "Movie", "Movie debug level");
-	DebugMan.addDebugChannel(kDebugPicture, "Picture", "Picture debug level");
-	DebugMan.addDebugChannel(kDebugResource, "Resource", "Resource debug level");
-	DebugMan.addDebugChannel(kDebugState, "State", "State debug level");
-	DebugMan.addDebugChannel(kDebugTools, "Tools", "Tools debug level");
-	DebugMan.addDebugChannel(kDebugText, "Text", "Text debug level");
+	_isEnglishDemo = _isDemo && _gameDescription->language == Common::EN_ANY;
 
 	_resources = NULL;
 	_animationManager = NULL;
@@ -1371,8 +1409,6 @@ ToonEngine::~ToonEngine() {
 	delete _gameState;
 
 	unloadToonDat();
-
-	DebugMan.clearAllDebugChannels();
 }
 
 void ToonEngine::flushPalette(bool deferFlushToNextRender) {
@@ -1524,9 +1560,12 @@ void ToonEngine::loadScene(int32 SceneId, bool forGameLoad) {
 
 	// load package
 	if (!resources()->openPackage(createRoomFilename(locationName + ".PAK"))) {
-		Common::String msg = Common::String::format(_("Unable to locate the '%s' data file."), createRoomFilename(locationName + ".PAK").c_str());
-		GUIErrorMessage(msg);
-		warning("%s", msg.c_str());
+		const char *msg = _s("Unable to locate the '%s' data file.");
+		Common::String roomFileName = createRoomFilename(locationName + ".PAK");
+
+		Common::U32String buf = Common::U32String::format(_(msg), roomFileName.c_str());
+		GUIErrorMessage(buf);
+		warning(msg, roomFileName.c_str());
 		_shouldQuit = true;
 		return;
 	}
@@ -2191,11 +2230,17 @@ void ToonEngine::fadeOut(int32 numFrames) {
 
 void ToonEngine::initFonts() {
 	_fontRenderer = new FontRenderer(this);
-	_fontToon = new Animation(this);
-	_fontToon->loadAnimation("TOONFONT.CAF");
+	if (_isEnglishDemo) {
+		// The English demo uses a different font format. There is only one
+		// font, so the alternative font setting is ignored.
+		_fontRenderer->loadDemoFont("8FAT.FNT");
+	} else {
+		_fontToon = new Animation(this);
+		_fontToon->loadAnimation("TOONFONT.CAF");
 
-	_fontEZ = new Animation(this);
-	_fontEZ->loadAnimation("EZFONT.CAF");
+		_fontEZ = new Animation(this);
+		_fontEZ->loadAnimation("EZFONT.CAF");
+	}
 
 	setFont(false);
 }
@@ -3196,8 +3241,10 @@ void ToonEngine::newGame() {
 	if (_isDemo) {
 		addItemToInventory(59);
 		addItemToInventory(67);
-		addItemToInventory(11);
-		addItemToInventory(19);
+		if (!_isEnglishDemo) {
+			addItemToInventory(11);
+			addItemToInventory(19);
+		}
 		loadScene(22);
 		//loadScene(_gameState->_currentScene);
 	} else {
@@ -4942,16 +4989,17 @@ void ToonEngine::createShadowLUT() {
 
 bool ToonEngine::loadToonDat() {
 	Common::File in;
-	Common::String msg;
+	Common::U32String errorMessage;
 	Common::String filename = "toon.dat";
 	int majVer, minVer;
 
 	in.open(filename.c_str());
 
 	if (!in.isOpen()) {
-		msg = Common::String::format(_("Unable to locate the '%s' engine data file."), filename.c_str());
-		GUIErrorMessage(msg);
-		warning("%s", msg.c_str());
+		const char *msg = _s("Unable to locate the '%s' engine data file.");
+		errorMessage = Common::U32String::format(_(msg), filename.c_str());
+		GUIErrorMessage(errorMessage);
+		warning(msg, filename.c_str());
 		return false;
 	}
 
@@ -4961,9 +5009,10 @@ bool ToonEngine::loadToonDat() {
 	buf[4] = '\0';
 
 	if (strcmp(buf, "TOON")) {
-		msg = Common::String::format(_("The '%s' engine data file is corrupt."), filename.c_str());
-		GUIErrorMessage(msg);
-		warning("%s", msg.c_str());
+		const char *msg = _s("The '%s' engine data file is corrupt.");
+		errorMessage = Common::U32String::format(_(msg), filename.c_str());
+		GUIErrorMessage(errorMessage);
+		warning(msg, filename.c_str());
 		return false;
 	}
 
@@ -4971,12 +5020,11 @@ bool ToonEngine::loadToonDat() {
 	minVer = in.readByte();
 
 	if ((majVer != TOON_DAT_VER_MAJ) || (minVer != TOON_DAT_VER_MIN)) {
-		msg = Common::String::format(
-			_("Incorrect version of the '%s' engine data file found. Expected %d.%d but got %d.%d."),
-			filename.c_str(), TOON_DAT_VER_MAJ, TOON_DAT_VER_MIN, majVer, minVer);
-		GUIErrorMessage(msg);
-		warning("%s", msg.c_str());
+		const char *msg = _s("Incorrect version of the '%s' engine data file found. Expected %d.%d but got %d.%d.");
+		errorMessage = Common::U32String::format(_(msg), filename.c_str(), TOON_DAT_VER_MAJ, TOON_DAT_VER_MIN, majVer, minVer);
+		GUIErrorMessage(errorMessage);
 
+		warning(msg, filename.c_str(), TOON_DAT_VER_MAJ, TOON_DAT_VER_MIN, majVer, minVer);
 		return false;
 	}
 

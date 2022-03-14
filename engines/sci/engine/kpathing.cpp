@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -120,7 +119,7 @@ struct Vertex {
 public:
 	Vertex(const Common::Point &p) : v(p) {
 		costG = HUGE_DISTANCE;
-		path_prev = NULL;
+		path_prev = nullptr;
 	}
 };
 
@@ -152,14 +151,14 @@ public:
 	Vertex *_head;
 
 public:
-	CircularVertexList() : _head(0) {}
+	CircularVertexList() : _head(nullptr) {}
 
 	Vertex *first() const {
 		return _head;
 	}
 
 	void insertAtEnd(Vertex *elm) {
-		if (_head == NULL) {
+		if (_head == nullptr) {
 			elm->_next = elm->_prev = elm;
 			_head = elm;
 		} else {
@@ -184,7 +183,7 @@ public:
 
 	void remove(Vertex *elm) {
 		if (elm->_next == elm) {
-			_head = NULL;
+			_head = nullptr;
 		} else {
 			if (_head == elm)
 				_head = elm->_next;
@@ -194,7 +193,7 @@ public:
 	}
 
 	bool empty() const {
-		return _head == NULL;
+		return _head == nullptr;
 	}
 
 	uint size() const {
@@ -264,11 +263,11 @@ struct PathfindingState {
 	int _width, _height;
 
 	PathfindingState(int width, int height) : _width(width), _height(height) {
-		vertex_start = NULL;
-		vertex_end = NULL;
-		vertex_index = NULL;
-		_prependPoint = NULL;
-		_appendPoint = NULL;
+		vertex_start = nullptr;
+		vertex_end = nullptr;
+		vertex_index = nullptr;
+		_prependPoint = nullptr;
+		_appendPoint = nullptr;
 		vertices = 0;
 	}
 
@@ -319,18 +318,18 @@ static void draw_line(EngineState *s, Common::Point p1, Common::Point p2, int ty
 	// Red : Barred access
 	// Yellow: Contained access
 	int poly_colors[4] = { 0, 0, 0, 0 };
-	
+
 	if (getSciVersion() <= SCI_VERSION_1_1) {
-		poly_colors[0] = g_sci->_gfxPalette16->kernelFindColor(0, 255, 0);		// green
-		poly_colors[1] = g_sci->_gfxPalette16->kernelFindColor(0, 0, 255);		// blue
-		poly_colors[2] = g_sci->_gfxPalette16->kernelFindColor(255, 0, 0);		// red
-		poly_colors[3] = g_sci->_gfxPalette16->kernelFindColor(255, 255, 0);	// yellow
+		poly_colors[0] = g_sci->_gfxPalette16->kernelFindColor(0, 255, 0, true);   // green
+		poly_colors[1] = g_sci->_gfxPalette16->kernelFindColor(0, 0, 255, true);   // blue
+		poly_colors[2] = g_sci->_gfxPalette16->kernelFindColor(255, 0, 0, true);   // red
+		poly_colors[3] = g_sci->_gfxPalette16->kernelFindColor(255, 255, 0, true); // yellow
 #ifdef ENABLE_SCI32
 	} else {
 		poly_colors[0] = g_sci->_gfxPalette32->matchColor(0, 255, 0);			// green
 		poly_colors[1] = g_sci->_gfxPalette32->matchColor(0, 0, 255);			// blue
 		poly_colors[2] = g_sci->_gfxPalette32->matchColor(255, 0, 0);			// red
-		poly_colors[3] = g_sci->_gfxPalette32->matchColor(255, 255, 0);			// yellow	
+		poly_colors[3] = g_sci->_gfxPalette32->matchColor(255, 255, 0);			// yellow
 #endif
 	}
 
@@ -360,8 +359,8 @@ static void draw_point(EngineState *s, Common::Point p, int start, int width, in
 	int point_colors[2] = { 0, 0 };
 
 	if (getSciVersion() <= SCI_VERSION_1_1) {
-		point_colors[0] = g_sci->_gfxPalette16->kernelFindColor(0, 255, 0);	// green
-		point_colors[1] = g_sci->_gfxPalette16->kernelFindColor(0, 0, 255);	// blue
+		point_colors[0] = g_sci->_gfxPalette16->kernelFindColor(0, 255, 0, true); // green
+		point_colors[1] = g_sci->_gfxPalette16->kernelFindColor(0, 0, 255, true); // blue
 #ifdef ENABLE_SCI32
 	} else {
 		point_colors[0] = g_sci->_gfxPalette32->matchColor(0, 255, 0);		// green
@@ -401,7 +400,7 @@ static void draw_polygon(EngineState *s, reg_t polygon, int width, int height) {
 #endif
 
 	int size = readSelectorValue(segMan, polygon, SELECTOR(size));
-	int type = readSelectorValue(segMan, polygon, SELECTOR(type));
+	int type = readSelectorValue(segMan, polygon, SELECTOR(type)) & ~0x10; // ignore kMergePoly flag
 	Common::Point first, prev;
 	int i;
 
@@ -898,9 +897,9 @@ static int intersection(const Common::Point &a, const Common::Point &b, const Ve
  *             (Common::Point) *ret: On success, the closest intersection point
  */
 static int nearest_intersection(PathfindingState *s, const Common::Point &p, const Common::Point &q, Common::Point *ret) {
-	Polygon *polygon = 0;
+	Polygon *polygon = nullptr;
 	FloatPoint isec;
-	Polygon *ipolygon = 0;
+	Polygon *ipolygon = nullptr;
 	uint32 dist = HUGE_DISTANCE;
 
 	for (PolygonList::iterator it = s->polygons.begin(); it != s->polygons.end(); ++it) {
@@ -1000,17 +999,35 @@ static Common::Point *fixup_start_point(PathfindingState *s, const Common::Point
 		case POLY_BARRED_ACCESS:
 		case POLY_NEAREST_ACCESS:
 			if (cont != CONT_OUTSIDE) {
-				if (s->_prependPoint != NULL) {
+				if (s->_prependPoint != nullptr) {
 					// We shouldn't get here twice.
 					// We need to break in this case, otherwise we'll end in an infinite
 					// loop.
 					warning("AvoidPath: start point is contained in multiple polygons");
-					break;
+
+					// WORKAROUND: LB2 room 530 has two barred access polygons obstacles with
+					// the second completely contained in the first. To walk down the stairs,
+					// the script places ego within the inner polygon to walk along a path
+					// that's also contained by both polygons. Our algorithm fixes up the
+					// start point against the first polygon that contains it, and so the
+					// staircase polygon is ignored. Instead ego's start position is set just
+					// outside the first (outer) polygon. The destination is then unreachable
+					// and so the script proceeds without ego ever walking down the stairs.
+					// The workaround is to ignore the fixup against the first polygon.
+					bool ignoreEarlierPolygon = g_sci->getGameId() == GID_LAURABOW2 &&
+												g_sci->getEngineState()->currentRoomNumber() == 530 &&
+												(*it)->vertices.size() == 14;
+					if (ignoreEarlierPolygon) {
+						delete s->_prependPoint;
+						s->_prependPoint = nullptr;
+					} else {
+						break;
+					}
 				}
 
 				if (s->findNearPoint(start, (*it), new_start) != PF_OK) {
 					delete new_start;
-					return NULL;
+					return nullptr;
 				}
 
 				if ((type == POLY_BARRED_ACCESS) || (type == POLY_CONTAINED_ACCESS))
@@ -1060,11 +1077,11 @@ static Common::Point *fixup_end_point(PathfindingState *s, const Common::Point &
 		case POLY_BARRED_ACCESS:
 		case POLY_NEAREST_ACCESS:
 			if (cont != CONT_OUTSIDE) {
-				if (s->_appendPoint != NULL) {
+				if (s->_appendPoint != nullptr) {
 					// We shouldn't get here twice.
 					// Happens in LB2CD, inside the speakeasy when walking from the
 					// speakeasy (room 310) into the bathroom (room 320), after having
-					// consulted the notebook (bug #3036299).
+					// consulted the notebook (bug #5029).
 					// We need to break in this case, otherwise we'll end in an infinite
 					// loop.
 					warning("AvoidPath: end point is contained in multiple polygons");
@@ -1074,7 +1091,7 @@ static Common::Point *fixup_end_point(PathfindingState *s, const Common::Point &
 				// The original end position is in an invalid location, so we move the point
 				if (s->findNearPoint(end, (*it), new_end) != PF_OK) {
 					delete new_end;
-					return NULL;
+					return nullptr;
 				}
 
 				// For near-point access polygons we need to add the original end point
@@ -1163,16 +1180,16 @@ static Polygon *convert_polygon(EngineState *s, reg_t polygon) {
 
 	if (size == 0) {
 		// If the polygon has no vertices, we skip it
-		return NULL;
+		return nullptr;
 	}
 
 	SegmentRef pointList = segMan->dereference(points);
 	// Check if the target polygon is still valid. It may have been released
 	// in the meantime (e.g. in LSL6, room 700, when using the elevator).
-	// Refer to bug #3034501.
+	// Refer to bug #4946.
 	if (!pointList.isValid() || pointList.skipByte) {
 		warning("convert_polygon: Polygon data pointer is invalid, skipping polygon");
-		return NULL;
+		return nullptr;
 	}
 
 	// Make sure that we have enough points
@@ -1180,7 +1197,7 @@ static Polygon *convert_polygon(EngineState *s, reg_t polygon) {
 		warning("convert_polygon: Not enough memory allocated for polygon points. "
 				"Expected %d, got %d. Skipping polygon",
 				size * POLY_POINT_SIZE, pointList.maxSize);
-		return NULL;
+		return nullptr;
 	}
 
 	int skip = 0;
@@ -1254,8 +1271,8 @@ static PathfindingState *convert_polygon_set(EngineState *s, reg_t poly_list, Co
 
 		while (node) {
 			// The node value might be null, in which case there's no polygon to parse.
-			// Happens in LB2 floppy - refer to bug #3041232
-			polygon = !node->value.isNull() ? convert_polygon(s, node->value) : NULL;
+			// Happens in LB2 floppy - refer to bug #5195
+			polygon = !node->value.isNull() ? convert_polygon(s, node->value) : nullptr;
 
 			if (polygon) {
 				pf_s->polygons.push_back(polygon);
@@ -1274,7 +1291,7 @@ static PathfindingState *convert_polygon_set(EngineState *s, reg_t poly_list, Co
 	if (!new_start) {
 		warning("AvoidPath: Couldn't fixup start position for pathfinding");
 		delete pf_s;
-		return NULL;
+		return nullptr;
 	}
 
 	Common::Point *new_end = fixup_end_point(pf_s, end);
@@ -1283,7 +1300,7 @@ static PathfindingState *convert_polygon_set(EngineState *s, reg_t poly_list, Co
 		warning("AvoidPath: Couldn't fixup end position for pathfinding");
 		delete new_start;
 		delete pf_s;
-		return NULL;
+		return nullptr;
 	}
 
 	if (opt == 0) {
@@ -1306,7 +1323,7 @@ static PathfindingState *convert_polygon_set(EngineState *s, reg_t poly_list, Co
 				delete new_start;
 				delete new_end;
 				delete pf_s;
-				return NULL;
+				return nullptr;
 			}
 
 			if (err == PF_OK)
@@ -1369,7 +1386,7 @@ static void AStar(PathfindingState *s) {
 	while (!openSet.empty()) {
 		// Find vertex in open set with lowest F cost
 		VertexList::iterator vertex_min_it = openSet.end();
-		Vertex *vertex_min = 0;
+		Vertex *vertex_min = nullptr;
 		uint32 min = HUGE_DISTANCE;
 
 		for (VertexList::iterator it = openSet.begin(); it != openSet.end(); ++it) {
@@ -1381,7 +1398,7 @@ static void AStar(PathfindingState *s) {
 			}
 		}
 
-		assert(vertex_min != 0);	// the vertex cost should never be bigger than HUGE_DISTANCE
+		assert(vertex_min != nullptr);	// the vertex cost should never be bigger than HUGE_DISTANCE
 
 		// Check if we are done
 		if (vertex_min == s->vertex_end)
@@ -1474,7 +1491,7 @@ static reg_t output_path(PathfindingState *p, EngineState *s) {
 	int path_len = 0;
 	reg_t output;
 	Vertex *vertex = p->vertex_end;
-	int unreachable = vertex->path_prev == NULL;
+	int unreachable = vertex->path_prev == nullptr;
 
 	if (!unreachable) {
 		while (vertex) {
@@ -1880,7 +1897,7 @@ reg_t kIntersections(EngineState *s, int argc, reg_t *argv) {
 
 // Compute square of the distance of p to the segment a-b.
 static float pointSegDistance(const Common::Point &a, const Common::Point &b,
-                              const Common::Point &p) {
+							  const Common::Point &p) {
 	FloatPoint ba(b-a);
 	FloatPoint pa(p-a);
 	FloatPoint bp(b-p);

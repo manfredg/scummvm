@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,15 +23,13 @@
 #define ULTIMA8_KERNEL_USECODE_PROCESS_H
 
 #include "ultima/shared/std/containers.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
+#include "ultima/ultima8/misc/classtype.h"
 #include "ultima/ultima8/misc/pent_include.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
 class Debugger;
-class IDataSource;
-class ODataSource;
 
 class Process {
 	friend class Kernel;
@@ -43,11 +40,7 @@ public:
 	Process(ObjId _itemNum = 0, uint16 type = 0);
 	virtual ~Process() { }
 
-	// p_dynamic_cast stuff
 	ENABLE_RUNTIME_CLASSTYPE_BASE()
-
-	// memory pooling stuff
-	ENABLE_CUSTOM_MEMORY_ALLOCATION()
 
 	uint32 getProcessFlags() const {
 		return _flags;
@@ -74,8 +67,13 @@ public:
 		_flags |= PROC_TERM_DEFERRED;
 	}
 
-	//! suspend until process '_pid' returns. If _pid is 0, suspend indefinitely
-	void waitFor(ProcId _pid);
+	//! run even when paused
+	void setRunPaused() {
+		_flags |= PROC_RUNPAUSED;
+	};
+
+	//! suspend until process 'pid' returns. If pid is 0, suspend indefinitely
+	void waitFor(ProcId pid);
 
 	//! suspend until process returns. If proc is 0, suspend indefinitely
 	void waitFor(Process *proc);
@@ -83,13 +81,20 @@ public:
 	//! suspend process
 	void suspend();
 
+	//! Wake up when the process we were waiting for has finished
 	void wakeUp(uint32 result);
+
+	//! A hook to add aditional behavior on wakeup, before anything else happens
+	virtual void onWakeUp() {};
 
 	void setItemNum(ObjId it) {
 		_itemNum = it;
 	}
 	void setType(uint16 ty) {
 		_type = ty;
+	}
+	void setTicksPerRun(uint32 val) {
+		_ticksPerRun = val;
 	}
 
 	ProcId getPid() const {
@@ -101,26 +106,33 @@ public:
 	uint16 getType() const {
 		return _type;
 	}
+	uint32 getTicksPerRun() const {
+		return _ticksPerRun;
+	}
 
 	//! dump some info about this process to pout
 	virtual void dumpInfo() const;
 
-	//! save this process
-	void save(ODataSource *ods);
-
 	//! load Process data
-	bool loadData(IDataSource *ids, uint32 version);
+	bool loadData(Common::ReadStream *rs, uint32 version);
+
+	//! save Process data
+	virtual void saveData(Common::WriteStream *ws);
+
+	//! Check the waiting processes.  This is used after loading a game.
+	//! Ensures they are all valid processes and suspended.  Can't be done in
+	//! loadData because the waiters may not be loaded yet at that point.
+	bool validateWaiters() const;
 
 protected:
-	//! save the Process data
-	virtual void saveData(ODataSource *ods);
-
-	void writeProcessHeader(ODataSource *ods);
-
 	//! process id
 	ProcId _pid;
 
 	uint32 _flags;
+
+	//! how many kernel ticks between when this process should be run.
+	//! not saved because it's fixed by process type and game.
+	uint32 _ticksPerRun;
 
 	//! item we are assigned to
 	ObjId _itemNum;

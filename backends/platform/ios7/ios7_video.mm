@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,8 +24,6 @@
 
 #include "backends/platform/ios7/ios7_video.h"
 
-#include "graphics/colormasks.h"
-#include "common/system.h"
 #include "backends/platform/ios7/ios7_app_delegate.h"
 
 static int g_needsScreenUpdate = 0;
@@ -36,19 +33,21 @@ static long g_lastTick = 0;
 static int g_frames = 0;
 #endif
 
+void printError(const char *error_message) {
+	NSString *messageString = [NSString stringWithUTF8String:error_message];
+	NSLog(@"%@", messageString);
+	fprintf(stderr, "%s\n", error_message);
+}
+
 #define printOpenGLError() printOglError(__FILE__, __LINE__)
 
-int printOglError(const char *file, int line) {
-	int retCode = 0;
-
-	// returns 1 if an OpenGL error occurred, 0 otherwise.
+void printOglError(const char *file, int line) {
 	GLenum glErr = glGetError();
 	while (glErr != GL_NO_ERROR) {
-		fprintf(stderr, "glError: %u (%s: %d)\n", glErr, file, line);
-		retCode = 1;
+		Common::String error = Common::String::format("glError: %u (%s: %d)", glErr, file, line);
+		printError(error.c_str());
 		glErr = glGetError();
 	}
-	return retCode;
 }
 
 bool iOS7_isBigDevice() {
@@ -118,8 +117,8 @@ uint getSizeNextPOT(uint size) {
 
 	// In case creating the OpenGL ES context failed, we will error out here.
 	if (_context == nil) {
-		fprintf(stderr, "Could not create OpenGL ES context\n");
-		exit(-1);
+		printError("Could not create OpenGL ES context.");
+		abort();
 	}
 
 	if ([EAGLContext setCurrentContext:_context]) {
@@ -193,22 +192,6 @@ uint getSizeNextPOT(uint size) {
 	uint overlayWidth = (uint) MAX(_renderBufferWidth, _renderBufferHeight);
 	uint overlayHeight = (uint) MIN(_renderBufferWidth, _renderBufferHeight);
 
-	if (iOS7_isBigDevice()) {
-		// On really big displays, like the iPad Pro, we scale the interface down
-		// so that the controls are not too small..
-		while (overlayHeight > 1024) {
-			overlayWidth /= 2;
-			overlayHeight /= 2;
-		}
-	}
-	else {
-		// On small devices, we force the user interface to use the small theme
-		while (overlayHeight > 480) {
-			overlayWidth /= 2;
-			overlayHeight /= 2;
-		}
-	}
-
 	_videoContext.overlayWidth = overlayWidth;
 	_videoContext.overlayHeight = overlayHeight;
 
@@ -225,7 +208,7 @@ uint getSizeNextPOT(uint size) {
 	_overlayCoords[2].x = 0; _overlayCoords[2].y = 0; _overlayCoords[2].u = 0; _overlayCoords[2].v = v;
 	_overlayCoords[3].x = 0; _overlayCoords[3].y = 0; _overlayCoords[3].u = u; _overlayCoords[3].v = v;
 
-	_videoContext.overlayTexture.create((uint16) overlayTextureWidthPOT, (uint16) overlayTextureHeightPOT, Graphics::createPixelFormat<5551>());
+	_videoContext.overlayTexture.create((uint16) overlayTextureWidthPOT, (uint16) overlayTextureHeightPOT, Graphics::PixelFormat(2, 5, 5, 5, 1, 11, 6, 1, 0));
 }
 
 - (void)deleteFramebuffer {
@@ -255,9 +238,8 @@ uint getSizeNextPOT(uint size) {
 	if (compileSuccess == GL_FALSE) {
 		GLchar messages[256];
 		glGetShaderInfoLog(shaderHandle, sizeof(messages), 0, &messages[0]);
-		NSString *messageString = [NSString stringWithUTF8String:messages];
-		NSLog(@"%@", messageString);
-		exit(1);
+		printError(messages);
+		abort();
 	}
 
 	return shaderHandle;
@@ -303,7 +285,7 @@ uint getSizeNextPOT(uint size) {
 	glGetProgramiv(programHandle, GL_LINK_STATUS, &linkSuccess);
 	if (linkSuccess == GL_FALSE) {
 		printOpenGLError();
-		exit(1);
+		abort();
 	}
 
 	glUseProgram(programHandle);
@@ -433,22 +415,11 @@ uint getSizeNextPOT(uint size) {
 - (id)initWithFrame:(struct CGRect)frame {
 	self = [super initWithFrame: frame];
 
-#if defined(USE_SCALERS) || defined(USE_HQ_SCALERS)
-	InitScalers(565);
-#endif
+	_backgroundSaveStateTask = UIBackgroundTaskInvalid;
 
 	[self setupGestureRecognizers];
 
 	[self setContentScaleFactor:[[UIScreen mainScreen] scale]];
-
-#ifdef ENABLE_IOS7_SCALERS
-	_scalerMemorySrc = NULL;
-	_scalerMemoryDst = NULL;
-	_scalerMemorySrcSize = 0;
-	_scalerMemoryDstSize = 0;
-	_scaler = NULL;
-	_scalerScale = 1;
-#endif
 
 	_keyboardView = nil;
 	_keyboardVisible = NO;
@@ -481,11 +452,6 @@ uint getSizeNextPOT(uint size) {
 	_videoContext.overlayTexture.free();
 	_videoContext.mouseTexture.free();
 
-#ifdef ENABLE_IOS7_SCALERS
-	free(_scalerMemorySrc);
-	free(_scalerMemoryDst);
-#endif
-
 	[_eventLock release];
 	[super dealloc];
 }
@@ -508,79 +474,10 @@ uint getSizeNextPOT(uint size) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); printOpenGLError();
 }
 
-#ifdef ENABLE_IOS7_SCALERS
-- (void)setScaler {
-	ScalerProc *scaler = NULL;
-	int scalerScale = 1;
-
-	switch (_videoContext.graphicsMode) {
-	case kGraphicsModeNone:
-		break;
-#ifdef USE_SCALERS
-	case kGraphicsMode2xSaI:
-		scaler = _2xSaI;
-		scalerScale = 2;
-		break;
-
-	case kGraphicsModeSuper2xSaI:
-		scaler = Super2xSaI;
-		scalerScale = 2;
-		break;
-
-	case kGraphicsModeSuperEagle:
-		scaler = SuperEagle;
-		scalerScale = 2;
-		break;
-
-	case kGraphicsModeAdvMame2x:
-		scaler = AdvMame2x;
-		scalerScale = 2;
-		break;
-
-	case kGraphicsModeAdvMame3x:
-		scaler = AdvMame3x;
-		scalerScale = 3;
-		break;
-
-#ifdef USE_HQ_SCALERS
-	case kGraphicsModeHQ2x:
-		scaler = HQ2x;
-		scalerScale = 2;
-		break;
-
-	case kGraphicsModeHQ3x:
-		scaler = HQ3x;
-		scalerScale = 3;
-		break;
-#endif
-
-	case kGraphicsModeTV2x:
-		scaler = TV2x;
-		scalerScale = 2;
-		break;
-
-	case kGraphicsModeDotMatrix:
-		scaler = DotMatrix;
-		scalerScale = 2;
-		break;
-#endif
-
-	default:
-		break;
-	}
-
-	_scaler = scaler;
-	_scalerScale = scalerScale;
-}
-#endif
-
 - (void)setGraphicsMode {
 	[self setFilterModeForTexture:_screenTexture];
 	[self setFilterModeForTexture:_overlayTexture];
 	[self setFilterModeForTexture:_mouseCursorTexture];
-#ifdef ENABLE_IOS7_SCALERS
-	[self setScaler];
-#endif
 }
 
 - (void)updateSurface {
@@ -674,40 +571,7 @@ uint getSizeNextPOT(uint size) {
 	// Unfortunately we have to update the whole texture every frame, since glTexSubImage2D is actually slower in all cases
 	// due to the iPhone internals having to convert the whole texture back from its internal format when used.
 	// In the future we could use several tiled textures instead.
-#ifdef ENABLE_IOS7_SCALERS
-	if (_scaler) {
-		size_t neededSrcMemorySize = (size_t) (_videoContext.screenTexture.pitch * (_videoContext.screenTexture.h + 4));
-		size_t neededDstMemorySize = (size_t) (_videoContext.screenTexture.pitch * (_videoContext.screenTexture.h + 4) * _scalerScale * _scalerScale);
-		if (neededSrcMemorySize != _scalerMemorySrcSize) {
-			_scalerMemorySrc = (uint8_t *) realloc(_scalerMemorySrc, neededSrcMemorySize);
-			_scalerMemorySrcSize = neededSrcMemorySize;
-		}
-		if (neededDstMemorySize != _scalerMemoryDstSize) {
-			_scalerMemoryDst = (uint8_t *) realloc(_scalerMemoryDst, neededDstMemorySize);
-			_scalerMemoryDstSize = neededDstMemorySize;
-		}
-
-		// Clear two lines before
-		memset(_scalerMemorySrc, 0, (size_t) (_videoContext.screenTexture.pitch * 2));
-		// Copy original buffer
-		memcpy(_scalerMemorySrc + _videoContext.screenTexture.pitch * 2, _videoContext.screenTexture.getPixels(), _videoContext.screenTexture.pitch * _videoContext.screenTexture.h);
-		// Clear two lines after
-		memset(_scalerMemorySrc + _videoContext.screenTexture.pitch * (2 + _videoContext.screenTexture.h), 0, (size_t) (_videoContext.screenTexture.pitch * 2));
-		// Apply scaler
-		_scaler(_scalerMemorySrc + _videoContext.screenTexture.pitch * 2,
-		        _videoContext.screenTexture.pitch,
-		        _scalerMemoryDst,
-		        (uint32) (_videoContext.screenTexture.pitch * _scalerScale),
-		        _videoContext.screenTexture.w,
-		        _videoContext.screenTexture.h);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _videoContext.screenTexture.w * _scalerScale, _videoContext.screenTexture.h * _scalerScale, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, _scalerMemoryDst); printOpenGLError();
-	}
-	else {
-#endif
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _videoContext.screenTexture.w, _videoContext.screenTexture.h, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, _videoContext.screenTexture.getPixels()); printOpenGLError();
-#ifdef ENABLE_IOS7_SCALERS
-	}
-#endif
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _videoContext.screenTexture.w, _videoContext.screenTexture.h, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, _videoContext.screenTexture.getPixels()); printOpenGLError();
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); printOpenGLError();
 }
@@ -740,7 +604,7 @@ uint getSizeNextPOT(uint size) {
 	_gameScreenCoords[1].u = _gameScreenCoords[3].u = _videoContext.screenWidth / (GLfloat)screenTexWidth;
 	_gameScreenCoords[2].v = _gameScreenCoords[3].v = _videoContext.screenHeight / (GLfloat)screenTexHeight;
 
-	_videoContext.screenTexture.create((uint16) screenTexWidth, (uint16) screenTexHeight, Graphics::createPixelFormat<565>());
+	_videoContext.screenTexture.create((uint16) screenTexWidth, (uint16) screenTexHeight, Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0));
 }
 
 - (void)initSurface {
@@ -816,7 +680,7 @@ uint getSizeNextPOT(uint size) {
 		GLfloat ratio = adjustedHeight / adjustedWidth;
 		int height = (int)(screenWidth * ratio);
 		//printf("Making rect (%u, %u)\n", screenWidth, height);
-        
+
 		_gameScreenRect = CGRectMake(0, 0, screenWidth, height);
 
 		overlayPortraitRatio = (_videoContext.overlayHeight * ratio) / _videoContext.overlayWidth;
@@ -833,7 +697,7 @@ uint getSizeNextPOT(uint size) {
 
 	[self setViewTransformation];
 	[self updateMouseCursorScaling];
-    [self adjustViewFrameForSafeArea];
+	[self adjustViewFrameForSafeArea];
 }
 
 #ifndef __has_builtin
@@ -848,23 +712,23 @@ uint getSizeNextPOT(uint size) {
 	// available when running on iOS 11+ if it has been compiled on iOS 11+
 #ifdef __IPHONE_11_0
 #if __has_builtin(__builtin_available)
-    if ( @available(iOS 11,*) ) {
+	if ( @available(iOS 11,*) ) {
 #else
-    if ( [[[UIApplication sharedApplication] keyWindow] respondsToSelector:@selector(safeAreaInsets)] ) {
+	if ( [[[UIApplication sharedApplication] keyWindow] respondsToSelector:@selector(safeAreaInsets)] ) {
 #endif
-        CGRect screenSize = [[UIScreen mainScreen] bounds];
-        UIEdgeInsets inset = [[[UIApplication sharedApplication] keyWindow] safeAreaInsets];
-        UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
-        CGRect newFrame = screenSize;
-        if ( orientation == UIInterfaceOrientationPortrait ) {
-            newFrame = CGRectMake(screenSize.origin.x, screenSize.origin.y + inset.top, screenSize.size.width, screenSize.size.height - inset.top);
-        } else if ( orientation == UIInterfaceOrientationLandscapeLeft ) {
-            newFrame = CGRectMake(screenSize.origin.x, screenSize.origin.y, screenSize.size.width - inset.right, screenSize.size.height);
-        } else if ( orientation == UIInterfaceOrientationLandscapeRight ) {
-            newFrame = CGRectMake(screenSize.origin.x + inset.left, screenSize.origin.y, screenSize.size.width - inset.left, screenSize.size.height);
-        }
-        self.frame = newFrame;
-    }
+		CGRect screenSize = [[UIScreen mainScreen] bounds];
+		UIEdgeInsets inset = [[[UIApplication sharedApplication] keyWindow] safeAreaInsets];
+		UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
+		CGRect newFrame = screenSize;
+		if ( orientation == UIInterfaceOrientationPortrait ) {
+			newFrame = CGRectMake(screenSize.origin.x, screenSize.origin.y + inset.top, screenSize.size.width, screenSize.size.height - inset.top);
+		} else if ( orientation == UIInterfaceOrientationLandscapeLeft ) {
+			newFrame = CGRectMake(screenSize.origin.x, screenSize.origin.y, screenSize.size.width - inset.right, screenSize.size.height);
+		} else if ( orientation == UIInterfaceOrientationLandscapeRight ) {
+			newFrame = CGRectMake(screenSize.origin.x + inset.left, screenSize.origin.y, screenSize.size.width - inset.left, screenSize.size.height);
+		}
+		self.frame = newFrame;
+	}
 #endif
 }
 
@@ -949,12 +813,12 @@ uint getSizeNextPOT(uint size) {
 - (void)deviceOrientationChanged:(UIDeviceOrientation)orientation {
 	[self addEvent:InternalEvent(kInputOrientationChanged, orientation, 0)];
 
-  BOOL isLandscape = (self.bounds.size.width > self.bounds.size.height);
-  if (isLandscape) {
-    [self hideKeyboard];
-  } else {
-    [self showKeyboard];
-  }
+	BOOL isLandscape = (self.bounds.size.width > self.bounds.size.height);
+	if (isLandscape) {
+		[self hideKeyboard];
+	} else {
+		[self showKeyboard];
+	}
 }
 
 - (void)showKeyboard {
@@ -1117,6 +981,33 @@ uint getSizeNextPOT(uint size) {
 
 - (void)applicationResume {
 	[self addEvent:InternalEvent(kInputApplicationResumed, 0, 0)];
+}
+
+- (void)saveApplicationState {
+	[self addEvent:InternalEvent(kInputApplicationSaveState, 0, 0)];
+}
+
+- (void)clearApplicationState {
+	[self addEvent:InternalEvent(kInputApplicationClearState, 0, 0)];
+}
+
+- (void)restoreApplicationState {
+	[self addEvent:InternalEvent(kInputApplicationRestoreState, 0, 0)];
+}
+
+- (void) beginBackgroundSaveStateTask {
+	if (_backgroundSaveStateTask == UIBackgroundTaskInvalid) {
+		_backgroundSaveStateTask = [[UIApplication sharedApplication] beginBackgroundTaskWithExpirationHandler:^{
+			[self endBackgroundSaveStateTask];
+		}];
+	}
+}
+
+- (void) endBackgroundSaveStateTask {
+	if (_backgroundSaveStateTask != UIBackgroundTaskInvalid) {
+		[[UIApplication sharedApplication] endBackgroundTask: _backgroundSaveStateTask];
+		_backgroundSaveStateTask = UIBackgroundTaskInvalid;
+	}
 }
 
 @end

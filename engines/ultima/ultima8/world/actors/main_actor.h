@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,19 +33,39 @@ struct WeaponOverlayFrame;
 class MainActor : public Actor {
 	friend class Debugger;
 public:
+	enum CruBatteryType {
+		NoBattery = 0,
+		ChemicalBattery = 1,
+		FissionBattery = 2,
+		FusionBattery = 3
+	};
+
 	MainActor();
 	~MainActor() override;
 
 	bool CanAddItem(Item *item, bool checkwghtvol = false) override;
 	bool addItem(Item *item, bool checkwghtvol = false) override;
 
+	//! Get the ShapeInfo object for this MainActor.  Overrided because it changes
+	//! when Crusader is kneeling.
+	const ShapeInfo *getShapeInfoFromGameInstance() const override;
+
+	void move(int32 X, int32 Y, int32 Z) override;
+
+	//! Add item to avatar's inventory, but with some extra logic to do things like combine
+	//! ammo and credits, use batteries, etc.
+	int16 addItemCru(Item *item, bool showtoast);
+
+	//! Remove a single item - only called from an intrinsic
+	bool removeItemCru(Item *item);
+
 	//! teleport to the given location on the given map
-	void teleport(int mapNum_, int32 x_, int32 y_, int32 z_) override;
+	void teleport(int mapNum, int32 x, int32 y, int32 z) override;
 
 	//! teleport to a teleport-destination egg
 	//! \param mapnum The map to teleport to
 	//! \param teleport_id The ID of the egg to teleport to
-	void teleport(int mapNum_, int teleport_id); // to teleportegg
+	void teleport(int mapNum, int teleport_id); // to teleportegg
 
 	bool hasJustTeleported() const {
 		return _justTeleported;
@@ -78,10 +97,18 @@ public:
 	uint16 getDamageType() const override;
 	int getDamageAmount() const override;
 
-	void setInCombat() override;
+	void toggleInCombat() {
+		if (isInCombat())
+			clearInCombat();
+		else
+			setInCombat(0);
+	}
+
+	// Note: activity num parameter is ignored for Avatar.
+	void setInCombat(int activity) override;
 	void clearInCombat() override;
 
-	ProcId die(uint16 DamageType) override;
+	ProcId die(uint16 damageType, uint16 damagePts, Direction srcDir) override;
 
 	const Std::string &getName() const {
 		return _name;
@@ -90,9 +117,53 @@ public:
 		_name = name;
 	}
 
-	bool loadData(IDataSource *ids, uint32 version);
+	int16 getMaxEnergy();
 
-	// p_dynamic_cast stuff
+	CruBatteryType getBatteryType() const {
+		return _cruBatteryType;
+	}
+	void setBatteryType(CruBatteryType newbattery) {
+		_cruBatteryType = newbattery;
+		setMana(getMaxEnergy());
+	}
+
+	void setShieldType(uint16 shieldtype) {
+		_shieldType = shieldtype;
+	}
+
+	uint16 getShieldType() {
+		return _shieldType;
+	}
+
+	bool hasKeycard(int num) const;
+	void addKeycard(int bitno);
+
+	void clrKeycards() {
+		_keycards = 0;
+	}
+
+	uint16 getActiveInvItem() const {
+		return _activeInvItem;
+	}
+
+	//! Swap to the next active weapon (Crusader)
+	void nextWeapon();
+
+	//! Swap to the next inventory item (Crusader)
+	void nextInvItem();
+
+	//! Drop the current weapon (Crusader)
+	void dropWeapon();
+
+	//! Check if we can absorb a hit with the shield. Returns the modified damage value.
+	int receiveShieldHit(int damage, uint16 damage_type) override;
+
+	//! Detonate used bomb (Crusader)
+	void detonateBomb();
+
+	bool loadData(Common::ReadStream *rs, uint32 version);
+	void saveData(Common::WriteStream *ws) override;
+
 	ENABLE_RUNTIME_CLASSTYPE()
 
 	INTRINSIC(I_teleportToEgg);
@@ -102,14 +173,20 @@ public:
 	INTRINSIC(I_clrAvatarInCombat);
 	INTRINSIC(I_setAvatarInCombat);
 	INTRINSIC(I_isAvatarInCombat);
+	INTRINSIC(I_getMaxEnergy);
+	INTRINSIC(I_hasKeycard);
+	INTRINSIC(I_clrKeycards);
+	INTRINSIC(I_addItemCru);
+	INTRINSIC(I_getNumberOfCredits);
+	INTRINSIC(I_switchMap);
+	INTRINSIC(I_removeItemCru);
 
-	void getWeaponOverlay(const WeaponOverlayFrame *&frame_, uint32 &shape_);
+	void getWeaponOverlay(const WeaponOverlayFrame *&frame, uint32 &shape);
 
 
 protected:
-	void saveData(ODataSource *ods) override;
-
 	void useInventoryItem(uint32 shapenum);
+	void useInventoryItem(Item *item);
 
 	bool _justTeleported;
 
@@ -117,7 +194,19 @@ protected:
 	int _accumDex;
 	int _accumInt;
 
+	uint32 _keycards;
+	CruBatteryType _cruBatteryType;
+	uint16 _activeInvItem;
+
 	Std::string _name;
+
+	//! Process for a shield zap animation sprite
+	uint16 _shieldSpriteProc;
+	//! Type of shield (only used in Crusader)
+	uint16 _shieldType;
+
+	static ShapeInfo *_kneelingShapeInfo;
+
 };
 
 } // End of namespace Ultima8

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@ namespace Neverhood {
 // SmackerSurface
 
 SmackerSurface::SmackerSurface(NeverhoodEngine *vm)
-	: BaseSurface(vm, 0, 0, 0, "smacker"), _smackerFrame(NULL) {
+	: BaseSurface(vm, 0, 0, 0, "smacker"), _smackerFrame(nullptr) {
 }
 
 void SmackerSurface::draw() {
@@ -61,7 +60,7 @@ void SmackerSurface::unsetSmackerFrame() {
 	_sysRect.y = 0;
 	_sysRect.width = 0;
 	_sysRect.height = 0;
-	_smackerFrame = NULL;
+	_smackerFrame = nullptr;
 }
 
 // SmackerDoubleSurface
@@ -103,7 +102,7 @@ void NeverhoodSmackerDecoder::forceSeekToFrame(uint frame) {
 
 SmackerPlayer::SmackerPlayer(NeverhoodEngine *vm, Scene *scene, uint32 fileHash, bool doubleSurface, bool flag, bool paused)
 	: Entity(vm, 0), _scene(scene), _doubleSurface(doubleSurface), _videoDone(false), _paused(paused),
-	_palette(NULL), _smackerDecoder(NULL), _smackerSurface(NULL), _stream(NULL), _smackerFirst(true),
+	_palette(nullptr), _smackerDecoder(nullptr), _smackerSurface(nullptr), _stream(nullptr), _smackerFirst(true),
 	_drawX(-1), _drawY(-1) {
 
 	SetUpdateHandler(&SmackerPlayer::update);
@@ -120,7 +119,7 @@ SmackerPlayer::SmackerPlayer(NeverhoodEngine *vm, Scene *scene, uint32 fileHash,
 SmackerPlayer::~SmackerPlayer() {
 	close();
 	delete _smackerSurface;
-	_smackerSurface = NULL;
+	_smackerSurface = nullptr;
 }
 
 void SmackerPlayer::open(uint32 fileHash, bool keepLastFrame) {
@@ -152,9 +151,9 @@ void SmackerPlayer::close() {
 	delete _smackerDecoder;
 	delete _palette;
 	// NOTE The SmackerDecoder deletes the _stream
-	_smackerDecoder = NULL;
-	_palette = NULL;
-	_stream = NULL;
+	_smackerDecoder = nullptr;
+	_palette = nullptr;
+	_stream = nullptr;
 	_smackerSurface->unsetSmackerFrame();
 }
 

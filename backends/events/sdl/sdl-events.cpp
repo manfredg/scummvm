@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,22 +36,11 @@
 #define GAMECONTROLLERDB_FILE "gamecontrollerdb.txt"
 
 static uint32 convUTF8ToUTF32(const char *src) {
-	uint32 utf32 = 0;
+	if (!src || src[0] == 0)
+		return 0;
 
-	char *dst = SDL_iconv_string(
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	                             "UTF-32BE",
-#else
-	                             "UTF-32LE",
-#endif
-                                 "UTF-8", src, SDL_strlen(src) + 1);
-
-	if (dst) {
-		utf32 = *((uint32 *)dst);
-		SDL_free(dst);
-	}
-
-	return utf32;
+	Common::U32String u32(src);
+	return u32[0];
 }
 
 void SdlEventSource::loadGameControllerMappingFile() {
@@ -61,7 +49,7 @@ void SdlEventSource::loadGameControllerMappingFile() {
 		Common::FSNode file = Common::FSNode(ConfMan.get("controller_map_db"));
 		if (file.exists()) {
 			if (SDL_GameControllerAddMappingsFromFile(file.getPath().c_str()) < 0)
-				error("File %s not valid: %s", file.getPath().c_str(), SDL_GetError());	
+				error("File %s not valid: %s", file.getPath().c_str(), SDL_GetError());
 			else {
 				loaded = true;
 				debug("Game controller DB file loaded: %s", file.getPath().c_str());
@@ -74,7 +62,7 @@ void SdlEventSource::loadGameControllerMappingFile() {
 		Common::FSNode file = dir.getChild(GAMECONTROLLERDB_FILE);
 		if (file.exists()) {
 			if (SDL_GameControllerAddMappingsFromFile(file.getPath().c_str()) < 0)
-				error("File %s not valid: %s", file.getPath().c_str(), SDL_GetError());	
+				error("File %s not valid: %s", file.getPath().c_str(), SDL_GetError());
 			else
 				debug("Game controller DB file loaded: %s", file.getPath().c_str());
 		}
@@ -83,12 +71,12 @@ void SdlEventSource::loadGameControllerMappingFile() {
 #endif
 
 SdlEventSource::SdlEventSource()
-    : EventSource(), _scrollLock(false), _joystick(0), _lastScreenID(0), _graphicsManager(0), _queuedFakeMouseMove(false),
-      _lastHatPosition(SDL_HAT_CENTERED), _mouseX(0), _mouseY(0)
+	: EventSource(), _scrollLock(false), _joystick(nullptr), _lastScreenID(0), _graphicsManager(nullptr), _queuedFakeMouseMove(false),
+	  _lastHatPosition(SDL_HAT_CENTERED), _mouseX(0), _mouseY(0), _engineRunning(false)
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-      , _queuedFakeKeyUp(false), _fakeKeyUp(), _controller(nullptr)
+	  , _queuedFakeKeyUp(false), _fakeKeyUp(), _controller(nullptr)
 #endif
-      {
+	  {
 	int joystick_num = ConfMan.getInt("joystick_num");
 	if (joystick_num >= 0) {
 		// Initialize SDL joystick subsystem
@@ -114,7 +102,7 @@ SdlEventSource::~SdlEventSource() {
 int SdlEventSource::mapKey(SDL_Keycode sdlKey, SDL_Keymod mod, Uint16 unicode) {
 	Common::KeyCode key = SDLToOSystemKeycode(sdlKey);
 
-	// Keep unicode in case it's regular ASCII text or in case we didn't get a valid keycode
+	// Keep unicode in case it's regular ASCII text, Hebrew or in case we didn't get a valid keycode
 	//
 	// We need to use unicode in those cases, simply because SDL1.x passes us non-layout-adjusted keycodes.
 	// So unicode is the only way to get layout-adjusted keys.
@@ -136,6 +124,10 @@ int SdlEventSource::mapKey(SDL_Keycode sdlKey, SDL_Keymod mod, Uint16 unicode) {
 				if (unicode > 0x7E)
 					unicode = 0; // do not allow any characters above 0x7E
 			} else {
+				// We allow Hebrew characters
+				if (unicode >= 0x05D0 && unicode <= 0x05EA)
+					return unicode;
+
 				// We must not restrict as much as when Ctrl/Alt-modifiers are active, otherwise
 				// we wouldn't let umlauts through for SDL1. For SDL1 umlauts may set for example KEYCODE_QUOTE, KEYCODE_MINUS, etc.
 				if (unicode > 0xFF)
@@ -152,7 +144,7 @@ int SdlEventSource::mapKey(SDL_Keycode sdlKey, SDL_Keymod mod, Uint16 unicode) {
 	if (key >= Common::KEYCODE_F1 && key <= Common::KEYCODE_F9) {
 		return key - Common::KEYCODE_F1 + Common::ASCII_F1;
 	} else if (key >= Common::KEYCODE_KP0 && key <= Common::KEYCODE_KP9) {
-		// WORKAROUND:  Disable this change for AmigaOS4 as it is breaking numpad usage ("fighting") on that platform.
+		// WORKAROUND:  Disable this change for AmigaOS as it's breaking numpad usage ("fighting") on that platform.
 		// This fixes bug #10558.
 		// The actual issue here is that the SCUMM engine uses ASCII codes instead of keycodes for input.
 		// See also the relevant FIXME in SCUMM's input.cpp.
@@ -175,12 +167,14 @@ int SdlEventSource::mapKey(SDL_Keycode sdlKey, SDL_Keymod mod, Uint16 unicode) {
 	}
 }
 
-bool SdlEventSource::processMouseEvent(Common::Event &event, int x, int y) {
+bool SdlEventSource::processMouseEvent(Common::Event &event, int x, int y, int relx, int rely) {
 	_mouseX = x;
 	_mouseY = y;
 
 	event.mouse.x = x;
 	event.mouse.y = y;
+	event.relMouse.x = relx;
+	event.relMouse.y = rely;
 
 	if (_graphicsManager) {
 		return _graphicsManager->notifyMousePosition(event.mouse);
@@ -422,7 +416,7 @@ bool SdlEventSource::pollEvent(Common::Event &event) {
 #endif
 
 	// If the screen changed, send an Common::EVENT_SCREEN_CHANGED
-	int screenID = ((OSystem_SDL *)g_system)->getGraphicsManager()->getScreenChangeID();
+	int screenID = g_system->getScreenChangeID();
 	if (screenID != _lastScreenID) {
 		_lastScreenID = screenID;
 		event.type = Common::EVENT_SCREEN_CHANGED;
@@ -502,10 +496,19 @@ bool SdlEventSource::dispatchSDLEvent(SDL_Event &ev, Common::Event &event) {
 		}
 
 	case SDL_WINDOWEVENT:
+		// We're only interested in events from the current display window
+		if (_graphicsManager) {
+			uint32 windowID = SDL_GetWindowID(_graphicsManager->getWindow()->getSDLWindow());
+			if (windowID != ev.window.windowID) {
+				return false;
+			}
+		}
+
 		switch (ev.window.event) {
 		case SDL_WINDOWEVENT_EXPOSED:
-			if (_graphicsManager)
+			if (_graphicsManager) {
 				_graphicsManager->notifyVideoExpose();
+			}
 			return false;
 
 		// SDL2 documentation indicate that SDL_WINDOWEVENT_SIZE_CHANGED is sent either as a result
@@ -522,15 +525,34 @@ bool SdlEventSource::dispatchSDLEvent(SDL_Event &ev, Common::Event &event) {
 		//case SDL_WINDOWEVENT_RESIZED:
 			return handleResizeEvent(event, ev.window.data1, ev.window.data2);
 
+		case SDL_WINDOWEVENT_FOCUS_GAINED: {
+			// When we gain focus, we to update whether the display can turn off
+			// dependingif a game isn't running or not
+			event.type = Common::EVENT_FOCUS_GAINED;
+			if (_engineRunning) {
+				SDL_DisableScreenSaver();
+			} else {
+				SDL_EnableScreenSaver();
+			}
+			return true;
+		}
+
+		case SDL_WINDOWEVENT_FOCUS_LOST: {
+			// Always allow the display to turn off if ScummVM is out of focus
+			event.type = Common::EVENT_FOCUS_LOST;
+			SDL_EnableScreenSaver();
+			return true;
+		}
+
 		default:
 			return false;
 		}
 
 	case SDL_JOYDEVICEADDED:
-		return handleJoystickAdded(ev.jdevice);
+		return handleJoystickAdded(ev.jdevice, event);
 
 	case SDL_JOYDEVICEREMOVED:
-		return handleJoystickRemoved(ev.jdevice);
+		return handleJoystickRemoved(ev.jdevice, event);
 
 	case SDL_DROPFILE:
 		event.type = Common::EVENT_DROP_FILE;
@@ -543,8 +565,9 @@ bool SdlEventSource::dispatchSDLEvent(SDL_Event &ev, Common::Event &event) {
 		return true;
 #else
 	case SDL_VIDEOEXPOSE:
-		if (_graphicsManager)
+		if (_graphicsManager) {
 			_graphicsManager->notifyVideoExpose();
+		}
 		return false;
 
 	case SDL_VIDEORESIZE:
@@ -644,7 +667,7 @@ bool SdlEventSource::handleKeyUp(SDL_Event &ev, Common::Event &event) {
 bool SdlEventSource::handleMouseMotion(SDL_Event &ev, Common::Event &event) {
 	event.type = Common::EVENT_MOUSEMOVE;
 
-	return processMouseEvent(event, ev.motion.x, ev.motion.y);
+	return processMouseEvent(event, ev.motion.x, ev.motion.y, ev.motion.xrel, ev.motion.yrel);
 }
 
 bool SdlEventSource::handleMouseButtonDown(SDL_Event &ev, Common::Event &event) {
@@ -715,14 +738,14 @@ void SdlEventSource::openJoystick(int joystickIndex) {
 			_joystick = SDL_JoystickOpen(joystickIndex);
 			debug("Using joystick: %s",
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-                  SDL_JoystickName(_joystick)
+				  SDL_JoystickName(_joystick)
 #else
-                  SDL_JoystickName(joystickIndex)
+				  SDL_JoystickName(joystickIndex)
 #endif
 			);
 		}
 	} else {
-		warning("Invalid joystick: %d", joystickIndex);
+		debug(5, "Invalid joystick: %d", joystickIndex);
 	}
 }
 
@@ -823,21 +846,24 @@ bool SdlEventSource::handleJoyHatMotion(SDL_Event &ev, Common::Event &event) {
 }
 
 #if SDL_VERSION_ATLEAST(2, 0, 0)
-bool SdlEventSource::handleJoystickAdded(const SDL_JoyDeviceEvent &device) {
+bool SdlEventSource::handleJoystickAdded(const SDL_JoyDeviceEvent &device, Common::Event &event) {
 	debug(5, "SdlEventSource: Received joystick added event for index '%d'", device.which);
 
 	int joystick_num = ConfMan.getInt("joystick_num");
-	if (joystick_num == device.which) {
-		debug(5, "SdlEventSource: Newly added joystick with index '%d' matches 'joysticky_num', trying to use it", device.which);
-
-		closeJoystick();
-		openJoystick(joystick_num);
+	if (joystick_num != device.which) {
+		return false;
 	}
 
-	return false;
+	debug(5, "SdlEventSource: Newly added joystick with index '%d' matches 'joysticky_num', trying to use it", device.which);
+
+	closeJoystick();
+	openJoystick(joystick_num);
+
+	event.type = Common::EVENT_INPUT_CHANGED;
+	return true;
 }
 
-bool SdlEventSource::handleJoystickRemoved(const SDL_JoyDeviceEvent &device) {
+bool SdlEventSource::handleJoystickRemoved(const SDL_JoyDeviceEvent &device, Common::Event &event) {
 	debug(5, "SdlEventSource: Received joystick removed event for instance id '%d'", device.which);
 
 	SDL_Joystick *joystick;
@@ -851,13 +877,16 @@ bool SdlEventSource::handleJoystickRemoved(const SDL_JoyDeviceEvent &device) {
 		return false;
 	}
 
-	if (SDL_JoystickInstanceID(joystick) == device.which) {
-		debug(5, "SdlEventSource: Newly removed joystick with instance id '%d' matches currently used joystick, closing current joystick", device.which);
-
-		closeJoystick();
+	if (SDL_JoystickInstanceID(joystick) != device.which) {
+		return false;
 	}
 
-	return false;
+	debug(5, "SdlEventSource: Newly removed joystick with instance id '%d' matches currently used joystick, closing current joystick", device.which);
+
+	closeJoystick();
+
+	event.type = Common::EVENT_INPUT_CHANGED;
+	return true;
 }
 
 int SdlEventSource::mapSDLControllerButtonToOSystem(Uint8 sdlButton) {
@@ -917,12 +946,24 @@ void SdlEventSource::fakeWarpMouse(const int x, const int y) {
 	_fakeMouseMove.mouse = Common::Point(x, y);
 }
 
+bool SdlEventSource::isJoystickConnected() const {
+	return _joystick
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	        || _controller
+#endif
+	        ;
+}
+
+void SdlEventSource::setEngineRunning(const bool value) {
+	_engineRunning = value;
+}
+
 bool SdlEventSource::handleResizeEvent(Common::Event &event, int w, int h) {
 	if (_graphicsManager) {
 		_graphicsManager->notifyResize(w, h);
 
 		// If the screen changed, send an Common::EVENT_SCREEN_CHANGED
-		int screenID = ((OSystem_SDL *)g_system)->getGraphicsManager()->getScreenChangeID();
+		int screenID = g_system->getScreenChangeID();
 		if (screenID != _lastScreenID) {
 			_lastScreenID = screenID;
 			event.type = Common::EVENT_SCREEN_CHANGED;

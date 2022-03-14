@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,28 +15,26 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/kernel/process.h"
 #include "ultima/ultima8/kernel/kernel.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
+#include "ultima/ultima8/ultima8.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-// p_dynamic_cast stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE_BASE_CLASS(Process)
-
-DEFINE_CUSTOM_MEMORY_ALLOCATION(Process)
+DEFINE_RUNTIME_CLASSTYPE_CODE(Process)
 
 Process::Process(ObjId it, uint16 ty)
-	: _pid(0xFFFF), _flags(0), _itemNum(it), _type(ty), _result(0) {
+	: _pid(0xFFFF), _flags(0), _itemNum(it), _type(ty), _result(0), _ticksPerRun(2) {
 	Kernel::get_instance()->assignPID(this);
+	if (GAME_IS_CRUSADER) {
+		// Default kernel ticks per run of processes in Crusader
+		_ticksPerRun = 1;
+	}
 }
 
 void Process::fail() {
@@ -63,32 +61,44 @@ void Process::terminate() {
 	_flags |= PROC_TERMINATED;
 }
 
-void Process::wakeUp(uint32 result_) {
-	_result = result_;
+void Process::wakeUp(uint32 result) {
+	_result = result;
 
 	_flags &= ~PROC_SUSPENDED;
 
 	Kernel::get_instance()->setNextProcess(this);
+
+	onWakeUp();
 }
 
-void Process::waitFor(ProcId pid_) {
-	if (pid_) {
+void Process::waitFor(ProcId pid) {
+	assert(pid != _pid);
+	if (pid) {
 		Kernel *kernel = Kernel::get_instance();
 
-		// add this process to waiting list of process pid_
-		Process *p = kernel->getProcess(pid_);
+		// add this process to waiting list of other process
+		Process *p = kernel->getProcess(pid);
 		assert(p);
+		if (p->getProcessFlags() & PROC_TERMINATED) {
+			//warning("Proc %d wait for proc %d which is already terminated", _pid, pid);
+			return;
+		}
 		p->_waiting.push_back(_pid);
+
+		// Note: The original games sync itemnum between processes
+		// here if either one is zero, but that seems to break things
+		// for us so we don't do it.
 	}
 
 	_flags |= PROC_SUSPENDED;
 }
 
 void Process::waitFor(Process *proc) {
-	ProcId pid_ = 0;
-	if (proc) pid_ = proc->getPid();
+	assert(this != proc);
+	ProcId pid = 0;
+	if (proc) pid = proc->getPid();
 
-	waitFor(pid_);
+	waitFor(pid);
 }
 
 void Process::suspend() {
@@ -110,48 +120,57 @@ void Process::dumpInfo() const {
 		info += ", notify: ";
 		for (Std::vector<ProcId>::const_iterator i = _waiting.begin(); i != _waiting.end(); ++i) {
 			if (i != _waiting.begin()) info += ", ";
-			info += *i;
+			info += Common::String::format("%d", *i);
 		}
 	}
 
 	g_debugger->debugPrintf("%s\n", info.c_str());
 }
 
-void Process::save(ODataSource *ods) {
-	writeProcessHeader(ods);
-	saveData(ods); // virtual
-}
-
-void Process::writeProcessHeader(ODataSource *ods) {
-	const char *cname = GetClassType()._className; // virtual
-	uint16 clen = strlen(cname);
-
-	ods->write2(clen);
-	ods->write(cname, clen);
-}
-
-void Process::saveData(ODataSource *ods) {
-	ods->write2(_pid);
-	ods->write4(_flags);
-	ods->write2(_itemNum);
-	ods->write2(_type);
-	ods->write4(_result);
-	ods->write4(static_cast<uint32>(_waiting.size()));
+void Process::saveData(Common::WriteStream *ws) {
+	ws->writeUint16LE(_pid);
+	ws->writeUint32LE(_flags);
+	ws->writeUint16LE(_itemNum);
+	ws->writeUint16LE(_type);
+	ws->writeUint32LE(_result);
+	ws->writeUint32LE(static_cast<uint32>(_waiting.size()));
 	for (unsigned int i = 0; i < _waiting.size(); ++i)
-		ods->write2(_waiting[i]);
+		ws->writeUint16LE(_waiting[i]);
 }
 
-bool Process::loadData(IDataSource *ids, uint32 version) {
-	_pid = ids->read2();
-	_flags = ids->read4();
-	_itemNum = ids->read2();
-	_type = ids->read2();
-	_result = ids->read4();
-	uint32 waitcount = ids->read4();
+bool Process::loadData(Common::ReadStream *rs, uint32 version) {
+	_pid = rs->readUint16LE();
+	_flags = rs->readUint32LE();
+	_itemNum = rs->readUint16LE();
+	_type = rs->readUint16LE();
+	_result = rs->readUint32LE();
+	uint32 waitcount = rs->readUint32LE();
+
+	if (waitcount > 1024*1024) {
+		warning("Improbable waitcount %d for proc %d. Corrupt save?", waitcount, _pid);
+		return false;
+	}
+
 	_waiting.resize(waitcount);
 	for (unsigned int i = 0; i < waitcount; ++i)
-		_waiting[i] = ids->read2();
+		_waiting[i] = rs->readUint16LE();
 
+	return true;
+}
+
+bool Process::validateWaiters() const {
+	for (Std::vector<ProcId>::const_iterator i = _waiting.begin();
+			i != _waiting.end(); ++i) {
+		const Process *p = Kernel::get_instance()->getProcess(*i);
+		if (!p) {
+			// This can happen if a waiting process gets forcibly terminated.
+			warning("Invalid procid %d in waitlist for proc %d. Maybe a bug?", *i, _pid);
+		} else if (!p->is_suspended()) {
+			// This should never happen.
+			warning("Procid %d in waitlist for proc %d but not marked suspended", *i, _pid);
+			return false;
+		}
+	}
 	return true;
 }
 

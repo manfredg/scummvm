@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 
 #include "sci/sci.h"
 #include "sci/console.h"
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/engine/features.h"
 #include "sci/engine/kernel.h"
 #include "sci/engine/state.h"
@@ -40,16 +39,16 @@
 namespace Sci {
 
 SciMusic::SciMusic(SciVersion soundVersion, bool useDigitalSFX)
-	: _soundVersion(soundVersion), _soundOn(true), _masterVolume(15), _globalReverb(0), _useDigitalSFX(useDigitalSFX) {
+	: _soundVersion(soundVersion), _soundOn(true), _masterVolume(15), _globalReverb(0), _useDigitalSFX(useDigitalSFX), _needsResume(soundVersion > SCI_VERSION_0_LATE), _globalPause(0) {
 
 	// Reserve some space in the playlist, to avoid expensive insertion
 	// operations
 	_playList.reserve(10);
 
 	for (int i = 0; i < 16; i++) {
-		_usedChannel[i] = 0;
+		_usedChannel[i] = nullptr;
 		_channelRemap[i] = -1;
-		_channelMap[i]._song = 0;
+		_channelMap[i]._song = nullptr;
 		_channelMap[i]._channel = -1;
 	}
 
@@ -69,19 +68,13 @@ void SciMusic::init() {
 	// SCI sound init
 	_dwTempo = 0;
 
-	Common::Platform platform = g_sci->getPlatform();
+	const Common::Platform platform = g_sci->getPlatform();
 	uint32 deviceFlags;
-#ifdef ENABLE_SCI32
 	if (g_sci->_features->generalMidiOnly()) {
 		deviceFlags = MDT_MIDI;
-	} else if (platform == Common::kPlatformMacintosh && getSciVersion() >= SCI_VERSION_2_1_MIDDLE) {
-		deviceFlags = MDT_MIDI;
 	} else {
-#endif
 		deviceFlags = MDT_PCSPK | MDT_PCJR | MDT_ADLIB | MDT_MIDI;
-#ifdef ENABLE_SCI32
 	}
-#endif
 
 	// Default to MIDI for Windows versions of SCI1.1 games, as their
 	// soundtrack is written for GM.
@@ -93,14 +86,14 @@ void SciMusic::init() {
 	if (getSciVersion() > SCI_VERSION_0_EARLY && getSciVersion() <= SCI_VERSION_1_1)
 		deviceFlags |= MDT_CMS;
 
-	if (g_sci->getPlatform() == Common::kPlatformFMTowns) {
+	if (platform == Common::kPlatformFMTowns) {
 		if (getSciVersion() > SCI_VERSION_1_EARLY)
 			deviceFlags = MDT_TOWNS;
 		else
 			deviceFlags |= MDT_TOWNS;
 	}
 
-	if (g_sci->getPlatform() == Common::kPlatformPC98)
+	if (platform == Common::kPlatformPC98)
 		deviceFlags |= MDT_PC98;
 
 	uint32 dev = MidiDriver::detectDevice(deviceFlags);
@@ -120,9 +113,12 @@ void SciMusic::init() {
 	switch (_musicType) {
 	case MT_ADLIB:
 		// FIXME: There's no Amiga sound option, so we hook it up to AdLib
-		if (g_sci->getPlatform() == Common::kPlatformAmiga || platform == Common::kPlatformMacintosh)
-			_pMidiDrv = MidiPlayer_AmigaMac_create(_soundVersion, platform);
-		else
+		if (platform == Common::kPlatformMacintosh || platform == Common::kPlatformAmiga) {
+			if (getSciVersion() <= SCI_VERSION_0_LATE)
+				_pMidiDrv = MidiPlayer_AmigaMac0_create(_soundVersion, platform);
+			else
+				_pMidiDrv = MidiPlayer_AmigaMac1_create(_soundVersion, platform);
+		} else
 			_pMidiDrv = MidiPlayer_AdLib_create(_soundVersion);
 		break;
 	case MT_PCJR:
@@ -137,11 +133,12 @@ void SciMusic::init() {
 	case MT_TOWNS:
 		_pMidiDrv = MidiPlayer_FMTowns_create(_soundVersion);
 		break;
-	case MT_PC98:		
+	case MT_PC98:
 		_pMidiDrv = MidiPlayer_PC9801_create(_soundVersion);
 		break;
 	default:
-		if (ConfMan.getBool("native_fb01"))
+		if (ConfMan.getInt("midi_mode") == kMidiModeFB01
+		    || (ConfMan.hasKey("native_fb01") && ConfMan.getBool("native_fb01")))
 			_pMidiDrv = MidiPlayer_Fb01_create(_soundVersion);
 		else
 			_pMidiDrv = MidiPlayer_Midi_create(_soundVersion);
@@ -153,16 +150,16 @@ void SciMusic::init() {
 	} else {
 		if (g_sci->getGameId() == GID_FUNSEEKER ||
 			(g_sci->getGameId() == GID_GK2 && g_sci->isDemo())) {
-			// HACK: The Fun Seeker's Guide demo doesn't have patch 3 and the version
-			// of the Adlib driver (adl.drv) that it includes is unsupported. That demo
-			// doesn't have any sound anyway, so this shouldn't be fatal.
+			// Disable checks for required audio drivers in certain demos
+			// which contain no sound - in this case, we can proceed
+			// without actually initializing the MIDI driver.
 		} else {
 			const char *missingFiles = _pMidiDrv->reportMissingFiles();
 			if (missingFiles) {
-				Common::String message = _(
+				Common::U32String message = _(
 					"The selected audio driver requires the following file(s):\n\n"
 				);
-				message += missingFiles;
+				message += Common::U32String(missingFiles);
 				message += _("\n\n"
 					"Some audio drivers (at least for some games) were made\n"
 					"available by Sierra as aftermarket patches and thus might not\n"
@@ -172,7 +169,7 @@ void SciMusic::init() {
 					"separately but only as content of (patched) resource bundles.\n"
 					"In that case you may need to apply the original Sierra patch.\n\n"
 				);
-				::GUI::displayErrorDialog(message.c_str());
+				::GUI::displayErrorDialog(message);
 			}
 			error("Failed to initialize sound driver");
 		}
@@ -185,7 +182,7 @@ void SciMusic::init() {
 	if (getSciVersion() <= SCI_VERSION_0_LATE)
 		_globalReverb = _pMidiDrv->getReverb();	// Init global reverb for SCI0
 
-	_currentlyPlayingSample = NULL;
+	_currentlyPlayingSample = nullptr;
 	_timeCounter = 0;
 	_needsRemap = false;
 }
@@ -216,7 +213,16 @@ void SciMusic::putMidiCommandInQueue(byte status, byte firstOp, byte secondOp) {
 }
 
 void SciMusic::putMidiCommandInQueue(uint32 midi) {
-	_queuedCommands.push_back(midi);
+	_queuedCommands.push_back(MidiCommand(MidiCommand::kTypeMidiMessage, midi));
+}
+
+void SciMusic::putTrackInitCommandInQueue(MusicEntry *psnd) {
+	_queuedCommands.push_back(MidiCommand(MidiCommand::kTypeTrackInit, psnd));
+}
+
+void SciMusic::removeTrackInitCommandsFromQueue(MusicEntry *psnd) {
+	for (MidiCommandQueue::iterator i = _queuedCommands.begin(); i != _queuedCommands.end(); )
+		i = (i->_type ==  MidiCommand::kTypeTrackInit && i->_dataPtr == (void*)psnd) ? _queuedCommands.erase(i) : i + 1;
 }
 
 // This sends the stored commands from queue to driver (is supposed to get
@@ -228,7 +234,15 @@ void SciMusic::sendMidiCommandsFromQueue() {
 	uint commandCount = _queuedCommands.size();
 
 	while (curCommand < commandCount) {
-		_pMidiDrv->send(_queuedCommands[curCommand]);
+		if (_queuedCommands[curCommand]._type == MidiCommand::kTypeTrackInit) {
+			if (_queuedCommands[curCommand]._dataPtr) {
+				MusicList::iterator psnd = Common::find(_playList.begin(), _playList.end(), static_cast<MusicEntry*>(_queuedCommands[curCommand]._dataPtr));
+				if (psnd != _playList.end() && (*psnd)->pMidiParser)
+					(*psnd)->pMidiParser->initTrack();
+			}
+		} else {
+			_pMidiDrv->send(_queuedCommands[curCommand]._dataVal);
+		}
 		curCommand++;
 	}
 	_queuedCommands.clear();
@@ -247,6 +261,10 @@ void SciMusic::clearPlayList() {
 
 void SciMusic::pauseAll(bool pause) {
 	const MusicList::iterator end = _playList.end();
+	if (pause)
+		_globalPause++;
+	else
+		_globalPause = MAX<int>(_globalPause - 1, 0);
 	for (MusicList::iterator i = _playList.begin(); i != end; ++i) {
 #ifdef ENABLE_SCI32
 		// The entire DAC will have been paused by the caller;
@@ -263,6 +281,15 @@ void SciMusic::stopAll() {
 	const MusicList::iterator end = _playList.end();
 	for (MusicList::iterator i = _playList.begin(); i != end; ++i) {
 		soundStop(*i);
+	}
+}
+
+void SciMusic::stopAllSamples() {
+	const MusicList::iterator end = _playList.end();
+	for (MusicList::iterator i = _playList.begin(); i != end; ++i) {
+		if ((*i)->isSample) {
+			soundStop(*i);
+		}
 	}
 }
 
@@ -288,25 +315,15 @@ MusicEntry *SciMusic::getSlot(reg_t obj) {
 			return *i;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-// We return the currently active music slot for SCI0
-MusicEntry *SciMusic::getActiveSci0MusicSlot() {
-	const MusicList::iterator end = _playList.end();
-	MusicEntry *highestPrioritySlot = NULL;
-	for (MusicList::iterator i = _playList.begin(); i != end; ++i) {
-		MusicEntry *playSlot = *i;
-		if (playSlot->pMidiParser) {
-			if (playSlot->status == kSoundPlaying)
-				return playSlot;
-			if (playSlot->status == kSoundPaused) {
-				if ((!highestPrioritySlot) || (highestPrioritySlot->priority < playSlot->priority))
-					highestPrioritySlot = playSlot;
-			}
-		}
+MusicEntry *SciMusic::getFirstSlotWithStatus(SoundStatus status) {
+	for (MusicList::iterator i = _playList.begin(); i != _playList.end(); ++i) {
+		if ((*i)->status == status)
+			return *i;
 	}
-	return highestPrioritySlot;
+	return nullptr;
 }
 
 void SciMusic::setGlobalReverb(int8 reverb) {
@@ -357,7 +374,7 @@ void SciMusic::soundInitSnd(MusicEntry *pSnd) {
 	// since they will no longer be valid.
 	for (int i = 0; i < 16; ++i) {
 		if (_channelMap[i]._song == pSnd) {
-			_channelMap[i]._song = 0;
+			_channelMap[i]._song = nullptr;
 			_channelMap[i]._channel = -1;
 		}
 	}
@@ -395,7 +412,7 @@ void SciMusic::soundInitSnd(MusicEntry *pSnd) {
 				}
 			}
 		} else
-			playSample = (track->digitalChannelNr != -1);
+			playSample = (track->digitalChannelNr != -1 && (_useDigitalSFX || track->channelCount == 1));
 
 		// Play digital sample
 		if (playSample) {
@@ -411,7 +428,7 @@ void SciMusic::soundInitSnd(MusicEntry *pSnd) {
 								size, track->digitalSampleRate, flags, DisposeAfterUse::NO);
 			assert(pSnd->pStreamAud);
 			delete pSnd->pLoopStream;
-			pSnd->pLoopStream = 0;
+			pSnd->pLoopStream = nullptr;
 			pSnd->soundType = Audio::Mixer::kSFXSoundType;
 			pSnd->hCurrentAud = Audio::SoundHandle();
 			pSnd->playBed = false;
@@ -421,7 +438,7 @@ void SciMusic::soundInitSnd(MusicEntry *pSnd) {
 			// play MIDI track
 			Common::StackLock lock(_mutex);
 			pSnd->soundType = Audio::Mixer::kMusicSoundType;
-			if (pSnd->pMidiParser == NULL) {
+			if (pSnd->pMidiParser == nullptr) {
 				pSnd->pMidiParser = new MidiParser_SCI(_soundVersion, this);
 				pSnd->pMidiParser->setMidiDriver(_pMidiDrv);
 				pSnd->pMidiParser->setTimerRate(_dwTempo);
@@ -436,8 +453,14 @@ void SciMusic::soundInitSnd(MusicEntry *pSnd) {
 			for (int i = 0; i < 16; ++i)
 				pSnd->_usedChannels[i] = 0xFF;
 			for (int i = 0; i < track->channelCount; ++i) {
+				// skip digital channel
+				if (i == track->digitalChannelNr) {
+					continue;
+				}
+
 				SoundResource::Channel &chan = track->channels[i];
 
+				assert(chan.number < ARRAYSIZE(pSnd->_chan));
 				pSnd->_usedChannels[i] = chan.number;
 				pSnd->_chan[chan.number]._dontRemap = (chan.flags & 2);
 				pSnd->_chan[chan.number]._prio = chan.prio;
@@ -477,7 +500,7 @@ void SciMusic::soundInitSnd(MusicEntry *pSnd) {
 	}
 }
 
-void SciMusic::soundPlay(MusicEntry *pSnd) {
+void SciMusic::soundPlay(MusicEntry *pSnd, bool restoring) {
 	_mutex.lock();
 
 	if (_soundVersion <= SCI_VERSION_1_EARLY && pSnd->playBed) {
@@ -499,7 +522,7 @@ void SciMusic::soundPlay(MusicEntry *pSnd) {
 
 	uint playListCount = _playList.size();
 	uint playListNo = playListCount;
-	MusicEntry *alreadyPlaying = NULL;
+	MusicEntry *alreadyPlaying = nullptr;
 
 	// searching if sound is already in _playList
 	for (uint i = 0; i < playListCount; i++) {
@@ -518,18 +541,18 @@ void SciMusic::soundPlay(MusicEntry *pSnd) {
 	_mutex.unlock();	// unlock to perform mixer-related calls
 
 	if (pSnd->pMidiParser) {
-		if ((_soundVersion <= SCI_VERSION_0_LATE) && (alreadyPlaying)) {
+		// Original SCI0 doesn't use this function to restore sound. The function it has
+		// for that will not check priorities.
+		if ((_soundVersion <= SCI_VERSION_0_LATE) && alreadyPlaying && !restoring) {
 			// Music already playing in SCI0?
 			if (pSnd->priority > alreadyPlaying->priority) {
 				// And new priority higher? pause previous music and play new one immediately.
 				// Example of such case: lsl3, when getting points (jingle is played then)
 				soundPause(alreadyPlaying);
-				alreadyPlaying->isQueued = true;
 			} else {
 				// And new priority equal or lower? queue up music and play it afterwards done by
 				//  SoundCommandParser::updateSci0Cues()
 				// Example of such case: iceman room 14
-				pSnd->isQueued = true;
 				pSnd->status = kSoundPaused;
 				return;
 			}
@@ -545,44 +568,51 @@ void SciMusic::soundPlay(MusicEntry *pSnd) {
 			// MusicEntry.
 			g_sci->_audio32->restart(ResourceId(kResourceTypeAudio, pSnd->resourceId), true, pSnd->loop != 0 && pSnd->loop != 1, pSnd->volume, pSnd->soundObj, false);
 			return;
-		} else
-#endif
-		if (!_pMixer->isSoundHandleActive(pSnd->hCurrentAud)) {
-			if ((_currentlyPlayingSample) && (_pMixer->isSoundHandleActive(_currentlyPlayingSample->hCurrentAud))) {
-				// Another sample is already playing, we have to stop that one
-				// SSCI is only able to play 1 sample at a time
-				// In Space Quest 5 room 250 the player is able to open the air-hatch and kill himself.
-				//  In that situation the scripts are playing 2 samples at the same time and the first sample
-				//  is not supposed to play.
-				// TODO: SSCI actually calls kDoAudio(play) internally, which stops other samples from being played
-				//        but such a change isn't trivial, because we also handle Sound resources in here, that contain samples
-				_pMixer->stopHandle(_currentlyPlayingSample->hCurrentAud);
-				warning("kDoSound: sample already playing, old resource %d, new resource %d", _currentlyPlayingSample->resourceId, pSnd->resourceId);
-			}
-			// Sierra SCI ignores volume set when playing samples via kDoSound
-			//  At least freddy pharkas/CD has a script bug that sets volume to 0
-			//  when playing the "score" sample
-			if (pSnd->loop > 1) {
-				pSnd->pLoopStream = new Audio::LoopingAudioStream(pSnd->pStreamAud,
-																pSnd->loop, DisposeAfterUse::NO);
-				_pMixer->playStream(pSnd->soundType, &pSnd->hCurrentAud,
-										pSnd->pLoopStream, -1, _pMixer->kMaxChannelVolume, 0,
-										DisposeAfterUse::NO);
-			} else {
-				// Rewind in case we play the same sample multiple times
-				// (non-looped) like in pharkas right at the start
-				pSnd->pStreamAud->rewind();
-				_pMixer->playStream(pSnd->soundType, &pSnd->hCurrentAud,
-										pSnd->pStreamAud, -1, _pMixer->kMaxChannelVolume, 0,
-										DisposeAfterUse::NO);
-			}
-			// Remember the sample, that is now playing
-			_currentlyPlayingSample = pSnd;
 		}
+#endif
+		if (_currentlyPlayingSample && _pMixer->isSoundHandleActive(_currentlyPlayingSample->hCurrentAud)) {
+			// Another sample is already playing, we have to stop that one
+			// SSCI is only able to play 1 sample at a time
+			// In Space Quest 5 room 250 the player is able to open the air-hatch and kill himself.
+			//  In that situation the scripts are playing 2 samples at the same time and the first sample
+			//  is not supposed to play.
+			// TODO: SSCI actually calls kDoAudio(play) internally, which stops other samples from being played
+			//        but such a change isn't trivial, because we also handle Sound resources in here, that contain samples
+			_pMixer->stopHandle(_currentlyPlayingSample->hCurrentAud);
+			warning("kDoSound: sample already playing, old resource %d, new resource %d", _currentlyPlayingSample->resourceId, pSnd->resourceId);
+		}
+		// Sierra SCI ignores volume set when playing samples via kDoSound
+		//  At least freddy pharkas/CD has a script bug that sets volume to 0
+		//  when playing the "score" sample
+		if (pSnd->loop > 1) {
+			pSnd->pLoopStream = new Audio::LoopingAudioStream(pSnd->pStreamAud,	pSnd->loop, DisposeAfterUse::NO);
+			_pMixer->playStream(pSnd->soundType, &pSnd->hCurrentAud,
+									pSnd->pLoopStream, -1, _pMixer->kMaxChannelVolume, 0,
+									DisposeAfterUse::NO);
+		} else {
+			// Rewind in case we play the same sample multiple times
+			// (non-looped) like in pharkas right at the start
+			pSnd->pStreamAud->rewind();
+			_pMixer->playStream(pSnd->soundType, &pSnd->hCurrentAud,
+									pSnd->pStreamAud, -1, _pMixer->kMaxChannelVolume, 0,
+									DisposeAfterUse::NO);
+		}
+		// Remember the sample, that is now playing
+		_currentlyPlayingSample = pSnd;
 	} else {
 		if (pSnd->pMidiParser) {
 			Common::StackLock lock(_mutex);
 			pSnd->pMidiParser->mainThreadBegin();
+
+			// The track init always needs to be done. Otherwise some sounds will not be properly set up (bug #11476).
+			// It is also safe to do this for paused tracks, since the jumpToTick() command further down will parse through
+			// the song from the beginning up to the resume position and ensure that the actual current voice mapping,
+			// instrument and volume settings etc. are correct.
+			// First glance at disasm might suggest that it has to be called only once per sound. But the truth is that
+			// when calling the sound driver opcode for sound restoring (opcode no. 9, we don't have that) it will
+			// internally also call initTrack(). And it wouldn't make sense otherwise, since without that the channel setup
+			// from the last sound would still be active.
+			pSnd->pMidiParser->initTrack();
 
 			if (pSnd->status != kSoundPaused)
 				pSnd->pMidiParser->sendInitCommands();
@@ -592,15 +622,16 @@ void SciMusic::soundPlay(MusicEntry *pSnd) {
 			// otherwise the song may keep looping forever when it ends in jumpToTick.
 			// This is needed when loading saved games, or when a game
 			// stops the same sound twice (e.g. LSL3 Amiga, going left from
-			// room 210 to talk with Kalalau). Fixes bugs #3083151 and #3106107.
+			// room 210 to talk with Kalalau). Fixes bugs #5404 and #5503.
 			uint16 prevLoop = pSnd->loop;
 			int16 prevHold = pSnd->hold;
 			pSnd->loop = 0;
 			pSnd->hold = -1;
 
-			if (pSnd->status == kSoundStopped)
+			bool fastForward = (pSnd->status == kSoundPaused) || (pSnd->status == kSoundPlaying && restoring);
+			if (!fastForward) {
 				pSnd->pMidiParser->jumpToTick(0);
-			else {
+			} else {
 				// Fast forward to the last position and perform associated events when loading
 				pSnd->pMidiParser->jumpToTick(pSnd->ticker, true, true, true);
 			}
@@ -622,8 +653,7 @@ void SciMusic::soundPlay(MusicEntry *pSnd) {
 void SciMusic::soundStop(MusicEntry *pSnd) {
 	SoundStatus previousStatus = pSnd->status;
 	pSnd->status = kSoundStopped;
-	if (_soundVersion <= SCI_VERSION_0_LATE)
-		pSnd->isQueued = false;
+
 	if (pSnd->isSample) {
 #ifdef ENABLE_SCI32
 		if (_soundVersion >= SCI_VERSION_2) {
@@ -631,7 +661,7 @@ void SciMusic::soundStop(MusicEntry *pSnd) {
 		} else {
 #endif
 			if (_currentlyPlayingSample == pSnd)
-				_currentlyPlayingSample = NULL;
+				_currentlyPlayingSample = nullptr;
 			_pMixer->stopHandle(pSnd->hCurrentAud);
 #ifdef ENABLE_SCI32
 		}
@@ -650,6 +680,10 @@ void SciMusic::soundStop(MusicEntry *pSnd) {
 	}
 
 	pSnd->fadeStep = 0; // end fading, if fading was in progress
+
+	// SSCI0 resumes the next available sound from the (priority ordered) list with a paused status.
+	if (_soundVersion <= SCI_VERSION_0_LATE && (pSnd = getFirstSlotWithStatus(kSoundPaused)))
+		soundResume(pSnd);
 }
 
 void SciMusic::soundSetVolume(MusicEntry *pSnd, byte volume) {
@@ -688,7 +722,7 @@ void SciMusic::soundKill(MusicEntry *pSnd) {
 		pSnd->pMidiParser->unloadMusic();
 		pSnd->pMidiParser->mainThreadEnd();
 		delete pSnd->pMidiParser;
-		pSnd->pMidiParser = NULL;
+		pSnd->pMidiParser = nullptr;
 	}
 
 	_mutex.unlock();
@@ -701,16 +735,16 @@ void SciMusic::soundKill(MusicEntry *pSnd) {
 #endif
 			if (_currentlyPlayingSample == pSnd) {
 				// Forget about this sound, in case it was currently playing
-				_currentlyPlayingSample = NULL;
+				_currentlyPlayingSample = nullptr;
 			}
 			_pMixer->stopHandle(pSnd->hCurrentAud);
 #ifdef ENABLE_SCI32
 		}
 #endif
 		delete pSnd->pStreamAud;
-		pSnd->pStreamAud = NULL;
+		pSnd->pStreamAud = nullptr;
 		delete pSnd->pLoopStream;
-		pSnd->pLoopStream = 0;
+		pSnd->pLoopStream = nullptr;
 		pSnd->isSample = false;
 	}
 
@@ -731,7 +765,7 @@ void SciMusic::soundKill(MusicEntry *pSnd) {
 void SciMusic::soundPause(MusicEntry *pSnd) {
 	// SCI seems not to be pausing samples played back by kDoSound at all
 	//  It only stops looping samples (actually doesn't loop them again before they are unpaused)
-	//  Examples: Space Quest 1 death by acid drops (pause is called even specifically for the sample, see bug #3038048)
+	//  Examples: Space Quest 1 death by acid drops (pause is called even specifically for the sample, see bug #5097)
 	//             Eco Quest 1 during the intro when going to the abort-menu
 	//             In both cases sierra sci keeps playing
 	//            Leisure Suit Larry 1 doll scene - it seems that pausing here actually just stops
@@ -743,6 +777,7 @@ void SciMusic::soundPause(MusicEntry *pSnd) {
 	pSnd->pauseCounter++;
 	if (pSnd->status != kSoundPlaying)
 		return;
+	_needsResume = true;
 	pSnd->status = kSoundPaused;
 	if (pSnd->pStreamAud) {
 		_pMixer->pauseHandle(pSnd->hCurrentAud, true);
@@ -762,13 +797,14 @@ void SciMusic::soundResume(MusicEntry *pSnd) {
 		pSnd->pauseCounter--;
 	if (pSnd->pauseCounter != 0)
 		return;
-	if (pSnd->status != kSoundPaused)
+	if (pSnd->status != kSoundPaused || (_globalPause && !_needsResume))
 		return;
+	_needsResume = (_soundVersion > SCI_VERSION_0_LATE);
 	if (pSnd->pStreamAud) {
 		_pMixer->pauseHandle(pSnd->hCurrentAud, false);
 		pSnd->status = kSoundPlaying;
 	} else {
-		soundPlay(pSnd);
+		soundPlay(pSnd, true);
 	}
 }
 
@@ -896,10 +932,10 @@ void SciMusic::printSongInfo(reg_t obj, Console *con) {
 MusicEntry::MusicEntry() {
 	soundObj = NULL_REG;
 
-	soundRes = 0;
+	soundRes = nullptr;
 	resourceId = 0;
 
-	isQueued = false;
+	time = 0;
 
 	dataInc = 0;
 	ticker = 0;
@@ -925,9 +961,9 @@ MusicEntry::MusicEntry() {
 
 	soundType = Audio::Mixer::kMusicSoundType;
 
-	pStreamAud = 0;
-	pLoopStream = 0;
-	pMidiParser = 0;
+	pStreamAud = nullptr;
+	pLoopStream = nullptr;
+	pMidiParser = nullptr;
 	isSample = false;
 
 	for (int i = 0; i < 16; ++i) {
@@ -951,7 +987,7 @@ void MusicEntry::onTimer() {
 		}
 	}
 
-	if (status != kSoundPlaying)
+	if (status != kSoundPlaying || !loop)
 		return;
 
 	// Fade MIDI and digital sound effects
@@ -990,7 +1026,7 @@ void MusicEntry::setSignal(int newSignal) {
 	// For SCI0, we cache the signals to set, as some songs might
 	// update their signal faster than kGetEvent is called (which is where
 	// we manually invoke kDoSoundUpdateCues for SCI0 games). SCI01 and
-	// newer handle signalling inside kDoSoundUpdateCues. Refer to bug #3042981
+	// newer handle signalling inside kDoSoundUpdateCues. Refer to bug #5218
 	if (g_sci->_features->detectDoSoundType() <= SCI_VERSION_0_LATE) {
 		if (!signal) {
 			signal = newSignal;
@@ -1000,7 +1036,7 @@ void MusicEntry::setSignal(int newSignal) {
 		}
 	} else {
 		// Set the signal directly for newer games, otherwise the sound
-		// object might be deleted already later on (refer to bug #3045913)
+		// object might be deleted already later on (refer to bug #5243)
 		signal = newSignal;
 	}
 }
@@ -1020,7 +1056,7 @@ void ChannelRemapping::swap(int i, int j) {
 void ChannelRemapping::evict(int i) {
 	_freeVoices += _voices[i];
 
-	_map[i]._song = 0;
+	_map[i]._song = nullptr;
 	_map[i]._channel = -1;
 	_prio[i] = 0;
 	_voices[i] = 0;
@@ -1029,7 +1065,7 @@ void ChannelRemapping::evict(int i) {
 
 void ChannelRemapping::clear() {
 	for (int i = 0; i < 16; ++i) {
-		_map[i]._song = 0;
+		_map[i]._song = nullptr;
 		_map[i]._channel = -1;
 		_prio[i] = 0;
 		_voices[i] = 0;
@@ -1081,7 +1117,7 @@ void SciMusic::remapChannels(bool mainThread) {
 	// Save current map, and then start from an empty map
 	for (int i = 0; i < 16; ++i) {
 		currentMap[i] = _channelMap[i];
-		_channelMap[i]._song = 0;
+		_channelMap[i]._song = nullptr;
 		_channelMap[i]._channel = -1;
 	}
 
@@ -1147,7 +1183,7 @@ void SciMusic::remapChannels(bool mainThread) {
 		}
 
 		_channelMap[i] = map->_map[i];
-		map->_map[i]._song = 0; // mark as done
+		map->_map[i]._song = nullptr; // mark as done
 
 		// If this channel was not yet mapped to the device, reset it
 		if (currentMap[i] != _channelMap[i]) {
@@ -1180,7 +1216,7 @@ void SciMusic::remapChannels(bool mainThread) {
 			if (map->_map[i] == currentMap[j]) {
 				// found it
 				_channelMap[j] = map->_map[i];
-				map->_map[i]._song = 0; // mark as done
+				map->_map[i]._song = nullptr; // mark as done
 #ifdef DEBUG_REMAP
 				debug(" Keeping song %d, channel %d on device channel %d", songIndex, _channelMap[j]._channel, j);
 #endif
@@ -1203,9 +1239,9 @@ void SciMusic::remapChannels(bool mainThread) {
 		}
 
 		for (int j = _driverLastChannel; j >= _driverFirstChannel; --j) {
-			if (_channelMap[j]._song == 0) {
+			if (_channelMap[j]._song == nullptr) {
 				_channelMap[j] = map->_map[i];
-				map->_map[i]._song = 0;
+				map->_map[i]._song = nullptr;
 #ifdef DEBUG_REMAP
 				debug(" Mapping song %d, channel %d to device channel %d", songIndex, _channelMap[j]._channel, j);
 #endif
@@ -1300,7 +1336,7 @@ ChannelRemapping *SciMusic::determineChannelMap() {
 			// our target
 			int devChannel = -1;
 
-			if (dontRemap && map->_map[c]._song == 0) {
+			if (dontRemap && map->_map[c]._song == nullptr) {
 				// unremappable channel, with channel still free
 				devChannel = c;
 			}

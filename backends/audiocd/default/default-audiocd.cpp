@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "backends/audiocd/default/default-audiocd.h"
 #include "audio/audiostream.h"
 #include "common/config-manager.h"
+#include "common/file.h"
 #include "common/system.h"
+#include "common/util.h"
 
 DefaultAudioCDManager::DefaultAudioCDManager() {
 	_cd.playing = false;
@@ -54,6 +55,45 @@ void DefaultAudioCDManager::close() {
 	stop();
 }
 
+void DefaultAudioCDManager::fillPotentialTrackNames(Common::Array<Common::String> &trackNames, int track) const {
+	trackNames.reserve(4);
+	trackNames.push_back(Common::String::format("track%d", track));
+	trackNames.push_back(Common::String::format("track%02d", track));
+	trackNames.push_back(Common::String::format("track_%d", track));
+	trackNames.push_back(Common::String::format("track_%02d", track));
+}
+
+bool DefaultAudioCDManager::existExtractedCDAudioFiles(uint track) {
+	// keep this in sync with STREAM_FILEFORMATS
+	const char *extensions[] = {
+#ifdef USE_VORBIS
+		"ogg",
+#endif
+#ifdef USE_FLAC
+		"fla", "flac",
+#endif
+#ifdef USE_MAD
+		"mp3",
+#endif
+		"m4a",
+		"wav",
+		nullptr
+	};
+
+	Common::Array<Common::String> trackNames;
+	fillPotentialTrackNames(trackNames, track);
+
+	for (Common::Array<Common::String>::iterator i = trackNames.begin(); i != trackNames.end(); ++i) {
+		for (const char **ext = extensions; *ext; ++ext) {
+			const Common::String &filename = Common::String::format("%s.%s", i->c_str(), *ext);
+			if (Common::File::exists(filename)) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 bool DefaultAudioCDManager::play(int track, int numLoops, int startFrame, int duration, bool onlyEmulate,
 		Audio::Mixer::SoundType soundType) {
 	stop();
@@ -67,15 +107,15 @@ bool DefaultAudioCDManager::play(int track, int numLoops, int startFrame, int du
 		// Try to load the track from a compressed data file, and if found, use
 		// that. If not found, attempt to start regular Audio CD playback of
 		// the requested track.
-		char trackName[2][16];
-		sprintf(trackName[0], "track%d", track);
-		sprintf(trackName[1], "track%02d", track);
-		Audio::SeekableAudioStream *stream = 0;
+		Common::Array<Common::String> trackNames;
+		fillPotentialTrackNames(trackNames, track);
+		Audio::SeekableAudioStream *stream = nullptr;
 
-		for (int i = 0; !stream && i < 2; ++i)
-			stream = Audio::SeekableAudioStream::openStreamFile(trackName[i]);
+		for (Common::Array<Common::String>::iterator i = trackNames.begin(); !stream && i != trackNames.end(); ++i) {
+			stream = Audio::SeekableAudioStream::openStreamFile(*i);
+		}
 
-		if (stream != 0) {
+		if (stream != nullptr) {
 			Audio::Timestamp start = Audio::Timestamp(0, startFrame, 75);
 			Audio::Timestamp end = duration ? Audio::Timestamp(0, startFrame + duration, 75) : stream->getLength();
 

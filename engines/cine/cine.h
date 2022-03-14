@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,6 +46,8 @@
 #include "cine/bg_list.h"
 #include "cine/various.h"
 #include "cine/console.h"
+#include "cine/sound.h"
+#include "cine/detection.h"
 
 //#define DUMP_SCRIPTS
 
@@ -80,22 +81,16 @@
  */
 namespace Cine {
 
-enum CineGameType {
-	GType_FW = 1,
-	GType_OS
-};
-
-enum CineGameFeatures {
-	GF_CD =   1 << 0,
-	GF_DEMO = 1 << 1,
-	GF_ALT_FONT = 1 << 2,
-	GF_CRYPTED_BOOT_PRC = 1 << 3
-};
-
-struct CINEGameDescription;
 struct SeqListElement;
 
-typedef Common::HashMap<Common::String, const char *> StringPtrHashMap;
+struct VolumeResource {
+	char name[10];
+	uint32 pNamesList;
+	int16 diskNum;
+	int32 sizeOfNamesList;
+};
+
+typedef Common::HashMap<Common::String, Common::Array<VolumeResource> > StringToVolumeResourceArrayHashMap;
 
 class CineConsole;
 
@@ -116,6 +111,7 @@ public:
 
 	void syncSoundSettings() override;
 
+	bool mayHave256Colors() const;
 	int getGameType() const;
 	uint32 getFeatures() const;
 	Common::Language getLanguage() const;
@@ -125,10 +121,11 @@ public:
 	void makeSystemMenu();
 	int scummVMSaveLoadDialog(bool isSave);
 	int modifyGameSpeed(int speedChange);
-	int getTimerDelay() const;
+	void setDefaultGameSpeed();
+	uint32 getTimerDelay() const;
 	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
-	virtual Common::String getSaveStateName(int slot) const override;
+	Common::String getSaveStateName(int slot) const override;
 	bool canLoadGameStateCurrently() override;
 	bool canSaveGameStateCurrently() override;
 
@@ -137,8 +134,8 @@ public:
 
 	Common::RandomSource _rnd;
 
-	Common::StringArray _volumeResourceFiles;
-	StringPtrHashMap _volumeEntriesMap;
+	StringToVolumeResourceArrayHashMap _volumeEntriesMap;
+
 	TextHandler _textHandler;
 
 	bool _restartRequested;
@@ -147,14 +144,19 @@ private:
 	void initialize();
 	void showSplashScreen();
 	void resetEngine();
-	bool loadPlainSaveFW(Common::SeekableReadStream &in, CineSaveGameFormat saveGameFormat);
-	bool loadTempSaveOS(Common::SeekableReadStream &in);
+	bool checkSaveHeaderData(const ChunkHeader& hdr);
+	bool loadPlainSaveFW(Common::SeekableReadStream &in, CineSaveGameFormat saveGameFormat, uint32 version);
+	bool loadVersionedSaveFW(Common::SeekableReadStream &in);
+	bool loadVersionedSaveOS(Common::SeekableReadStream &in);
 	bool makeLoad(const Common::String &saveName);
+	void writeSaveHeader(Common::OutSaveFile &out, uint32 headerId);
 	void makeSaveFW(Common::OutSaveFile &out);
 	void makeSaveOS(Common::OutSaveFile &out);
-	void makeSave(const Common::String &saveFileName);
+	void makeSave(const Common::String &saveFileName, uint32 playtime,
+		Common::String desc, bool isAutosave);
 	void mainLoop(int bootScriptIdx);
 	void readVolCnf();
+	Common::String getTargetSaveStateName(Common::String target, int slot) const;
 
 	bool _preLoad;
 	int _timerDelayMultiplier;
@@ -181,18 +183,22 @@ public:
 	 */
 	ScriptVars _globalVars;
 	RawScriptArray _scriptTable; ///< Table of script bytecode
+	FWScriptInfo *_scriptInfo;
 
-	Common::Array<uint16> _zoneData;
+	Common::Array<int16> _zoneData;
 	Common::Array<uint16> _zoneQuery; ///< Only exists in Operation Stealth
 
 	Common::List<SeqListElement> _seqList;
 
 	Common::String _commandBuffer;
+	Common::Array<Common::KeyState> _keyInputList;
 };
 
 extern CineEngine *g_cine;
+extern Sound *g_sound;
 
 #define BOOT_PRC_NAME "AUTO00.PRC"
+#define BOOT_SCRIPT_INDEX 1
 #define COPY_PROT_FAIL_PRC_NAME "L201.ANI"
 
 enum {

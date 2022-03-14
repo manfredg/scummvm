@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,9 +32,7 @@
 #include "audio/decoders/raw.h"
 #include "common/scummsys.h"
 #include "common/config-manager.h"
-#ifdef USE_TTS
 #include "common/text-to-speech.h"
-#endif
 
 namespace Mortevielle {
 
@@ -67,7 +64,6 @@ SoundManager::SoundManager(MortevielleEngine *vm, Audio::Mixer *mixer) {
 	_audioStream = nullptr;
 	_ambiantNoiseBuf = nullptr;
 	_noiseBuf = nullptr;
-#ifdef USE_TTS
 	_ttsMan = g_system->getTextToSpeechManager();
 	if (_ttsMan) {
 		_ttsMan->setLanguage(ConfMan.get("language"));
@@ -76,7 +72,6 @@ SoundManager::SoundManager(MortevielleEngine *vm, Audio::Mixer *mixer) {
 		_ttsMan->setPitch(0);
 		_ttsMan->setVolume(100);
 	}
-#endif //USE_TTS
 
 	_soundType = 0;
 	_phonemeNumb = 0;
@@ -207,12 +202,10 @@ void SoundManager::litph(tablint &t, int typ, int tempo) {
 	if (!_buildingSentence) {
 		if (_mixer->isSoundHandleActive(_soundHandle))
 			_mixer->stopHandle(_soundHandle);
-#ifdef USE_TTS
 		if (_ttsMan) {
 			if (_ttsMan->isSpeaking())
 				_ttsMan->stop();
 		}
-#endif // USE_TTS
 		_buildingSentence = true;
 	}
 	int freq = tempo * 252; // 25.2 * 10
@@ -770,7 +763,6 @@ void SoundManager::startSpeech(int rep, int character, int typ) {
 
 	if (typ == 0) {
 		// Speech
-#ifdef USE_TTS
 		const int haut[9] = { 0, 0, 1, -3, 6, -2, 2, 7, -1 };
 		const int voiceIndices[9] = { 0, 1, 2, 3, 0, 4, 5, 1, 6 };
 		if (!_ttsMan)
@@ -805,8 +797,7 @@ void SoundManager::startSpeech(int rep, int character, int typ) {
 		}
 
 		_ttsMan->setPitch(pitch);
-		_ttsMan->say(_vm->getString(rep + kDialogStringIndex), "CP850");
-#endif // USE_TTS
+		_ttsMan->say(_vm->getString(rep + kDialogStringIndex), Common::kDos850);
 		return;
 	}
 	uint16 savph[501];
@@ -843,15 +834,12 @@ void SoundManager::startSpeech(int rep, int character, int typ) {
 
 void SoundManager::waitSpeech() {
 	if (_soundType == 0) {
-#ifdef USE_TTS
 		if (!_ttsMan)
 			return;
 		while (_ttsMan->isSpeaking() && !_vm->keyPressed() && !_vm->_mouseClick && !_vm->shouldQuit())
 			;
 		// In case the TTS is still speaking, stop it.
 		_ttsMan->stop();
-
-#endif // USE_TTS
 	} else {
 		while (_mixer->isSoundHandleActive(_soundHandle) && !_vm->keyPressed() && !_vm->_mouseClick && !_vm->shouldQuit())
 			;

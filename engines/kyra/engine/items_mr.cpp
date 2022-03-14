@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -117,7 +116,7 @@ bool KyraEngine_MR::dropItem(int unk1, Item item, int x, int y, int unk2) {
 			showMessageFromCCode(14, 0xB3, 0);
 	}
 
-	if (!_chatText)
+	if (_chatText.empty())
 		snd_playSoundEffect(13, 200);
 	return false;
 }
@@ -168,7 +167,7 @@ bool KyraEngine_MR::processItemDrop(uint16 sceneId, Item item, int x, int y, int
 	bool needRepositioning = true;
 
 	while (needRepositioning) {
-		if ((_screen->getDrawLayer(posX, posY) <= 1 && _screen->getDrawLayer2(posX, posY, itemHeight) <= 1 && isDropable(posX, posY)) || posY == 187) {
+		if ((_screen->getDrawLayer(posX, posY) <= 1 && _screen->getDrawLayer2(posX, posY, itemHeight) <= 1 && isDropable(posX, posY)) || (posY == _interfaceCommandLineY1 - 1)) {
 			int posX2 = posX, posX3 = posX;
 			bool repositioning = true;
 
@@ -197,10 +196,10 @@ bool KyraEngine_MR::processItemDrop(uint16 sceneId, Item item, int x, int y, int
 			}
 		}
 
-		if (posY == 187)
+		if (posY == _interfaceCommandLineY1 - 1)
 			needRepositioning = false;
 		else
-			posY = MIN(posY + 2, 187);
+			posY = MIN(posY + 2, _interfaceCommandLineY1 - 1);
 	}
 
 	if (itemX == -1 || itemY == -1)
@@ -369,7 +368,7 @@ bool KyraEngine_MR::pickUpItem(int x, int y, int runScript) {
 }
 
 bool KyraEngine_MR::isDropable(int x, int y) {
-	if (y < 14 || y > 187)
+	if (y < 14 || (y > _interfaceCommandLineY1 - 1))
 		return false;
 
 	x -= 12;

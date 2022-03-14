@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,19 +56,9 @@ HugoEngine::HugoEngine(OSystem *syst, const HugoGameDescription *gd) : Engine(sy
 	_screenStates(nullptr), _numStates(0), _score(0), _maxscore(0), _lastTime(0), _curTime(0), _episode(nullptr)
 {
 	_system = syst;
-	DebugMan.addDebugChannel(kDebugSchedule, "Schedule", "Script Schedule debug level");
-	DebugMan.addDebugChannel(kDebugEngine, "Engine", "Engine debug level");
-	DebugMan.addDebugChannel(kDebugDisplay, "Display", "Display debug level");
-	DebugMan.addDebugChannel(kDebugMouse, "Mouse", "Mouse debug level");
-	DebugMan.addDebugChannel(kDebugParser, "Parser", "Parser debug level");
-	DebugMan.addDebugChannel(kDebugFile, "File", "File IO debug level");
-	DebugMan.addDebugChannel(kDebugRoute, "Route", "Route debug level");
-	DebugMan.addDebugChannel(kDebugInventory, "Inventory", "Inventory debug level");
-	DebugMan.addDebugChannel(kDebugObject, "Object", "Object debug level");
-	DebugMan.addDebugChannel(kDebugMusic, "Music", "Music debug level");
 
 	setDebugger(new HugoConsole(this));
-	_rnd = 0;
+	_rnd = nullptr;
 
 	_screen = nullptr;
 	_mouse = nullptr;
@@ -148,7 +137,6 @@ HugoEngine::~HugoEngine() {
 	delete _file;
 	delete _text;
 
-	DebugMan.clearAllDebugChannels();
 	delete _rnd;
 }
 
@@ -185,7 +173,7 @@ Common::Error HugoEngine::loadGameState(int slot) {
 }
 
 bool HugoEngine::hasFeature(EngineFeature f) const {
-	return (f == kSupportsRTL) || (f == kSupportsLoadingDuringRuntime) || (f == kSupportsSavingDuringRuntime);
+	return (f == kSupportsReturnToLauncher) || (f == kSupportsLoadingDuringRuntime) || (f == kSupportsSavingDuringRuntime);
 }
 
 const char *HugoEngine::getCopyrightString() const {
@@ -433,9 +421,10 @@ bool HugoEngine::loadHugoDat() {
 	in.open(filename.c_str());
 
 	if (!in.isOpen()) {
-		Common::String errorMessage = Common::String::format(_("Unable to locate the '%s' engine data file."), filename.c_str());
+		const char *msg = _s("Unable to locate the '%s' engine data file.");
+		Common::U32String errorMessage = Common::U32String::format(_(msg), filename.c_str());
 		GUIErrorMessage(errorMessage);
-		warning("%s", errorMessage.c_str());
+		warning(msg, filename.c_str());
 		return false;
 	}
 
@@ -444,7 +433,7 @@ bool HugoEngine::loadHugoDat() {
 	in.read(buf, 4);
 
 	if (memcmp(buf, "HUGO", 4)) {
-		Common::String errorMessage = Common::String::format(_("The '%s' engine data file is corrupt."), filename.c_str());
+		Common::U32String errorMessage = Common::U32String::format(_("The '%s' engine data file is corrupt."), filename.c_str());
 		GUIErrorMessage(errorMessage);
 		return false;
 	}
@@ -453,9 +442,9 @@ bool HugoEngine::loadHugoDat() {
 	int minVer = in.readByte();
 
 	if ((majVer != HUGO_DAT_VER_MAJ) || (minVer != HUGO_DAT_VER_MIN)) {
-		Common::String errorMessage = Common::String::format(
+		Common::U32String errorMessage = Common::U32String::format(
 			_("Incorrect version of the '%s' engine data file found. Expected %d.%d but got %d.%d."),
-			filename.c_str(),HUGO_DAT_VER_MAJ, HUGO_DAT_VER_MIN, majVer, minVer);
+			filename.c_str(), HUGO_DAT_VER_MAJ, HUGO_DAT_VER_MIN, majVer, minVer);
 		GUIErrorMessage(errorMessage);
 		return false;
 	}
@@ -540,13 +529,13 @@ bool HugoEngine::loadHugoDat() {
 }
 
 uint16 **HugoEngine::loadLongArray(Common::SeekableReadStream &in) {
-	uint16 **resArray = 0;
+	uint16 **resArray = nullptr;
 
 	for (int varnt = 0; varnt < _numVariant; varnt++) {
 		uint16 numRows = in.readUint16BE();
 		if (varnt == _gameVariant) {
 			resArray = (uint16 **)malloc(sizeof(uint16 *) * (numRows + 1));
-			resArray[numRows] = 0;
+			resArray[numRows] = nullptr;
 		}
 		for (int i = 0; i < numRows; i++) {
 			uint16 numElems = in.readUint16BE();

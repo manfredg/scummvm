@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,22 +15,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/conf/config_file_manager.h"
-#include "ultima/ultima8/conf/ini_file.h"
-#include "common/config-manager.h"
+#include "ultima/ultima8/filesys/file_system.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
 using Std::string;
 
-ConfigFileManager *ConfigFileManager::_configFileManager = 0;
+ConfigFileManager *ConfigFileManager::_configFileManager = nullptr;
 
 ConfigFileManager::ConfigFileManager() {
 	debugN(MM_INFO, "Creating ConfigFileManager...\n");
@@ -41,251 +39,115 @@ ConfigFileManager::ConfigFileManager() {
 ConfigFileManager::~ConfigFileManager() {
 	debugN(MM_INFO, "Destroying ConfigFileManager...\n");
 
-	ConfMan.flushToDisk();
 	clear();
-	_configFileManager = 0;
+	_configFileManager = nullptr;
 }
 
-bool ConfigFileManager::readConfigFile(string fname, istring root,
-                                       bool readonly) {
-	INIFile *inifile = new INIFile();
-	inifile->clear(root);
-	if (!inifile->readConfigFile(fname)) {
-		delete inifile;
+bool ConfigFileManager::readConfigFile(string fname, const istring &category) {
+	Common::SeekableReadStream *f = FileSystem::get_instance()->ReadFile(fname);
+	if (!f) return false;
+
+	ConfigFile *configFile = new ConfigFile();
+	configFile->_category = category;
+
+	// We need various characters as the inis are used for translations.
+	configFile->_iniFile.allowNonEnglishCharacters();
+
+	if (!configFile->_iniFile.loadFromStream(*f)) {
+		delete configFile;
 		return false;
 	}
-	if (readonly)
-		inifile->setReadonly();
 
-	_iniFiles.push_back(inifile);
+	_configFiles.push_back(configFile);
 	return true;
-}
-
-bool ConfigFileManager::readConfigString(string config, istring root,
-        bool readonly) {
-	INIFile *inifile = new INIFile();
-	inifile->clear(root);
-	if (!inifile->readConfigString(config)) {
-		delete inifile;
-		return false;
-	}
-	if (readonly)
-		inifile->setReadonly();
-
-	_iniFiles.push_back(inifile);
-	return true;
-}
-
-void ConfigFileManager::write(istring root) {
-	for (Std::vector<INIFile *>::iterator i = _iniFiles.begin();
-	        i != _iniFiles.end(); ++i) {
-		if (!(*i)->isReadonly() && (root == "" || (*i)->checkRoot(root)))
-			(*i)->write();
-	}
 }
 
 void ConfigFileManager::clear() {
-	for (Std::vector<INIFile *>::iterator i = _iniFiles.begin();
-	        i != _iniFiles.end(); ++i) {
+	Std::vector<ConfigFile*>::iterator i;
+	for (i = _configFiles.begin(); i != _configFiles.end(); ++i) {
 		delete(*i);
 	}
-	_iniFiles.clear();
+	_configFiles.clear();
 }
 
-void ConfigFileManager::clearRoot(istring root) {
-	Std::vector<INIFile *>::iterator i = _iniFiles.begin();
+void ConfigFileManager::clearRoot(const istring &category) {
+	Std::vector<ConfigFile *>::iterator i = _configFiles.begin();
 
-	while (i != _iniFiles.end()) {
-		if ((*i)->checkRoot(root)) {
+	while (i != _configFiles.end()) {
+		if ((*i)->_category == category) {
 			delete(*i);
-			i = _iniFiles.erase(i);
+			i = _configFiles.erase(i);
 		} else {
 			++i;
 		}
 	}
 }
 
-bool ConfigFileManager::exists(istring key) {
-	return ConfMan.hasKey(key) || (findKeyINI(key) != 0);
-}
-
-bool ConfigFileManager::get(istring key, string &ret) {
-	if (ConfMan.hasKey(key)) {
-		ret = ConfMan.get(key);
-		return true;
-	}
-
-	INIFile *ini = findKeyINI(key);
-	if (!ini) return false;
-
-	ini->value(key, ret);
-	return true;
-}
-
-
-bool ConfigFileManager::get(istring key, int &ret) {
-	if (ConfMan.hasKey(key)) {
-		ret = ConfMan.getInt(key);
-		return true;
-	}
-
-	INIFile *ini = findKeyINI(key);
-	if (!ini) return false;
-
-	ini->value(key, ret);
-	return true;
-}
-
-bool ConfigFileManager::get(istring key, bool &ret) {
-	if (ConfMan.hasKey(key)) {
-		ret = ConfMan.getBool(key);
-		return true;
-	}
-
-	INIFile *ini = findKeyINI(key);
-	if (!ini) return false;
-
-	ini->value(key, ret);
-	return true;
-}
-
-void ConfigFileManager::set(istring key, string val) {
-	if (key.hasPrefix("settings/")) {
-		Common::String subKey(key.c_str() + key.findLastOf('/') + 1);
-		ConfMan.set(subKey, val);
-	} else {
-		INIFile *ini = findWriteINI(key);
-		if (!ini) return;
-
-		ini->set(key, val);
-	}
-}
-
-void ConfigFileManager::set(istring key, const char *val) {
-	if (key.hasPrefix("settings/")) {
-		Common::String subKey(key.c_str() + key.findLastOf('/') + 1);
-		ConfMan.set(subKey, val);
-	} else {
-		INIFile *ini = findWriteINI(key);
-		if (!ini) return;
-
-		ini->set(key, val);
-	}
-}
-
-void ConfigFileManager::set(istring key, int val) {
-	if (key.hasPrefix("settings/")) {
-		Common::String subKey(key.c_str() + key.findLastOf('/') + 1);
-		ConfMan.setInt(subKey, val);
-	} else {
-		INIFile *ini = findWriteINI(key);
-		if (!ini) return;
-
-		ini->set(key, val);
-	}
-}
-
-void ConfigFileManager::set(istring key, bool val) {
-	if (key.hasPrefix("settings/")) {
-		Common::String subKey(key.c_str() + key.findLastOf('/') + 1);
-		ConfMan.setBool(subKey, val);
-	} else {
-		INIFile *ini = findWriteINI(key);
-		if (!ini) return;
-
-		ini->set(key, val);
-	}
-}
-
-void ConfigFileManager::unset(istring key) {
-	if (key.hasPrefix("settings/")) {
-		Common::String subKey(key.c_str() + key.findLastOf('/') + 1);
-		ConfMan.set(subKey, "");
-	} else {
-		INIFile *ini = findWriteINI(key);
-		if (!ini) return;
-
-		ini->unset(key);
-	}
-}
-
-
-
-Std::vector<istring> ConfigFileManager::listKeys(istring section,
-        bool longformat) {
-	Std::vector<istring> keys;
-
-	Std::set<istring> keyset;
-	Std::set<istring>::iterator iter;
-
-	for (Std::vector<INIFile *>::iterator i = _iniFiles.begin();
-	        i != _iniFiles.end(); ++i) {
-		if ((*i)->checkRoot(section)) {
-			(*i)->listKeys(keyset, section, longformat);
+bool ConfigFileManager::get(const istring &category, const istring &section, const istring &key, string &ret) {
+	Std::vector<ConfigFile*>::reverse_iterator i;
+	for (i = _configFiles.rbegin(); i != _configFiles.rend(); ++i) {
+		if ((*i)->_category == category) {
+			if ((*i)->_iniFile.getKey(key, section, ret)) {
+				return true;
+			}
 		}
 	}
 
-	for (iter = keyset.begin(); iter != keyset.end(); ++iter) {
-		keys.push_back(*iter);
-	}
-
-	return keys;
+	return false;
 }
 
-Std::vector<istring> ConfigFileManager::listSections(istring root,
-        bool longformat) {
+
+bool ConfigFileManager::get(const istring &category, const istring &section, const istring &key, int &ret) {
+	string stringval;
+	if (!get(category, section, key, stringval))
+		return false;
+
+	ret = strtol(stringval.c_str(), 0, 0);
+	return true;
+}
+
+bool ConfigFileManager::get(const istring &category, const istring &section, const istring &key, bool &ret) {
+	string stringval;
+	if (!get(category, section, key, stringval))
+		return false;
+
+	ret = (stringval == "yes" || stringval == "true");
+	return true;
+}
+
+Std::vector<istring> ConfigFileManager::listSections(const istring &category) {
 	Std::vector<istring> sections;
+	Std::vector<ConfigFile*>::const_iterator i;
 
-	Std::set<istring> sectionset;
-	Std::set<istring>::iterator iter;
-
-	for (Std::vector<INIFile *>::iterator i = _iniFiles.begin();
-	        i != _iniFiles.end(); ++i) {
-		if ((*i)->checkRoot(root)) {
-			(*i)->listSections(sectionset, longformat);
+	for ( i = _configFiles.begin(); i != _configFiles.end(); ++i) {
+		if ((*i)->_category == category) {
+			Common::INIFile::SectionList sectionList = (*i)->_iniFile.getSections();
+			Common::INIFile::SectionList::const_iterator j;
+			for (j = sectionList.begin(); j != sectionList.end(); ++j) {
+				sections.push_back(j->name);
+			}
 		}
-	}
-
-	for (iter = sectionset.begin(); iter != sectionset.end(); ++iter) {
-		sections.push_back(*iter);
 	}
 
 	return sections;
 }
 
-KeyMap ConfigFileManager::listKeyValues(istring section,
-        bool longformat) {
+KeyMap ConfigFileManager::listKeyValues(const istring &category, const istring &section) {
 	KeyMap values;
+	Std::vector<ConfigFile*>::const_iterator i;
 
-	for (Std::vector<INIFile *>::iterator i = _iniFiles.begin();
-	        i != _iniFiles.end(); ++i) {
-		if ((*i)->checkRoot(section)) {
-			(*i)->listKeyValues(values, section, longformat);
+	for (i = _configFiles.begin(); i != _configFiles.end(); ++i) {
+		const ConfigFile *c = *i;
+		if (c->_category == category && c->_iniFile.hasSection(section)) {
+			Common::INIFile::SectionKeyList keys = c->_iniFile.getKeys(section);
+			Common::INIFile::SectionKeyList::const_iterator j;
+			for (j = keys.begin(); j != keys.end(); ++j) {
+				values[j->key] = j->value;
+			}
 		}
 	}
 
 	return values;
-}
-
-
-INIFile *ConfigFileManager::findKeyINI(istring key) {
-	for (Std::vector<INIFile *>::reverse_iterator i = _iniFiles.rbegin();
-	        i != _iniFiles.rend(); ++i) {
-		if ((*i)->hasKey(key))
-			return (*i);
-	}
-
-	return 0;
-}
-
-INIFile *ConfigFileManager::findWriteINI(istring key) {
-	for (Std::vector<INIFile *>::reverse_iterator i = _iniFiles.rbegin();
-	        i != _iniFiles.rend(); ++i) {
-		if (!(*i)->isReadonly() && (*i)->checkRoot(key))
-			return (*i);
-	}
-
-	return 0;
 }
 
 } // End of namespace Ultima8

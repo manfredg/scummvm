@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -219,7 +218,7 @@ void RivenCard::applyPropertiesPatch2E76(uint32 globalId) {
 	//     }
 	//   break;
 	// }
-	if (globalId == 0x2E76 && !(_vm->getFeatures() & GF_DVD)) {
+	if (globalId == 0x2E76 && !_vm->isGameVariant(GF_DVD)) {
 		uint16 aGehnVariable = _vm->getStack()->getIdFromName(kVariableNames, "agehn");
 		uint16 aTrapBookVariable = _vm->getStack()->getIdFromName(kVariableNames, "atrapbook");
 		uint16 patchData[] = {
@@ -398,7 +397,7 @@ void RivenCard::applyPropertiesPatch22118(uint32 globalId) {
 }
 
 void RivenCard::applyPropertiesPatchE2E(uint32 globalId) {
-	if (!(_vm->getFeatures() & GF_25TH))
+	if (!_vm->isGameVariant(GF_25TH))
 		return;
 
 	// The main menu in the Myst 25th anniversary version is patched to include new items:
@@ -576,7 +575,7 @@ void RivenCard::moveHotspot(uint16 blstId, const Common::Rect &position) {
 }
 
 void RivenCard::addMenuHotspot(uint16 blstId, const Common::Rect &position, uint16 index,
-                               uint16 externalCommandNameId, const char *externalCommandName) {
+							   uint16 externalCommandNameId, const char *externalCommandName) {
 	RivenHotspot *existingHotspot = getHotspotByBlstId(blstId);
 	if (existingHotspot) {
 		moveHotspot(blstId, position);
@@ -928,6 +927,7 @@ RivenHotspot *RivenCard::getCurHotspot() const {
 
 RivenScriptPtr RivenCard::onMouseDown(const Common::Point &mouse) {
 	RivenScriptPtr script = onMouseMove(mouse);
+	updateMouseCursor();
 
 	_pressedHotspot = _hoveredHotspot;
 

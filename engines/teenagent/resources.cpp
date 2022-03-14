@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -94,8 +93,10 @@ bool Resources::loadArchives(const ADGameDescription *gd) {
 	Common::String filename = "teenagent.dat";
 	if (!dat_file->open(filename.c_str())) {
 		delete dat_file;
-		Common::String errorMessage = Common::String::format(_("Unable to locate the '%s' engine data file."), filename.c_str());
-		warning("%s", errorMessage.c_str());
+
+		const char *msg = _s("Unable to locate the '%s' engine data file.");
+		Common::U32String errorMessage = Common::U32String::format(_(msg), filename.c_str());
+		warning(msg, filename.c_str());
 		GUIErrorMessage(errorMessage);
 		return false;
 	}
@@ -115,8 +116,10 @@ bool Resources::loadArchives(const ADGameDescription *gd) {
 	if (isCompressed) {
 		// teenagent.dat is compressed, but zlib hasn't been compiled in
 		delete dat;
-		Common::String errorMessage = _("The teenagent.dat file is compressed and zlib hasn't been included in this executable. Please decompress it");
-		warning("%s", errorMessage.c_str());
+
+		const char *msg = _s("The teenagent.dat file is compressed and zlib hasn't been included in this executable. Please decompress it");
+		Common::U32String errorMessage = _(msg);
+		warning(msg);
 		GUIErrorMessage(errorMessage);
 		return false;
 	}

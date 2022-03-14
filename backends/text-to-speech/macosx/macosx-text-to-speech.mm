@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,20 +32,29 @@
 
 @interface MacOSXTextToSpeechManagerDelegate : NSObject<NSSpeechSynthesizerDelegate> {
 	MacOSXTextToSpeechManager *_ttsManager;
+	BOOL _ignoreNextFinishedSpeaking;
 }
 - (id)initWithManager:(MacOSXTextToSpeechManager*)ttsManager;
 - (void)speechSynthesizer:(NSSpeechSynthesizer *)sender didFinishSpeaking:(BOOL)finishedSpeaking;
+- (void)ignoreNextFinishedSpeaking:(BOOL)ignore;
 @end
 
 @implementation MacOSXTextToSpeechManagerDelegate
 - (id)initWithManager:(MacOSXTextToSpeechManager*)ttsManager {
 	self = [super init];
 	_ttsManager = ttsManager;
+	_ignoreNextFinishedSpeaking = NO;
 	return self;
 }
 
 - (void)speechSynthesizer:(NSSpeechSynthesizer *)sender didFinishSpeaking:(BOOL)finishedSpeaking {
-	_ttsManager->startNextSpeech();
+	if (!_ignoreNextFinishedSpeaking)
+		_ttsManager->startNextSpeech();
+	_ignoreNextFinishedSpeaking = NO;
+}
+
+- (void)ignoreNextFinishedSpeaking:(BOOL)ignore {
+	_ignoreNextFinishedSpeaking = ignore;
 }
 @end
 
@@ -72,7 +80,8 @@ MacOSXTextToSpeechManager::~MacOSXTextToSpeechManager() {
 	[synthesizerDelegate release];
 }
 
-bool MacOSXTextToSpeechManager::say(Common::String text, Action action, Common::String encoding) {
+bool MacOSXTextToSpeechManager::say(const Common::U32String &text, Action action) {
+	Common::String textToSpeak = text.encode();
 	if (isSpeaking()) {
 		// Interruptions are done on word boundaries for nice transitions.
 		// Should we interrupt immediately?
@@ -85,25 +94,19 @@ bool MacOSXTextToSpeechManager::say(Common::String text, Action action, Common::
 			// If the new speech is the one being currently said, continue that speech but clear the queue.
 			// And otherwise both clear the queue and interrupt the current speech.
 			_messageQueue.clear();
-			if (_currentSpeech == text)
+			if (_currentSpeech == textToSpeak)
 				return true;
 			[synthesizer stopSpeakingAtBoundary:NSSpeechWordBoundary];
 		} else if (action == QUEUE_NO_REPEAT) {
 			if (!_messageQueue.empty()) {
-				if (_messageQueue.back().text == text)
+				if (_messageQueue.back() == textToSpeak)
 					return true;
-			} else if (_currentSpeech == text)
+			} else if (_currentSpeech == textToSpeak)
 				return true;
 		}
 	}
 
-	if (encoding.empty()) {
-#ifdef USE_TRANSLATION
-		encoding = TransMan.getCurrentCharset();
-#endif
-	}
-
-	_messageQueue.push(SpeechText(text, encoding));
+	_messageQueue.push(textToSpeak);
 	if (!isSpeaking())
 		startNextSpeech();
 	return true;
@@ -113,29 +116,32 @@ bool MacOSXTextToSpeechManager::startNextSpeech() {
 	_currentSpeech.clear();
 	if (_messageQueue.empty())
 		return false;
-	SpeechText text = _messageQueue.pop();
-	// Get current encoding
-	CFStringEncoding stringEncoding = kCFStringEncodingASCII;
-	if (!text.encoding.empty()) {
-		CFStringRef encStr = CFStringCreateWithCString(NULL, text.encoding.c_str(), kCFStringEncodingASCII);
-		stringEncoding = CFStringConvertIANACharSetNameToEncoding(encStr);
-		CFRelease(encStr);
-	}
 
-	CFStringRef textNSString = CFStringCreateWithCString(NULL, text.text.c_str(), stringEncoding);
+	Common::String textToSpeak = _messageQueue.pop();
+
+	// Get current encoding
+	CFStringEncoding stringEncoding = kCFStringEncodingUTF8;
+
+	CFStringRef textNSString = CFStringCreateWithCString(NULL, textToSpeak.c_str(), stringEncoding);
 	bool status = [synthesizer startSpeakingString:(NSString *)textNSString];
 	CFRelease(textNSString);
 	if (status)
-		_currentSpeech = text.text;
+		_currentSpeech = textToSpeak;
 
 	return status;
 }
 
 bool MacOSXTextToSpeechManager::stop() {
 	_messageQueue.clear();
-	_currentSpeech.clear(); // so that it immediately reports that it is no longer speeking
-	// Stop as soon as possible
-	[synthesizer stopSpeakingAtBoundary:NSSpeechImmediateBoundary];
+	if (isSpeaking()) {
+		_currentSpeech.clear(); // so that it immediately reports that it is no longer speeking
+		// Stop as soon as possible
+		// Also tell the MacOSXTextToSpeechManagerDelegate to ignore the next finishedSpeaking as
+		// it has already been handled, but we might have started another speach by the time we
+		// receive it, and we don't want to stop that one.
+		[synthesizerDelegate ignoreNextFinishedSpeaking:YES];
+		[synthesizer stopSpeakingAtBoundary:NSSpeechImmediateBoundary];
+	}
 	return true;
 }
 
@@ -225,6 +231,19 @@ void MacOSXTextToSpeechManager::setVolume(unsigned volume) {
 void MacOSXTextToSpeechManager::setLanguage(Common::String language) {
 	Common::TextToSpeechManager::setLanguage(language);
 	updateVoices();
+}
+
+int MacOSXTextToSpeechManager::getDefaultVoice() {
+	if (_ttsState->_availableVoices.size() < 2)
+		return 0;
+	NSString *defaultVoice = [NSSpeechSynthesizer defaultVoice];
+	if (defaultVoice == nil)
+		return 0;
+	for (unsigned int i = 0 ; i < _ttsState->_availableVoices.size() ; ++i) {
+		if ([defaultVoice isEqualToString:(NSString*)(_ttsState->_availableVoices[i].getData())])
+			return i;
+	}
+	return 0;
 }
 
 void MacOSXTextToSpeechManager::freeVoiceData(void *data) {

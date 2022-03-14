@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -138,7 +137,7 @@ void Grid::setupNewRoom(uint16 room, uint16 firstRoomObjNum) {
 		if (_vm->logic()->objectData(i)->name != 0) {
 			if (room == 41 && i == 303) {
 
-				// WORKAROUND bug #1599009: In the room 41, the bounding box of the
+				// WORKAROUND bug #2913: In the room 41, the bounding box of the
 				// stairs (object 303) doesn't match with the room picture. With the
 				// original box dimensions, Joe could walk "above" the stairs, giving
 				// the impression of floating in the air.

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -1674,7 +1673,11 @@ void Scene4025::remove() {
 void Scene4025::signal() {
 	if (_sceneMode != 4027) {
 		if (_sceneMode != 4028) {
-			_gfxButton.setText(EXIT_MSG);
+			if (g_vm->getLanguage() == Common::ES_ESP) {
+				_gfxButton.setText(ESP_EXIT_MSG);
+			} else {
+				_gfxButton.setText(EXIT_MSG);
+			}
 			_gfxButton._bounds.center(144, 107);
 			_gfxButton.draw();
 			_gfxButton._bounds.expandPanes();
@@ -4292,7 +4295,11 @@ void Scene4300::signal() {
 		_hotspot14.setStrip(7);
 		_hotspot14.setPosition(Common::Point(60, 199));
 
-		_gfxButton.setText(EXIT_MSG);
+		if (g_vm->getLanguage() == Common::ES_ESP) {
+			_gfxButton.setText(ESP_EXIT_MSG);
+		} else {
+			_gfxButton.setText(EXIT_MSG);
+		}
 		_gfxButton._bounds.center(60, 193);
 		_gfxButton.draw();
 		_gfxButton._bounds.expandPanes();

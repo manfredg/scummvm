@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,10 @@
 #include "kyra/engine/kyra_rpg.h"
 #include "kyra/sound/sound.h"
 
+#include "backends/keymapper/keymap.h"
+#include "backends/keymapper/action.h"
+
+#include "common/func.h"
 #include "common/system.h"
 
 namespace Kyra {
@@ -50,6 +53,7 @@ KyraRpgEngine::KyraRpgEngine(OSystem *system, const GameFlags &flags) : KyraEngi
 	_vcnBpp = flags.useHiColorMode ? 2 : 1;
 	_vcnSrcBitsPerPixel = (flags.platform == Common::kPlatformAmiga) ? 5 : (_vcnBpp == 2 ? 8 : 4);
 	_vcnDrawLine = 0;
+	_vmpVisOffs = (flags.platform == Common::kPlatformSegaCD) ? _vmpOffsetsSegaCD : _vmpOffsetsDefault;
 
 	_vmpPtr = 0;
 	_blockBrightness = _wllVcnOffset = _wllVcnOffset2 = _wllVcnRmdOffset = 0;
@@ -109,7 +113,7 @@ KyraRpgEngine::KyraRpgEngine(OSystem *system, const GameFlags &flags) : KyraEngi
 	memset(_dialogueButtonString, 0, 3 * sizeof(const char *));
 	_dialogueButtonPosX = 0;
 	_dialogueButtonPosY = 0;
-	_dialogueNumButtons = _dialogueButtonYoffs = _dialogueHighlightedButton = 0;
+	_dialogueNumButtons = _dialogueButtonXoffs = _dialogueButtonYoffs = _dialogueHighlightedButton = 0;
 	_currentControlMode = 0;
 	_specialSceneFlag = 0;
 	_updateCharNum = -1;
@@ -163,34 +167,23 @@ KyraRpgEngine::~KyraRpgEngine() {
 Common::Error KyraRpgEngine::init() {
 	gui_resetButtonList();
 
-	_levelDecorationProperties = new LevelDecorationProperty[100];
-	memset(_levelDecorationProperties, 0, 100 * sizeof(LevelDecorationProperty));
-	_levelDecorationShapes = new uint8*[400];
+	_levelDecorationProperties = new LevelDecorationProperty[100]();
+	_levelDecorationShapes = new const uint8*[400];
 	memset(_levelDecorationShapes, 0, 400 * sizeof(uint8 *));
-	_levelBlockProperties = new LevelBlockProperty[1025];
-	memset(_levelBlockProperties, 0, 1025 * sizeof(LevelBlockProperty));
+	_levelBlockProperties = new LevelBlockProperty[1025]();
 
-	_wllVmpMap = new uint8[256];
-	memset(_wllVmpMap, 0, 256);
-	_wllShapeMap = new int8[256];
-	memset(_wllShapeMap, 0, 256);
-	_specialWallTypes = new uint8[256];
-	memset(_specialWallTypes, 0, 256);
-	_wllWallFlags = new uint8[256];
-	memset(_wllWallFlags, 0, 256);
+	_wllVmpMap = new uint8[256]();
+	_wllShapeMap = new int8[256]();
+	_specialWallTypes = new uint8[256]();
+	_wllWallFlags = new uint8[256]();
 
-	_blockDrawingBuffer = new uint16[1320];
-	memset(_blockDrawingBuffer, 0, 1320 * sizeof(uint16));
+	_blockDrawingBuffer = new uint16[1320]();
 	int windowBufferSize = _flags.useHiColorMode ? 42240 : 21120;
-	_sceneWindowBuffer = new uint8[windowBufferSize];
-	memset(_sceneWindowBuffer, 0, windowBufferSize);
+	_sceneWindowBuffer = new uint8[windowBufferSize]();
 
-	_lvlShapeTop = new int16[18];
-	memset(_lvlShapeTop, 0, 18 * sizeof(int16));
-	_lvlShapeBottom = new int16[18];
-	memset(_lvlShapeBottom, 0, 18 * sizeof(int16));
-	_lvlShapeLeftRight = new int16[36];
-	memset(_lvlShapeLeftRight, 0, 36 * sizeof(int16));
+	_lvlShapeTop = new int16[18]();
+	_lvlShapeBottom = new int16[18]();
+	_lvlShapeLeftRight = new int16[36]();
 
 	_vcnColTable = new uint8[128];
 	for (int i = 0; i < 128; i++)
@@ -206,8 +199,7 @@ Common::Error KyraRpgEngine::init() {
 		_vcnDrawLine = new VcnLineDrawingMethods(new VcnDrawProc(this, &KyraRpgEngine::vcnDraw_fw_4bit), new VcnDrawProc(this, &KyraRpgEngine::vcnDraw_bw_4bit),
 			new VcnDrawProc(this, &KyraRpgEngine::vcnDraw_fw_trans_4bit), new VcnDrawProc(this, &KyraRpgEngine::vcnDraw_bw_trans_4bit));
 
-	_doorShapes = new uint8*[6];
-	memset(_doorShapes, 0, 6 * sizeof(uint8 *));
+	_doorShapes = new uint8*[6]();
 
 	initStaticResource();
 
@@ -218,6 +210,22 @@ Common::Error KyraRpgEngine::init() {
 	_dialogueButtonWidth = guiSettings()->buttons.width;
 
 	return Common::kNoError;
+}
+
+void KyraRpgEngine::addKeymapAction(Common::Keymap *const keyMap, const char *actionId, const Common::U32String &actionDesc, const Common::Functor0Mem<void, Common::Action>::FuncType setEventProc, const Common::String &mapping1, const Common::String &mapping2) {
+	Common::Action *act = new Common::Action(actionId, actionDesc);
+	Common::Functor0Mem<void, Common::Action>(act, setEventProc)();
+	act->addDefaultInputMapping(mapping1);
+	act->addDefaultInputMapping(mapping2);
+	keyMap->addAction(act);
+}
+
+void KyraRpgEngine::addKeymapAction(Common::Keymap *const keyMap, const char *actionId, const Common::U32String &actionDesc, Common::KeyState eventKeyState, const Common::String &mapping1, const Common::String &mapping2) {
+	Common::Action *act = new Common::Action(actionId, actionDesc);
+	act->setKeyEvent(eventKeyState);
+	act->addDefaultInputMapping(mapping1);
+	act->addDefaultInputMapping(mapping2);
+	keyMap->addAction(act);
 }
 
 bool KyraRpgEngine::posWithinRect(int posX, int posY, int x1, int y1, int x2, int y2) {
@@ -256,7 +264,7 @@ uint16 KyraRpgEngine::processDialogue() {
 	int res = 0;
 
 	for (int i = 0; i < _dialogueNumButtons; i++) {
-		int x = _dialogueButtonPosX[i];
+		int x = _dialogueButtonPosX[i] + _dialogueButtonXoffs;
 		int y = ((_flags.gameID == GI_LOL && _flags.use16ColorMode) ? ((_dialogueButtonYoffs + _dialogueButtonPosY[i]) & ~7) - 1 : (_dialogueButtonYoffs + _dialogueButtonPosY[i]));
 		Common::Point p = getMousePos();
 		if (posWithinRect(p.x, p.y, x, y, x + _dialogueButtonWidth, y + guiSettings()->buttons.height)) {
@@ -381,13 +389,15 @@ bool KyraRpgEngine::snd_processEnvironmentalSoundEffect(int soundId, int block) 
 		_environmentSfxVol = dist ? (16 - dist) * 8 - 1 : 127;
 	else if (_flags.platform == Common::kPlatformAmiga)
 		_environmentSfxVol = dist ? (soundId != 13 ? dist : (dist >= 4) ? 4 : dist) : 1;
+	else if (_flags.platform == Common::kPlatformSegaCD)
+		_environmentSfxVol = dist < 3 ? 15 - dist : 11;
 	else
 		_environmentSfxVol = (15 - ((block || (_flags.gameID == GI_LOL && dist < 2)) ? dist : 0)) << 4;
 
 	return true;
 }
 
-void KyraRpgEngine::updateEnvironmentalSfx(int soundId) {
+void KyraRpgEngine::snd_updateEnvironmentalSfx(int soundId) {
 	snd_processEnvironmentalSoundEffect(soundId, _currentBlock);
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,13 +34,14 @@
 
 #include "common/scummsys.h"
 
+#include "audio/mixer.h"
 #include "audio/mods/paula.h"
 #include "audio/null.h"
 
 namespace Audio {
 
-Paula::Paula(bool stereo, int rate, uint interruptFreq, FilterMode filterMode) :
-		_stereo(stereo), _rate(rate), _periodScale((double)kPalPaulaClock / rate), _intFreq(interruptFreq) {
+Paula::Paula(bool stereo, int rate, uint interruptFreq, FilterMode filterMode, int periodScaleDivisor) :
+		_stereo(stereo), _rate(rate), _periodScale((double)kPalPaulaClock / (rate * periodScaleDivisor)), _intFreq(interruptFreq), _mutex(g_system->getMixer()->mutex()) {
 
 	_filterState.mode      = filterMode;
 	_filterState.ledFilter = false;
@@ -72,14 +72,15 @@ Paula::~Paula() {
 void Paula::clearVoice(byte voice) {
 	assert(voice < NUM_VOICES);
 
-	_voice[voice].data = 0;
-	_voice[voice].dataRepeat = 0;
+	_voice[voice].data = nullptr;
+	_voice[voice].dataRepeat = nullptr;
 	_voice[voice].length = 0;
 	_voice[voice].lengthRepeat = 0;
 	_voice[voice].period = 0;
 	_voice[voice].volume = 0;
 	_voice[voice].offset = Offset(0);
 	_voice[voice].dmaCount = 0;
+	_voice[voice].interrupt = false;
 }
 
 int Paula::readBuffer(int16 *buffer, const int numSamples) {
@@ -179,7 +180,7 @@ inline int mixBuffer(int16 *&buf, const int8 *data, Paula::Offset &offset, frac_
 
 template<bool stereo>
 int Paula::readBufferIntern(int16 *buffer, const int numSamples) {
-	int samples = _stereo ? numSamples / 2 : numSamples;
+	int samples = stereo ? numSamples / 2 : numSamples;
 	while (samples > 0) {
 
 		// Handle 'interrupts'. This gives subclasses the chance to adjust the channel data
@@ -238,6 +239,15 @@ int Paula::readBufferIntern(int16 *buffer, const int numSamples) {
 
 				ch.data = ch.dataRepeat;
 				ch.length = ch.lengthRepeat;
+
+				// The Paula chip can generate an interrupt after it copies a channel's
+				// location and length values to its internal registers, signaling that
+				// it's safe to modify them. Some sound engines use this feature in order
+				// to control sound looping.
+				// NOTE: the real Paula would also do this during enableChannel() and in
+				// the middle of setChannelData(); for simplicity, we only do it here.
+				if (ch.interrupt)
+					interruptChannel(voice);
 			}
 
 			// If we have not yet generated enough samples, and looping is active: loop!
@@ -256,7 +266,7 @@ int Paula::readBufferIntern(int16 *buffer, const int numSamples) {
 			}
 
 		}
-		buffer += _stereo ? nSamples * 2 : nSamples;
+		buffer += stereo ? nSamples * 2 : nSamples;
 		_curInt -= nSamples;
 		samples -= nSamples;
 	}
@@ -299,15 +309,15 @@ float Paula::filterCalculateA0(int rate, int cutoff) {
 
 class AmigaMusicPlugin : public NullMusicPlugin {
 public:
-	const char *getName() const {
+	const char *getName() const override {
 		return _s("Amiga Audio emulator");
 	}
 
-	const char *getId() const {
+	const char *getId() const override {
 		return "amiga";
 	}
 
-	MusicDevices getDevices() const;
+	MusicDevices getDevices() const override;
 };
 
 MusicDevices AmigaMusicPlugin::getDevices() const {

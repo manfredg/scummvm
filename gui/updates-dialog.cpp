@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,18 +44,18 @@ UpdatesDialog::UpdatesDialog() : Dialog(30, 20, 260, 124) {
 	int buttonWidth = g_gui.xmlEval()->getVar("Globals.Button.Width", 0);
 	int buttonHeight = g_gui.xmlEval()->getVar("Globals.Button.Height", 0);
 
-	const char *message = _(
+	Common::U32String message = _(
 		"ScummVM now supports automatic check for updates\n"
 		"which requires access to the Internet. Would you\n"
 		"like to enable this feature?");
-	const char *message2 = _("You can change this setting later in the Misc tab\n"
+	Common::U32String message2 = _("You can change this setting later in the Misc tab\n"
 		"in the Options dialog.");
 
 	// First, determine the size the dialog needs. For this we have to break
 	// down the string into lines, and taking the maximum of their widths.
 	// Using this, and accounting for the space the button(s) need, we can set
 	// the real size of the dialog
-	Common::Array<Common::String> lines, lines2;
+	Common::Array<Common::U32String> lines, lines2;
 	int maxlineWidth = g_gui.getFont().wordWrapText(message, screenW - 2 * 20, lines);
 	int maxlineWidth2 = g_gui.getFont().wordWrapText(message2, screenW - 2 * 20, lines2);
 
@@ -83,7 +82,7 @@ UpdatesDialog::UpdatesDialog() : Dialog(30, 20, 260, 124) {
 
 	y += kLineHeight;
 
-	const char *updMessage = _("Update check:");
+	Common::U32String updMessage = _("Update check:");
 
 	int updatelineWidth = g_gui.getFont().getStringWidth(updMessage) + 5;
 
@@ -113,7 +112,7 @@ UpdatesDialog::UpdatesDialog() : Dialog(30, 20, 260, 124) {
 	int buttonPos = _w - buttonWidth - 10;
 
 	_proceedButton = new ButtonWidget(this, buttonPos, _h - buttonHeight - 8, buttonWidth, buttonHeight,
-				_("Proceed"), nullptr, kProceedCmd, Common::ASCII_RETURN);
+				_("Proceed"), Common::U32String(), kProceedCmd, Common::ASCII_RETURN);
 }
 
 void UpdatesDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {

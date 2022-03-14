@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -580,7 +579,7 @@ const byte *Cutaway::handleAnimation(const byte *ptr, CutawayObject &object) {
 		frameCount++;
 
 		if (_vm->input()->cutawayQuit())
-			return NULL;
+			return nullptr;
 	}
 
 	if (object.animType == 1) {
@@ -682,7 +681,7 @@ const byte *Cutaway::handleAnimation(const byte *ptr, CutawayObject &object) {
 			}
 
 			if (_vm->input()->cutawayQuit())
-				return NULL;
+				return nullptr;
 
 			if (objAnim[i].song > 0)
 				_vm->sound()->playSong(objAnim[i].song);
@@ -705,7 +704,7 @@ const byte *Cutaway::handleAnimation(const byte *ptr, CutawayObject &object) {
 		}
 
 		if (_vm->input()->cutawayQuit())
-			return NULL;
+			return nullptr;
 	}
 
 	return ptr;
@@ -779,7 +778,7 @@ void Cutaway::handlePersonRecord(
 
 			char voiceFilePrefix[MAX_STRING_SIZE];
 			findCdCut(_basename, index, voiceFilePrefix);
-			_vm->logic()->makePersonSpeak(sentence, (object.objectNumber == OBJECT_JOE) ? NULL : &p, voiceFilePrefix);
+			_vm->logic()->makePersonSpeak(sentence, (object.objectNumber == OBJECT_JOE) ? nullptr : &p, voiceFilePrefix);
 		}
 
 	}

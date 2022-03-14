@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ NuvieEngine *g_engine;
 
 NuvieEngine::NuvieEngine(OSystem *syst, const Ultima::UltimaGameDescription *gameDesc) :
 		Ultima::Shared::UltimaEngine(syst, gameDesc),  _config(nullptr), _savegame(nullptr),
-		_screen(nullptr), _script(nullptr), _game(nullptr) {
+		_screen(nullptr), _script(nullptr), _game(nullptr), _soundManager(nullptr) {
 	g_engine = this;
 }
 
@@ -67,7 +66,7 @@ NuvieEngine::~NuvieEngine() {
 bool NuvieEngine::isDataRequired(Common::String &folder, int &majorVersion, int &minorVersion) {
 	folder = "ultima6";
 	majorVersion = 1;
-	minorVersion = 0;
+	minorVersion = 1;
 	return true;
 }
 
@@ -144,12 +143,12 @@ bool NuvieEngine::initialize() {
 	if (checkDataDir() == false)
 		return false;
 
-	SoundManager *sound_manager = new SoundManager(_mixer);
-	sound_manager->nuvieStartup(_config);
+	_soundManager = new SoundManager(_mixer);
+	_soundManager->nuvieStartup(_config);
 
-	_game = new Game(_config, events, _screen, gui, gameType, sound_manager);
+	_game = new Game(_config, events, _screen, gui, gameType, _soundManager);
 
-	_script = new Script(_config, gui, sound_manager, gameType);
+	_script = new Script(_config, gui, _soundManager, gameType);
 	if (_script->init() == false)
 		return false;
 
@@ -184,18 +183,7 @@ Common::Error NuvieEngine::run() {
 
 void NuvieEngine::initConfig() {
 	_config = new Configuration();
-
-	// nuvie.cfg in the game folder can supercede any ScummVM settings
-	if (Common::File::exists("nuvie.cfg"))
-		(void)_config->readConfigFile("nuvie.cfg", "config");
-
-	if (!_config->isDefaultsSet()) {
-		if (isEnhanced())
-			_config->setEnhancedDefaults(_gameDescription->gameId);
-		else
-			_config->setUnenhancedDefaults(_gameDescription->gameId);
-	}
-
+	_config->load(_gameDescription->gameId, isEnhanced());
 }
 
 void NuvieEngine::assignGameConfigValues(uint8 gameType) {
@@ -241,6 +229,26 @@ bool NuvieEngine::checkDataDir() {
 	return true;
 }
 
+void NuvieEngine::syncSoundSettings() {
+	Ultima::Shared::UltimaEngine::syncSoundSettings();
+	if (!_soundManager)
+		return;
+
+	_soundManager->set_audio_enabled(
+		!ConfMan.hasKey("mute") || !ConfMan.getBool("mute"));
+	_soundManager->set_sfx_enabled(
+		!ConfMan.hasKey("sfx_mute") || !ConfMan.getBool("sfx_mute"));
+	_soundManager->set_music_enabled(
+		!ConfMan.hasKey("music_mute") || !ConfMan.getBool("music_mute"));
+	_soundManager->set_speech_enabled(
+		!ConfMan.hasKey("speech_mute") || !ConfMan.getBool("speech_mute"));
+
+	_soundManager->set_sfx_volume(ConfMan.hasKey("sfx_volume") ?
+		ConfMan.getInt("sfx_volume") : 255);
+	_soundManager->set_music_volume(ConfMan.hasKey("music_volume") ?
+		ConfMan.getInt("music_volume") : 255);
+}
+
 bool NuvieEngine::canLoadGameStateCurrently(bool isAutosave) {
 	if (_game == nullptr || !_game->isLoaded())
 		return false;
@@ -249,10 +257,10 @@ bool NuvieEngine::canLoadGameStateCurrently(bool isAutosave) {
 	// the save dialog will result in active gumps being closed
 	Events *events = static_cast<Events *>(_events);
 	MapWindow *mapWindow = _game->get_map_window();
-	
+
 	if (isAutosave) {
 		return events->get_mode() == MOVE_MODE;
-	
+
 	} else {
 		events->close_gumps();
 
@@ -321,7 +329,7 @@ Common::Error NuvieEngine::saveGameState(int slot, const Common::String &desc, b
 
 			// Display that the game was saved
 			MsgScroll *scroll = Game::get_game()->get_scroll();
-			scroll->display_string(_("\nGame Saved\n\n"));
+			scroll->display_string("\nGame Saved\n\n");
 			scroll->display_prompt();
 		}
 
@@ -344,6 +352,12 @@ bool NuvieEngine::journeyOnwards() {
 
 	if (newsave) {
 		return _savegame->load_new();
+	}
+
+	// Load the savegame from the last slot which was used for saving
+	if (ConfMan.hasKey("latest_save")) {
+		int saveSlot = ConfMan.getInt("latest_save");
+		return loadGameState(saveSlot).getCode() == Common::kNoError;
 	}
 
 	// Otherwise start a new game
@@ -370,12 +384,12 @@ bool NuvieEngine::quickSave(int saveSlot, bool isLoad) {
 		if (!canLoadGameStateCurrently(false))
 			return false;
 
-		text = _("loading quick save %d");
+		text = Common::convertFromU32String(_("loading quick save %d"));
 	} else {
 		if (!canSaveGameStateCurrently(false))
 			return false;
 
-		text = _("saving quick save %d");
+		text = Common::convertFromU32String(_("saving quick save %d"));
 	}
 
 	text = Std::string::format(text.c_str(), saveSlot);
@@ -389,7 +403,7 @@ bool NuvieEngine::quickSave(int saveSlot, bool isLoad) {
 			return false;
 		}
 	} else {
-		Common::String saveDesc = Common::String::format(_("Quicksave %03d"), saveSlot);
+		Common::String saveDesc = Common::String::format("Quicksave %03d", saveSlot);
 		return saveGameState(saveSlot, saveDesc, false).getCode() == Common::kNoError;
 	}
 }
@@ -398,6 +412,15 @@ bool NuvieEngine::playIntro() {
 	if (ConfMan.hasKey("save_slot") && ConfMan.getInt("save_slot") >= 0)
 		// Loading a savegame from the launcher, so skip intro
 		return true;
+
+	bool skip_intro;
+	string key = config_get_game_key(_config);
+	key.append("/skip_intro");
+	_config->value(key, skip_intro, false);
+
+	if (skip_intro)
+		return true;
+
 
 	if (_script->play_cutscene("/intro.lua")) {
 		bool should_quit = false;

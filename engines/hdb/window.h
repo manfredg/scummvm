@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,7 +55,7 @@ struct DialogInfo {
 	char		luaMore[64];			// the name of the function to call after clicking the MORE button
 
 	DialogInfo() : tileIndex(0), active(false), x(0), y(0),
-		width(0), height(0), titleWidth(0), gfx(NULL), more(0), el(0), er(0), et(0),
+		width(0), height(0), titleWidth(0), gfx(nullptr), more(0), el(0), er(0), et(0),
 		eb(0) {
 			title[0] = 0;
 			string[0] = 0;
@@ -141,7 +140,7 @@ struct PanicZone {
 	Picture *gfxNumber[10];
 
 	PanicZone() : active(false), sequence(0), timer(0), x1(0), y1(0), x2(0), y2(0), xv(0), yv(0),
-		numberTime(0), numberTimeMaster(0), numberValue(0), gfxPanic(NULL), gfxZone(NULL) {
+		numberTime(0), numberTimeMaster(0), numberValue(0), gfxPanic(nullptr), gfxZone(nullptr) {
 		memset(&gfxFace, 0, sizeof(gfxFace));
 		memset(&gfxNumber, 0, sizeof(gfxNumber));
 	}

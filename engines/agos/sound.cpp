@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,7 +62,7 @@ public:
 };
 
 BaseSound::BaseSound(Audio::Mixer *mixer, const Common::String &filename, uint32 base, bool bigEndian)
-	: _mixer(mixer), _filename(filename), _offsets(NULL) {
+	: _mixer(mixer), _filename(filename), _offsets(nullptr) {
 
 	uint res = 0;
 	uint32 size;
@@ -109,13 +108,13 @@ BaseSound::~BaseSound() {
 }
 
 Common::SeekableReadStream *BaseSound::getSoundStream(uint sound) const {
-	if (_offsets == NULL)
-		return NULL;
+	if (_offsets == nullptr)
+		return nullptr;
 
 	Common::File *file = new Common::File();
 	if (!file->open(_filename)) {
 		warning("BaseSound::getSoundStream: Could not open file \"%s\"", _filename.c_str());
-		return NULL;
+		return nullptr;
 	}
 
 	int i = 1;
@@ -259,7 +258,7 @@ public:
 Audio::AudioStream *WavSound::makeAudioStream(uint sound) {
 	Common::SeekableReadStream *tmp = getSoundStream(sound);
 	if (!tmp)
-		return NULL;
+		return nullptr;
 	return Audio::makeWAVStream(tmp, DisposeAfterUse::YES);
 }
 
@@ -277,7 +276,7 @@ public:
 Audio::AudioStream *VocSound::makeAudioStream(uint sound) {
 	Common::SeekableReadStream *tmp = getSoundStream(sound);
 	if (!tmp)
-		return NULL;
+		return nullptr;
 	return Audio::makeVOCStream(tmp, _flags, DisposeAfterUse::YES);
 }
 
@@ -295,13 +294,13 @@ public:
 };
 
 Audio::AudioStream *RawSound::makeAudioStream(uint sound) {
-	if (_offsets == NULL)
-		return NULL;
+	if (_offsets == nullptr)
+		return nullptr;
 
 	Common::File *file = new Common::File();
 	if (!file->open(_filename)) {
 		warning("RawSound::makeAudioStream: Could not open file \"%s\"", _filename.c_str());
-		return NULL;
+		return nullptr;
 	}
 
 	file->seek(_offsets[sound], SEEK_SET);
@@ -327,7 +326,7 @@ public:
 	Audio::AudioStream *makeAudioStream(uint sound) override {
 		Common::SeekableReadStream *tmp = getSoundStream(sound);
 		if (!tmp)
-			return NULL;
+			return nullptr;
 		return Audio::makeMP3Stream(tmp, DisposeAfterUse::YES);
 	}
 };
@@ -343,7 +342,7 @@ public:
 	Audio::AudioStream *makeAudioStream(uint sound) override {
 		Common::SeekableReadStream *tmp = getSoundStream(sound);
 		if (!tmp)
-			return NULL;
+			return nullptr;
 		return Audio::makeVorbisStream(tmp, DisposeAfterUse::YES);
 	}
 };
@@ -359,7 +358,7 @@ public:
 	Audio::AudioStream *makeAudioStream(uint sound) override {
 		Common::SeekableReadStream *tmp = getSoundStream(sound);
 		if (!tmp)
-			return NULL;
+			return nullptr;
 		return Audio::makeFLACStream(tmp, DisposeAfterUse::YES);
 	}
 };
@@ -385,7 +384,7 @@ static BaseSound *makeSound(Audio::Mixer *mixer, const Common::String &basename)
 		return new WavSound(mixer, basename + ".wav");
 	if (Common::File::exists(basename + ".voc"))
 		return new VocSound(mixer, basename + ".voc", true);
-	return 0;
+	return nullptr;
 }
 
 
@@ -394,23 +393,23 @@ static BaseSound *makeSound(Audio::Mixer *mixer, const Common::String &basename)
 
 Sound::Sound(AGOSEngine *vm, const GameSpecificSettings *gss, Audio::Mixer *mixer)
 	: _vm(vm), _mixer(mixer) {
-	_voice = 0;
-	_effects = 0;
+	_voice = nullptr;
+	_effects = nullptr;
 
 	_effectsPaused = false;
 	_ambientPaused = false;
 	_sfx5Paused = false;
 
-	_filenums = 0;
+	_filenums = nullptr;
 	_lastVoiceFile = 0;
-	_offsets = 0;
+	_offsets = nullptr;
 
 	_hasEffectsFile = false;
 	_hasVoiceFile = false;
 
 	_ambientPlaying = 0;
 
-	_soundQueuePtr = 0;
+	_soundQueuePtr = nullptr;
 	_soundQueueNum = 0;
 	_soundQueueSize = 0;
 	_soundQueueFreq = 0;
@@ -437,7 +436,7 @@ void Sound::loadVoiceFile(const GameSpecificSettings *gss) {
 		return;
 
 	_voice = makeSound(_mixer, gss->speech_filename);
-	_hasVoiceFile = (_voice != 0);
+	_hasVoiceFile = (_voice != nullptr);
 
 	if (_hasVoiceFile)
 		return;
@@ -480,7 +479,7 @@ void Sound::loadSfxFile(const GameSpecificSettings *gss) {
 		return;
 
 	_effects = makeSound(_mixer, gss->effects_filename);
-	_hasEffectsFile = (_effects != 0);
+	_hasEffectsFile = (_effects != nullptr);
 
 	if (_hasEffectsFile)
 		return;
@@ -657,7 +656,7 @@ void Sound::handleSoundQueue() {
 
 		_vm->_sampleWait = 1;
 		_vm->_sampleEnd = 0;
-		_soundQueuePtr = 0;
+		_soundQueuePtr = nullptr;
 		_soundQueueNum = 0;
 		_soundQueueSize = 0;
 		_soundQueueFreq = 0;
@@ -754,7 +753,7 @@ void Sound::switchVoiceFile(const GameSpecificSettings *gss, uint disc) {
 
 	sprintf(filename, "%s%u", gss->speech_filename, disc);
 	_voice = makeSound(_mixer, filename);
-	_hasVoiceFile = (_voice != 0);
+	_hasVoiceFile = (_voice != nullptr);
 
 	if (!_hasVoiceFile)
 		error("switchVoiceFile: Can't load voice file %s", filename);

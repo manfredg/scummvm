@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,16 +23,12 @@
 #define ULTIMA8_GRAPHICS_FONTS_TTFONT_H
 
 #include "ultima/ultima8/graphics/fonts/font.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
 #include "graphics/font.h"
-#include "graphics/pixelformat.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
 class TTFont : public Font {
-private:
-	Graphics::PixelFormat _pixelFormat;
 public:
 	TTFont(Graphics::Font *font, uint32 rgb, int bordersize,
 	       bool antiAliased, bool SJIS);
@@ -60,7 +55,6 @@ public:
 		TextAlign align = TEXT_LEFT, bool u8specials = false,
 		Std::string::size_type cursor = Std::string::npos) override;
 
-	ENABLE_RUNTIME_CLASSTYPE()
 protected:
 	Graphics::Font *_ttfFont;
 	uint32 _color;

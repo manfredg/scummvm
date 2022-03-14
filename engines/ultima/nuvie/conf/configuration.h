@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,13 +24,15 @@
 
 #include "ultima/shared/std/string.h"
 #include "ultima/shared/std/containers.h"
-#include "ultima/shared/std/misc.h"
 #include "ultima/detection.h"
 
 namespace Ultima {
+namespace Shared {
+class XMLTree;
+} // End of namespace Shared
+
 namespace Nuvie {
 
-class XMLTree;
 class ConfigNode;
 
 #define NUVIE_CONF_READONLY true
@@ -59,14 +60,22 @@ class ConfigNode;
  */
 class Configuration {
 private:
-	Std::vector<XMLTree*> _trees;
-    Common::HashMap<Common::String, Common::String, Common::IgnoreCase_Hash,
-        Common::IgnoreCase_EqualTo> _localKeys;
+	Std::vector<Shared::XMLTree*> _trees;
+	Common::HashMap<Common::String, Common::String, Common::IgnoreCase_Hash,
+		Common::IgnoreCase_EqualTo> _localKeys;
+	Common::HashMap<Common::String, Common::String, Common::IgnoreCase_Hash,
+		Common::IgnoreCase_EqualTo> _settings;
 	Std::string _configFilename;
-    bool _configChanged;
+	bool _configChanged;
 
-    // Sets default configurations common to both enhanced and unhenaced
-    void setCommonDefaults(GameId gameType);
+	// Sets default configurations common to both enhanced and unhenaced
+	void setCommonDefaults(GameId gameType);
+
+	// sets up unenhanced version defaults
+	void setUnenhancedDefaults(GameId gameType);
+
+	// sets up enhanced version defaults
+	void setEnhancedDefaults(GameId gameType);
 public:
 	Configuration();
 	~Configuration();
@@ -74,17 +83,15 @@ public:
 	// read config file. Multiple files may be read. Order is important.
 	bool readConfigFile(Std::string fname, Std::string root, bool readonly = true);
 
-    // Returns true if default settings for game have previously been set
-    bool isDefaultsSet() const;
+	// Returns true if default settings for game have previously been set
+	bool isDefaultsSet() const;
 
-    // sets up unenhanced version defaults
-    void setUnenhancedDefaults(GameId gameType);
-
-    // sets up enhanced version defaults
-    void setEnhancedDefaults(GameId gameType);
+	// Loads up the configuration settings
+	void load(GameId gameId, bool isEnhanced);
 
 	// write all (writable) config files
 	void write();
+
 	// clear everything
 	void clear();
 
@@ -111,8 +118,8 @@ public:
 	// list all subkeys of a key. (no guaranteed order in result)
 	Std::set<Std::string> listKeys(const Std::string &key, bool longformat = false);
 
-	typedef Std::pair<Std::string, Std::string> KeyType;
-	typedef Std::vector<KeyType> KeyTypeList;
+	typedef Std::pair<Common::String, Common::String> KeyType;
+	typedef Common::Array<KeyType> KeyTypeList;
 
 	void getSubkeys(KeyTypeList &ktl, Std::string basekey);
 };

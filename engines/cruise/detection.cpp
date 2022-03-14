@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,41 +15,25 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "base/plugins.h"
-#include "common/savefile.h"
-#include "common/system.h"
 #include "engines/advancedDetector.h"
 
+#include "cruise/detection.h"
 #include "cruise/cruise.h"
-#include "cruise/saveload.h"
-
-namespace Cruise {
-
-struct CRUISEGameDescription {
-	ADGameDescription desc;
-};
-
-const char *CruiseEngine::getGameId() const {
-	return _gameDescription->desc.gameId;
-}
-
-Common::Language CruiseEngine::getLanguage() const {
-	return _gameDescription->desc.language;
-}
-Common::Platform CruiseEngine::getPlatform() const {
-	return _gameDescription->desc.platform;
-}
-
-}
 
 static const PlainGameDescriptor cruiseGames[] = {
 	{"cruise", "Cruise for a Corpse"},
-	{0, 0}
+	{nullptr, nullptr}
+};
+
+static const DebugChannelDef debugFlagList[] = {
+	{Cruise::kCruiseDebugScript, "scripts", "Scripts debug level"},
+	{Cruise::kCruiseDebugSound, "sound", "Sound debug level"},
+	DEBUG_CHANNEL_END
 };
 
 namespace Cruise {
@@ -124,7 +108,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 	{
 		{
 			"cruise",
-			0,
+			nullptr,
 			AD_ENTRY1("D1", "70f42a21cc257b01d58667853335f4f1"),
 			Common::DE_DEU,
 			Common::kPlatformAmiga,
@@ -135,7 +119,7 @@ static const CRUISEGameDescription gameDescriptions[] = {
 	{ // Amiga English US GOLD edition.
 		{
 			"cruise",
-			0,
+			nullptr,
 			AD_ENTRY1("D1", "de084e9d2c6e4b2cc14803bf849eda3e"),
 			Common::EN_ANY,
 			Common::kPlatformAmiga,
@@ -146,9 +130,20 @@ static const CRUISEGameDescription gameDescriptions[] = {
 	{ // Amiga Italian US GOLD edition.
 		{
 			"cruise",
-			0,
+			nullptr,
 			AD_ENTRY1("D1", "a0011075413b7335e003e8e3c9cf51b9"),
 			Common::IT_ITA,
+			Common::kPlatformAmiga,
+			ADGF_NO_FLAGS,
+			GUIO0()
+		},
+	},
+	{ // Amiga Spanish edition.
+		{
+			"cruise",
+			nullptr,
+			AD_ENTRY1s("D1", "b600d0892a2605b9ead63e1c86a8a0a3", 700576),
+			Common::ES_ESP,
 			Common::kPlatformAmiga,
 			ADGF_NO_FLAGS,
 			GUIO0()
@@ -157,9 +152,20 @@ static const CRUISEGameDescription gameDescriptions[] = {
 	{ // AtariST English KixxXL edition.
 		{
 			"cruise",
-			0,
+			nullptr,
 			AD_ENTRY1("D1", "be78614d5fa34bdb68bb03a2a6130280"),
 			Common::EN_ANY,
+			Common::kPlatformAtariST,
+			ADGF_NO_FLAGS,
+			GUIO0()
+		},
+	},
+	{ // AtariST French edition. Bugreport #12824
+		{
+			"cruise",
+			nullptr,
+			AD_ENTRY1s("D1", "485ff850b7035316621f632e33f56468", 537311),
+			Common::FR_FRA,
 			Common::kPlatformAtariST,
 			ADGF_NO_FLAGS,
 			GUIO0()
@@ -192,9 +198,9 @@ static const CRUISEGameDescription gameDescriptions[] = {
 
 }
 
-class CruiseMetaEngine : public AdvancedMetaEngine {
+class CruiseMetaEngineDetection : public AdvancedMetaEngineDetection {
 public:
-	CruiseMetaEngine() : AdvancedMetaEngine(Cruise::gameDescriptions, sizeof(Cruise::CRUISEGameDescription), cruiseGames) {
+	CruiseMetaEngineDetection() : AdvancedMetaEngineDetection(Cruise::gameDescriptions, sizeof(Cruise::CRUISEGameDescription), cruiseGames) {
 		_guiOptions = GUIO2(GUIO_NOSPEECH, GUIO_NOMIDI);
 	}
 
@@ -210,89 +216,9 @@ public:
 		return "Cinematique evo 2 (C) Delphine Software";
 	}
 
-	bool hasFeature(MetaEngineFeature f) const override;
-	int getMaximumSaveSlot() const override { return 99; }
-	SaveStateList listSaves(const char *target) const override;
-	void removeSaveState(const char *target, int slot) const override;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
-	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	const DebugChannelDef *getDebugChannels() const override {
+		return debugFlagList;
+	}
 };
 
-bool CruiseMetaEngine::hasFeature(MetaEngineFeature f) const {
-	return
-		(f == kSupportsListSaves) ||
-		(f == kSupportsDeleteSave) ||
-		(f == kSavesSupportMetaInfo) ||
-		(f == kSavesSupportThumbnail) ||
-		(f == kSupportsLoadingDuringStartup);
-}
-
-SaveStateList CruiseMetaEngine::listSaves(const char *target) const {
-	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::StringArray filenames;
-	Common::String pattern("cruise.s##");
-
-	filenames = saveFileMan->listSavefiles(pattern);
-
-	SaveStateList saveList;
-	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
-		// Obtain the last 2 digits of the filename, since they correspond to the save slot
-		int slotNum = atoi(file->c_str() + file->size() - 2);
-
-		if (slotNum >= 0 && slotNum <= 99) {
-			Common::InSaveFile *in = saveFileMan->openForLoading(*file);
-			if (in) {
-				Cruise::CruiseSavegameHeader header;
-				if (Cruise::readSavegameHeader(in, header))
-					saveList.push_back(SaveStateDescriptor(slotNum, header.saveName));
-				delete in;
-			}
-		}
-	}
-
-	// Sort saves based on slot number.
-	Common::sort(saveList.begin(), saveList.end(), SaveStateDescriptorSlotComparator());
-	return saveList;
-}
-
-void CruiseMetaEngine::removeSaveState(const char *target, int slot) const {
-	g_system->getSavefileManager()->removeSavefile(Cruise::CruiseEngine::getSavegameFile(slot));
-}
-
-SaveStateDescriptor CruiseMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
-	Common::InSaveFile *f = g_system->getSavefileManager()->openForLoading(
-		Cruise::CruiseEngine::getSavegameFile(slot));
-
-	if (f) {
-		Cruise::CruiseSavegameHeader header;
-		if (!Cruise::readSavegameHeader(f, header, false)) {
-			delete f;
-			return SaveStateDescriptor();
-		}
-
-		delete f;
-
-		// Create the return descriptor
-		SaveStateDescriptor desc(slot, header.saveName);
-		desc.setThumbnail(header.thumbnail);
-
-		return desc;
-	}
-
-	return SaveStateDescriptor();
-}
-
-bool CruiseMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	const Cruise::CRUISEGameDescription *gd = (const Cruise::CRUISEGameDescription *)desc;
-	if (gd) {
-		*engine = new Cruise::CruiseEngine(syst, gd);
-	}
-	return gd != 0;
-}
-
-
-#if PLUGIN_ENABLED_DYNAMIC(CRUISE)
-	REGISTER_PLUGIN_DYNAMIC(CRUISE, PLUGIN_TYPE_ENGINE, CruiseMetaEngine);
-#else
-	REGISTER_PLUGIN_STATIC(CRUISE, PLUGIN_TYPE_ENGINE, CruiseMetaEngine);
-#endif
+REGISTER_PLUGIN_STATIC(CRUISE_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, CruiseMetaEngineDetection);

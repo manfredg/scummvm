@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -346,7 +345,7 @@ const char *const g_crtEmulationFragmentShader =
 // Taken from: https://en.wikibooks.org/wiki/OpenGL_Programming/Modern_OpenGL_Tutorial_03#OpenGL_ES_2_portability
 const char *const g_precisionDefines =
 	"#ifdef GL_ES\n"
-	"\t#if defined(GL_FRAGMENT_PRECISION_HIGH) && GL_FRAGMENT_PRECISION_HIGH == 1\n"
+	"\t#ifdef GL_FRAGMENT_PRECISION_HIGH\n"
 	"\t\tprecision highp float;\n"
 	"\t#else\n"
 	"\t\tprecision mediump float;\n"
@@ -376,7 +375,7 @@ void ShaderUniformMatrix44::set(GLint location) const {
 #pragma mark - Shader Implementation -
 
 Shader::Shader(const Common::String &vertex, const Common::String &fragment)
-    : _vertex(vertex), _fragment(fragment), _isActive(false), _program(0), _uniforms() {
+	: _vertex(vertex), _fragment(fragment), _isActive(false), _program(0), _uniforms() {
 	recreate();
 }
 
@@ -518,7 +517,9 @@ bool Shader::setUniform(const Common::String &name, ShaderUniformValue *value) {
 }
 
 GLshader Shader::compileShader(const char *source, GLenum shaderType) {
-	const GLchar *versionSource = g_context.type == kContextGLES2 ? "#version 100\n" : "#version 120\n";
+	const GLchar *versionSource = g_context.type == kContextGLES2 ? "#version 100\n" : "#version 110\n";
+	const GLchar *compatSource = shaderType == GL_VERTEX_SHADER ? "" : g_precisionDefines;
+
 	GLshader handle;
 	GL_ASSIGN(handle, glCreateShader(shaderType));
 	if (!handle) {
@@ -527,7 +528,7 @@ GLshader Shader::compileShader(const char *source, GLenum shaderType) {
 
 	const char *const shaderSources[] = {
 		versionSource,
-		g_precisionDefines,
+		compatSource,
 		source
 	};
 
@@ -542,7 +543,7 @@ GLshader Shader::compileShader(const char *source, GLenum shaderType) {
 
 		GLchar *log = new GLchar[logSize];
 		GL_CALL(glGetShaderInfoLog(handle, logSize, nullptr, log));
-		warning("Could not compile shader \"%s\": \"%s\"", source, log);
+		warning("Could not compile shader \"%s%s%s\": \"%s\"", versionSource, compatSource, source, log);
 		delete[] log;
 
 		GL_CALL(glDeleteShader(handle));

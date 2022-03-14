@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -96,8 +95,8 @@ void GraphicsWindow::redraw() {
 	}
 }
 
-bool GraphicsWindow::drawPicture(uint image, int xpos, int ypos, bool scale,
-                                   uint imagewidth, uint imageheight) {
+bool GraphicsWindow::drawPicture(const Common::String &image, int xpos, int ypos, bool scale,
+								   uint imagewidth, uint imageheight) {
 	Picture *pic = g_vm->_pictures->load(image);
 	uint hyperlink = _attr.hyper;
 
@@ -173,7 +172,23 @@ void GraphicsWindow::fillRect(uint color, const Rect &box) {
 	// zero out hyperlinks for these coordinates
 	g_vm->_selection->putHyperlink(0, hx0, hy0, hx1, hy1);
 
-	_surface->fillRect(Rect(x0, y0, x1, y1), color);
+	Rect r(x0, y0, x1, y1);
+	if (!r.isEmpty())
+		_surface->fillRect(r, color);
+	touch();
+}
+
+void GraphicsWindow::clear() {
+	fillRect(_bgnd, Rect(0, 0, _bbox.width(), _bbox.width()));
+}
+
+void GraphicsWindow::frameRect(uint color, const Rect &box) {
+	_surface->frameRect(box, color);
+	touch();
+}
+
+void GraphicsWindow::drawLine(uint color, const Point &from, const Point &to) {
+	_surface->drawLine(from.x, from.y, to.x, to.y, color);
 	touch();
 }
 
@@ -237,8 +252,10 @@ void GraphicsWindow::drawPicture(const Graphics::Surface &image, uint transColor
 }
 
 void GraphicsWindow::getSize(uint *width, uint *height) const {
-	*width = _bbox.width();
-	*height = _bbox.height();
+	if (width)
+		*width = _bbox.width();
+	if (height)
+		*height = _bbox.height();
 }
 
 void GraphicsWindow::setBackgroundColor(uint color) {

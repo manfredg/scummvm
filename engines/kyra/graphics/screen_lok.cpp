@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,19 +31,19 @@ namespace Kyra {
 Screen_LoK::Screen_LoK(KyraEngine_LoK *vm, OSystem *system)
 	: Screen(vm, system, _screenDimTable, _screenDimTableCount) {
 	_vm = vm;
-	_unkPtr1 = _unkPtr2 = 0;
+	_unkPtr1 = _unkPtr2 = nullptr;
 	_bitBlitNum = 0;
 }
 
 Screen_LoK::~Screen_LoK() {
 	for (int i = 0; i < ARRAYSIZE(_saveLoadPage); ++i) {
 		delete[] _saveLoadPage[i];
-		_saveLoadPage[i] = 0;
+		_saveLoadPage[i] = nullptr;
 	}
 
 	for (int i = 0; i < ARRAYSIZE(_saveLoadPageOvl); ++i) {
 		delete[] _saveLoadPageOvl[i];
-		_saveLoadPageOvl[i] = 0;
+		_saveLoadPageOvl[i] = nullptr;
 	}
 
 	delete[] _unkPtr1;
@@ -55,17 +54,20 @@ bool Screen_LoK::init() {
 	if (!Screen::init())
 		return false;
 
-	memset(_bitBlitRects, 0, sizeof(_bitBlitRects));
+	for (uint i = 0; i < ARRAYSIZE(_bitBlitRects); i++) {
+		_bitBlitRects[i].left = 0;
+		_bitBlitRects[i].top = 0;
+		_bitBlitRects[i].right = 0;
+		_bitBlitRects[i].bottom = 0;
+	}
 	_bitBlitNum = 0;
 	memset(_saveLoadPage, 0, sizeof(_saveLoadPage));
 	memset(_saveLoadPageOvl, 0, sizeof(_saveLoadPageOvl));
 
-	_unkPtr1 = new uint8[getRectSize(1, 144)];
+	_unkPtr1 = new uint8[getRectSize(1, 144)]();
 	assert(_unkPtr1);
-	memset(_unkPtr1, 0, getRectSize(1, 144));
-	_unkPtr2 = new uint8[getRectSize(1, 144)];
+	_unkPtr2 = new uint8[getRectSize(1, 144)]();
 	assert(_unkPtr2);
-	memset(_unkPtr2, 0, getRectSize(1, 144));
 
 	return true;
 }
@@ -97,7 +99,7 @@ void Screen_LoK::fadeSpecialPalette(int palIndex, int startIndex, int size, int 
 
 	getPalette(0).copy(tempPal, startIndex, size);
 	setScreenPalette(getPalette(0));
-	_system->updateScreen();
+	updateBackendScreen(true);
 }
 
 void Screen_LoK::addBitBlitRect(int x, int y, int w, int h) {
@@ -151,7 +153,7 @@ void Screen_LoK::loadPageFromDisk(const char *file, int page) {
 
 	copyBlockToPage(page, 0, 0, SCREEN_W, SCREEN_H, _saveLoadPage[page / 2]);
 	delete[] _saveLoadPage[page / 2];
-	_saveLoadPage[page / 2] = 0;
+	_saveLoadPage[page / 2] = nullptr;
 
 	if (_saveLoadPageOvl[page / 2]) {
 		uint8 *dstPage = getOverlayPtr(page);
@@ -162,7 +164,7 @@ void Screen_LoK::loadPageFromDisk(const char *file, int page) {
 
 		memcpy(dstPage, _saveLoadPageOvl[page / 2], SCREEN_OVL_SJIS_SIZE);
 		delete[] _saveLoadPageOvl[page / 2];
-		_saveLoadPageOvl[page / 2] = 0;
+		_saveLoadPageOvl[page / 2] = nullptr;
 	}
 }
 
@@ -177,11 +179,11 @@ void Screen_LoK::queryPageFromDisk(const char *file, int page, uint8 *buffer) {
 
 void Screen_LoK::deletePageFromDisk(int page) {
 	delete[] _saveLoadPage[page / 2];
-	_saveLoadPage[page / 2] = 0;
+	_saveLoadPage[page / 2] = nullptr;
 
 	if (_saveLoadPageOvl[page / 2]) {
 		delete[] _saveLoadPageOvl[page / 2];
-		_saveLoadPageOvl[page / 2] = 0;
+		_saveLoadPageOvl[page / 2] = nullptr;
 	}
 }
 
@@ -352,7 +354,7 @@ void Screen_LoK_16::fadePalette(const Palette &pal, int delay, const UpdateFunct
 			if (upFunc && upFunc->isValid())
 				(*upFunc)();
 			else
-				_system->updateScreen();
+				updateBackendScreen(true);
 
 			_vm->delay((delay >> 5) * _vm->tickLength());
 		}
@@ -479,6 +481,56 @@ void Screen_LoK_16::set16ColorPalette(const uint8 *pal) {
 	}
 
 	_system->getPaletteManager()->setPalette(palette, 0, 16);
+}
+
+ChineseOneByteFontLoK::ChineseOneByteFontLoK(int pitch) : ChineseFont(pitch, 8, 14, 9, 17, 0, 0) {
+	_border = _pixelColorShading = false;
+}
+
+void ChineseOneByteFontLoK::processColorMap() {
+	_textColor[0] = _colorMap[1];
+	_textColor[1] = _colorMap[0];
+}
+
+ChineseTwoByteFontLoK::ChineseTwoByteFontLoK(int pitch, const uint16 *lookupTable, uint32 lookupTableSize) : ChineseFont(pitch, 15, 14, 18, 17, 0, 3),
+_lookupTable(lookupTable), _lookupTableSize(lookupTableSize) {
+	assert(lookupTable);
+}
+
+bool ChineseTwoByteFontLoK::hasGlyphForCharacter(uint16 c) const {
+	for (uint32 i = 0; i < _lookupTableSize; ++i) {
+		if (_lookupTable[i] == c)
+			return true;
+	}
+	return false;
+}
+
+uint32 ChineseTwoByteFontLoK::getFontOffset(uint16 c) const {
+	for (uint32 i = 0; i < _lookupTableSize; ++i) {
+		if (_lookupTable[i] == c)
+			return i * 28;
+	}
+	return 0;
+}
+
+void ChineseTwoByteFontLoK::processColorMap() {
+	_border = (_colorMap[0] == 12);
+	uint8 cs = _colorMap[1];
+
+	if (_colorMap[1] == 9)
+		cs = 83;
+	else if (_colorMap[1] == 5)
+		cs = 207;
+	else if (_colorMap[1] == 2)
+		cs = 74;
+	else if (_colorMap[1] == 15)
+		cs = 161;
+	else if (_colorMap[1] > 15 && _colorMap[1] < 248)
+		cs += 1;
+
+	_textColor[0] = _colorMap[1] | (cs << 8);
+	_textColor[0] = TO_LE_16(_textColor[0]);
+	_textColor[1] = _colorMap[0] | (_colorMap[0] << 8);
 }
 
 } // End of namespace Kyra

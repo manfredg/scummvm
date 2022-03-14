@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,7 +55,12 @@ void SceneScriptPS09::InitializeScene() {
 	}
 	if (Game_Flag_Query(kFlagCrazylegsArrested)) { // cut feature? it is impossible to arrest crazylegs
 		Actor_Put_In_Set(kActorCrazylegs, kSetPS09);
+#if BLADERUNNER_ORIGINAL_BUGS
 		Actor_Set_At_XYZ(kActorCrazylegs, -290.0f, 0.33f, -235.0f, 207);
+#else
+		// Correct orientation for CrazyLegs
+		Actor_Set_At_XYZ(kActorCrazylegs, -290.0f, 0.33f, -235.0f, 583);
+#endif
 	}
 }
 
@@ -123,6 +127,7 @@ bool SceneScriptPS09::ClickedOnActor(int actorId) {
 				return true;
 			}
 
+			// TODO Missing kClueGrigorianInterviewB2 for this?
 			if (Game_Flag_Query(kFlagPS09GrigorianDialogue)
 			 && Game_Flag_Query(kFlagPS09GrigorianTalk1)
 			 && (Actor_Clue_Query(kActorMcCoy, kClueGrigorianInterviewA)
@@ -199,8 +204,14 @@ bool SceneScriptPS09::ClickedOnActor(int actorId) {
 				Actor_Face_Actor(kActorMcCoy, kActorGrigorian, true);
 				Actor_Says(kActorMcCoy, 4435, 14);
 				Actor_Says(kActorGrigorian, 430, 16);
+#if !BLADERUNNER_ORIGINAL_BUGS
+				Actor_Face_Heading(kActorGrigorian, 512, true);
+#endif
 				Actor_Says(kActorCrazylegs, 1130, kAnimationModeTalk);
 				Game_Flag_Set(kFlagPS09CrazylegsGrigorianTalk);
+#if !BLADERUNNER_ORIGINAL_BUGS
+				Actor_Face_Actor(kActorCrazylegs, kActorMcCoy, true);
+#endif
 				return true;
 			}
 
@@ -231,7 +242,7 @@ bool SceneScriptPS09::ClickedOnExit(int exitId) {
 	if (exitId == 0) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -559.15f, 0.0f, -85.06f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Set_Enter(kSetPS02, kScenePS02);
 			Game_Flag_Reset(kFlagPS09Entered);
 		}
@@ -309,7 +320,7 @@ void SceneScriptPS09::dialogueWithGrigorian() {
 			DM_Add_To_List_Never_Repeat_Once_Selected(200, -1, 3, 6); // VOIGT-KAMPFF
 		}
 	}
-	if (Actor_Clue_Query(kActorMcCoy, kClueGrigoriansNote) // cut feature? it is impossible to obtain this clue
+	if (Actor_Clue_Query(kActorMcCoy, kClueGrigoriansNote) // Restored feature - Original: it is impossible to obtain this clue
 	 && (Actor_Clue_Query(kActorMcCoy, kClueGrigorianInterviewA)
 	  || Actor_Clue_Query(kActorMcCoy, kClueGrigorianInterviewB1)
 	  || Actor_Clue_Query(kActorMcCoy, kClueGrigorianInterviewB2)
@@ -449,7 +460,12 @@ void SceneScriptPS09::dialogueWithGrigorian() {
 			Actor_Face_Actor(kActorCrazylegs, kActorGrigorian, true);
 			Actor_Says(kActorCrazylegs, 1010, kAnimationModeTalk);
 			Actor_Face_Actor(kActorGrigorian, kActorCrazylegs, true);
+#if BLADERUNNER_ORIGINAL_BUGS
 			Actor_Says(kActorGrigorian, 310, 16);
+#else
+			// Grigorian is interrupted here
+			Actor_Says_With_Pause(kActorGrigorian, 310, 0.0f, 16);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 			Actor_Face_Actor(kActorMcCoy, kActorCrazylegs, true);
 			Actor_Says(kActorMcCoy, 4345, 14);
 			Actor_Face_Actor(kActorCrazylegs, kActorMcCoy, true);
@@ -459,6 +475,7 @@ void SceneScriptPS09::dialogueWithGrigorian() {
 			Actor_Says(kActorMcCoy, 4355, 19);
 			Actor_Says(kActorCrazylegs, 1040, kAnimationModeTalk);
 			Actor_Says(kActorMcCoy, 4360, 16);
+			// NOTE McCoy's 4365 cue does NOT exist in the game files
 			Actor_Says(kActorMcCoy, 4365, 14);
 			Actor_Says(kActorCrazylegs, 1050, kAnimationModeTalk);
 			Actor_Says(kActorCrazylegs, 1060, kAnimationModeTalk);
@@ -492,6 +509,7 @@ void SceneScriptPS09::dialogueWithGrigorian() {
 				//       in order to show up in the ESP version
 				Actor_Says_With_Pause(kActorGrigorian, 340, 0.0f, 14);
 			}
+			Actor_Clue_Acquire(kActorMcCoy, kClueGrigoriansResources, true, kActorGrigorian);
 #endif // BLADERUNNER_ORIGINAL_BUGS
 			Actor_Says(kActorMcCoy, 4375, 18);
 		}
@@ -505,9 +523,26 @@ void SceneScriptPS09::dialogueWithGrigorian() {
 		Actor_Says(kActorMcCoy, 4385, 19);
 		Actor_Says(kActorGrigorian, 370, 13);
 		Actor_Says(kActorMcCoy, 4390, 19);
-		Actor_Says(kActorMcCoy, 4395, 18);
+#if !BLADERUNNER_ORIGINAL_BUGS
+		// McCoy needs to have the Registration Clues (1 or 3)
+		// and probably have talked at least once with CrazyLegs (TODO?)
+		// for this next quote to make sense
+		// If arrested, Crazylegs will be right there, but he won't say anything relevant, so this won't make much sense.
+		// So Crazylegs:
+		// - should not be arrested yet
+		// - nor talked to about (Grigorian's) Note already
+		if (!Game_Flag_Query(kFlagCrazylegsArrested)
+		    && (Actor_Clue_Query(kActorMcCoy, kClueCarRegistration1)
+		        || Actor_Clue_Query(kActorMcCoy, kClueCarRegistration3))
+		) {
+			Actor_Says(kActorMcCoy, 4395, 18);    // How was Crazylegs supposed to help them?
+			Actor_Says(kActorGrigorian, 380, 14);
+		}
+#else
+		Actor_Says(kActorMcCoy, 4395, 18);    // How was Crazylegs supposed to help them?
 		Actor_Says(kActorGrigorian, 380, 14);
-		Actor_Says(kActorGrigorian, 390, 12);
+		Actor_Says(kActorGrigorian, 390, 12); // boop placeholder
+#endif // BLADERUNNER_ORIGINAL_BUGS
 		Actor_Modify_Friendliness_To_Other(kActorGrigorian, kActorMcCoy, -5);
 		break;
 
@@ -518,7 +553,12 @@ void SceneScriptPS09::dialogueWithGrigorian() {
 		Actor_Says(kActorMcCoy, 4265, 14);
 		Actor_Says(kActorGrigorian, 400, 13);
 		Actor_Says(kActorMcCoy, 4400, 13);
+#if BLADERUNNER_ORIGINAL_BUGS
 		Actor_Says(kActorGrigorian, 410, 16);
+#else
+		// Grigorian is interrupted here, so pause has to be 0.0f
+		Actor_Says_With_Pause(kActorGrigorian, 410, 0.0f, 16);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 		Actor_Says(kActorMcCoy, 4405, 14);
 		Actor_Says(kActorMcCoy, 4410, 15);
 		Voight_Kampff_Activate(kActorGrigorian, 20);

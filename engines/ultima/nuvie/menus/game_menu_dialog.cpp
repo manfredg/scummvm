@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -85,7 +84,7 @@ bool GameMenuDialog::init() {
 	button_index[++last_index] = cheats_button;
 	continue_button = new GUI_Button(this, buttonX, buttonY += row_h, width, height, "Back to Game", gui->get_font(), BUTTON_TEXTALIGN_CENTER, 0, this, 0);
 	AddWidget(continue_button);
-	button_index[++last_index] = cheats_button;
+	button_index[++last_index] = continue_button;
 	quit_button = new GUI_Button(this, buttonX, buttonY += row_h, width, height, "Quit", gui->get_font(), BUTTON_TEXTALIGN_CENTER, 0, this, 0);
 	AddWidget(quit_button);
 	button_index[++last_index] = quit_button;
@@ -146,8 +145,10 @@ GUI_status GameMenuDialog::callback(uint16 msg, GUI_CallBack *caller, void *data
 	if (caller == this) {
 		close_dialog();
 	} else if (caller == save_button) {
+		close_dialog();
 		g_engine->saveGameDialog();
 	} else if (caller == load_button) {
+		close_dialog();
 		g_engine->loadGameDialog();
 	} else if (caller == video_button) {
 		GUI_Widget *video_dialog;

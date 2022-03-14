@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -145,7 +144,7 @@ void Codec47Decoder::makeTablesInterpolation(int param) {
 	int32 b1, b2;
 	int32 value_table47_1_2, value_table47_1_1, value_table47_2_2, value_table47_2_1;
 	int32 tableSmallBig[64], tmp, s;
-	const int8 *table47_1 = 0, *table47_2 = 0;
+	const int8 *table47_1 = nullptr, *table47_2 = nullptr;
 	int32 *ptr_small_big;
 	byte *ptr;
 	int i, x, y;
@@ -345,19 +344,19 @@ void Codec47Decoder::makeTables47(int width) {
 #endif
 
 extern "C" void ARM_Smush_decode2(      byte  *dst,
-                                  const byte  *src,
-                                        int    width,
-                                        int    height,
-                                  const byte  *param_ptr,
-                                        int16 *_table,
-                                        byte  *_tableBig,
-                                        int32  offset1,
-                                        int32  offset2,
-                                        byte  *_tableSmall);
+								  const byte  *src,
+										int    width,
+										int    height,
+								  const byte  *param_ptr,
+										int16 *_table,
+										byte  *_tableBig,
+										int32  offset1,
+										int32  offset2,
+										byte  *_tableSmall);
 
 #define decode2(SRC,DST,WIDTH,HEIGHT,PARAM) \
  ARM_Smush_decode2(SRC,DST,WIDTH,HEIGHT,PARAM,_table,_tableBig, \
-                   _offset1,_offset2,_tableSmall)
+				   _offset1,_offset2,_tableSmall)
 
 #else
 void Codec47Decoder::level3(byte *d_dst) {
@@ -529,7 +528,7 @@ Codec47Decoder::Codec47Decoder(int width, int height) {
 	_height = height;
 	_tableBig = (byte *)malloc(256 * 388);
 	_tableSmall = (byte *)malloc(256 * 128);
-	if ((_tableBig != NULL) && (_tableSmall != NULL)) {
+	if ((_tableBig != nullptr) && (_tableSmall != nullptr)) {
 		makeTablesInterpolation(4);
 		makeTablesInterpolation(8);
 	}
@@ -545,24 +544,24 @@ Codec47Decoder::Codec47Decoder(int width, int height) {
 Codec47Decoder::~Codec47Decoder() {
 	if (_tableBig) {
 		free(_tableBig);
-		_tableBig = NULL;
+		_tableBig = nullptr;
 	}
 	if (_tableSmall) {
 		free(_tableSmall);
-		_tableSmall = NULL;
+		_tableSmall = nullptr;
 	}
 	_lastTableWidth = -1;
 	if (_deltaBuf) {
 		free(_deltaBuf);
 		_deltaSize = 0;
-		_deltaBuf = NULL;
-		_deltaBufs[0] = NULL;
-		_deltaBufs[1] = NULL;
+		_deltaBuf = nullptr;
+		_deltaBufs[0] = nullptr;
+		_deltaBufs[1] = nullptr;
 	}
 }
 
 bool Codec47Decoder::decode(byte *dst, const byte *src) {
-	if ((_tableBig == NULL) || (_tableSmall == NULL) || (_deltaBuf == NULL))
+	if ((_tableBig == nullptr) || (_tableSmall == nullptr) || (_deltaBuf == nullptr))
 		return false;
 
 	_offset1 = _deltaBufs[1] - _curBuf;

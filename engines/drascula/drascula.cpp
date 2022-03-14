@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,37 +36,37 @@
 namespace Drascula {
 
 DrasculaEngine::DrasculaEngine(OSystem *syst, const DrasculaGameDescription *gameDesc) : Engine(syst), _gameDescription(gameDesc) {
-	_charMap = 0;
-	_itemLocations = 0;
-	_polX = 0;
-	_polY = 0;
-	_verbBarX = 0;
-	_x1d_menu = 0;
-	_y1d_menu = 0;
-	_frameX = 0;
-	_candleX = 0;
-	_candleY = 0;
-	_pianistX = 0;
-	_drunkX = 0;
-	_roomPreUpdates = 0;
-	_roomUpdates = 0;
-	_roomActions = 0;
-	_text = 0;
-	_textd = 0;
-	_textb = 0;
-	_textbj = 0;
-	_texte = 0;
-	_texti = 0;
-	_textl = 0;
-	_textp = 0;
-	_textt = 0;
-	_textvb = 0;
-	_textsys = 0;
-	_texthis = 0;
-	_textverbs = 0;
-	_textmisc = 0;
-	_textd1 = 0;
-	_talkSequences = 0;
+	_charMap = nullptr;
+	_itemLocations = nullptr;
+	_polX = nullptr;
+	_polY = nullptr;
+	_verbBarX = nullptr;
+	_x1d_menu = nullptr;
+	_y1d_menu = nullptr;
+	_frameX = nullptr;
+	_candleX = nullptr;
+	_candleY = nullptr;
+	_pianistX = nullptr;
+	_drunkX = nullptr;
+	_roomPreUpdates = nullptr;
+	_roomUpdates = nullptr;
+	_roomActions = nullptr;
+	_text = nullptr;
+	_textd = nullptr;
+	_textb = nullptr;
+	_textbj = nullptr;
+	_texte = nullptr;
+	_texti = nullptr;
+	_textl = nullptr;
+	_textp = nullptr;
+	_textt = nullptr;
+	_textvb = nullptr;
+	_textsys = nullptr;
+	_texthis = nullptr;
+	_textverbs = nullptr;
+	_textmisc = nullptr;
+	_textd1 = nullptr;
+	_talkSequences = nullptr;
 	_currentSaveSlot = 0;
 
 	term_int = 0;
@@ -150,17 +149,17 @@ DrasculaEngine::DrasculaEngine(OSystem *syst, const DrasculaGameDescription *gam
 	_rightMouseButton = 0;
 	*textName = 0;
 
-	crosshairCursor = 0;
-	mouseCursor = 0;
-	bgSurface = 0;
-	backSurface = 0;
-	cursorSurface = 0;
-	drawSurface3 = 0;
-	drawSurface2 = 0;
-	tableSurface = 0;
-	extraSurface = 0;
-	screenSurface = 0;
-	frontSurface = 0;
+	crosshairCursor = nullptr;
+	mouseCursor = nullptr;
+	bgSurface = nullptr;
+	backSurface = nullptr;
+	cursorSurface = nullptr;
+	drawSurface3 = nullptr;
+	drawSurface2 = nullptr;
+	tableSurface = nullptr;
+	extraSurface = nullptr;
+	screenSurface = nullptr;
+	frontSurface = nullptr;
 	previousMusic = 0;
 	roomMusic = 0;
 
@@ -175,7 +174,7 @@ DrasculaEngine::DrasculaEngine(OSystem *syst, const DrasculaGameDescription *gam
 
 	_keyBufferHead = _keyBufferTail = 0;
 
-	_roomHandlers = 0;
+	_roomHandlers = nullptr;
 }
 
 DrasculaEngine::~DrasculaEngine() {
@@ -219,7 +218,7 @@ DrasculaEngine::~DrasculaEngine() {
 
 bool DrasculaEngine::hasFeature(EngineFeature f) const {
 	return
-		(f == kSupportsRTL || f == kSupportsLoadingDuringRuntime || f == kSupportsSavingDuringRuntime);
+		(f == kSupportsReturnToLauncher || f == kSupportsLoadingDuringRuntime || f == kSupportsSavingDuringRuntime);
 }
 
 Common::Error DrasculaEngine::run() {
@@ -277,7 +276,10 @@ Common::Error DrasculaEngine::run() {
 		currentChapter++;
 	}
 
-	checkCD();
+	if (!existExtractedCDAudioFiles()
+	    && !isDataAndCDAudioReadFromSameCD()) {
+		warnMissingExtractedCDAudio();
+	}
 
 	allocMemory();
 
@@ -602,7 +604,7 @@ bool DrasculaEngine::runCurrentChapter() {
 
 		// Do not show the inventory screen in chapter 5, if the right mouse button is clicked
 		// while the plug (object 16) is held
-		// Fixes bug #2059621 - "DRASCULA: Plug bug"
+		// Fixes bug #3885 - "DRASCULA: Plug bug"
 		if (_rightMouseButton == 1 && !_menuScreen &&
 			!(currentChapter == 5 && pickedObject == 16)) {
 			_rightMouseButton = 0;
@@ -928,9 +930,11 @@ bool DrasculaEngine::loadDrasculaDat() {
 	in.open(filename.c_str());
 
 	if (!in.isOpen()) {
-		Common::String errorMessage = Common::String::format(_("Unable to locate the '%s' engine data file."), filename.c_str());
+		const char *msg = _s("Unable to locate the '%s' engine data file.");
+
+		Common::U32String errorMessage = Common::U32String::format(_(msg), filename.c_str());
 		GUIErrorMessage(errorMessage);
-		warning("%s", errorMessage.c_str());
+		warning(msg, filename.c_str());
 
 		return false;
 	}
@@ -942,9 +946,10 @@ bool DrasculaEngine::loadDrasculaDat() {
 	buf[8] = '\0';
 
 	if (strcmp(buf, "DRASCULA") != 0) {
-		Common::String errorMessage = Common::String::format(_("The '%s' engine data file is corrupt."), filename.c_str());
+		const char *msg = _s("The '%s' engine data file is corrupt.");
+		Common::U32String errorMessage = Common::U32String::format(_(msg), filename.c_str());
 		GUIErrorMessage(errorMessage);
-		warning("%s", errorMessage.c_str());
+		warning(msg, filename.c_str());
 
 		return false;
 	}
@@ -952,11 +957,10 @@ bool DrasculaEngine::loadDrasculaDat() {
 	ver = in.readByte();
 
 	if (ver != DRASCULA_DAT_VER) {
-		Common::String errorMessage = Common::String::format(
-			_("Incorrect version of the '%s' engine data file found. Expected %d.%d but got %d.%d."),
-			filename.c_str(), DRASCULA_DAT_VER, 0, ver, 0);
+		const char *msg = _s("Incorrect version of the '%s' engine data file found. Expected %d.%d but got %d.%d.");
+		Common::U32String errorMessage = Common::U32String::format(_(msg), filename.c_str(), DRASCULA_DAT_VER, 0, ver, 0);
 		GUIErrorMessage(errorMessage);
-		warning("%s", errorMessage.c_str());
+		warning(msg, filename.c_str(), DRASCULA_DAT_VER, 0, ver, 0);
 
 		return false;
 	}
@@ -1098,7 +1102,7 @@ char **DrasculaEngine::loadTexts(Common::File &in) {
 	int numTexts = in.readUint16BE();
 	char **res = (char **)malloc(sizeof(char *) * numTexts);
 	int entryLen;
-	char *pos = 0;
+	char *pos = nullptr;
 	int len;
 
 	for (int lang = 0; lang < _numLangs; lang++) {

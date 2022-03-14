@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -96,7 +95,7 @@ bool SceneScriptUG14::ClickedOnExit(int exitId) {
 
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -278.0f, 12.97f, -152.0f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagUG14toUG19);
 			Set_Enter(kSetUG19, kSceneUG19);
 		}
@@ -116,7 +115,7 @@ bool SceneScriptUG14::ClickedOnExit(int exitId) {
 
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -50.0f, 129.0f, -814.0f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagUG14toUG12);
 			Set_Enter(kSetCT08_CT51_UG12, kSceneUG12);
 		}
@@ -140,7 +139,7 @@ bool SceneScriptUG14::ClickedOnExit(int exitId) {
 			Footstep_Sound_Override_Off();
 			Loop_Actor_Walk_To_XYZ(kActorMcCoy, 233.0f, 186.04f, -32.0f, 0, false, false, false);
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagUG14toUG10);
 			Set_Enter(kSetUG10, kSceneUG10);
 		}

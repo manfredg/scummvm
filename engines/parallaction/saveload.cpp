@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -126,8 +125,8 @@ void SaveLoad_ns::doLoadGame(uint16 slot) {
 
 void SaveLoad_ns::doSaveGame(uint16 slot, const char* name) {
 	Common::OutSaveFile *f = getOutSaveFile(slot);
-	if (f == 0) {
-		Common::String buf = Common::String::format(_("Can't save game in slot %i\n\n"), slot);
+	if (f == nullptr) {
+		Common::U32String buf = Common::U32String::format(_("Can't save game in slot %i\n\n"), slot);
 		GUI::MessageDialog dialog(buf);
 		dialog.runModal();
 		return;
@@ -176,7 +175,7 @@ void SaveLoad_ns::doSaveGame(uint16 slot, const char* name) {
 	delete f;
 }
 
-int SaveLoad::selectSaveFile(Common::String &selectedName, bool saveMode, const Common::String &caption, const Common::String &button) {
+int SaveLoad::selectSaveFile(Common::String &selectedName, bool saveMode, const Common::U32String &caption, const Common::U32String &button) {
 	GUI::SaveLoadChooser slc(caption, button, saveMode);
 
 	selectedName.clear();
@@ -270,7 +269,7 @@ static bool askRenameOldSavefiles() {
 		"The old names are no longer supported, so you will not be able to load your games if you don't convert them.\n\n"
 		"Press OK to convert them now, otherwise you will be asked next time.\n"), _("OK"), _("Cancel"));
 
-	return (dialog0.runModal() != 0);
+	return (dialog0.runModal() == GUI::kMessageOK);
 }
 
 void SaveLoad_ns::renameOldSavefiles() {
@@ -311,7 +310,7 @@ void SaveLoad_ns::renameOldSavefiles() {
 		return;
 	}
 
-	Common::String msg;
+	Common::U32String msg;
 	if (success == numOldSaves) {
 		msg = _("ScummVM successfully converted all your saved games.");
 	} else {

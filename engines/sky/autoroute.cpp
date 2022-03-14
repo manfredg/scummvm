@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -250,7 +249,7 @@ uint16 AutoRoute::autoRoute(Compact *cpt) {
 	if (_routeGrid[(destY + 1) * ROUTE_GRID_WIDTH + destX + 1]) {
 		//if ((cpt == &Sky::SkyCompact::foster) && (cptScreen == 12) && (destX == 2) && (destY == 14)) {
 		if (_skyCompact->cptIsId(cpt, CPT_FOSTER) && (cptScreen == 12) && (destX == 2) && (destY == 14)) {
-			/* workaround for Scriptbug #1043047
+			/* workaround for Script bug #1804
 			   In screen 12 (the pipe factory) Joey can block Foster's target
 			   coordinates (2/14). This is normally not too tragic, but in the
 			   scene when foster gets thrown out by Lamb (first time you enter

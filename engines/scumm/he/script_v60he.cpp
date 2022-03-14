@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,13 +64,13 @@ static int virtScreenSavePack(byte *dst, byte *src, int len, int unk);
 void ScummEngine_v60he::setupOpcodes() {
 	ScummEngine_v6::setupOpcodes();
 
-	_opcodes[0x63].setProc(0, 0);
-	_opcodes[0x64].setProc(0, 0);
+	_opcodes[0x63].setProc(nullptr, nullptr);
+	_opcodes[0x64].setProc(nullptr, nullptr);
 	OPCODE(0x70, o60_setState);
-	_opcodes[0x9a].setProc(0, 0);
+	_opcodes[0x9a].setProc(nullptr, nullptr);
 	OPCODE(0x9c, o60_roomOps);
 	OPCODE(0x9d, o60_actorOps);
-	_opcodes[0xac].setProc(0, 0);
+	_opcodes[0xac].setProc(nullptr, nullptr);
 	OPCODE(0xbd, o6_stopObjectCode);
 	OPCODE(0xc8, o60_kernelGetFunctions);
 	OPCODE(0xc9, o60_kernelSetFunctions);
@@ -86,8 +85,8 @@ void ScummEngine_v60he::setupOpcodes() {
 	OPCODE(0xe9, o60_seekFilePos);
 	OPCODE(0xea, o60_redimArray);
 	OPCODE(0xeb, o60_readFilePos);
-	_opcodes[0xec].setProc(0, 0);
-	_opcodes[0xed].setProc(0, 0);
+	_opcodes[0xec].setProc(nullptr, nullptr);
+	_opcodes[0xed].setProc(nullptr, nullptr);
 }
 
 Common::String ScummEngine_v60he::convertFilePath(const byte *src) {
@@ -238,7 +237,7 @@ void ScummEngine_v60he::renameSaveFile(const byte *from, const byte *to) {
 
 Common::WriteStream *ScummEngine_v60he::openSaveFileForAppending(const byte *fileName) {
 	Common::SeekableReadStream *initialFile = openSaveFileForReading(fileName);
-	byte *initialData = 0;
+	byte *initialData = nullptr;
 	uint32 initialDataSize = 0;
 
 	if (initialFile) {
@@ -284,7 +283,7 @@ Common::SeekableReadStream *ScummEngine_v60he::openSaveFileForReading(int slot, 
 			return stream;
 		}
 
-		return 0;
+		return nullptr;
 	}
 
 	return ScummEngine::openSaveFileForReading(slot, compat, fileName);
@@ -303,6 +302,17 @@ Common::WriteStream *ScummEngine_v60he::openSaveFileForWriting(int slot, bool co
 void ScummEngine_v60he::o60_setState() {
 	int state = pop();
 	int obj = pop();
+
+	// WORKAROUND for bug #4776, knocker floats while door is open
+	// This hides the knocker when the closed door object is set to hide.
+	if (_game.id == GID_FREDDI && _currentRoom == 7) {
+		if (_game.heversion == 71 && obj == 35 && state == 0) {
+			putState(26, 0);
+		}
+		if (_game.heversion == 73 && obj == 52 && state == 0) {
+			putState(43, 0);
+		}
+	}
 
 	if (state & 0x8000) {
 		state &= 0x7FFF;
@@ -561,7 +571,7 @@ void ScummEngine_v60he::o60_actorOps() {
 		a->_talkColor = pop();
 		break;
 	case 88:		// SO_ACTOR_NAME
-		loadPtrToResource(rtActorName, a->_number, NULL);
+		loadPtrToResource(rtActorName, a->_number, nullptr);
 		break;
 	case 89:		// SO_INIT_ANIMATION
 		a->_initFrame = pop();
@@ -679,7 +689,7 @@ void ScummEngine_v60he::virtScreenLoad(int resIdx, int x1, int y1, int x2, int y
 		if (x2 >= x1) {
 			uint32 w = x2 - x1 + 1;
 			while (w--) {
-				uint8 decByte = virtScreenLoadUnpack(&ctx, 0);
+				uint8 decByte = virtScreenLoadUnpack(&ctx, nullptr);
 				*p1++ = decByte;
 				*p2++ = decByte;
 			}
@@ -690,7 +700,7 @@ void ScummEngine_v60he::virtScreenLoad(int resIdx, int x1, int y1, int x2, int y
 
 uint8 virtScreenLoadUnpack(vsUnpackCtx *ctx, byte *data) {
 	uint8 decByte;
-	if (data != 0) {
+	if (data != nullptr) {
 		ctx->type = 0;
 		ctx->ptr = data;
 		decByte = 0;
@@ -732,7 +742,7 @@ void ScummEngine_v60he::o60_kernelGetFunctions() {
 		// Used to store images when decorating cake in
 		// Fatty Bear's Birthday Surprise
 		writeVar(0, 0);
-		data = defineArray(0, kByteArray, 0, virtScreenSave(0, args[1], args[2], args[3], args[4]));
+		data = defineArray(0, kByteArray, 0, virtScreenSave(nullptr, args[1], args[2], args[3], args[4]));
 		virtScreenSave(data, args[1], args[2], args[3], args[4]);
 		push(readVar(0));
 		break;
@@ -749,7 +759,7 @@ int ScummEngine_v60he::virtScreenSave(byte *dst, int x1, int y1, int x2, int y2)
 		uint8 *p = vs.getBackPixels(x1, j - vs.topline);
 
 		int size = virtScreenSavePack(dst, p, x2 - x1 + 1, 0);
-		if (dst != 0) {
+		if (dst != nullptr) {
 			dst += size;
 		}
 		packedSize += size;
@@ -857,7 +867,7 @@ void ScummEngine_v60he::o60_openFile() {
 	mode = pop();
 	slot = -1;
 	for (i = 0; i < 17; i++) {
-		if (_hInFileTable[i] == 0 && _hOutFileTable[i] == 0) {
+		if (_hInFileTable[i] == nullptr && _hOutFileTable[i] == nullptr) {
 			slot = i;
 			break;
 		}
@@ -875,7 +885,7 @@ void ScummEngine_v60he::o60_openFile() {
 			error("o60_openFile(): wrong open file mode %d", mode);
 		}
 
-		if (_hInFileTable[slot] == 0 && _hOutFileTable[slot] == 0)
+		if (_hInFileTable[slot] == nullptr && _hOutFileTable[slot] == nullptr)
 			slot = -1;
 
 	}
@@ -888,11 +898,11 @@ void ScummEngine_v60he::o60_closeFile() {
 		if (_hOutFileTable[slot]) {
 			_hOutFileTable[slot]->finalize();
 			delete _hOutFileTable[slot];
-			_hOutFileTable[slot] = 0;
+			_hOutFileTable[slot] = nullptr;
 		}
 
 		delete _hInFileTable[slot];
-		_hInFileTable[slot] = 0;
+		_hInFileTable[slot] = nullptr;
 	}
 }
 

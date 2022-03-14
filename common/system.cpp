@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,9 +49,7 @@ OSystem::OSystem() {
 #if defined(USE_UPDATES)
 	_updateManager = nullptr;
 #endif
-#if defined(USE_TTS)
 	_textToSpeechManager = nullptr;
-#endif
 #if defined(USE_SYSDIALOGS)
 	_dialogManager = nullptr;
 #endif
@@ -80,10 +77,8 @@ OSystem::~OSystem() {
 	_updateManager = nullptr;
 #endif
 
-#if defined(USE_TTS)
 	delete _textToSpeechManager;
-	_textToSpeechManager = 0;
-#endif
+	_textToSpeechManager = nullptr;
 
 #if defined(USE_SYSDIALOGS)
 	delete _dialogManager;
@@ -106,12 +101,8 @@ void OSystem::initBackend() {
 	if (!getTimerManager())
 		error("Backend failed to instantiate timer manager");
 
-	// TODO: We currently don't check _savefileManager, because at least
-	// on the Nintendo DS, it is possible that none is set. That should
-	// probably be treated as "saving is not possible". Or else the NDS
-	// port needs to be changed to always set a _savefileManager
-// 	if (!_savefileManager)
-// 		error("Backend failed to instantiate savefile manager");
+	if (!_savefileManager)
+		error("Backend failed to instantiate savefile manager");
 
 	// TODO: We currently don't check _fsFactory because not all ports
 	// set it.

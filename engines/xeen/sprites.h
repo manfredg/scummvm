@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,7 +53,6 @@ private:
 	Common::Array<IndexEntry> _index;
 	size_t _filesize;
 	byte *_data;
-	int _scaledWidth, _scaledHeight;
 	Common::String _filename;
 	static int _clippedBottom;
 
@@ -74,10 +72,16 @@ private:
 	 */
 	void draw(int windowNum, int frame, const Common::Point &destPos,
 		const Common::Rect &bounds, uint flags = 0, int scale = 0);
+
+	/**
+	 * Deep copy assuming that the current instance is clean
+	 */
+	void copy(const SpriteResource &src);
 public:
 	SpriteResource();
 	SpriteResource(const Common::String &filename);
 	SpriteResource(const Common::String &filename, int ccMode);
+	SpriteResource(const SpriteResource &src);
 
 	virtual ~SpriteResource();
 
@@ -180,12 +184,21 @@ class SpriteDrawer {
 private:
 	byte *_data;
 	size_t _filesize;
+protected:
+	byte *_destTop, *_destBottom;
+	byte *_destLeft, *_destRight;
+	int _pitch;
 private:
 	/**
 	 * Scale a co-ordinate value based on the passed scaling mask
 	 */
 	static uint getScaledVal(int xy, uint16 &scaleMask);
 protected:
+	/**
+	 * Roll carry right opcode emulation
+	 */
+	void rcr(uint16 &val, bool &cf);
+
 	/**
 	 * Output a pixel
 	 */
@@ -221,6 +234,26 @@ public:
 	 * Constructor
 	 */
 	SpriteDrawer1(byte *data, size_t filesize, int index);
+};
+
+/**
+ * Scrambles up the sprite by drawing many of the pixels randomly
+ * at a horizontal or vertical offset
+ */
+class SpriteDrawer2 : public SpriteDrawer {
+private:
+	uint16 _mask1, _mask2;
+	uint16 _random1, _random2;
+private:
+	/**
+	 * Output a pixel
+	 */
+	void drawPixel(byte *dest, byte pixel) override;
+public:
+	/**
+	 * Constructor
+	 */
+	SpriteDrawer2(byte *data, size_t filesize, int index);
 };
 
 /**
@@ -264,11 +297,6 @@ public:
 class SpriteDrawer5 : public SpriteDrawer {
 private:
 	uint16 _threshold, _random1, _random2;
-private:
-	/**
-	 * Roll carry right opcode emulation
-	 */
-	void rcr(uint16 &val, bool &cf);
 protected:
 	/**
 	 * Output a pixel

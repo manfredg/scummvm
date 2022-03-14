@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,7 +54,7 @@ static void transformToRows(byte *img, uint16 width, uint16 height) {
  *  Constructor for loading sprites from a raw data buffer, one byte per pixel.
  */
 Sprite::Sprite(uint16 width, uint16 height, byte *raw_data, int x, int y, bool columnwise)
-    : _ownsData(true), _data(raw_data), _mirror(false) {
+	: _ownsData(true), _data(raw_data), _mirror(false) {
 
 	 _width = width;
 	 _height = height;
@@ -78,7 +77,7 @@ Sprite::Sprite(uint16 width, uint16 height, byte *raw_data, int x, int y, bool c
  *  pixel.
  */
 Sprite::Sprite(const byte *sprite_data, uint16 length, int x, int y, bool columnwise)
-    : _ownsData(false), _data(NULL), _mirror(false) {
+	: _ownsData(false), _data(nullptr), _mirror(false) {
 
 	Common::MemoryReadStream reader(sprite_data, length);
 	_width = reader.readSint16LE();
@@ -250,7 +249,7 @@ Common::Rect Sprite::getRect(const Displacement &displacement) const {
 }
 
 Text::Text(const Common::String &str, const Font *font, byte fontColor,
-                int x, int y, uint spacing) {
+				int x, int y, uint spacing) {
 	_x = x;
 	_y = y;
 	_delay = 0;

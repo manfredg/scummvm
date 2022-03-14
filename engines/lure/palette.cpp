@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -195,6 +194,18 @@ PaletteCollection::PaletteCollection(uint16 resourceId) {
 		_palettes = (Palette **) Memory::alloc(_numPalettes * sizeof(Palette *));
 		for (uint8 paletteCtr = 0; paletteCtr < _numPalettes; ++paletteCtr, data += palSize)
 			_palettes[paletteCtr] = new Palette(SUB_PALETTE_SIZE, data, RGB64);
+
+		// WORKAROUND Intro animation 1 VGA palette has bad entries,
+		// causing the text to be all white instead of shades of grey.
+		// Updating it here with the color values of the other intro
+		// text screens.
+		if (resourceId == 0x32 && _palettes[0]->getEntry(0x22) == 0x00FFFFFF) {
+			_palettes[0]->setEntry(0x22, 0x00E3E3E3); // 38 38 38
+			_palettes[0]->setEntry(0x24, 0x00C3C3C3); // 30 30 30
+			_palettes[0]->setEntry(0x26, 0x00929292); // 24 24 24
+			_palettes[0]->setEntry(0x27, 0x00717171); // 1C 1C 1C
+			_palettes[0]->setEntry(0x28, 0x00000000); // 00 00 00
+		}
 	}
 
 	delete resource;

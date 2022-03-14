@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,11 +59,11 @@ void CCamera::deinit() {
 	_newOrientation = nullptr;
 }
 
-bool CCamera::isLocked() { 
+bool CCamera::isLocked() {
 	return _motion->isLocked();
 }
 
-bool CCamera::isNotInLockingProcess() { 
+bool CCamera::isNotInLockingProcess() {
 	return !_isInLockingProcess;
 }
 
@@ -592,7 +591,7 @@ bool CCamera::lockMarker2(CViewport *viewport, const FVector &secondStarPosition
 	FVector newPos = m13._row1;
 	FMatrix oldOr = _viewport.getOrientation();
 
-	// WORKAROUND: set old position to new position (1st argument), this prevents 
+	// WORKAROUND: set old position to new position (1st argument), this prevents
 	// locking issues when locking the 2nd star. Fixes #9961.
 	_motion->transitionBetweenPosOrients(newPos, newPos, oldOr, newOr);
 	CCallbackHandler *callback = new CCallbackHandler(this, secondStarPosition);
@@ -611,7 +610,7 @@ bool CCamera::lockMarker3(CViewport *viewport, const FVector &thirdStarPosition)
 	FVector newPos = viewport->_position;
 	//FVector oldPos = _viewport._position;
 
-	// WORKAROUND: set old position to new position (1st argument), this prevents 
+	// WORKAROUND: set old position to new position (1st argument), this prevents
 	// locking issues when locking the 3rd star. Fixes #9961.
 	_motion->transitionBetweenPosOrients(newPos, newPos, oldOr, newOr);
 

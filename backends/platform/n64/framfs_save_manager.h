@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,9 +33,9 @@ class InFRAMSave : public Common::InSaveFile {
 private:
 	FRAMFILE *fd;
 
-	uint32 read(void *buf, uint32 cnt);
-	bool skip(uint32 offset);
-	bool seek(int32 offs, int whence);
+	uint32 read(void *buf, uint32 cnt) override;
+	bool skip(uint32 offset) override;
+	bool seek(int64 offs, int whence) override;
 
 public:
 	InFRAMSave() : fd(NULL) { }
@@ -46,16 +45,16 @@ public:
 			framfs_close(fd);
 	}
 
-	bool eos() const {
+	bool eos() const override {
 		return framfs_eof(fd);
 	}
-	void clearErr() {
+	void clearErr() override {
 		framfs_clearerr(fd);
 	}
-	int32 pos() const {
+	int64 pos() const override {
 		return framfs_tell(fd);
 	}
-	int32 size() const {
+	int64 size() const override {
 		return fd->size;
 	}
 
@@ -71,7 +70,7 @@ private:
 
 public:
 	uint32 write(const void *buf, uint32 cnt);
-	virtual int32 pos() const {
+	virtual int64 pos() const {
 		return framfs_tell(fd);
 	}
 
@@ -102,13 +101,13 @@ public:
 
 class FRAMSaveManager : public Common::SaveFileManager {
 public:
-	virtual void updateSavefilesList(Common::StringArray &lockedFiles) {
+	void updateSavefilesList(Common::StringArray &lockedFiles) override {
 		// this method is used to lock saves while cloud syncing
 		// as there is no network on N64, this method wouldn't be used
 		// thus it's not implemtented
 	}
 
-	virtual Common::InSaveFile *openRawFile(const Common::String &filename) {
+	Common::InSaveFile *openRawFile(const Common::String &filename) override {
 		InFRAMSave *s = new InFRAMSave();
 		if (s->readSaveGame(filename.c_str())) {
 			return s;
@@ -118,7 +117,7 @@ public:
 		}
 	}
 
-	virtual Common::OutSaveFile *openForSaving(const Common::String &filename, bool compress = true) {
+	Common::OutSaveFile *openForSaving(const Common::String &filename, bool compress = true) override {
 		OutFRAMSave *s = new OutFRAMSave(filename.c_str());
 		if (!s->err()) {
 			return new Common::OutSaveFile(compress ? Common::wrapCompressedWriteStream(s) : s);
@@ -128,7 +127,7 @@ public:
 		}
 	}
 
-	virtual Common::InSaveFile *openForLoading(const Common::String &filename) {
+	Common::InSaveFile *openForLoading(const Common::String &filename) override {
 		InFRAMSave *s = new InFRAMSave();
 		if (s->readSaveGame(filename.c_str())) {
 			return Common::wrapCompressedReadStream(s);
@@ -138,11 +137,15 @@ public:
 		}
 	}
 
-	virtual bool removeSavefile(const Common::String &filename) {
+	bool removeSavefile(const Common::String &filename) override {
 		return ::fram_deleteSaveGame(filename.c_str());
 	}
 
-	virtual Common::StringArray listSavefiles(const Common::String &pattern);
+	Common::StringArray listSavefiles(const Common::String &pattern) override;
+
+	bool exists(const Common::String &filename) override {
+		return InFRAMSave().readSaveGame(filename.c_str());
+	}
 };
 
 

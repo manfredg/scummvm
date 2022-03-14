@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,23 +29,17 @@
 
 namespace GUI {
 
-enum {
-	kPopUpItemSelectedCmd	= 'POPs'
-};
-
 /**
  * Popup or dropdown widget which, when clicked, "pop up" a list of items and
  * lets the user pick on of them.
  *
- * Implementation wise, when the user selects an item, then a kPopUpItemSelectedCmd
+ * Implementation wise, when the user selects an item, then the specified command
  * is broadcast, with data being equal to the tag value of the selected entry.
  */
 class PopUpWidget : public Widget, public CommandSender {
-	typedef Common::String String;
-
 	struct Entry {
-		String	name;
-		uint32	tag;
+		Common::U32String	name;
+		uint32		tag;
 	};
 	typedef Common::Array<Entry> EntryList;
 protected:
@@ -55,15 +48,17 @@ protected:
 
 	int				_leftPadding;
 	int				_rightPadding;
+	uint32			_cmd;
 
 public:
-	PopUpWidget(GuiObject *boss, const String &name, const char *tooltip = nullptr);
-	PopUpWidget(GuiObject *boss, int x, int y, int w, int h, const char *tooltip = nullptr);
+	PopUpWidget(GuiObject *boss, const Common::String &name, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
+	PopUpWidget(GuiObject *boss, int x, int y, int w, int h, const Common::U32String &tooltip = Common::U32String(), uint32 cmd = 0);
 
 	void handleMouseDown(int x, int y, int button, int clickCount) override;
 	void handleMouseWheel(int x, int y, int direction) override;
 
-	void appendEntry(const String &entry, uint32 tag = (uint32)-1);
+	void appendEntry(const Common::U32String &entry, uint32 tag = (uint32)-1);
+	void appendEntry(const Common::String &entry, uint32 tag = (uint32)-1);
 	void clearEntries();
 	int numEntries() { return _entries.size(); }
 
@@ -106,7 +101,7 @@ protected:
 
 	int			_lastRead;
 
-	typedef Common::Array<Common::String> EntryList;
+	typedef Common::Array<Common::U32String> EntryList;
 	EntryList		_entries;
 
 public:
@@ -127,7 +122,7 @@ public:
 	void setLineHeight(int lineHeight);
 	void setWidth(uint16 width);
 
-	void appendEntry(const Common::String &entry);
+	void appendEntry(const Common::U32String &entry);
 	void clearEntries();
 	void setSelection(int item);
 
@@ -139,7 +134,7 @@ protected:
 
 	void moveUp();
 	void moveDown();
-	void read(Common::String);
+	void read(const Common::U32String &str);
 };
 
 } // End of namespace GUI

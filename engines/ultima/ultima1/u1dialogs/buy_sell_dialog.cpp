@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,13 +41,13 @@ BuySellDialog::BuySellDialog(Ultima1Game *game, const Common::String &title) :
 	_bounds = Rect(31, 23, 287, 127);
 }
 
-bool BuySellDialog::ShowMsg(CShowMsg &msg) {
+bool BuySellDialog::ShowMsg(CShowMsg *msg) {
 	addInfoMsg(_game->_res->BUY_SELL, false);
 	getKeypress();
 	return true;
 }
 
-bool BuySellDialog::FrameMsg(CFrameMsg &msg) {
+bool BuySellDialog::FrameMsg(CFrameMsg *msg) {
 	if (_closeCounter > 0 && --_closeCounter == 0) {
 		_game->endOfTurn();
 		hide();
@@ -57,12 +56,12 @@ bool BuySellDialog::FrameMsg(CFrameMsg &msg) {
 	return true;
 }
 
-bool BuySellDialog::CharacterInputMsg(CCharacterInputMsg &msg) {
+bool BuySellDialog::CharacterInputMsg(CCharacterInputMsg *msg) {
 	switch (_mode) {
 	case SELECT:
-		if (msg._keyState.keycode == Common::KEYCODE_b)
+		if (msg->_keyState.keycode == Common::KEYCODE_b)
 			setMode(BUY);
-		else if (msg._keyState.keycode == Common::KEYCODE_s)
+		else if (msg->_keyState.keycode == Common::KEYCODE_s)
 			setMode(SELL);
 		else
 			nothing();

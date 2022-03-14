@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -179,6 +178,11 @@ bool Scene::open(int setId, int sceneId, bool isLoadingGame) {
 	for (int i = 0; i != actorCount; ++i) {
 		Actor *actor = _vm->_actors[i];
 		if (actor->getSetId() == setId) {
+			//debug("Actor added: %d", i);
+#if !BLADERUNNER_ORIGINAL_BUGS
+			// ensure that actors' "hotspot" areas from previous scene are cleared up
+			actor->resetScreenRectangleAndBbox();
+#endif
 			_vm->_sceneObjects->addActor(
 				i + kSceneObjectOffsetActors,
 				actor->getBoundingBox(),
@@ -294,7 +298,6 @@ void Scene::resume(bool isLoadingGame) {
 			loopStartSpecial(_specialLoopMode, _specialLoop, true);
 			if (_specialLoopMode == kSceneLoopModeLoseControl || _specialLoopMode == kSceneLoopModeChangeSet) {
 				_vm->playerGainsControl();
-
 			}
 		}
 		if (_specialLoopMode == kSceneLoopModeChangeSet) {
@@ -302,9 +305,19 @@ void Scene::resume(bool isLoadingGame) {
 		}
 	}
 
-	int frame;
+	int frame, frameStart, frameEnd;
 	do {
+		// fast forward to targetFrame but do, at the very least, one advanceFrame() (with time=false)
 		frame = advanceFrame(false);
+		// check if active loop has changed, and we need to adjust targetFrame
+		if (_vqaPlayer->getCurrentBeginAndEndFrame(frame, &frameStart, &frameEnd)
+		    && targetFrame >= 0
+		    && (targetFrame < frameStart || targetFrame > frameEnd)
+		) {
+			// active loop has changed, and targetFrame has a remnant frame value from the previous loop's frameset,
+			// so set it to the current loop's start
+			targetFrame = frameStart;
+		}
 	} while (frame >= 0 && frame != targetFrame);
 
 	if (!isLoadingGame) {

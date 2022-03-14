@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,6 +53,17 @@ void addSpriteFilledToBGList(int16 objIdx) {
 	renderer->incrustMask(g_cine->_bgIncrustList.back());
 }
 
+void removeBgIncrustsWithBgIdx(int16 bgIdx) {
+	Common::List<BGIncrust>::iterator it;
+	for (it = g_cine->_bgIncrustList.begin(); it != g_cine->_bgIncrustList.end();) {
+		if (it->bgIdx == bgIdx) {
+			it = g_cine->_bgIncrustList.erase(it);
+		} else {
+			++it;
+		}
+	}
+}
+
 /**
  * Add new element to incrust list
  * @param objIdx Element description
@@ -62,13 +72,14 @@ void addSpriteFilledToBGList(int16 objIdx) {
 void createBgIncrustListElement(int16 objIdx, int16 param) {
 	BGIncrust tmp;
 
-	tmp.unkPtr = 0;
+	tmp.unkPtr = nullptr;
 	tmp.objIdx = objIdx;
 	tmp.param = param;
 	tmp.x = g_cine->_objectTable[objIdx].x;
 	tmp.y = g_cine->_objectTable[objIdx].y;
 	tmp.frame = g_cine->_objectTable[objIdx].frame;
-	tmp.part = g_cine->_objectTable[objIdx].part;
+	tmp.part = g_cine->_objectTable[objIdx].part & 0x0f;
+	tmp.bgIdx = renderer->currentBg();
 
 	g_cine->_bgIncrustList.push_back(tmp);
 }
@@ -84,7 +95,7 @@ void resetBgIncrustList() {
  * Restore incrust list from savefile
  * @param fHandle Savefile open for reading
  */
-void loadBgIncrustFromSave(Common::SeekableReadStream &fHandle) {
+void loadBgIncrustFromSave(Common::SeekableReadStream &fHandle, bool hasBgIdx) {
 	BGIncrust tmp;
 	int size = fHandle.readSint16BE();
 
@@ -92,13 +103,14 @@ void loadBgIncrustFromSave(Common::SeekableReadStream &fHandle) {
 		fHandle.readUint32BE();
 		fHandle.readUint32BE();
 
-		tmp.unkPtr = 0;
+		tmp.unkPtr = nullptr;
 		tmp.objIdx = fHandle.readUint16BE();
 		tmp.param = fHandle.readUint16BE();
 		tmp.x = fHandle.readUint16BE();
 		tmp.y = fHandle.readUint16BE();
 		tmp.frame = fHandle.readUint16BE();
 		tmp.part = fHandle.readUint16BE();
+		tmp.bgIdx = (hasBgIdx ? fHandle.readUint16BE() : 0);
 
 		g_cine->_bgIncrustList.push_back(tmp);
 

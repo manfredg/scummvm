@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -88,14 +87,14 @@ KIASectionCrimes::~KIASectionCrimes() {
 
 void KIASectionCrimes::reset() {
 	_acquiredClueCount = 0;
-    _crimesFoundCount = 0;
-    _suspectsFoundCount = 0;
-    _mouseX = 0;
-    _mouseY = 0;
-    _suspectSelected = -1;
-    _crimeSelected = -1;
-    _suspectPhotoShapeId = -1;
-    _suspectPhotoNotUsed = -1;
+	_crimesFoundCount = 0;
+	_suspectsFoundCount = 0;
+	_mouseX = 0;
+	_mouseY = 0;
+	_suspectSelected = -1;
+	_crimeSelected = -1;
+	_suspectPhotoShapeId = -1;
+	_suspectPhotoNotUsed = -1;
 }
 
 void KIASectionCrimes::open() {
@@ -376,16 +375,28 @@ void KIASectionCrimes::populateVisibleClues() {
 	if (_crimeSelected != -1) {
 		for (int i = 0; i < kClueCount; ++i) {
 			int clueId = i;
-			if (_vm->_crimesDatabase->getAssetType(clueId) != -1
+			if (_vm->_crimesDatabase->getAssetType(clueId) != kClueTypeIntangible
 			 && _vm->_crimesDatabase->getCrime(clueId) == _crimeSelected
 			 && _clues->isAcquired(clueId)
 			) {
 				int flags = 0x30;
+#if BLADERUNNER_ORIGINAL_BUGS
 				if (_clues->isPrivate(clueId)) {
 					flags = 0x08;
 				} else if (_clues->isViewed(clueId)) {
 					flags = 0x10;
 				}
+#else
+				if (_clues->isPrivate(clueId)) {
+					flags |= 0x08;
+				}
+				if (_clues->isViewed(clueId)) {
+					flags &= ~0x20;
+				}
+				if (_vm->_cutContent && _clues->isSharedWithMainframe(clueId)) {
+					flags |= 0x40;
+				}
+#endif // BLADERUNNER_ORIGINAL_BUGS
 				_cluesScrollBox->addLine(_vm->_crimesDatabase->getClueText(clueId), clueId, flags);
 			}
 		}

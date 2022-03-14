@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,18 +30,15 @@
 #include "lure/surface.h"
 #include "common/endian.h"
 #include "common/config-manager.h"
-
-#ifdef USE_TTS
 #include "common/text-to-speech.h"
-#endif
 
 namespace Lure {
 
 // These variables hold resources commonly used by the Surfaces, and must be initialized and freed
 // by the static Surface methods initialize and deinitailse
 
-static MemoryBlock *int_font = NULL;
-static MemoryBlock *int_dialog_frame = NULL;
+static MemoryBlock *int_font = nullptr;
+static MemoryBlock *int_dialog_frame = nullptr;
 static uint8 fontSize[256];
 static int numFontChars;
 
@@ -411,13 +407,13 @@ void Surface::wordWrap(char *text, uint16 width, char **&lines, uint8 &numLines)
 		char *wordEnd2 = strchr(wordStart, '\n');
 		if ((!wordEnd) || ((wordEnd2) && (wordEnd2 < wordEnd))) {
 			wordEnd = wordEnd2;
-			newLine = (wordEnd2 != NULL);
+			newLine = (wordEnd2 != nullptr);
 		} else {
 			newLine = false;
 		}
 
 		debugC(ERROR_DETAILED, kLureDebugStrings, "word scanning: start=%xh, after=%xh, newLine=%d",
-			(uint32)(wordStart - text), (uint32)((wordEnd == NULL) ? -1 : wordEnd - text), newLine ? 1 : 0);
+			(uint32)(wordStart - text), (uint32)((wordEnd == nullptr) ? -1 : wordEnd - text), newLine ? 1 : 0);
 
 		if (wordEnd) {
 			if (*wordEnd != '\0') --wordEnd;
@@ -472,27 +468,22 @@ Surface *Surface::newDialog(uint16 width, uint8 numLines, const char **lines, bo
 
 	Surface *s = new Surface(width, size.y);
 	s->createDialog();
-	#ifdef USE_TTS
 	Common::String text;
-	#endif
 
 	uint16 yP = Surface::textY();
 	for (uint8 ctr = 0; ctr < numLines; ++ctr) {
-		#ifdef USE_TTS
 		text += lines[ctr];
-		#endif
 		s->writeString(Surface::textX(), yP, lines[ctr], true, color, varLength);
 		yP += squashedLines ? FONT_HEIGHT - 1 : FONT_HEIGHT;
 	}
 
-
-	#ifdef USE_TTS
 	if (ConfMan.getBool("tts_narrator")) {
-		Common::TextToSpeechManager *_ttsMan = g_system->getTextToSpeechManager();
-		_ttsMan->stop();
-		_ttsMan->say(text.c_str());
+		Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+		if (ttsMan != nullptr) {
+			ttsMan->stop();
+			ttsMan->say(text.c_str());
+		}
 	}
-	#endif 
 
 	return s;
 }
@@ -645,7 +636,7 @@ void Dialog::show(uint16 stringId, const char *hotspotName, const char *characte
 }
 
 void Dialog::show(uint16 stringId) {
-	show(stringId, NULL, NULL);
+	show(stringId, nullptr, nullptr);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -794,21 +785,21 @@ TalkDialog::TalkDialog(uint16 characterId, uint16 destCharacterId, uint16 active
 	_descId = descId;
 
 	HotspotData *talkingChar = res.getHotspot(characterId);
-	HotspotData *destCharacter = (destCharacterId == 0) ? NULL :
+	HotspotData *destCharacter = (destCharacterId == 0) ? nullptr :
 		res.getHotspot(destCharacterId);
-	HotspotData *itemHotspot = (activeItemId == 0) ? NULL :
+	HotspotData *itemHotspot = (activeItemId == 0) ? nullptr :
 		res.getHotspot(activeItemId);
 	assert(talkingChar);
 
 	strings.getString(talkingChar->nameId & 0x1fff, srcCharName);
 
 	strcpy(destCharName, "");
-	if (destCharacter != NULL) {
+	if (destCharacter != nullptr) {
 		strings.getString(destCharacter->nameId, destCharName);
 		characterArticle = getArticle(descId, destCharacter->nameId);
 	}
 	strcpy(itemName, "");
-	if (itemHotspot != NULL) {
+	if (itemHotspot != nullptr) {
 		strings.getString(itemHotspot->nameId & 0x1fff, itemName);
 		hotspotArticle = getArticle(descId, itemHotspot->nameId);
 	}
@@ -895,7 +886,7 @@ void TalkDialog::saveToStream(Common::WriteStream *stream) {
 TalkDialog *TalkDialog::loadFromStream(Common::ReadStream *stream) {
 	uint16 characterId = stream->readUint16LE();
 	if (characterId == 0)
-		return NULL;
+		return nullptr;
 
 	uint16 destCharacterId = stream->readUint16LE();
 	uint16 activeItemId = stream->readUint16LE();
@@ -947,7 +938,7 @@ bool SaveRestoreDialog::show(bool saveDialog) {
 	Common::String **saveNames = (Common::String **)Memory::alloc(sizeof(Common::String *) * MAX_SAVEGAME_SLOTS);
 	int numSaves = 0;
 	while ((numSaves < MAX_SAVEGAME_SLOTS) &&
-		((saveNames[numSaves] = engine.detectSave(numSaves + 1)) != NULL))
+		((saveNames[numSaves] = engine.detectSave(numSaves + 1)) != nullptr))
 		++numSaves;
 
 	// For the save dialog, if all the slots have not been used up, create a
@@ -1144,12 +1135,12 @@ bool RestartRestoreDialog::show() {
 	LureEngine &engine = LureEngine::getReference();
 
 	Sound.killSounds();
-	Sound.musicInterface_Play(60, 0);
+	Sound.musicInterface_Play(188, true);
 	mouse.setCursorNum(CURSOR_ARROW);
 
 	// See if there are any savegames that can be restored
 	Common::String *firstSave = engine.detectSave(1);
-	bool restartFlag = (firstSave == NULL);
+	bool restartFlag = (firstSave == nullptr);
 	int highlightedButton = -1;
 
 	if (!restartFlag) {
@@ -1431,6 +1422,58 @@ void CopyProtectionDialog::chooseCharacters() {
 	(*curHotspot)->copyTo(&screen.screen());
 
 	screen.update();
+}
+
+AudioInitIcon::AudioInitIcon() : _visible(false) {
+	if (LureEngine::getReference().isEGA()) {
+		// The icon is not shown on EGA
+		_iconSurface = nullptr;
+	} else {
+		// Load icon
+		_iconSurface = new Surface(Disk::getReference().getEntry(AUDIO_INIT_ICON_RESOURCE_ID), 14, 14);
+
+		Screen &screen = Screen::getReference();
+
+		// Add the colors needed for displaying the icon to the current palette
+		Palette combinedPalette;
+		Palette defaultPalette(GAME_PALETTE_RESOURCE_ID);
+		combinedPalette.palette()->copyFrom(screen.getPalette().palette(), 0, 0, 4 * 0xF8);
+		combinedPalette.palette()->copyFrom(defaultPalette.palette(), 4 * 0xF8, 4 * 0xF8, 4 * 6);
+		screen.setPalette(&combinedPalette);
+	}
+}
+
+AudioInitIcon::~AudioInitIcon() {
+	if (_iconSurface)
+		delete _iconSurface;
+}
+
+void AudioInitIcon::show() {
+	if (!LureEngine::getReference().isEGA()) {
+		Screen &screen = Screen::getReference();
+
+		_iconSurface->copyTo(&screen.screen(), 0, 185);
+		screen.update();
+		_visible = true;
+	}
+}
+
+void AudioInitIcon::hide() {
+	if (!LureEngine::getReference().isEGA()) {
+		Screen &screen = Screen::getReference();
+
+		screen.screen().fillRect(Common::Rect(0, 185, 14, 199), 0);
+		screen.update();
+		_visible = false;
+	}
+}
+
+void AudioInitIcon::toggleVisibility() {
+	if (_visible) {
+		hide();
+	} else {
+		show();
+	}
 }
 
 } // End of namespace Lure

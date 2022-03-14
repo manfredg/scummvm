@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,11 +23,14 @@
 #define ULTIMA8_GUMPS_QUITGUMP_H
 
 #include "ultima/ultima8/gumps/modal_gump.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
+#include "ultima/ultima8/misc/classtype.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
+/**
+ * The "are you sure you want to quit?" gump
+ */
 class QuitGump : public ModalGump {
 public:
 	ENABLE_RUNTIME_CLASSTYPE()
@@ -46,10 +48,19 @@ public:
 
 	static void verifyQuit();
 
-	bool loadData(IDataSource *ids);
+	bool loadData(Common::ReadStream *rs);
+	void saveData(Common::WriteStream *ws) override;
+
 protected:
-	void saveData(ODataSource *ods) override;
 	ObjId _yesWidget, _noWidget;
+
+	uint32 _gumpShape;	//! shape number for the dialog
+	uint32 _yesShape;	//! shape number for "yes" button
+	uint32 _noShape;	//! shape number for "no" button
+	uint32 _askShape;	//! shape number for "are you sure?"
+	uint32 _buttonXOff;	//! x offset from either edge of yes/no  buttons
+	uint32 _buttonYOff;	//! y offset from bottom of yes/no  buttons
+	uint32 _playSound;	//! sound to play on open
 };
 
 } // End of namespace Ultima8

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@
 #include "sci/graphics/ports.h"
 #include "sci/graphics/paint16.h"
 #include "sci/graphics/animate.h"
-#include "sci/graphics/font.h"
+#include "sci/graphics/scifont.h"
 #include "sci/graphics/picture.h"
 #include "sci/graphics/view.h"
 #include "sci/graphics/screen.h"
@@ -38,6 +37,8 @@
 #include "sci/graphics/portrait.h"
 #include "sci/graphics/text16.h"
 #include "sci/graphics/transitions.h"
+
+#include "sci/graphics/scifx.h"
 
 namespace Sci {
 
@@ -47,8 +48,8 @@ GfxPaint16::GfxPaint16(ResourceManager *resMan, SegManager *segMan, GfxCache *ca
 	  _transitions(transitions), _audio(audio), _EGAdrawingVisualize(false) {
 
 	// _animate and _text16 will be initialized later on
-	_animate = NULL;
-	_text16 = NULL;
+	_animate = nullptr;
+	_text16 = nullptr;
 }
 
 GfxPaint16::~GfxPaint16() {
@@ -63,20 +64,26 @@ void GfxPaint16::debugSetEGAdrawingVisualize(bool state) {
 	_EGAdrawingVisualize = state;
 }
 
-void GfxPaint16::drawPicture(GuiResourceId pictureId, int16 animationNr, bool mirroredFlag, bool addToFlag, GuiResourceId paletteId) {
+void GfxPaint16::drawPicture(GuiResourceId pictureId, bool mirroredFlag, bool addToFlag, GuiResourceId paletteId) {
 	GfxPicture *picture = new GfxPicture(_resMan, _coordAdjuster, _ports, _screen, _palette, pictureId, _EGAdrawingVisualize);
+
+	// Set up custom per-picture palette mod
+	doCustomPicPalette(_screen, pictureId);
 
 	// do we add to a picture? if not -> clear screen with white
 	if (!addToFlag)
 		clearScreen(_screen->getColorWhite());
 
-	picture->draw(animationNr, mirroredFlag, addToFlag, paletteId);
+	picture->draw(mirroredFlag, addToFlag, paletteId);
 	delete picture;
 
 	// We make a call to SciPalette here, for increasing sys timestamp and also loading targetpalette, if palvary active
 	//  (SCI1.1 only)
 	if (getSciVersion() == SCI_VERSION_1_1)
 		_palette->drewPicture(pictureId);
+
+	// Reset custom per-picture palette mod
+	_screen->setCurPaletteMapValue(0);
 }
 
 // This one is the only one that updates screen!
@@ -137,7 +144,7 @@ void GfxPaint16::drawHiresCelAndShow(GuiResourceId viewId, int16 loopNo, int16 c
 			// need to get coordinates from upscaledHiresHandle. I'm not sure if
 			// this is what we are supposed to do or if there is some other bug
 			// that actually makes coordinates to be 0 in the first place.
-			byte *memoryPtr = NULL;
+			byte *memoryPtr = nullptr;
 			memoryPtr = _segMan->getHunkPointer(upscaledHiresHandle);
 			if (memoryPtr) {
 				Common::Rect upscaledHiresRect;
@@ -342,7 +349,7 @@ reg_t GfxPaint16::bitsSave(const Common::Rect &rect, byte screenMask) {
 }
 
 void GfxPaint16::bitsGetRect(reg_t memoryHandle, Common::Rect *destRect) {
-	byte *memoryPtr = NULL;
+	byte *memoryPtr = nullptr;
 
 	if (!memoryHandle.isNull()) {
 		memoryPtr = _segMan->getHunkPointer(memoryHandle);
@@ -354,7 +361,7 @@ void GfxPaint16::bitsGetRect(reg_t memoryHandle, Common::Rect *destRect) {
 }
 
 void GfxPaint16::bitsRestore(reg_t memoryHandle) {
-	byte *memoryPtr = NULL;
+	byte *memoryPtr = nullptr;
 
 	if (!memoryHandle.isNull()) {
 		memoryPtr = _segMan->getHunkPointer(memoryHandle);
@@ -376,7 +383,7 @@ void GfxPaint16::kernelDrawPicture(GuiResourceId pictureId, int16 animationNr, b
 
 	if (_ports->isFrontWindow(_ports->_picWind)) {
 		_screen->_picNotValid = 1;
-		drawPicture(pictureId, animationNr, mirroredFlag, addToFlag, EGApaletteNo);
+		drawPicture(pictureId, mirroredFlag, addToFlag, EGApaletteNo);
 		_transitions->setup(animationNr, animationBlackoutFlag);
 	} else {
 		// We need to set it for SCI1EARLY+ (sierra sci also did so), otherwise we get at least the following issues:
@@ -388,7 +395,7 @@ void GfxPaint16::kernelDrawPicture(GuiResourceId pictureId, int16 animationNr, b
 		if (getSciVersion() >= SCI_VERSION_1_EARLY)
 			_screen->_picNotValid = 1;
 		_ports->beginUpdate(_ports->_picWind);
-		drawPicture(pictureId, animationNr, mirroredFlag, addToFlag, EGApaletteNo);
+		drawPicture(pictureId, mirroredFlag, addToFlag, EGApaletteNo);
 		_ports->endUpdate(_ports->_picWind);
 	}
 	_ports->setPort(oldPort);

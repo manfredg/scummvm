@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@ namespace Pegasus {
 
 Surface::Surface() {
 	_ownsSurface = false;
-	_surface = 0;
+	_surface = nullptr;
 }
 
 Surface::~Surface() {
@@ -52,7 +51,7 @@ void Surface::deallocateSurface() {
 			delete _surface;
 		}
 
-		_surface = 0;
+		_surface = nullptr;
 		_bounds = Common::Rect();
 		_ownsSurface = false;
 	}
@@ -92,10 +91,10 @@ void Surface::getImageFromPICTFile(const Common::String &fileName) {
 void Surface::getImageFromPICTResource(Common::MacResManager *resFork, uint16 id) {
 	Common::SeekableReadStream *res = resFork->getResource(MKTAG('P', 'I', 'C', 'T'), id);
 	if (!res)
-		error("Could not open PICT resource %d from '%s'", id, resFork->getBaseFileName().c_str());
+		error("Could not open PICT resource %d from '%s'", id, resFork->getBaseFileName().toString().c_str());
 
 	if (!getImageFromPICTStream(res))
-		error("Failed to load PICT resource %d from '%s'", id, resFork->getBaseFileName().c_str());
+		error("Failed to load PICT resource %d from '%s'", id, resFork->getBaseFileName().toString().c_str());
 
 	delete res;
 }

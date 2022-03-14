@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,18 +15,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 /*
  * This code is based on original Sfinx source code
- * Copyright (c) 1994-1997 Janus B. Wisniewski and L.K. Avalon
+ * Copyright (c) 1994-1997 Janusz B. Wisniewski and L.K. Avalon
  */
 
 #include "cge2/general.h"
 #include "cge2/talk.h"
+
+#include "common/config-manager.h"
+#include "common/text-to-speech.h"
 
 namespace CGE2 {
 
@@ -63,7 +65,7 @@ void Font::load() {
 	if (!_vm->_resman->exist(path))
 		error("Missing Font file! %s", path);
 
-	EncryptedStream fontFile(_vm, path);
+	EncryptedStream fontFile(_vm->_resman, path);
 	assert(!fontFile.err());
 
 	fontFile.read(_widthArr, kWidSize);
@@ -81,7 +83,7 @@ void Font::load() {
 		error("Missing Color file! %s", path);
 
 	// Reading in _colorSet:
-	EncryptedStream colorFile(_vm, path);
+	EncryptedStream colorFile(_vm->_resman, path);
 	assert(!colorFile.err());
 
 	char tmpStr[kLineMax + 1];
@@ -111,6 +113,10 @@ uint16 Font::width(const char *text) {
 
 Talk::Talk(CGE2Engine *vm, const char *text, TextBoxStyle mode, ColorBank color, bool wideSpace)
 	: Sprite(vm), _mode(mode), _created(false), _wideSpace(wideSpace), _vm(vm) {
+	Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+	if (ttsMan != nullptr && ConfMan.getBool("tts_enabled_speech"))
+		ttsMan->say(text);
+
 	_color = _vm->_font->_colorSet[color];
 
 	if (color == kCBRel)
@@ -258,6 +264,10 @@ void InfoLine::update(const char *text) {
 		return;
 
 	_oldText = text;
+
+	Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+	if (text && ttsMan != nullptr && ConfMan.getBool("tts_enabled_objects"))
+		ttsMan->say(text);
 
 	uint16 w = _ext->_shpList->_w;
 	uint16 h = _ext->_shpList->_h;

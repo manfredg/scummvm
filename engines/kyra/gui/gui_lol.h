@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,8 @@ namespace Kyra {
 	do { \
 		item.enabled = 1; \
 		item.itemId = a; \
-		item.itemString = 0; \
+		item.itemString = ""; \
+		item.useItemString = false; \
 		item.x = b; \
 		item.y = c; \
 		item.width = d; \
@@ -113,8 +113,8 @@ private:
 
 	void setupSaveMenuSlots(Menu &menu, int num);
 
-	void printMenuText(const char *str, int x, int y, uint8 c0, uint8 c1, uint8 flags) override;
-	int getMenuCenterStringX(const char *str, int x1, int x2) override;
+	void printMenuText(const Common::String &str, int x, int y, uint8 c0, uint8 c1, uint8 flags) override;
+	int getMenuCenterStringX(const Common::String &str, int x1, int x2) override;
 
 	int getInput();
 
@@ -142,9 +142,9 @@ private:
 	uint8 defaultColor1() const override { return 0xFE; }
 	uint8 defaultColor2() const override { return 0x00; }
 
-	const char *getMenuTitle(const Menu &menu) override;
-	const char *getMenuItemTitle(const MenuItem &menuItem) override;
-	const char *getMenuItemLabel(const MenuItem &menuItem) override;
+	Common::String getMenuTitle(const Menu &menu) override;
+	Common::String getMenuItemTitle(const MenuItem &menuItem) override;
+	Common::String getMenuItemLabel(const MenuItem &menuItem) override;
 
 	Button _menuButtons[10];
 	Button _scrollUpButton;

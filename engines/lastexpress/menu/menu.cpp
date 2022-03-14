@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -142,10 +141,10 @@ static const struct {
 // Menu
 //////////////////////////////////////////////////////////////////////////
 Menu::Menu(LastExpressEngine *engine) : _engine(engine),
-	_seqTooltips(NULL), _seqEggButtons(NULL), _seqButtons(NULL), _seqAcorn(NULL), _seqCity1(NULL), _seqCity2(NULL), _seqCity3(NULL), _seqCredits(NULL),
+	_seqTooltips(nullptr), _seqEggButtons(nullptr), _seqButtons(nullptr), _seqAcorn(nullptr), _seqCity1(nullptr), _seqCity2(nullptr), _seqCity3(nullptr), _seqCredits(nullptr),
 	_gameId(kGameBlue), _hasShownStartScreen(false), _hasShownIntro(false),
 	_isShowingCredits(false), _isGameStarted(false), _isShowingMenu(false),
-	_creditsSequenceIndex(0), _checkHotspotsTicks(15),  _mouseFlags(Common::EVENT_INVALID), _lastHotspot(NULL),
+	_creditsSequenceIndex(0), _checkHotspotsTicks(15),  _mouseFlags(Common::EVENT_INVALID), _lastHotspot(nullptr),
 	_currentTime(kTimeNone), _lowerTime(kTimeNone), _time(kTimeNone), _currentIndex(0), _index(0), _lastIndex(0), _delta(0), _handleTimeDelta(false) {
 
 	_clock = new Clock(_engine);
@@ -165,7 +164,7 @@ Menu::~Menu() {
 	SAFE_DELETE(_seqCity3);
 	SAFE_DELETE(_seqCredits);
 
-	_lastHotspot = NULL;
+	_lastHotspot = nullptr;
 
 	// Cleanup frames
 	for (MenuFrames::iterator it = _frames.begin(); it != _frames.end(); it++)
@@ -174,7 +173,7 @@ Menu::~Menu() {
 	_frames.clear();
 
 	// Zero passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -252,7 +251,7 @@ void Menu::eventMouse(const Common::Event &ev) {
 		}
 	} else {
 		// Check for hotspots
-		SceneHotspot *hotspot = NULL;
+		SceneHotspot *hotspot = nullptr;
 		getScenes()->get(getState()->scene)->checkHotSpot(ev.mouse, &hotspot);
 
 		if (_lastHotspot != hotspot || ev.type == Common::EVENT_LBUTTONUP) {
@@ -961,7 +960,7 @@ void Menu::checkHotspots() {
 	if (_isShowingCredits)
 		return;
 
-	SceneHotspot *hotspot = NULL;
+	SceneHotspot *hotspot = nullptr;
 	getScenes()->get(getState()->scene)->checkHotSpot(getCoords(), &hotspot);
 
 	if (hotspot)
@@ -971,7 +970,7 @@ void Menu::checkHotspots() {
 }
 
 void Menu::hideOverlays() {
-	_lastHotspot = NULL;
+	_lastHotspot = nullptr;
 
 	// Hide all menu overlays
 	for (MenuFrames::iterator it = _frames.begin(); it != _frames.end(); it++)

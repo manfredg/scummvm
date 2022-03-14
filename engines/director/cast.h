@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,138 +15,140 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef DIRECTOR_CAST_H
 #define DIRECTOR_CAST_H
 
-#include "director/archive.h"
-#include "director/types.h"
-
-namespace Graphics {
-struct Surface;
-}
+#include "common/hash-str.h"
 
 namespace Common {
-class SeekableReadStream;
-class ReadStreamEndian;
+	class ReadStreamEndian;
+	struct Rect;
+	class SeekableReadStreamEndian;
 }
 
 namespace Director {
 
+class Archive;
+struct CastMemberInfo;
+class CastMember;
+class DirectorEngine;
+class Lingo;
+struct LingoArchive;
+struct Resource;
 class Stxt;
-class CachedMacText;
+class BitmapCastMember;
+class FilmLoopCastMember;
+class ScriptCastMember;
+class ShapeCastMember;
+class TextCastMember;
+
+typedef Common::HashMap<byte, byte> CharMap;
+typedef Common::HashMap<uint16, uint16> FontSizeMap;
+struct FontXPlatformInfo {
+	Common::String toFont;
+		bool remapChars;
+	FontSizeMap sizeMap;
+
+	FontXPlatformInfo() : remapChars(false) {}
+};
+typedef Common::HashMap<Common::String, FontXPlatformInfo *> FontXPlatformMap;
+
+struct FontMapEntry {
+	uint16 toFont;
+	bool remapChars;
+	FontSizeMap sizeMap;
+
+	FontMapEntry() : toFont(0), remapChars(false) {}
+};
+typedef Common::HashMap<uint16, FontMapEntry *> FontMap;
 
 class Cast {
 public:
-	Cast();
-	virtual ~Cast();
+	Cast(Movie *movie, uint16 castLibID, bool shared = false);
+	~Cast();
 
-	CastType _type;
-	Common::Rect _initialRect;
-	Common::Rect _boundingRect;
-	Common::Array<Resource> _children;
+	void loadArchive();
+	void setArchive(Archive *archive);
+	Archive *getArchive() const { return _castArchive; };
+	Common::String getMacName() const { return _macName; }
 
-	const Graphics::Surface *_surface;
+	bool loadConfig();
+	void loadCast();
+	void loadCastDataVWCR(Common::SeekableReadStreamEndian &stream);
+	void loadCastData(Common::SeekableReadStreamEndian &stream, uint16 id, Resource *res);
+	void loadCastInfo(Common::SeekableReadStreamEndian &stream, uint16 id);
+	void loadLingoContext(Common::SeekableReadStreamEndian &stream);
+	void loadExternalSound(Common::SeekableReadStreamEndian &stream);
 
-	bool _modified;
-};
+	void loadCastChildren();
+	void loadSoundCasts();
 
-class BitmapCast : public Cast {
+	void copyCastStxts();
+	Common::Rect getCastMemberInitialRect(int castId);
+	void setCastMemberModified(int castId);
+	CastMember *getCastMember(int castId);
+	CastMember *getCastMemberByName(const Common::String &name);
+	CastMember *getCastMemberByScriptId(int scriptId);
+	CastMemberInfo *getCastMemberInfo(int castId);
+	const Stxt *getStxt(int castId);
+	Common::String getVideoPath(int castId);
+
+	// release all castmember's widget, should be called when we are changing movie.
+	// because widget is handled by channel, thus we should clear all of those run-time info when we are switching the movie. (because we will create new widgets for cast)
+	void releaseCastMemberWidget();
+
+	void dumpScript(const char *script, ScriptType type, uint16 id);
+	PaletteV4 loadPalette(Common::SeekableReadStreamEndian &stream);
+
+	Common::CodePage getFileEncoding();
+	Common::U32String decodeString(const Common::String &str);
+
+private:
+	void loadScriptText(Common::SeekableReadStreamEndian &stream, uint16 id);
+	void loadFontMap(Common::SeekableReadStreamEndian &stream);
+	void loadFontMapV4(Common::SeekableReadStreamEndian &stream);
+	void loadFXmp(Common::SeekableReadStreamEndian &stream);
+	bool readFXmpLine(Common::SeekableReadStreamEndian &stream);
+
 public:
-	BitmapCast(Common::ReadStreamEndian &stream, uint32 castTag, uint16 version);
+	Archive *_castArchive;
+	uint16 _version;
+	Common::Platform _platform;
+	uint16 _castLibID;
 
-	uint16 _pitch;
-	uint16 _regX;
-	uint16 _regY;
-	uint8 _flags;
-	uint16 _bytes;
-	uint16 _clut;
+	CharMap _macCharsToWin;
+	CharMap _winCharsToMac;
+	FontXPlatformMap _fontXPlatformMap;
+	FontMap _fontMap;
 
-	uint16 _bitsPerPixel;
+	Common::HashMap<int, CastMember *> *_loadedCast;
+	Common::HashMap<int, const Stxt *> *_loadedStxts;
+	uint16 _castIDoffset;
+	uint16 _castArrayStart;
+	uint16 _castArrayEnd;
 
-	uint32 _tag;
-};
+	Common::Rect _movieRect;
+	uint16 _stageColor;
+	int _defaultPalette;
 
-class ShapeCast : public Cast {
-public:
-	ShapeCast(Common::ReadStreamEndian &stream, uint16 version);
+	LingoArchive *_lingoArchive;
 
-	ShapeType _shapeType;
-	uint16 _pattern;
-	byte _fgCol;
-	byte _bgCol;
-	byte _fillType;
-	byte _lineThickness;
-	byte _lineDirection;
-	InkType _ink;
-};
+private:
+	DirectorEngine *_vm;
+	Lingo *_lingo;
+	Movie *_movie;
 
-class TextCast : public Cast {
-public:
-	TextCast(Common::ReadStreamEndian &stream, uint16 version, int32 bgcolor);
+	bool _isShared;
 
-	void setText(const char *text);
+	Common::String _macName;
 
-	SizeType _borderSize;
-	SizeType _gutterSize;
-	SizeType _boxShadow;
-
-	byte _flags;
-	uint32 _fontId;
-	uint16 _fontSize;
-	TextType _textType;
-	TextAlignType _textAlign;
-	SizeType _textShadow;
-	byte _textSlant;
-	byte _textFlags;
-	uint16 _palinfo1, _palinfo2, _palinfo3;
-	int32 _bgcolor;
-
-	Common::String _ftext;
-	Common::String _ptext;
-	void importStxt(const Stxt *stxt);
-	void importRTE(byte* text);
-	CachedMacText *_cachedMacText;
-};
-
-class ButtonCast : public TextCast {
-public:
-	ButtonCast(Common::ReadStreamEndian &stream, uint16 version);
-
-	ButtonType _buttonType;
-};
-
-class ScriptCast : public Cast {
-public:
-	ScriptCast(Common::ReadStreamEndian &stream, uint16 version);
-
-	uint32 _id;
-	ScriptType _scriptType;
-};
-
-class RTECast : public TextCast {
-public:
-	RTECast(Common::ReadStreamEndian &stream, uint16 version, int32 bgcolor);
-
-	void loadChunks();
-};
-
-struct CastInfo {
-	Common::String script;
-	Common::String name;
-	Common::String directory;
-	Common::String fileName;
-	Common::String type;
-};
-
-struct Label {
-	Common::String name;
-	uint16 number;
-	Label(Common::String name1, uint16 number1) { name = name1; number = number1; }
+	Common::HashMap<uint16, CastMemberInfo *> _castsInfo;
+	Common::HashMap<Common::String, int, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> _castsNames;
+	Common::HashMap<uint16, int> _castsScriptIds;
 };
 
 } // End of namespace Director

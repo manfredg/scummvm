@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -138,6 +137,21 @@ void AgiEngine::processScummVMEvents() {
 					// We shouldn't get a valid ascii code in these cases. We fix it here, so that cursor keys
 					// on the numpad work properly.
 					key = 0;
+				}
+			}
+
+			if (_game._vm->getLanguage() == Common::HE_ISR && key >= 0x05d0 && key <= 0x05ea) {
+				// convert to WIN-1255
+				key = key - 0x05d0 + 0xe0;
+			}
+
+			if (_game._vm->getLanguage() == Common::RU_RUS) {
+				// Convert UTF16 to CP866
+				if (key >= 0x400 && key <= 0x4ff) {
+					if (key >= 0x440)
+						key = key - 0x410 + 0xb0;
+					else
+						key = key - 0x410 + 0x80;
 				}
 			}
 
@@ -459,7 +473,7 @@ bool AgiEngine::handleController(uint16 key) {
 	for (uint16 curMapping = 0; curMapping < MAX_CONTROLLER_KEYMAPPINGS; curMapping++) {
 		if (_game.controllerKeyMapping[curMapping].keycode == key) {
 			debugC(3, kDebugLevelInput, "event %d: key press", _game.controllerKeyMapping[curMapping].controllerSlot);
-			_game.controllerOccured[_game.controllerKeyMapping[curMapping].controllerSlot] = true;
+			_game.controllerOccurred[_game.controllerKeyMapping[curMapping].controllerSlot] = true;
 			return true;
 		}
 	}
@@ -502,7 +516,7 @@ bool AgiEngine::handleController(uint16 key) {
 				if (key == AGI_MOUSE_BUTTON_LEFT) {
 					if (getGameID() == GID_PQ1 && getVar(VM_VAR_CURRENT_ROOM) == 116) {
 						// WORKAROUND: Special handling for mouse clicks in the newspaper
-						// screen of PQ1. Fixes bug #3018770.
+						// screen of PQ1. Fixes bug #4908.
 						newDirection = 3;   // fake a right arrow key (next page)
 
 					} else {
@@ -549,9 +563,7 @@ bool AgiEngine::handleController(uint16 key) {
 bool AgiEngine::showPredictiveDialog() {
 	GUI::PredictiveDialog predictiveDialog;
 
-	inGameTimerPause();
-	predictiveDialog.runModal();
-	inGameTimerResume();
+	runDialog(predictiveDialog);
 
 	Common::String predictiveResult(predictiveDialog.getResult());
 	uint16 predictiveResultLen = predictiveResult.size();

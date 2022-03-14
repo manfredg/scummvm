@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define BBVS_BBVS_H
 
 #include "audio/mixer.h"
+
 #include "common/array.h"
 #include "common/events.h"
 #include "common/file.h"
@@ -32,7 +32,10 @@
 #include "common/str.h"
 #include "common/substream.h"
 #include "common/system.h"
+
 #include "engines/engine.h"
+
+#include "bbvs/detection.h"
 
 struct ADGameDescription;
 
@@ -58,10 +61,6 @@ class Screen;
 class SoundMan;
 
 #define BBVS_SAVEGAME_VERSION 0
-
-enum {
-	GF_GUILANGSWITCH =    (1 << 0) // If GUI language switch is required for menus
-};
 
 enum {
 	kVerbLook      = 0,
@@ -172,7 +171,27 @@ struct SceneObject {
 	int xIncr, yIncr;
 	int turnValue, turnCount, turnTicks;
 	Common::Point walkDestPt;
-	SceneObject() : sceneObjectDef(0), anim(0) {
+
+	SceneObject() {
+		clear();
+	}
+
+	void clear() {
+		x = 0;
+		y = 0;
+		sceneObjectDef = nullptr;
+		anim = nullptr;
+		animIndex = 0;
+		frameIndex = 0;
+		frameTicks = 0;
+		walkCount = 0;
+		xIncr = 0;
+		yIncr = 0;
+		turnValue = 0;
+		turnCount = 0;
+		turnTicks = 0;
+		walkDestPt.x = 0;
+		walkDestPt.y = 0;
 	}
 };
 
@@ -228,6 +247,10 @@ public:
 	void setNewSceneNum(int newSceneNum);
 	const Common::String getTargetName() { return _targetName; }
 	const ADGameDescription *_gameDescription;
+
+	bool isDemo() const;
+	bool isLoogieDemo() const;
+	bool isLoogieAltDemo() const;
 
 private:
 	Graphics::PixelFormat _pixelFormat;

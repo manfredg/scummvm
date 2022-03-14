@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,7 +46,7 @@ int LoLEngine::processPrologue() {
 			showIntro();
 	}
 
-	if (_flags.isDemo) {
+	if (_flags.isDemo && !_flags.isTalkie) {
 		_screen->fadePalette(_screen->getPalette(1), 30, 0);
 		_screen->loadBitmap("FINAL.CPS", 2, 2, &_screen->getPalette(0));
 		_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0, Screen::CR_NO_P_CHECK);
@@ -78,11 +77,11 @@ int LoLEngine::processPrologue() {
 		_screen->updateScreen();
 
 		_eventList.clear();
-		int selection = mainMenu();
 
-		if (selection != 3) {
+		int selection = _flags.isDemo ? 0 : mainMenu();
+
+		if (!_flags.isDemo && selection != 3) {
 			_screen->hideMouse();
-
 			// Unlike the original, we add a nice fade to black
 			_screen->getPalette(0).clear();
 			_screen->fadeToBlack(0x54);
@@ -90,7 +89,7 @@ int LoLEngine::processPrologue() {
 
 		switch (selection) {
 		case -1:
-			// This is sent on RTL for example, if we would not have any
+			// This is sent on return to launcher for example, if we would not have any
 			// special case for this the default path would call quitGame
 			// and thus make the next game launched from the launcher
 			// quit instantly.
@@ -122,9 +121,18 @@ int LoLEngine::processPrologue() {
 	}
 
 	if (processSelection == 0) {
-		_sound->loadSoundFile(0);
-		_sound->playTrack(6);
-		chooseCharacter();
+		if (_flags.isDemo) {
+			_charSelection = 0;
+			_screen->loadBitmap("ITEMICN.SHP", 3, 3, 0);
+			_screen->setMouseCursor(0, 0, _screen->getPtrToShape(_screen->getCPagePtr(3), 0));
+			while (!_screen->isMouseVisible())
+				_screen->showMouse();
+			delay(500);
+		} else {
+			_sound->loadSoundFile(0);
+			_sound->playTrack(6);
+			chooseCharacter();
+		}
 		_sound->playTrack(1);
 		_screen->fadeToBlack();
 	}
@@ -142,6 +150,13 @@ void LoLEngine::setupPrologueData(bool load) {
 		"HISTORY.PAK", 0
 	};
 
+	static const char *const fileListCDDemo[] = {
+		"GENERAL.PAK", "INTROVOC.PAK", "ISTARTUP.PAK", "INTRO1.PAK",
+		"INTRO2.PAK", "INTRO3.PAK", "INTRO4.PAK", "INTRO5.PAK",
+		"INTRO6.PAK", "INTRO7.PAK", "INTRO8.PAK", "INTRO9.PAK",
+		0
+	};
+
 	static const char *const fileListFloppy[] = {
 		"INTRO.PAK", "INTROVOC.PAK", 0
 	};
@@ -150,13 +165,13 @@ void LoLEngine::setupPrologueData(bool load) {
 		"INTRO.PAK", "TINTROVO.PAK", 0
 	};
 
-	const char *const *fileList = _flags.isTalkie ? fileListCD : (_flags.platform == Common::kPlatformFMTowns ? fileListTowns : fileListFloppy);
+	const char *const *fileList = _flags.isTalkie ? (_flags.isDemo ? fileListCDDemo : fileListCD) : (_flags.platform == Common::kPlatformFMTowns ? fileListTowns : fileListFloppy);
 
 	char filename[32];
 	for (uint i = 0; fileList[i]; ++i) {
 		filename[0] = '\0';
 
-		if (_flags.isTalkie) {
+		if (_flags.isTalkie && !_flags.isDemo) {
 			strcpy(filename, _languageExt[_lang]);
 			strcat(filename, "/");
 		}
@@ -196,7 +211,7 @@ void LoLEngine::setupPrologueData(bool load) {
 		if (_flags.platform == Common::kPlatformPC98)
 			_sound->loadSoundFile("SOUND.DAT");
 
-		if (_flags.isDemo)
+		if (_flags.isDemo && !_flags.isTalkie)
 			_sound->loadSoundFile("LOREINTR");
 	} else {
 		delete _chargenWSA; _chargenWSA = 0;
@@ -230,7 +245,7 @@ void LoLEngine::showIntro() {
 
 	_screen->loadFont(Screen::FID_8_FNT, "NEW8P.FNT");
 	_screen->loadFont(Screen::FID_INTRO_FNT, "INTRO.FNT");
-	_screen->setFont((_flags.lang == Common::JA_JPN && _flags.use16ColorMode) ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
+	_screen->setFont((_flags.lang == Common::JA_JPN && _flags.use16ColorMode) ? Screen::FID_SJIS_TEXTMODE_FNT : Screen::FID_8_FNT);
 
 	_tim->resetFinishedFlag();
 	_tim->setLangData("LOLINTRO.DIP");
@@ -241,7 +256,7 @@ void LoLEngine::showIntro() {
 	while (!_tim->finished() && !shouldQuit() && !skipFlag()) {
 		updateInput();
 		_tim->exec(intro, false);
-		if (!_flags.isDemo && _flags.platform != Common::kPlatformPC98)
+		if (!(_flags.isDemo && !_flags.isTalkie) && _flags.platform != Common::kPlatformPC98)
 			_screen->checkedPageUpdate(8, 4);
 
 		if (_tim->_palDiff) {
@@ -1193,7 +1208,7 @@ void LoLEngine::showCredits() {
 	_screen->hideMouse();
 
 	static const uint8 colorMap[] = { 0x00, 0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x72, 0x6F, 0x6F, 0x6D };
-	_screen->_charWidth = 0;
+	_screen->_charSpacing = 0;
 
 	_screen->loadBitmap("ROOM.CPS", 2, 2, &_screen->getPalette(0));
 
@@ -1206,7 +1221,7 @@ void LoLEngine::showCredits() {
 
 	_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0, Screen::CR_NO_P_CHECK);
 
-	_screen->_charOffset = 0;
+	_screen->_lineSpacing = 0;
 
 	char *credits = 0;
 
@@ -1293,9 +1308,8 @@ void LoLEngine::processCredits(char *t, int dimState, int page, int delayTime) {
 	bool needNewShape = false;
 	bool doorRedraw = true;
 
-	uint8 *animBlock = new uint8[40960];
+	uint8 *animBlock = new uint8[40960]();
 	assert(animBlock);
-	memset(animBlock, 0, 40960);
 	int inputFlag = 0;
 
 	do {

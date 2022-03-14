@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,19 +47,13 @@
 #include "prince/mob.h"
 #include "prince/object.h"
 #include "prince/pscr.h"
+#include "prince/detection.h"
 
 namespace Prince {
-
-enum PrinceGameType {
-	kPrinceDataUNK,
-	kPrinceDataDE,
-	kPrinceDataPL
-};
 
 struct SavegameHeader;
 
 class PrinceEngine;
-struct PrinceGameDescription;
 class GraphicsMan;
 class Script;
 class Interpreter;
@@ -75,12 +68,6 @@ class Hero;
 class Animation;
 class Room;
 class Pscr;
-
-enum {
-	GF_TRANSLATED = 1 << 0,
-	GF_EXTRACTED  = 1 << 1,
-	GF_NOVOICES   = 1 << 2
-};
 
 struct SavegameHeader {
 	uint8 version;
@@ -100,7 +87,16 @@ struct Text {
 	uint16 _time;
 	uint32 _color;
 
-	Text() : _str(nullptr), _x(0), _y(0), _time(0), _color(255){
+	Text() {
+		clear();
+	}
+
+	void clear() {
+		_str = nullptr;
+		_x = 0;
+		_y = 0;
+		_time = 0;
+		_color = 255;
 	}
 };
 
@@ -315,6 +311,8 @@ public:
 
 	uint32 _mobTranslationSize;
 	byte *_mobTranslationData;
+
+	bool _missingVoice;
 
 	bool loadLocation(uint16 locationNr);
 	bool loadAnim(uint16 animNr, bool loop);

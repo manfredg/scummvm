@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,9 +64,20 @@ void InventoryMgr::getPlayerInventory() {
 			inventoryEntry.name = _vm->objectName(objectNr);
 			inventoryEntry.row = curRow;
 			inventoryEntry.column = curColumn;
-			if (inventoryEntry.column > 1) {
-				// right side, adjust column accordingly
-				inventoryEntry.column -= strlen(inventoryEntry.name);
+			if (!_vm->isLanguageRTL()) {
+				if (inventoryEntry.column > 1) {
+					// right side, adjust column accordingly
+					inventoryEntry.column -= Common::strnlen(inventoryEntry.name, FONT_COLUMN_CHARACTERS);
+				}
+			} else {
+				// mirror the sides
+				if (inventoryEntry.column == 1) {
+					// right side, adjust column accordingly
+					inventoryEntry.column = FONT_COLUMN_CHARACTERS - 1 - Common::strnlen(inventoryEntry.name, FONT_COLUMN_CHARACTERS);
+				} else {
+					// left side, adjust column accordingly
+					inventoryEntry.column = 1;
+				}
 			}
 			_array.push_back(inventoryEntry);
 
@@ -187,10 +197,16 @@ void InventoryMgr::keyPress(uint16 newKey) {
 		changeActiveItem(+2);
 		break;
 	case AGI_KEY_LEFT:
-		changeActiveItem(-1);
+		if (!_vm->isLanguageRTL())
+			changeActiveItem(-1);
+		else
+			changeActiveItem(+1);
 		break;
 	case AGI_KEY_RIGHT:
-		changeActiveItem(+1);
+		if (!_vm->isLanguageRTL())
+			changeActiveItem(+1);
+		else
+			changeActiveItem(-1);
 		break;
 
 	default:

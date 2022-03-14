@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,11 @@
 namespace BladeRunner {
 
 void SceneScriptHC01::InitializeScene() {
-	Music_Play(kMusicArabLoop, 31, 0, 2, -1, 1, 2);
+	int loop = kMusicLoopRepeat;
+	if (_vm->_cutContent && Random_Query(0, 2) == 1) {
+		loop = kMusicLoopRepeatRandomStart;
+	}
+	Music_Play(kMusicArabLoop, 31, 0, 2, -1, loop, 2);
 	if (Game_Flag_Query(kFlagHC02toHC01)) {
 		Setup_Scene_Information( 64.0f, 0.14f,  83.0f, 266);
 	} else if (Game_Flag_Query(kFlagHC03toHC01)) {
@@ -75,18 +78,18 @@ void SceneScriptHC01::SceneLoaded() {
 	Obstacle_Object("PILLAR", true);
 	if (Game_Flag_Query(kFlagAR01toHC01)) {
 		Preload(kModelAnimationMcCoyIdle);
-		Preload(426);
-		Preload(430);
-		Preload(437);
-		Preload(427);
-		Preload(431);
-		Preload(433);
-		Preload(424);
-		Preload(428);
-		Preload(436);
-		Preload(429);
-		Preload(425);
-		Preload(432);
+		Preload(kModelGenWalkerHattedPersonWithUmbrellaStandsStill);
+		Preload(kModelGenWalkerHoodedPersonWithUmbrellaStandsStill);
+		Preload(kModelGenWalkerHattedLadyWithWoodenUmbrellaStandsStill);
+		Preload(kModelGenWalkerHattedPersonNoUmbrellaStandsStill);
+		Preload(kModelGenWalkerPunkPersonWithGlassesAndBeardStandsStill);
+		Preload(kModelGenWalkerPunkPersonWithGlassesStandsStill);
+		Preload(kModelGenWalkerHattedPersonWithUmbrella);
+		Preload(kModelGenWalkerHoodedPersonWithUmbrella);
+		Preload(kModelGenWalkerHattedPersonWithWoodenUmbrella);
+		Preload(kModelGenWalkerPunkPersonWithGlassesAndBeard);
+		Preload(kModelGenWalkerHattedPersonNoUmbrellaSmallSteps);
+		Preload(kModelGenWalkerPunkPersonWithGlasses);
 	}
 }
 
@@ -109,10 +112,13 @@ bool SceneScriptHC01::ClickedOnActor(int actorId) {
 			if (!Game_Flag_Query(kFlagHC01IzoTalk1)) {
 				Actor_Face_Actor(kActorIzo, kActorMcCoy, true);
 				if (_vm->_cutContent) {
-					Actor_Says_With_Pause(kActorIzo,  0, 0.2f, 13);
+					Actor_Says_With_Pause(kActorIzo, 0, 0.2f, 13);
+					Actor_Face_Actor(kActorMcCoy, kActorIzo, true);
+					Actor_Says_With_Pause(kActorIzo, 10, 0.2f, 13);
+				} else {
+					Actor_Says_With_Pause(kActorIzo, 10, 0.2f, 13);
+					Actor_Face_Actor(kActorMcCoy, kActorIzo, true);
 				}
-				Actor_Says_With_Pause(kActorIzo, 10, 0.2f, 13);
-				Actor_Face_Actor(kActorMcCoy, kActorIzo, true);
 				Actor_Says(kActorIzo, 20, 17);
 				Actor_Says(kActorMcCoy, 1035, 18);
 				Actor_Says_With_Pause(kActorIzo, 30, 0.2f, 17);
@@ -166,7 +172,7 @@ bool SceneScriptHC01::ClickedOnItem(int itemId, bool a2) {
 bool SceneScriptHC01::ClickedOnExit(int exitId) {
 	if (exitId == 0) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, 814.0f, 0.14f, 153.0f, 0, true, false, false)) {
-			Music_Adjust(12, 0, 2);
+			Music_Adjust(12, 0, 2u);
 			Game_Flag_Set(kFlagHC01toAR01);
 			Set_Enter(kSetAR01_AR02, kSceneAR01);
 			Game_Flag_Reset(kFlagMcCoyInHawkersCircle);
@@ -212,6 +218,7 @@ bool SceneScriptHC01::ClickedOn2DRegion(int region) {
 
 void SceneScriptHC01::SceneFrameAdvanced(int frame) {
 	Set_Fade_Color(1.0f, 1.0f, 1.0f);
+
 	if (frame >= 61
 	 && frame < 65
 	) {
@@ -263,7 +270,7 @@ void SceneScriptHC01::PlayerWalkedIn() {
 void SceneScriptHC01::PlayerWalkedOut() {
 	Set_Fade_Density(0.0f);
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 }
 
 void SceneScriptHC01::DialogueQueueFlushed(int a1) {

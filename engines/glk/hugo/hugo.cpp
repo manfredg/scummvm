@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,22 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "glk/hugo/hugo.h"
+#include "glk/hugo/resource_archive.h"
 #include "common/config-manager.h"
+#include "common/translation.h"
 
 namespace Glk {
 namespace Hugo {
 
+Hugo *g_vm;
+
 Hugo::Hugo(OSystem *syst, const GlkGameDescription &gameDesc) : GlkAPI(syst, gameDesc),
-		mainwin(nullptr), currentwin(nullptr), secondwin(nullptr), auxwin(nullptr), 
+		mainwin(nullptr), currentwin(nullptr), secondwin(nullptr), auxwin(nullptr),
 		runtime_warnings(false), dbnest(0), address_scale(16),
 		SCREENWIDTH(0), SCREENHEIGHT(0), FIXEDCHARWIDTH(0), FIXEDLINEHEIGHT(0),
 		// heexpr
@@ -37,9 +40,9 @@ Hugo::Hugo(OSystem *syst, const GlkGameDescription &gameDesc) : GlkAPI(syst, gam
 		// hemisc
 		game_version(0), object_size(24), game(nullptr), script(nullptr),
 		playback(nullptr), record(nullptr), io(nullptr), ioblock('\0'), ioerror('\0'),
-		codestart(0), objtable(0), eventtable(0), proptable(0), arraytable(0), dicttable(0), 
-		syntable(0), initaddr(0), mainaddr(0), parseaddr(0), parseerroraddr(0), 
-		findobjectaddr(0), endgameaddr(0), speaktoaddr(0), performaddr(0), 
+		codestart(0), objtable(0), eventtable(0), proptable(0), arraytable(0), dicttable(0),
+		syntable(0), initaddr(0), mainaddr(0), parseaddr(0), parseerroraddr(0),
+		findobjectaddr(0), endgameaddr(0), speaktoaddr(0), performaddr(0),
 		objects(0), events(0), dictcount(0), syncount(0), mem(nullptr), loaded_in_memory(true),
 		defseg(0), gameseg(0), codeptr(0), codeend(0), currentpos(0), currentline(0), full(0),
 		def_fcolor(0), def_bgcolor(0), def_slfcolor(0), def_slbgcolor(0), fcolor(0), bgcolor(0),
@@ -79,6 +82,7 @@ Hugo::Hugo(OSystem *syst, const GlkGameDescription &gameDesc) : GlkAPI(syst, gam
 		active_screen(0), step_nest(0), history_last(0)
 #endif
 		{
+	g_vm = this;
 	strcpy(gamefile, "");
 
 	// heexpr
@@ -89,13 +93,13 @@ Hugo::Hugo(OSystem *syst, const GlkGameDescription &gameDesc) : GlkAPI(syst, gam
 	Common::fill(&resids[0][0], &resids[2][0], 0);
 	numres[0] = numres[1] = 0;
 
-	// hemisc		
+	// hemisc
 	Common::fill(&context_command[0][0], &context_command[MAX_CONTEXT_COMMANDS][0], 0);
 	Common::fill(&id[0], &id[3], '\0');
 	Common::fill(&serial[0], &serial[9], '\0');
 	Common::fill(&pbuffer[0], &pbuffer[MAXBUFFER * 2 + 1], 0);
 	Common::fill(&undostack[0][0], &undostack[MAXUNDO][0], 0);
-	
+
 	// heparse
 	Common::fill(&buffer[0], &buffer[MAXBUFFER + MAXWORDS], '\0');
 	Common::fill(&errbuf[0], &errbuf[MAXBUFFER + 1], 0);
@@ -133,6 +137,10 @@ Hugo::Hugo(OSystem *syst, const GlkGameDescription &gameDesc) : GlkAPI(syst, gam
 #endif
 }
 
+Hugo::~Hugo() {
+	g_vm = nullptr;
+}
+
 void Hugo::runGame() {
 	hugo_init_screen();
 
@@ -140,6 +148,9 @@ void Hugo::runGame() {
 
 	strcpy(gamefile, getFilename().c_str());
 	strcpy(pbuffer, "");
+
+	ResourceArchive *res = new ResourceArchive();
+	SearchMan.add("Resouces", res);
 
 	gameseg = 0;
 
@@ -168,14 +179,14 @@ Common::Error Hugo::readSaveData(Common::SeekableReadStream *rs) {
 	if (hugo_ferror(rs)) goto RestoreError;
 
 	if (strcmp(testid, id)) {
-		GUIErrorMessage("Incorrect rs file.");
+		GUIErrorMessage(_("Incorrect rs file."));
 		goto RestoreError;
 	}
 
 	/* Check serial number */
 	if (!hugo_fgets(testserial, 9, rs)) goto RestoreError;
 	if (strcmp(testserial, serial)) {
-		GUIErrorMessage("Save file created by different version.");
+		GUIErrorMessage(_("Save file created by different version."));
 		goto RestoreError;
 	}
 
@@ -236,7 +247,7 @@ Common::Error Hugo::readSaveData(Common::SeekableReadStream *rs) {
 	else undoinvalid = true;
 
 	return Common::kNoError;
-	
+
 RestoreError:
 	return Common::kReadingFailed;
 }

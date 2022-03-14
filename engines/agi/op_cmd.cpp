@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -78,7 +77,7 @@ void cmdAssignN(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
 	// is then incorrectly assigned to 0. Thus, when the game
 	// is restarted, "Points 0 of 0" is shown. We set the
 	// variable to the correct value here
-	// Fixes bug #1942476 - "AGI: Fan(Get Outta SQ) - Score
+	// Fixes bug #3696 - "AGI: Fan(Get Outta SQ) - Score
 	// is lost on restart"
 	if (vm->getGameID() == GID_GETOUTTASQ && varNr == 7)
 		vm->setVar(varNr, 8);
@@ -750,20 +749,17 @@ void cmdSaveGame(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
 		state->_vm->_sound->stopSound();
 	}
 
-	vm->inGameTimerPause();
+	PauseToken pt = vm->pauseEngine();
 
 	if (state->automaticSave) {
 		if (vm->saveGameAutomatic()) {
 			// automatic save succeded
-			vm->inGameTimerResume();
 			return;
 		}
 		// fall back to regular dialog otherwise
 	}
 
 	vm->saveGameDialog();
-
-	vm->inGameTimerResume();
 }
 
 void cmdLoadGame(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
@@ -772,20 +768,17 @@ void cmdLoadGame(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
 		state->_vm->_sound->stopSound();
 	}
 
-	vm->inGameTimerPause();
+	PauseToken pt = vm->pauseEngine();
 
 	if (state->automaticSave) {
 		if (vm->loadGameAutomatic()) {
 			// automatic restore succeded
-			vm->inGameTimerResume();
 			return;
 		}
 		// fall back to regular dialog otherwise
 	}
 
 	vm->loadGameDialog();
-
-	vm->inGameTimerResume();
 }
 
 void cmdInitDisk(AgiGame *state, AgiEngine *vm, uint8 *parameter) {             // do nothing
@@ -1746,11 +1739,9 @@ void cmdSetGameID(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
 
 void cmdPause(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
 	// Show pause message box
-	vm->inGameTimerPause();
+	PauseToken pt = vm->pauseEngine();
 
 	state->_vm->_systemUI->pauseDialog();
-
-	vm->inGameTimerResume();
 }
 
 void cmdSetMenu(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
@@ -1758,7 +1749,7 @@ void cmdSetMenu(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
 
 	debugC(4, kDebugLevelScripts, "text %02x of %02x", textNr, state->_curLogic->numTexts);
 
-	if (state->_curLogic->texts != NULL && (textNr - 1) <= state->_curLogic->numTexts) {
+	if (state->_curLogic->texts != nullptr && (textNr - 1) <= state->_curLogic->numTexts) {
 		const char *menuText = state->_curLogic->texts[textNr - 1];
 
 		state->_vm->_menu->addMenu(menuText);
@@ -1771,7 +1762,7 @@ void cmdSetMenuItem(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
 
 	debugC(4, kDebugLevelScripts, "text %02x of %02x", textNr, state->_curLogic->numTexts);
 
-	if (state->_curLogic->texts != NULL && textNr <= state->_curLogic->numTexts) {
+	if (state->_curLogic->texts != nullptr && textNr <= state->_curLogic->numTexts) {
 		const char *menuItemText = state->_curLogic->texts[textNr];
 
 		state->_vm->_menu->addMenuItem(menuItemText, controllerSlot);
@@ -2073,7 +2064,7 @@ void cmdSetCursorChar(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
 	TextMgr *textMgr = state->_vm->_text;
 	uint16 textNr = parameter[0] - 1;
 
-	if (state->_curLogic->texts != NULL && textNr <= state->_curLogic->numTexts) {
+	if (state->_curLogic->texts != nullptr && textNr <= state->_curLogic->numTexts) {
 		textMgr->inputSetCursorChar(*state->_curLogic->texts[textNr]);
 	} else {
 		// default
@@ -2103,7 +2094,7 @@ void cmdSetKey(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
 	state->controllerKeyMapping[keyMappingSlot].keycode = key;
 	state->controllerKeyMapping[keyMappingSlot].controllerSlot = controllerSlot;
 
-	state->controllerOccured[controllerSlot] = false;
+	state->controllerOccurred[controllerSlot] = false;
 }
 
 void cmdSetString(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
@@ -2153,7 +2144,7 @@ void cmdClearLines(AgiGame *state, AgiEngine *vm, uint8 *parameter) {
 
 	// Residence 44 calls clear.lines(24,0,0), see Sarien bug #558423
 	// Agent06 incorrectly calls clear.lines(1,150,0), see ScummVM bugs
-	// #1935838 and #1935842
+	// #3679 and #3680
 	if (textRowUpper > textRowLower) {
 		warning("cmdClearLines: RowUpper higher than RowLower");
 		textRowLower = textRowUpper;

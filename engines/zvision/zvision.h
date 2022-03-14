@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  */
@@ -26,6 +25,7 @@
 
 #include "zvision/core/clock.h"
 #include "zvision/file/search_manager.h"
+#include "zvision/detection.h"
 
 #include "common/random.h"
 #include "common/events.h"
@@ -35,6 +35,10 @@
 #include "graphics/pixelformat.h"
 
 #include "gui/debugger.h"
+
+namespace Common {
+class Keymap;
+}
 
 namespace Video {
 class VideoDecoder;
@@ -52,7 +56,6 @@ class VideoDecoder;
  */
 namespace ZVision {
 
-struct ZVisionGameDescription;
 class Console;
 class ScriptManager;
 class RenderManager;
@@ -86,15 +89,25 @@ enum {
 	KEYBUF_SIZE = 20
 };
 
-enum ZVisionGameId {
-	GID_NONE = 0,
-	GID_NEMESIS = 1,
-	GID_GRANDINQUISITOR = 2
+enum ZVisionAction {
+	kZVisionActionNone,
+	kZVisionActionUp,
+	kZVisionActionDown,
+	kZVisionActionLeft,
+	kZVisionActionRight,
+	kZVisionActionSave,
+	kZVisionActionRestore,
+	kZVisionActionQuit,
+	kZVisionActionPreferences,
+	kZVisionActionShowFPS,
+	kZVisionActionSkipCutscene,
+
+	kZVisionActionCount
 };
 
-enum ZVisionFeatures {
-	GF_DVD = (1 << 0) // ZGI DVD version
-};
+extern const char *mainKeymapId;
+extern const char *gameKeymapId;
+extern const char *cutscenesKeymapId;
 
 class ZVision : public Engine {
 public:
@@ -138,6 +151,8 @@ private:
 
 	// To prevent allocation every time we process events
 	Common::Event _event;
+
+	Common::Keymap *_gameKeymap, *_cutscenesKeymap;
 
 	int _frameRenderDelay;
 	int _renderedFrameCount;
@@ -185,6 +200,9 @@ public:
 		return _menu;
 	}
 
+	Common::Keymap *getGameKeymap() const {
+		return _gameKeymap;
+	}
 	Common::RandomSource *getRandomSource() const {
 		return _rnd;
 	}
@@ -254,7 +272,6 @@ private:
 	void onMouseMove(const Common::Point &pos);
 
 	void registerDefaultSettings();
-	void shortKeys(Common::Event);
 
 	void cheatCodes(uint8 key);
 	void pushKeyToCheatBuf(uint8 key);

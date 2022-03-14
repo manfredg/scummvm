@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Plays films within a scene, takes into account the actor in each 'column'.
  */
@@ -38,6 +37,13 @@ class QueuingAudioStream;
 
 namespace Tinsel {
 
+typedef enum
+{
+	BMV_OP_DELTA = 0,
+	BMV_OP_RAW   = 1,
+	BMV_OP_RUN   = 2,
+	BMV_OP_COUNT
+} BMV_OP;
 
 class BMVPlayer {
 
@@ -87,16 +93,31 @@ class BMVPlayer {
 	bool bFileEnd;
 
 	/// Palette
-	COLORREF moviePal[256];
+	COLORREF moviePal[256 * 8]; // TinselV1 & V2 need 256, TinselV3 needs 2048
 
 	int blobsInBuffer;
 
 	struct {
-		POBJECT	pText;
+		OBJECT *pText;
 		int	dieFrame;
 	} texts[2];
 
 	COLORREF talkColor;
+
+	/// TinselV3 header fields
+	int slotSize;
+	int frames;
+	int prefetchSlots;
+	int numSlots;
+	int frameRate;
+	int audioMaxSize;
+	int audioBlobSize;
+	int width;
+	int height;
+
+	/// TinselV3
+	int frameTime;
+	int bpp;
 
 	int bigProblemCount;
 
@@ -134,8 +155,13 @@ public:
 	void AbortMovie();
 
 private:
+	void ReadHeader();
+
 	void InitBMV(byte *memoryBuffer);
 	void PrepAudio(const byte *sourceData, int blobCount, byte *destPtr);
+	void PrepBMV(const byte *sourceData, int length, short deltaFetchDisp);
+	void t3DoOperation(BMV_OP op, uint32 len, const byte **src, byte **dst, int32 deltaOffset);
+	void t3PrepBMV(const byte *src, uint32 len, int32 deltaOffset);
 	void MoviePalette(int paletteOffset);
 	void InitializeMovieSound();
 	void StartMovieSound();

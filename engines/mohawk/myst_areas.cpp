@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -184,16 +183,13 @@ MystAreaVideo::MystAreaVideo(MohawkEngine_Myst *vm, ResourceType type, Common::S
 		MystAreaAction(vm, type, rlstStream, parent) {
 	char c = 0;
 
-	do {
-		c = rlstStream->readByte();
+	while ((c = rlstStream->readByte()) != 0) {
 		_videoFile += c;
-	} while (c);
+	}
 
-	rlstStream->skip(_videoFile.size() & 1);
-
-	// Trim method does not remove extra trailing nulls
-	while (_videoFile.size() != 0 && _videoFile.lastChar() == 0)
-		_videoFile.deleteLastChar();
+	if ((_videoFile.size() & 1) == 0) {
+		rlstStream->skip(1);
+	}
 
 	_videoFile = convertMystVideoName(_videoFile);
 	_videoFile = _vm->selectLocalizedMovieFilename(_videoFile);

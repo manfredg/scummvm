@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -95,10 +94,10 @@ void Treasure::reset() {
 
 /*------------------------------------------------------------------------*/
 
-const int BLACKSMITH_DATA1[4][4] = {
+static const int BLACKSMITH_DATA1[4][4] = {
 	{ 15, 5, 5, 5 },{ 5, 10, 5, 5 },{ 0, 5, 10, 5 },{ 0, 0, 0, 5 }
 };
-const int BLACKSMITH_DATA2[4][4] = {
+static const int BLACKSMITH_DATA2[4][4] = {
 	{ 10, 5, 0, 5 },{ 10, 5, 5, 5 },{ 0, 5, 5, 10 },{ 0, 5, 10, 0 }
 };
 
@@ -244,12 +243,12 @@ Party::Party(XeenEngine *vm) {
 
 	Common::fill(&_gameFlags[0][0], &_gameFlags[0][256], false);
 	Common::fill(&_gameFlags[1][0], &_gameFlags[1][256], false);
-	Common::fill(&_worldFlags[0], &_worldFlags[128], false);
+	Common::fill(&_worldFlags[0], &_worldFlags[129], false);
 	Common::fill(&_questFlags[0], &_questFlags[60], false);
 	Common::fill(&_questItems[0], &_questItems[85], 0);
 
 	for (int i = 0; i < TOTAL_CHARACTERS; ++i)
-		Common::fill(&_characterFlags[i][0], &_characterFlags[i][24], false);
+		Common::fill(&_characterFlags[i][0], &_characterFlags[i][32], false);
 
 	_newDay = false;
 	_isNight = false;
@@ -338,9 +337,11 @@ void Party::synchronize(Common::Serializer &s) {
 
 	_blacksmithWares.synchronize(s, 1);
 
+	int numFlags = s.getVersion() == 1 ? 24 : 32;
 	for (int i = 0; i < TOTAL_CHARACTERS; ++i)
-		File::syncBitFlags(s, &_characterFlags[i][0], &_characterFlags[i][24]);
-	s.syncBytes(&dummy[0], 30);
+		File::syncBitFlags(s, &_characterFlags[i][0], &_characterFlags[i][numFlags]);
+	if (s.getVersion() == 1)
+		s.syncBytes(&dummy[0], 30);
 
 	if (s.isLoading())
 		_newDay = _minutes < 300;
@@ -659,10 +660,18 @@ int Party::subtract(ConsumableType consumableId, uint amount, PartyBank whereId,
 	return true;
 }
 
+const char *Party::getConsumableForm(ConsumableType consumableId) {
+	switch (consumableId) {
+	case CONS_GOLD: return Res.CONSUMABLE_GOLD_FORMS[0];
+	case CONS_GEMS: return Res.CONSUMABLE_GEM_FORMS[0];
+	default:        return Res.CONSUMABLE_NAMES[consumableId];
+	}
+}
+
 void Party::notEnough(ConsumableType consumableId, PartyBank whereId, bool mode, MessageWaitType wait) {
 	Common::String msg = Common::String::format(
 		mode ? Res.NO_X_IN_THE_Y : Res.NOT_ENOUGH_X_IN_THE_Y,
-		Res.CONSUMABLE_NAMES[consumableId], Res.WHERE_NAMES[whereId]);
+		getConsumableForm(consumableId), Res.WHERE_NAMES[whereId]);
 	ErrorScroll::show(_vm, msg, wait);
 }
 
@@ -810,6 +819,13 @@ bool Party::arePacksFull() const {
 	return total == (_activeParty.size() * NUM_ITEM_CATEGORIES);
 }
 
+const char *Party::getFoundForm(const Character &c) {
+	if (Common::RU_RUS == g_vm->getLanguage()) 
+		return Res.FOUND[FEMALE == c._sex ? 1 : 0];
+	else 
+		return Res.FOUND[0];
+}
+
 void Party::giveTreasureToCharacter(Character &c, ItemCategory category, int itemIndex) {
 	EventsManager &events = *_vm->_events;
 	Sound &sound = *_vm->_sound;
@@ -833,9 +849,9 @@ void Party::giveTreasureToCharacter(Character &c, ItemCategory category, int ite
 	if (index >= (_vm->getGameID() == GType_Swords ? 88 : 82)) {
 		// Quest item, give an extra '*' prefix
 		Common::String format = Common::String::format("\f04 * \fd%s", itemName);
-		w.writeString(Common::String::format(Res.X_FOUND_Y, c._name.c_str(), format.c_str()));
+		w.writeString(Common::String::format(Res.X_FOUND_Y, c._name.c_str(), getFoundForm(c), format.c_str()));
 	} else {
-		w.writeString(Common::String::format(Res.X_FOUND_Y, c._name.c_str(), itemName));
+		w.writeString(Common::String::format(Res.X_FOUND_Y, c._name.c_str(), getFoundForm(c), itemName));
 	}
 
 	w.update();
@@ -1236,7 +1252,7 @@ bool Party::giveTake(int takeMode, uint takeVal, int giveMode, uint giveVal, int
 			}
 		}
 		return true;
-	}	
+	}
 	case 25:
 		subPartyTime(giveVal);
 		intf.spellFX(&ps);
@@ -1442,7 +1458,7 @@ bool Party::giveTake(int takeMode, uint takeVal, int giveMode, uint giveVal, int
 		_gold += _vm->getRandomNumber(1, giveVal);
 		break;
 	case 103:
-		assert(giveVal < (uint)(_vm->getGameID() == GType_Swords ? 49 : 128));
+		assert(giveVal < (uint)(_vm->getGameID() == GType_Swords ? 49 : 129));
 		_worldFlags[giveVal] = true;
 		break;
 	case 104:
@@ -1450,7 +1466,7 @@ bool Party::giveTake(int takeMode, uint takeVal, int giveMode, uint giveVal, int
 		_questFlags[(_vm->getGameID() == GType_Swords ? 0 : files._ccNum * 30) + giveVal] = true;
 		break;
 	case 107:
-		assert(giveVal < 24);
+		assert(giveVal < 32);
 		_characterFlags[ps._rosterId][giveVal] = true;
 		break;
 	default:
@@ -1458,6 +1474,20 @@ bool Party::giveTake(int takeMode, uint takeVal, int giveMode, uint giveVal, int
 	}
 
 	return false;
+}
+
+const char *Party::getPickLockForm(const Character &c) {
+	if (Common::RU_RUS == g_vm->getLanguage())
+		return Res.PICK_FORM[FEMALE == c._sex ? 1 : 0];
+	else
+		return Res.PICK_FORM[0];
+}
+
+const char *Party::getUnablePickLockForm(const Character &c) {
+	if (Common::RU_RUS == g_vm->getLanguage())
+		return Res.UNABLE_TO_PICK_FORM[FEMALE == c._sex ? 1 : 0];
+	else
+		return Res.UNABLE_TO_PICK_FORM[0];
 }
 
 bool Party::giveExt(int mode1, uint val1, int mode2, uint val2, int mode3, uint val3, int charId) {
@@ -1498,14 +1528,14 @@ bool Party::giveExt(int mode1, uint val1, int mode2, uint val2, int mode3, uint 
 
 					sound.playFX(10);
 					intf.draw3d(true, false);
-					Common::String msg = Common::String::format(Res.PICKS_THE_LOCK, c._name.c_str());
+					Common::String msg = Common::String::format(Res.PICKS_THE_LOCK, c._name.c_str(), getPickLockForm(c));
 					ErrorScroll::show(g_vm, msg, WT_NONFREEZED_WAIT);
 				} else {
 					sound.playFX(21);
 
 					obj._frame = 0;
 					scripts._animCounter = 0;
-					Common::String msg = Common::String::format(Res.UNABLE_TO_PICK_LOCK, c._name.c_str());
+					Common::String msg = Common::String::format(Res.UNABLE_TO_PICK_LOCK, c._name.c_str(), getUnablePickLockForm(c));
 					ErrorScroll::show(g_vm, msg, WT_NONFREEZED_WAIT);
 
 					scripts._animCounter = 255;

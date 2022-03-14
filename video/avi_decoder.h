@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,6 +53,7 @@ namespace Video {
  * Decoder for AVI videos.
  *
  * Video decoder used in engines:
+ *  - petka
  *  - sci
  *  - sword1
  *  - sword2
@@ -220,9 +220,11 @@ protected:
 		bool hasDirtyPalette() const;
 		void setCurFrame(int frame) { _curFrame = frame; }
 		void loadPaletteFromChunk(Common::SeekableReadStream *chunk);
+		void loadPaletteFromChunkRaw(Common::SeekableReadStream *chunk, int firstEntry, int numEntries);
 		void useInitialPalette();
 		bool canDither() const;
 		void setDither(const byte *palette);
+		bool isValid() const { return _videoCodec != nullptr; }
 
 		bool isTruemotion1() const;
 		void forceDimensions(uint16 width, uint16 height);
@@ -295,16 +297,6 @@ protected:
 	protected:
 		Audio::AudioStream *getAudioStream() const { return _audioStream; }
 
-		// Audio Codecs
-		enum {
-			kWaveFormatNone = 0,
-			kWaveFormatPCM = 1,
-			kWaveFormatMSADPCM = 2,
-			kWaveFormatMSIMAADPCM = 17,
-			kWaveFormatMP3 = 85,
-			kWaveFormatDK3 = 98		// rogue format number
-		};
-
 		AVIStreamHeader _audsHeader;
 		PCMWaveFormat _wvInfo;
 		Audio::AudioStream *_audioStream;
@@ -347,6 +339,7 @@ protected:
 	void handleList(uint32 listSize);
 	void handleStreamHeader(uint32 size);
 	void readStreamName(uint32 size);
+	void readPalette8(uint32 size);
 	uint16 getStreamType(uint32 tag) const { return tag & 0xFFFF; }
 	static byte getStreamIndex(uint32 tag);
 	void checkTruemotion1();

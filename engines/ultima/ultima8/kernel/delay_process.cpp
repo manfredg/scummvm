@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,22 +15,16 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/kernel/delay_process.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
-#include "ultima/shared/std/string.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(DelayProcess, Process)
+DEFINE_RUNTIME_CLASSTYPE_CODE(DelayProcess)
 
 
 
@@ -51,17 +45,17 @@ void DelayProcess::dumpInfo() const {
 }
 
 
-bool DelayProcess::loadData(IDataSource *ids, uint32 version) {
-	if (!Process::loadData(ids, version)) return false;
+bool DelayProcess::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Process::loadData(rs, version)) return false;
 
-	_count = static_cast<int>(ids->read4());
+	_count = static_cast<int>(rs->readUint32LE());
 
 	return true;
 }
 
-void DelayProcess::saveData(ODataSource *ods) {
-	Process::saveData(ods);
-	ods->write4(static_cast<uint32>(_count));
+void DelayProcess::saveData(Common::WriteStream *ws) {
+	Process::saveData(ws);
+	ws->writeUint32LE(static_cast<uint32>(_count));
 }
 
 } // End of namespace Ultima8

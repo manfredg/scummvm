@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,10 +30,19 @@
 
 namespace Common {
 
+/**
+ * @defgroup common_files Files
+ * @ingroup common
+ *
+ * @brief  API for operations on files.
+ *
+ * @{
+ */
+
 class Archive;
 
 /**
- * TODO: vital to document this core class properly!!! For both users and implementors
+ * @todo vital to document this core class properly!!! For both users and implementors
  */
 class File : public SeekableReadStream, public NonCopyable {
 protected:
@@ -49,52 +57,52 @@ public:
 	virtual ~File();
 
 	/**
-	 * Checks if a given file exists in any of the current default paths,
+	 * Check if a given file exists in any of the current default paths,
 	 * as defined by SearchMan.
 	 *
-	 * @param	filename	the file to check for
-	 * @return	true if the file exists, false otherwise
+	 * @param	filename	The file to check for.
+	 * @return	True if the file exists, false otherwise.
 	 */
-	static bool exists(const String &filename);
+	static bool exists(const Path &filename);
 
 	/**
-	 * Try to open the file with the given filename, by searching SearchMan.
-	 * @note Must not be called if this file already is open (i.e. if isOpen returns true).
+	 * Try to open the file with the given file name, by searching SearchMan.
+	 * @note Must not be called if this file is already open (i.e. if isOpen returns true).
 	 *
-	 * @param	filename	the name of the file to open
-	 * @return	true if file was opened successfully, false otherwise
+	 * @param	filename	Name of the file to open.
+	 * @return	True if the file was opened successfully, false otherwise.
 	 */
-	virtual bool open(const String &filename);
+	virtual bool open(const Path &filename);
 
 	/**
-	 * Try to open the file with the given filename from within the given archive.
-	 * @note Must not be called if this file already is open (i.e. if isOpen returns true).
+	 * Try to open the file with the given file name from within the given archive.
+	 * @note Must not be called if this file is already open (i.e. if isOpen returns true).
 	 *
-	 * @param	filename	the name of the file to open
-	 * @param	archive		the archive in which to search for the file
-	 * @return	true if file was opened successfully, false otherwise
+	 * @param	filename	Name of the file to open.
+	 * @param	archive		Archive in which to search for the file.
+	 * @return	True if the file was opened successfully, false otherwise.
 	 */
-	virtual bool open(const String &filename, Archive &archive);
+	virtual bool open(const Path &filename, Archive &archive);
 
 	/**
-	 * Try to open the file corresponding to the give node. Will check whether the
+	 * Try to open the file corresponding to the given node. Will check whether the
 	 * node actually refers to an existing file (and not a directory), and handle
 	 * those cases gracefully.
 	 * @note Must not be called if this file already is open (i.e. if isOpen returns true).
 	 *
-	 * @param   node        the node to consider.
-	 * @return	true if file was opened successfully, false otherwise
+	 * @param   node        The node to consider.
+	 * @return	True if the file was opened successfully, false otherwise.
 	 */
 	virtual bool open(const FSNode &node);
 
 	/**
-	 * Try to 'open' the given stream. That is, we just wrap around it, and if stream
-	 * is a NULL pointer, we gracefully treat this as if opening failed.
+	 * Try to 'open' the given stream. That is, wrap around it, and if the stream
+	 * is a NULL pointer, gracefully treat this as if opening failed.
 	 * @note Must not be called if this file already is open (i.e. if isOpen returns true).
 	 *
-	 * @param	stream		a pointer to a SeekableReadStream, or 0
-	 * @param	name		a string describing the 'file' corresponding to stream
-	 * @return	true if stream was non-zero, false otherwise
+	 * @param	stream		Pointer to a SeekableReadStream, or 0.
+	 * @param	name		String describing the 'file' corresponding to the stream.
+	 * @return	True if the stream was non-zero, false otherwise.
 	 */
 	virtual bool open(SeekableReadStream *stream, const String &name);
 
@@ -104,39 +112,39 @@ public:
 	virtual void close();
 
 	/**
-	 * Checks if the object opened a file successfully.
+	 * Check if the object opened a file successfully.
 	 *
-	 * @return: true if any file is opened, false otherwise.
+	 * @return True if any file is opened, false otherwise.
 	 */
 	bool isOpen() const;
 
 	/**
-	 * Returns the filename of the opened file for debugging purposes.
+	 * Return the file name of the opened file for debugging purposes.
 	 *
-	 * @return: the filename
+	 * @return The file name of the opened file.
 	 */
 	const char *getName() const { return _name.c_str(); }
 
-	bool err() const override;	// implement abstract Stream method
-	void clearErr() override;	// implement abstract Stream method
-	bool eos() const override;	// implement abstract SeekableReadStream method
+	bool err() const override;	/*!< Implement abstract Stream method. */
+	void clearErr() override;	/*!< Implement abstract Stream method. */
+	bool eos() const override;	/*!< Implement abstract SeekableReadStream method. */
 
-	int32 pos() const override;	// implement abstract SeekableReadStream method
-	int32 size() const override;	// implement abstract SeekableReadStream method
-	bool seek(int32 offs, int whence = SEEK_SET) override;	// implement abstract SeekableReadStream method
-	uint32 read(void *dataPtr, uint32 dataSize) override;	// implement abstract SeekableReadStream method
+	int64 pos() const override;	 /*!< Implement abstract SeekableReadStream method. */
+	int64 size() const override; /*!< Implement abstract SeekableReadStream method. */
+	bool seek(int64 offs, int whence = SEEK_SET) override;	/*!< Implement abstract SeekableReadStream method. */
+	uint32 read(void *dataPtr, uint32 dataSize) override;	/*!< Implement abstract SeekableReadStream method. */
 };
 
 
 /**
- * TODO: document this class
+ * @todo Document this class
  *
  * Some design ideas:
  *  - automatically drop all files into dumps/ dir? Might not be desired in all cases
  */
 class DumpFile : public SeekableWriteStream, public NonCopyable {
 protected:
-	/** File handle to the actual file; 0 if no file is open. */
+	/** File handle to the actual file. 0 if no file is open. */
 	WriteStream *_handle;
 
 public:
@@ -149,24 +157,26 @@ public:
 	virtual void close();
 
 	/**
-	 * Checks if the object opened a file successfully.
+	 * Check if the object opened a file successfully.
 	 *
-	 * @return: true if any file is opened, false otherwise.
+	 * @return True if any file is opened, false otherwise.
 	 */
 	bool isOpen() const;
 
 	bool err() const override;
 	void clearErr() override;
 
-	virtual uint32 write(const void *dataPtr, uint32 dataSize) override;
+	uint32 write(const void *dataPtr, uint32 dataSize) override;
 
-	virtual bool flush() override;
+	bool flush() override;
 
-	virtual int32 pos() const override;
+	int64 pos() const override;
 
-	virtual bool seek(int32 offset, int whence = SEEK_SET) override;
-	virtual int32 size() const override;
+	bool seek(int64 offset, int whence = SEEK_SET) override;
+	int64 size() const override;
 };
+
+/** @} */
 
 } // End of namespace Common
 

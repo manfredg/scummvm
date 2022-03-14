@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,13 +41,12 @@ Command::Command() {
 	_zeta0 = 0;
 	_zeta1 = 0;
 	_zeta2 = 0;
-	_characterId = 0;
 	_musicCommand = 0;
 	_musicParm = 0;
 }
 
 Animation::Animation() {
-	gfxobj = NULL;
+	gfxobj = nullptr;
 	_frame = 0;
 	_z = 0;
 }
@@ -97,7 +95,7 @@ uint16 Animation::getFrameNum() const {
 }
 
 byte* Animation::getFrameData() const {
-	if (!gfxobj) return NULL;
+	if (!gfxobj) return nullptr;
 	return gfxobj->getData(_frame);
 }
 
@@ -189,7 +187,7 @@ Zone::Zone() {
 	_type = 0;
 
 	_flags = kFlagsNoName;
-	_label = 0;
+	_label = nullptr;
 
 	// BRA specific
 	_index = INVALID_ZONE_INDEX;
@@ -238,7 +236,7 @@ Question *Dialogue::findQuestion(const Common::String &name) const {
 			return _questions[i];
 		}
 	}
-	return 0;
+	return nullptr;
 }
 
 void Dialogue::addQuestion(Question *q) {
@@ -365,9 +363,9 @@ void ScriptVar::setRandom(int16 seed) {
 
 ScriptVar::ScriptVar() {
 	_flags = 0;
-	_local = 0;
+	_local = nullptr;
 	_value = 0;
-	_field = 0;
+	_field = nullptr;
 }
 
 ScriptVar::~ScriptVar() {
@@ -432,7 +430,7 @@ void FixedTable::clear() {
 	uint32 deleted = 0;
 	for (uint32 i = _numFixed; i < _used; i++) {
 		free(_data[i]);
-		_data[i] = 0;
+		_data[i] = nullptr;
 		deleted++;
 	}
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -83,7 +82,7 @@ void DebugState::updateActiveBreakpointTypes() {
 // Disassembles one command from the heap, returns address of next command or 0 if a ret was encountered.
 reg_t disassemble(EngineState *s, reg_t pos, const Object *obj, bool printBWTag, bool printBytecode, bool printCSyntax) {
 	SegmentObj *mobj = s->_segMan->getSegment(pos.getSegment(), SEG_TYPE_SCRIPT);
-	Script *script_entity = NULL;
+	Script *script_entity = nullptr;
 	reg_t retval = make_reg32(pos.getSegment(), pos.getOffset() + 1);
 	uint16 param_value = 0xffff; // Suppress GCC warning by setting default value, chose value as invalid to getKernelName etc.
 	uint i = 0;
@@ -128,7 +127,7 @@ reg_t disassemble(EngineState *s, reg_t pos, const Object *obj, bool printBWTag,
 		}
 
 		for (i = bytecount; i < 5; i++)
-			if (printCSyntax) 
+			if (printCSyntax)
 				debugN("      ");
 			else
 				debugN("   ");
@@ -351,7 +350,7 @@ reg_t disassemble(EngineState *s, reg_t pos, const Object *obj, bool printBWTag,
 
 			while (stackframe > 0) {
 				int argc = sb[- stackframe + 1].getOffset();
-				const char *name = NULL;
+				const char *name = nullptr;
 				reg_t called_obj_addr = s->xs->objp;
 
 				if (opcode == op_send)
@@ -371,7 +370,7 @@ reg_t disassemble(EngineState *s, reg_t pos, const Object *obj, bool printBWTag,
 				if (!s->_segMan->getObject(called_obj_addr)) {
 					debugN("INVALID_OBJ");
 				} else {
-					switch (lookupSelector(s->_segMan, called_obj_addr, selector, 0, &fun_ref)) {
+					switch (lookupSelector(s->_segMan, called_obj_addr, selector, nullptr, &fun_ref)) {
 					case kSelectorMethod:
 						debugN("FUNCT");
 						argc += restmod;
@@ -1121,9 +1120,8 @@ void logBacktrace() {
 
 		switch (call.type) {
 		case EXEC_STACK_TYPE_CALL: // Normal function
-			if (call.type == EXEC_STACK_TYPE_CALL)
-				con->debugPrintf(" %x: script %d - ", i, s->_segMan->getScript(call.addr.pc.getSegment())->getScriptNumber());
-			
+			con->debugPrintf(" %x: script %d - ", i, s->_segMan->getScript(call.addr.pc.getSegment())->getScriptNumber());
+
 			if (call.debugSelector != -1) {
 				con->debugPrintf("%s::%s(", objname, g_sci->getKernel()->getSelectorName(call.debugSelector).c_str());
 			} else if (call.debugExportId != -1) {

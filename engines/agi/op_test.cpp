@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -280,7 +279,7 @@ uint8 AgiEngine::testCompareStrings(uint8 s1, uint8 s2) {
 }
 
 uint8 AgiEngine::testController(uint8 cont) {
-	return (_game.controllerOccured[cont] ? true : false);
+	return (_game.controllerOccurred[cont] ? true : false);
 }
 
 uint8 AgiEngine::testPosn(uint8 n, uint8 x1, uint8 y1, uint8 x2, uint8 y2) {
@@ -388,7 +387,7 @@ bool AgiEngine::testIfCode(int16 logicNr) {
 
 	while (!(shouldQuit() || _restartGame) && !endTest) {
 		if (_debug.enabled && (_debug.logic0 || logicNr))
-			debugConsole(logicNr, lTEST_MODE, NULL);
+			debugConsole(logicNr, lTEST_MODE, nullptr);
 
 		op = *(code + ip++);
 		memmove(p, (code + ip), 16);

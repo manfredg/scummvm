@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,13 +28,17 @@
 #include "graphics/scaler.h"
 #include "gui/saveload.h"
 #include "ultima/shared/early/ultima_early.h"
+#include "ultima/shared/early/game.h"
 #include "ultima/shared/engine/ultima.h"
 #include "ultima/shared/engine/debugger.h"
 #include "ultima/shared/engine/events.h"
 #include "ultima/shared/engine/resources.h"
 #include "ultima/shared/core/mouse_cursor.h"
 #include "ultima/shared/gfx/screen.h"
+
+#ifndef RELEASE_BUILD
 #include "ultima/ultima1/game.h"
+#endif
 
 namespace Ultima {
 
@@ -44,7 +47,7 @@ Shared::UltimaEarlyEngine *g_vm;
 namespace Shared {
 
 UltimaEarlyEngine::UltimaEarlyEngine(OSystem *syst, const UltimaGameDescription *gameDesc) :
-		UltimaEngine(syst, gameDesc) {
+		UltimaEngine(syst, gameDesc), _game(nullptr) {
 	g_vm = this;
 	_mouseCursor = nullptr;
 	_screen = nullptr;
@@ -117,8 +120,10 @@ Graphics::Screen *UltimaEarlyEngine::getScreen() const {
 
 Game *UltimaEarlyEngine::createGame() const {
 	switch (getGameId()) {
+#ifndef RELEASE_BUILD
 	case GAME_ULTIMA1:
 		return new Ultima1::Ultima1Game();
+#endif
 	default:
 		error("Unknown game");
 	}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,8 +45,6 @@ extern GUI_status actorViewButtonCallback(void *data);
 #define U6 Game::get_game()->get_game_type()==NUVIE_GAME_U6
 #define SE Game::get_game()->get_game_type()==NUVIE_GAME_SE
 #define MD Game::get_game()->get_game_type()==NUVIE_GAME_MD
-
-static const uint8 ACTION_BUTTON = 3;
 
 PartyView::PartyView(Configuration *cfg) : View(cfg) {
 	player = NULL;
@@ -85,7 +82,6 @@ bool PartyView::init(void *vm, uint16 x, uint16 y, Font *f, Party *p, Player *pl
 }
 
 GUI_status PartyView::MouseWheel(sint32 x, sint32 y) {
-#if SDL_VERSION_ATLEAST(2, 0, 0)
 	int xpos, ypos;
 	screen->get_mouse_location(&xpos, &ypos);
 
@@ -93,7 +89,7 @@ GUI_status PartyView::MouseWheel(sint32 x, sint32 y) {
 	ypos -= area.top;
 	if (xpos < 0 || ypos > area.top + area.height() - 6)
 		return GUI_PASS; // goes to MsgScrollw
-#endif
+
 	if (y > 0) {
 		if (up_arrow())
 			Redraw();

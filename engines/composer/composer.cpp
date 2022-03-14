@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/scummsys.h"
@@ -42,7 +41,7 @@ namespace Composer {
 
 ComposerEngine::ComposerEngine(OSystem *syst, const ComposerGameDescription *gameDesc) : Engine(syst), _gameDescription(gameDesc) {
 	_rnd = new Common::RandomSource("composer");
-	_audioStream = NULL;
+	_audioStream = nullptr;
 	_currSoundPriority = 0;
 	_currentTime = 0;
 	_lastTime = 0;
@@ -51,12 +50,10 @@ ComposerEngine::ComposerEngine(OSystem *syst, const ComposerGameDescription *gam
 	_mouseVisible = true;
 	_mouseEnabled = false;
 	_mouseSpriteId = 0;
-	_lastButton = NULL;
+	_lastButton = nullptr;
 }
 
 ComposerEngine::~ComposerEngine() {
-	DebugMan.clearAllDebugChannels();
-
 	stopPipes();
 	for (Common::List<OldScript *>::iterator i = _oldScripts.begin(); i != _oldScripts.end(); i++)
 		delete *i;
@@ -89,6 +86,11 @@ Common::Error ComposerEngine::run() {
 		if (!_bookIni.loadFromFile("programs/book.ini")) {
 			error("failed to find book.ini");
 		}
+	}
+
+	Common::String gameId(getGameId());
+	if (getPlatform() == Common::kPlatformMacintosh && (gameId == "darby" || gameId == "gregory")) {
+		_directoriesToStrip = 0;
 	}
 
 	uint width = 640;
@@ -517,10 +519,10 @@ void ComposerEngine::unloadLibrary(uint id) {
 		_sprites.clear();
 		i->_buttons.clear();
 
-		_lastButton = NULL;
+		_lastButton = nullptr;
 
 		_mixer->stopAll();
-		_audioStream = NULL;
+		_audioStream = nullptr;
 
 		for (uint j = 0; j < _queuedScripts.size(); j++) {
 			_queuedScripts[j]._count = 0;
@@ -676,7 +678,7 @@ const Button *ComposerEngine::getButtonFor(const Sprite *sprite, const Common::P
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void ComposerEngine::setButtonActive(uint16 id, bool active) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,7 +40,12 @@ enum kAR01Exits {
 };
 
 void SceneScriptAR01::InitializeScene() {
-	Music_Play(kMusicArabLoop, 25, 0, 2, -1, 1, 2);
+	if (_vm->_cutContent) {
+		Music_Play(kMusicArabLoop, 25, 0, 2, -1, kMusicLoopRepeatRandomStart, 2);
+	} else {
+		Music_Play(kMusicArabLoop, 25, 0, 2, -1, kMusicLoopRepeat, 2);
+	}
+
 	if (Game_Flag_Query(kFlagHC01toAR01)) {
 		Setup_Scene_Information(-477.0f, 0.0f, -149.0f, 333);
 	} else if (Game_Flag_Query(kFlagAR02toAR01)) {
@@ -74,10 +78,10 @@ void SceneScriptAR01::InitializeScene() {
 	Ambient_Sounds_Add_Sound(kSfxHCANM6,   3,  30, 11,  11,   50, 100, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxHCANM7,   3,  30, 11,  11,   50, 100, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxHCANM1,   3,  30, 11,  11,   50, 100, -101, -101, 0, 0);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy,  0, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 20, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 40, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 50, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy,  0, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 20, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 40, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 50, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
 	Ambient_Sounds_Add_Sound(kSfxSPIN2B,  10, 180, 16,  25,    0,   0, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxSPIN3A,  10, 180, 16,  25,    0,   0, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxTHNDER2, 10, 180, 50, 100,    0,   0, -101, -101, 0, 0);
@@ -454,9 +458,9 @@ void SceneScriptAR01::PlayerWalkedIn() {
 void SceneScriptAR01::PlayerWalkedOut() {
 	Actor_Set_Invisible(kActorMcCoy, false);
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 	if (!Game_Flag_Query(kFlagMcCoyInHawkersCircle)) {
-		Music_Stop(2);
+		Music_Stop(2u);
 	}
 	if (!Game_Flag_Query(kFlagAR01toHC01)
 	 && !Game_Flag_Query(kFlagAR01toAR02)

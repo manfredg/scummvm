@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,6 +28,8 @@
 #include "audio/midiparser.h"
 // Miles Audio for Discworld 1
 #include "audio/miles.h"
+// Discworld Noir
+#include "audio/decoders/mp3.h"
 
 #include "backends/audiocd/audiocd.h"
 
@@ -174,6 +175,8 @@ bool Music::PlayMidiSequence(uint32 dwFileOffset, bool bLoop) {
 		// The Macintosh version of DW1 uses raw PCM for music
 		dwSeqLen = midiStream.readUint32BE();
 		_vm->_sound->playDW1MacMusic(midiStream, dwSeqLen);
+	} else if (TinselV1Saturn) {
+		// TODO: Music format for the Saturn version
 	} else {
 		dwSeqLen = midiStream.readUint32LE();
 
@@ -191,7 +194,7 @@ bool Music::PlayMidiSequence(uint32 dwFileOffset, bool bLoop) {
 		if (midiStream.read(_midiBuffer.pDat, dwSeqLen) != dwSeqLen)
 			error(FILE_IS_CORRUPT, MIDI_FILE);
 
-		// WORKAROUND for bug #2820054 "DW1: No intro music at first start on Wii",
+		// WORKAROUND for bug #4393 "DW1: No intro music at first start on Wii",
 		// which actually affects all ports, since it's specific to the GRA version.
 		//
 		// The GRA version does not seem to set the channel volume at all for the first
@@ -296,6 +299,10 @@ void Music::OpenMidiFiles() {
 		}
 
 		midiStream.close();
+	} else if (TinselV1Saturn) {
+		// The Saturn version has digital music with a different track structure
+		// TODO
+		warning("Music support for Discworld 1 Saturn");
 	} else {
 		if (_midiBuffer.pDat)
 			// already allocated
@@ -757,6 +764,26 @@ int PCMMusicPlayer::readBuffer(int16 *buffer, const int numSamples) {
 	return (numSamples - samplesLeft);
 }
 
+bool PCMMusicPlayer::isStereo() const {
+	if (TinselV3) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+int PCMMusicPlayer::getRate() const {
+	if (TinselV3) {
+		if (_curChunk) {
+			return _curChunk->getRate();
+		} else {
+			return 0;
+		}
+	} else {
+		return 22050;
+	}
+}
+
 bool PCMMusicPlayer::isPlaying() const {
 	return ((_state != S_IDLE) && (_state != S_STOP));
 }
@@ -928,22 +955,92 @@ void PCMMusicPlayer::fadeOutIteration() {
 	_vm->_mixer->setChannelVolume(_handle, _fadeOutVolume);
 }
 
+Common::MemoryReadStream *readSampleData(const Common::String &filename, uint32 sampleOffset, uint32 sampleLength) {
+	Common::File file;
+	if (!file.open(filename))
+		error(CANNOT_FIND_FILE, filename.c_str());
+
+	file.seek(sampleOffset);
+	if (file.eos() || file.err() || (uint32)file.pos() != sampleOffset)
+		error(FILE_IS_CORRUPT, filename.c_str());
+
+	byte *buffer = (byte *) malloc(sampleLength);
+	assert(buffer);
+
+	// read all of the sample
+	if (file.read(buffer, sampleLength) != sampleLength)
+		error(FILE_IS_CORRUPT, filename.c_str());
+
+	return new Common::MemoryReadStream(buffer, sampleLength, DisposeAfterUse::YES);
+}
+
+struct MusicSegment {
+	uint32 numChannels;
+	uint32 bitsPerSec;
+	uint32 bitsPerSample;
+	uint32 sampleLength;
+	uint32 sampleOffset;
+};
+
+void PCMMusicPlayer::loadADPCMMusicFromSegment(int segmentNum) {
+	MusicSegment *musicSegments = (MusicSegment *)_vm->_handle->LockMem(_hSegment);
+
+	assert(FROM_32(musicSegments[segmentNum].numChannels) == 1);
+	assert(FROM_32(musicSegments[segmentNum].bitsPerSample) == 16);
+
+	uint32 sampleOffset = FROM_32(musicSegments[segmentNum].sampleOffset);
+	uint32 sampleLength = FROM_32(musicSegments[segmentNum].sampleLength);
+	uint32 sampleCLength = (((sampleLength + 63) & ~63)*33)/64;
+
+	debugC(DEBUG_DETAILED, kTinselDebugMusic, "Creating ADPCM music chunk with size %d, "
+			"offset %d (script %d.%d)",
+			sampleCLength, sampleOffset, _scriptNum, _scriptIndex - 1);
+
+	Common::SeekableReadStream *sampleStream = readSampleData(_filename, sampleOffset, sampleCLength);
+
+	delete _curChunk;
+	_curChunk = new Tinsel8_ADPCMStream(sampleStream, DisposeAfterUse::YES, sampleCLength, 22050, 1, 32);
+}
+
+struct MusicSegmentNoir {
+	uint32 sampleLength;
+	uint32 sampleOffset;
+};
+
+void PCMMusicPlayer::loadMP3MusicFromSegment(int segmentNum) {
+#ifdef USE_MAD
+	MusicSegmentNoir *musicSegments = (MusicSegmentNoir *)_vm->_handle->LockMem(_hSegment);
+
+	Common::SeekableReadStream *sampleStream = readSampleData(_filename, musicSegments[segmentNum].sampleOffset,
+			musicSegments[segmentNum].sampleLength);
+
+	delete _curChunk;
+	_curChunk = Audio::makeMP3Stream(sampleStream, DisposeAfterUse::YES);
+#else
+	delete _curChunk;
+	_curChunk = 0;
+#endif
+}
+
+void PCMMusicPlayer::loadMusicFromSegment(int segmentNum) {
+	if (TinselV3) {
+		loadMP3MusicFromSegment(segmentNum);
+	} else {
+		loadADPCMMusicFromSegment(segmentNum);
+	}
+}
+
 bool PCMMusicPlayer::getNextChunk() {
-	MusicSegment *musicSegments;
 	int32 *script, *scriptBuffer;
 	int id;
 	int snum;
-	uint32 sampleOffset, sampleLength, sampleCLength;
-	Common::File file;
-	byte *buffer;
-	Common::SeekableReadStream *sampleStream;
 
 	switch (_state) {
 	case S_NEW:
 	case S_NEXT:
 		_forcePlay = false;
 
-		script = scriptBuffer = (int32 *)LockMem(_hScript);
+		script = scriptBuffer = (int32 *)_vm->_handle->LockMem(_hScript);
 
 		// Set parameters for this chunk of music
 		id = _scriptNum;
@@ -959,38 +1056,7 @@ bool PCMMusicPlayer::getNextChunk() {
 			break;
 		}
 
-		musicSegments = (MusicSegment *) LockMem(_hSegment);
-
-		assert(FROM_32(musicSegments[snum].numChannels) == 1);
-		assert(FROM_32(musicSegments[snum].bitsPerSample) == 16);
-
-		sampleOffset = FROM_32(musicSegments[snum].sampleOffset);
-		sampleLength = FROM_32(musicSegments[snum].sampleLength);
-		sampleCLength = (((sampleLength + 63) & ~63)*33)/64;
-
-		if (!file.open(_filename))
-			error(CANNOT_FIND_FILE, _filename.c_str());
-
-		file.seek(sampleOffset);
-		if (file.eos() || file.err() || (uint32)file.pos() != sampleOffset)
-			error(FILE_IS_CORRUPT, _filename.c_str());
-
-		buffer = (byte *) malloc(sampleCLength);
-		assert(buffer);
-
-		// read all of the sample
-		if (file.read(buffer, sampleCLength) != sampleCLength)
-			error(FILE_IS_CORRUPT, _filename.c_str());
-
-		debugC(DEBUG_DETAILED, kTinselDebugMusic, "Creating ADPCM music chunk with size %d, "
-				"offset %d (script %d.%d)", sampleCLength, sampleOffset,
-				_scriptNum, _scriptIndex - 1);
-
-		sampleStream = new Common::MemoryReadStream(buffer, sampleCLength, DisposeAfterUse::YES);
-
-		delete _curChunk;
-		_curChunk = new Tinsel8_ADPCMStream(sampleStream, DisposeAfterUse::YES, sampleCLength,
-				22050, 1, 32);
+		loadMusicFromSegment(snum);
 
 		_state = S_MID;
 		return true;
@@ -999,7 +1065,7 @@ bool PCMMusicPlayer::getNextChunk() {
 		debugC(DEBUG_DETAILED, kTinselDebugMusic, "Music reached state S_END1 (script %d.%d)",
 				_scriptNum, _scriptIndex);
 
-		script = scriptBuffer = (int32 *) LockMem(_hScript);
+		script = scriptBuffer = (int32 *)_vm->_handle->LockMem(_hScript);
 
 		id = _scriptNum;
 		while (id--)

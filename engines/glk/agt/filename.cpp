@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,24 +26,6 @@ namespace AGT {
 
 #ifdef force16
 #undef int
-#endif
-
-#ifdef UNIX_IO
-#include <fcntl.h>
-#include <sys/stat.h>  /* Needed only for file permission bits */
-
-#ifdef __STRICT_ANSI__
-int fileno(FILE *f);
-FILE *popen(char *s, char *how);
-int pclose(FILE *p);
-#endif
-
-#ifdef MSDOS16
-#include <io.h>
-#endif
-#endif /* UNIX_IO */
-
-#ifdef force16
 #define int short
 #endif
 
@@ -65,7 +46,7 @@ const char *extname[] = {
 #ifdef PATH_SEP
 static const char *path_sep = PATH_SEP;
 #else
-static const char *path_sep = NULL;
+static const char *path_sep = nullptr;
 #endif
 
 /* This returns the options to use when opening the given file type */
@@ -87,7 +68,7 @@ const char *filetype_info(filetype ft, rbool rw) {
 	}
 	if (ft == fLOG) return rw ? "w" : "r";
 	fatal("INTERNAL ERROR: Invalid filetype.");
-	return NULL;
+	return nullptr;
 }
 
 
@@ -118,22 +99,22 @@ static rbool compat_ext(filetype ft, filetype ft_base) {
 /*----------------------------------------------------------------------*/
 
 char *assemble_filename(const char *path, const char *root,
-                        const char *ext) {
+						const char *ext) {
 	int len1, len2, len3;
 	char *name;
 
 	len1 = len2 = len3 = 0;
-	if (path != NULL) len1 = strlen(path);
-	if (root != NULL) len2 = strlen(root);
-	if (ext != NULL) len3 = strlen(ext);
+	if (path != nullptr) len1 = strlen(path);
+	if (root != nullptr) len2 = strlen(root);
+	if (ext != nullptr) len3 = strlen(ext);
 	name = (char *)rmalloc(len1 + len2 + len3 + 1);
-	if (path != NULL) memcpy(name, path, len1);
+	if (path != nullptr) memcpy(name, path, len1);
 #ifdef PREFIX_EXT
 	if (ext != NULL) memcpy(name + len1, ext, len3);
 	if (root != NULL) memcpy(name + len1 + len3, root, len2);
 #else
-	if (root != NULL) memcpy(name + len1, root, len2);
-	if (ext != NULL) memcpy(name + len1 + len2, ext, len3);
+	if (root != nullptr) memcpy(name + len1, root, len2);
+	if (ext != nullptr) memcpy(name + len1 + len2, ext, len3);
 #endif
 	name[len1 + len2 + len3] = 0;
 	return name;
@@ -163,7 +144,7 @@ static rbool smatch(char c, const char *matchset) {
 static int find_path_sep(const char *name) {
 	int i;
 
-	if (path_sep == NULL)
+	if (path_sep == nullptr)
 		return -1;
 	for (i = strlen(name) - 1; i >= 0; i--)
 		if (smatch(name[i], path_sep)) break;
@@ -175,7 +156,7 @@ static int find_path_sep(const char *name) {
    has an extension. Returns the length of the extensions
    and writes the extension type in pft */
 static int search_for_ext(const char *name, filetype base_ft,
-                          filetype *pft) {
+						  filetype *pft) {
 	filetype t;
 	int xlen, len;
 
@@ -196,23 +177,7 @@ static int search_for_ext(const char *name, filetype base_ft,
 				return xlen;
 			}
 		}
-#ifdef UNIX_IO
-	/* This is code to make the Unix/etc ports easier to use under
-	   tab-completing shells (which often complete "gamename._" or
-	   "gamename.ag_" since there are other files in the directory
-	   with the same root.) */
-	assert(*pft == fNONE);
-	if (name[len - 1] == '.') return 1;
-	if (fnamecmp(name + len - 3, ".ag") == 0) {
-		if (base_ft == fDA1 || base_ft == fAGX) *pft = fAGX;
-		if (base_ft == fAGT) *pft = fAGT;
-	}
-	if (fnamecmp(name + len - 3, ".da") == 0) {
-		if (base_ft == fDA1 || base_ft == fAGX) *pft = fDA1;
-		if (base_ft == fAGT) *pft = fAGT;
-	}
-	if (*pft != fNONE) return 3;
-#endif
+
 	return 0;
 }
 
@@ -225,7 +190,7 @@ static char *extract_piece(const char *name, int extlen, rbool isext) {
 	char *root;
 	int len, xlen;
 	rbool first;  /* If true, extract from beginning; if false, extract
-           from end */
+		   from end */
 
 	len = strlen(name) - extlen;
 	xlen = extlen;
@@ -235,7 +200,7 @@ static char *extract_piece(const char *name, int extlen, rbool isext) {
 		len = xlen;
 		xlen = tmp;
 	}
-	if (len == 0) return NULL;
+	if (len == 0) return nullptr;
 	root = (char *)rmalloc((len + 1) * sizeof(char));
 #ifdef PREFIX_EXT
 	first = isext ? 1 : 0;
@@ -309,13 +274,13 @@ static void fix_path(file_context_rec *fc) {
 
 /* This creates a new file context based on gamename. */
 /* ft indicates the rough use it will be put towards:
-     ft=fNONE indicates it's the first pass read, before PATH has been
-         read in, and so the fc shouldn't be filled out until
-     fix_file_context() is called.
-     ft=pDA1 indicates that name refers to the game files.
-     ft=pAGX indicates the name of the AGX file to be written to.
-     ft=pSAV,pLOG,pSCR all indicate that name corresponds to the
-         related type of file. */
+	 ft=fNONE indicates it's the first pass read, before PATH has been
+		 read in, and so the fc shouldn't be filled out until
+	 fix_file_context() is called.
+	 ft=pDA1 indicates that name refers to the game files.
+	 ft=pAGX indicates the name of the AGX file to be written to.
+	 ft=pSAV,pLOG,pSCR all indicate that name corresponds to the
+		 related type of file. */
 fc_type init_file_context(const char *name, filetype ft) {
 	file_context_rec *fc;
 	int p, x;  /* Path and extension markers */
@@ -323,30 +288,11 @@ fc_type init_file_context(const char *name, filetype ft) {
 	fc = (file_context_rec *)rmalloc(sizeof(file_context_rec));
 	fc->special = 0;
 
-#ifdef UNIX
-	if (name[0] == '|') { /* Output pipe */
-		name++;
-		fc->special = 1;
-	}
-#endif
-
 	fc->gamename = rstrdup(name);
-
-#ifdef UNIX
-	x = strlen(fc->gamename);
-	if (fc->gamename[x - 1] == '|') { /* Input pipe */
-		fc->gamename[x - 1] = 0;
-		fc->special |= 2;
-	}
-	if (fc->special) {
-		fc->path = fc->shortname = fc->ext = NULL;
-		return fc;
-	}
-#endif
 
 	p = find_path_sep(fc->gamename);
 	if (p < 0)
-		fc->path = NULL;
+		fc->path = nullptr;
 	else {
 		fc->path = (char *)rmalloc((p + 2) * sizeof(char));
 		memcpy(fc->path, fc->gamename, p + 1);
@@ -378,17 +324,17 @@ void fix_file_context(fc_type fc, filetype ft) {
 fc_type convert_file_context(fc_type fc, filetype ft, const char *name) {
 	file_context_rec *nfc;
 	rbool local_ftype; /* Indicates file should be in working directory,
-            not game directory. */
+			not game directory. */
 
 	local_ftype = (ft == fSAV || ft == fSCR || ft == fLOG);
 	if (BATCH_MODE || make_test) local_ftype = 0;
 
-	if (name == NULL) {
+	if (name == nullptr) {
 		nfc = (file_context_rec *)rmalloc(sizeof(file_context_rec));
-		nfc->gamename = NULL;
-		nfc->path = NULL;
+		nfc->gamename = nullptr;
+		nfc->path = nullptr;
 		nfc->shortname = rstrdup(fc->shortname);
-		nfc->ext = NULL;
+		nfc->ext = nullptr;
 		nfc->ft = fNONE;
 		nfc->special = 0;
 	} else {
@@ -396,7 +342,7 @@ fc_type convert_file_context(fc_type fc, filetype ft, const char *name) {
 	}
 
 	/* If path already defined, then combine paths. */
-	if (!local_ftype && nfc->path != NULL && !absolute_path(nfc->path)) {
+	if (!local_ftype && nfc->path != nullptr && !absolute_path(nfc->path)) {
 		char *newpath;
 		newpath = nfc->path;
 		newpath = assemble_filename(fc->path, nfc->path, "");
@@ -406,7 +352,7 @@ fc_type convert_file_context(fc_type fc, filetype ft, const char *name) {
 
 	/* scripts, save-games and logs should go in  the working directory,
 	   not the game directory, so leave nfc->path equal to NULL for them. */
-	if (!local_ftype && nfc->path == NULL)
+	if (!local_ftype && nfc->path == nullptr)
 		nfc->path = rstrdup(fc->path); /* Put files in game directory */
 	return nfc;
 }
@@ -426,30 +372,9 @@ void release_file_context(fc_type *pfc) {
 /*   Routines for Finding Files                                         */
 /*----------------------------------------------------------------------*/
 
-#ifdef UNIX
-/* This requires that no two sav/scr/log files be open at the same time. */
-static int pipecnt = 0;
-static FILE *pipelist[6];
-
-static genfile try_open_pipe(fc_type fc, filetype ft, rbool rw) {
-	FILE *f;
-
-	errno = 0;
-	if (ft != fSAV && ft != fSCR && ft != fLOG) return NULL;
-	if (rw && fc->special != 1) return NULL;
-	if (!rw && fc->special != 2) return NULL;
-	if (pipecnt >= 6) return NULL;
-
-	f = popen(fc->gamename, rw ? "w" : "r"); /* Need to indicate this is a pipe */
-	pipelist[pipecnt++] = f;
-	return f;
-}
-#endif
-
-
 static genfile try_open_file(const char *path, const char *root,
-                             const char *ext, const char *how,
-                             rbool nofix) {
+							 const char *ext, const char *how,
+							 rbool nofix) {
 	char *name = assemble_filename(path, root, ext);
 	genfile f = fopen(name, how);
 	rfree(name);
@@ -461,21 +386,15 @@ static genfile try_open_file(const char *path, const char *root,
 static genfile findread(file_context_rec *fc, filetype ft) {
 	genfile f;
 
-	f = NULL;
+	f = nullptr;
 
-#ifdef UNIX
-	if (fc->special) {  /* It's a pipe */
-		f = try_open_pipe(fc, ft, 0);
-		return f;
-	}
-#endif
 	if (ft == fAGT_STD) {
 		f = try_open_file(fc->path, AGTpSTD, "", filetype_info(ft, 0), 0);
 		return f;
 	}
 	if (ft == fAGX || ft == fNONE) /* Try opening w/o added extension */
 		f = try_open_file(fc->path, fc->shortname, fc->ext, filetype_info(ft, 0), 0);
-	if (f == NULL)
+	if (f == nullptr)
 		f = try_open_file(fc->path, fc->shortname, extname[ft], filetype_info(ft, 0), 0);
 	return f;
 }
@@ -488,9 +407,9 @@ static genfile findread(file_context_rec *fc, filetype ft) {
 genfile readopen(fc_type fc, filetype ft, const char **errstr) {
 	genfile f;
 
-	*errstr = NULL;
+	*errstr = nullptr;
 	f = findread(fc, ft);
-	if (f == NULL) {
+	if (f == nullptr) {
 		*errstr = "Cannot open file";
 	}
 	return f;
@@ -501,7 +420,7 @@ rbool fileexist(fc_type fc, filetype ft) {
 
 	if (fc->special) return 0;
 	f = try_open_file(fc->path, fc->shortname, extname[ft], filetype_info(ft, 0), 1);
-	if (f != NULL) { /* File already exists */
+	if (f != nullptr) { /* File already exists */
 		readclose(f);
 		return 1;
 	}
@@ -510,32 +429,21 @@ rbool fileexist(fc_type fc, filetype ft) {
 
 
 genfile writeopen(fc_type fc, filetype ft,
-                  file_id_type *pfileid, const char **errstr) {
+				  file_id_type *pfileid, const char **errstr) {
 	char *name;
 	genfile f;
 
-	*errstr = NULL;
-	name = NULL;
+	*errstr = nullptr;
+	name = nullptr;
 
-#ifdef UNIX
-	if (fc->special) {  /* It's a pipe */
-		f = try_open_pipe(fc, ft, 1);
-		if (f == NULL && errno == 0) {
-			*errstr = rstrdup("Invalid pipe request.");
-			return f;
-		}
-		if (f == NULL) /* For error messages */
-			name = rstrdup(fc->gamename);
-	} else
-#endif
 	{
 		name = assemble_filename(FC(fc)->path, FC(fc)->shortname, extname[ft]);
 		f = fopen(name, filetype_info(ft, 1));
 	}
-	if (f == NULL) {
+	if (f == nullptr) {
 		*errstr = "Cannot open file";
 	}
-	if (pfileid == NULL)
+	if (pfileid == nullptr)
 		rfree(name);
 	else
 		*pfileid = name;
@@ -544,7 +452,7 @@ genfile writeopen(fc_type fc, filetype ft,
 
 
 rbool filevalid(genfile f, filetype ft) {
-	return (f != NULL);
+	return (f != nullptr);
 }
 
 
@@ -561,26 +469,14 @@ void binseek(genfile f, long offset) {
 long varread(genfile f, void *buff, long recsize, long recnum, const char **errstr) {
 	long num;
 
-	*errstr = NULL;
-	assert(f != NULL);
-#ifdef UNIX_IO
-#ifdef MSDOS16
-	num = (unsigned int)read(fileno(f), buff, recsize * recnum);
-	if (num == (unsigned int) - 1)
-#else
-	num = read(fileno(f), buff, recsize * recnum);
-	if (num == -1)
-#endif
-	{
-		*errstr = rstrdup(strerror(errno));
-		return 0;
-	}
-#else
+	*errstr = nullptr;
+	assert(f != nullptr);
+
 	num = fread(buff, recsize, recnum, f);
 	if (num != recnum)
 		*errstr = "varread";
 	num = num * recsize;
-#endif
+
 	return num;
 }
 
@@ -588,64 +484,33 @@ rbool binread(genfile f, void *buff, long recsize, long recnum, const char **err
 	long num;
 
 	num = varread(f, buff, recsize, recnum, errstr);
-	if (num < recsize * recnum && *errstr == NULL)
+	if (num < recsize * recnum && *errstr == nullptr)
 		*errstr = rstrdup("Unexpected end of file.");
-	return (*errstr == NULL);
+	return (*errstr == nullptr);
 }
 
 
 rbool binwrite(genfile f, void *buff, long recsize, long recnum, rbool ferr) {
-	assert(f != NULL);
-#ifdef UNIX_IO
-	if (write(fileno(f), buff, recsize * recnum) == -1)
-#else
-	if (fwrite(buff, recsize, recnum, f) != (size_t)recnum)
-#endif
-	{
+	assert(f != nullptr);
+
+	if (fwrite(buff, recsize, recnum, f) != (size_t)recnum) {
 		if (ferr) fatal("binwrite");
 		return 0;
 	}
 	return 1;
 }
 
-#ifdef UNIX
-static rbool closepipe(genfile f) {
-	int i;
-	for (i = 0; i < pipecnt; i++)
-		if (pipelist[i] == f) {
-			pclose(f);
-			for (; i < pipecnt - 1; i++)
-				pipelist[i] = pipelist[i + 1];
-			pipecnt--;
-			return 1;
-		}
-	return 0;
-}
-#endif
-
 void readclose(genfile f) {
-	assert(f != NULL);
-#ifdef UNIX
-	if (closepipe(f)) return;
-#endif
+	assert(f != nullptr);
+
 	fclose(f);
 }
 
 void writeclose(genfile f, file_id_type fileid) {
-	assert(f != NULL);
+	assert(f != nullptr);
 	rfree(fileid);
-#ifdef UNIX
-	if (closepipe(f)) return;
-#endif
-	fclose(f);
-}
 
-void binremove(genfile f, file_id_type fileid) {
-	assert(f != NULL);
-	assert(fileid != NULL);
 	fclose(f);
-	remove((char *)fileid);
-	rfree(fileid);
 }
 
 long binsize(genfile f)
@@ -653,22 +518,13 @@ long binsize(genfile f)
 {
 	long pos, leng;
 
-	assert(f != NULL);
-#ifdef UNIX_IO
-	{
-		long fd;
+	assert(f != nullptr);
 
-		fd = fileno(f);
-		pos = lseek(fd, 0, SEEK_CUR);
-		leng = lseek(fd, 0, SEEK_END);
-		lseek(fd, pos, SEEK_SET);
-	}
-#else
 	pos = ftell(f);
 	fseek(f, 0, SEEK_END);
 	leng = ftell(f);
 	fseek(f, pos, SEEK_SET);
-#endif
+
 	return leng;
 }
 
@@ -681,7 +537,7 @@ rbool textrewind(genfile f) {
 
 
 genfile badfile(filetype ft) {
-	return NULL;
+	return nullptr;
 }
 
 } // End of namespace AGT

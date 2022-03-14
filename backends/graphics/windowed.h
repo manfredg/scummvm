@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,9 +32,10 @@
 enum {
 	STRETCH_CENTER = 0,
 	STRETCH_INTEGRAL = 1,
-	STRETCH_FIT = 2,
-	STRETCH_STRETCH = 3,
-	STRETCH_FIT_FORCE_ASPECT = 4
+	STRETCH_INTEGRAL_AR = 2,
+	STRETCH_FIT = 3,
+	STRETCH_STRETCH = 4,
+	STRETCH_FIT_FORCE_ASPECT = 5
 };
 
 class WindowedGraphicsManager : virtual public GraphicsManager {
@@ -50,12 +50,10 @@ public:
 		_cursorVisible(false),
 		_cursorX(0),
 		_cursorY(0),
-		_xdpi(90),
-		_ydpi(90),
 		_cursorNeedsRedraw(false),
 		_cursorLastInActiveArea(true) {}
 
-	virtual void showOverlay() override {
+	void showOverlay() override {
 		if (_overlayVisible)
 			return;
 
@@ -64,9 +62,10 @@ public:
 		_activeArea.height = getOverlayHeight();
 		_overlayVisible = true;
 		_forceRedraw = true;
+		notifyActiveAreaChanged();
 	}
 
-	virtual void hideOverlay() override {
+	void hideOverlay() override {
 		if (!_overlayVisible)
 			return;
 
@@ -75,9 +74,12 @@ public:
 		_activeArea.height = getHeight();
 		_overlayVisible = false;
 		_forceRedraw = true;
+		notifyActiveAreaChanged();
 	}
 
-	virtual void setShakePos(int shakeXOffset, int shakeYOffset) override {
+	bool isOverlayVisible() const override { return _overlayVisible; }
+
+	void setShakePos(int shakeXOffset, int shakeYOffset) override {
 		if (_gameScreenShakeXOffset != shakeXOffset || _gameScreenShakeYOffset != shakeYOffset) {
 			_gameScreenShakeXOffset = shakeXOffset;
 			_gameScreenShakeYOffset = shakeYOffset;
@@ -100,7 +102,7 @@ protected:
 	 * Backend-specific implementation for updating internal surfaces that need
 	 * to reflect the new window size.
 	 */
-	virtual void handleResizeImpl(const int width, const int height, const int xdpi, const int ydpi) = 0;
+	virtual void handleResizeImpl(const int width, const int height) = 0;
 
 	/**
 	 * Converts the given point from the active virtual screen's coordinate
@@ -179,12 +181,10 @@ protected:
 	 * @param width The new width of the window, excluding window decoration.
 	 * @param height The new height of the window, excluding window decoration.
 	 */
-	void handleResize(const int width, const int height, const int xdpi, const int ydpi) {
+	void handleResize(const int width, const int height) {
 		_windowWidth = width;
 		_windowHeight = height;
-		_xdpi = xdpi;
-		_ydpi = ydpi;
-		handleResizeImpl(width, height, xdpi, ydpi);
+		handleResizeImpl(width, height);
 	}
 
 	/**
@@ -196,11 +196,11 @@ protected:
 			return;
 		}
 
-		populateDisplayAreaDrawRect(getDesiredGameAspectRatio(), getWidth() * getGameRenderScale(), _gameDrawRect);
+		populateDisplayAreaDrawRect(getDesiredGameAspectRatio(), getWidth() * getGameRenderScale(), getHeight() * getGameRenderScale(), _gameDrawRect);
 
 		if (getOverlayHeight()) {
 			const frac_t overlayAspect = intToFrac(getOverlayWidth()) / getOverlayHeight();
-			populateDisplayAreaDrawRect(overlayAspect, getOverlayWidth(), _overlayDrawRect);
+			populateDisplayAreaDrawRect(overlayAspect, getOverlayWidth(), getOverlayHeight(), _overlayDrawRect);
 		}
 
 		if (_overlayVisible) {
@@ -212,6 +212,7 @@ protected:
 			_activeArea.width = getWidth();
 			_activeArea.height = getHeight();
 		}
+		notifyActiveAreaChanged();
 	}
 
 	/**
@@ -223,7 +224,12 @@ protected:
 	 */
 	virtual void setSystemMousePosition(const int x, const int y) = 0;
 
-	virtual bool showMouse(const bool visible) override {
+	/**
+	 * Called whenever the active area has changed.
+	 */
+	virtual void notifyActiveAreaChanged() {}
+
+	bool showMouse(bool visible) override {
 		if (_cursorVisible == visible) {
 			return visible;
 		}
@@ -240,7 +246,7 @@ protected:
 	 * @param x	The new X position of the mouse in virtual screen coordinates.
 	 * @param y	The new Y position of the mouse in virtual screen coordinates.
 	 */
-	void warpMouse(const int x, const int y) override {
+	void warpMouse(int x, int y) override {
 		// Check active coordinate instead of window coordinate to avoid warping
 		// the mouse if it is still within the same virtual pixel
 		const Common::Point virtualCursor = convertWindowToVirtual(_cursorX, _cursorY);
@@ -283,11 +289,6 @@ protected:
 	 * The height of the window, excluding window decoration.
 	 */
 	int _windowHeight;
-
-	/**
-	 * The DPI of the window.
-	 */
-	int _xdpi, _ydpi;
 
 	/**
 	 * Whether the overlay (i.e. launcher, including the out-of-game launcher)
@@ -370,7 +371,7 @@ protected:
 	int _cursorX, _cursorY;
 
 private:
-	void populateDisplayAreaDrawRect(const frac_t displayAspect, int originalWidth, Common::Rect &drawRect) const {
+	void populateDisplayAreaDrawRect(const frac_t displayAspect, int originalWidth, int originalHeight, Common::Rect &drawRect) const {
 		int mode = getStretchMode();
 		// Mode Center   = use original size, or divide by an integral amount if window is smaller than game surface
 		// Mode Integral = scale by an integral amount.
@@ -379,7 +380,7 @@ private:
 		// Mode Fit Force Aspect = scale to fit the window while forcing a 4:3 aspect ratio
 
 		int width = 0, height = 0;
-		if (mode == STRETCH_CENTER || mode == STRETCH_INTEGRAL) {
+		if (mode == STRETCH_CENTER || mode == STRETCH_INTEGRAL || mode == STRETCH_INTEGRAL_AR) {
 			width = originalWidth;
 			height = intToFrac(width) / displayAspect;
 			if (width > _windowWidth || height > _windowHeight) {
@@ -390,6 +391,17 @@ private:
 				int fac = MIN(_windowWidth / width, _windowHeight / height);
 				width *= fac;
 				height *= fac;
+			}  else if (mode == STRETCH_INTEGRAL_AR) {
+				int targetHeight = height;
+				int horizontalFac = _windowWidth / width;
+				do {
+					width = originalWidth * horizontalFac;
+					int verticalFac = (targetHeight * horizontalFac + originalHeight / 2) / originalHeight;
+					height = originalHeight * verticalFac;
+					--horizontalFac;
+				} while (horizontalFac > 0 && height > _windowHeight);
+				if (height > _windowHeight)
+					height = targetHeight;
 			}
 		} else {
 			frac_t windowAspect = intToFrac(_windowWidth) / _windowHeight;
@@ -408,7 +420,7 @@ private:
 					width = fracToInt(height * displayAspect);
 			}
 		}
-		
+
 		drawRect.left = ((_windowWidth - width) / 2) + _gameScreenShakeXOffset * width / getWidth();
 		drawRect.top = ((_windowHeight - height) / 2) + _gameScreenShakeYOffset * height / getHeight();
 		drawRect.setWidth(width);

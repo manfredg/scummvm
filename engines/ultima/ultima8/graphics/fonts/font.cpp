@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,8 +26,6 @@
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE_BASE_CLASS(Font)
-
 Font::Font() : _highRes(false) {
 }
 
@@ -38,10 +35,10 @@ Font::~Font() {
 
 
 void Font::getTextSize(const Std::string &text,
-                       int32 &resultwidth, int32 &resultheight,
-                       unsigned int &remaining,
-                       int32 width, int32 height, TextAlign align,
-                       bool u8specials) {
+					   int32 &resultwidth, int32 &resultheight,
+					   unsigned int &remaining,
+					   int32 width, int32 height, TextAlign align,
+					   bool u8specials) {
 	Std::list<PositionedText> tmp;
 	tmp = typesetText<Traits>(this, text, remaining,
 	                          width, height, align, u8specials,
@@ -148,7 +145,7 @@ bool Font::SJISTraits::canBreakAfter(Std::string::const_iterator &i) {
 
 template<class T>
 static void findWordEnd(const Std::string &text,
-                        Std::string::const_iterator &iter, bool u8specials) {
+						Std::string::const_iterator &iter, bool u8specials) {
 	while (iter != text.end()) {
 		if (T::isSpace(iter, u8specials)) return;
 		T::advance(iter);
@@ -157,7 +154,7 @@ static void findWordEnd(const Std::string &text,
 
 template<class T>
 static void passSpace(const Std::string &text,
-                      Std::string::const_iterator &iter, bool u8specials) {
+					  Std::string::const_iterator &iter, bool u8specials) {
 	while (iter != text.end()) {
 		if (!T::isSpace(iter, u8specials)) return;
 		T::advance(iter);
@@ -211,17 +208,18 @@ Std::list<PositionedText> typesetText(Font *font,
 			// break here
 			int32 stringwidth = 0, stringheight = 0;
 			font->getStringSize(curline, stringwidth, stringheight);
-			line._dims.x = 0;
-			line._dims.y = totalheight;
-			line._dims.w = stringwidth;
-			line._dims.h = stringheight;
+			line._dims.left = 0;
+			line._dims.top = totalheight;
+			line._dims.setWidth(stringwidth);
+			line._dims.setHeight(stringheight);
 			line._text = curline;
 			line._cursor = Std::string::npos;
 			if (cursor != Std::string::npos && cursoriter >= curlinestart &&
 			        (cursoriter < iter || (!breakhere && cursoriter == iter))) {
 				line._cursor = cursoriter - curlinestart;
-				if (line._dims.w == 0) {
-					stringwidth = line._dims.w = 2;
+				if (line._dims.width() == 0) {
+					stringwidth = 2;
+					line._dims.setWidth(stringwidth);
 				}
 			}
 			lines.push_back(line);
@@ -346,15 +344,15 @@ Std::list<PositionedText> typesetText(Font *font,
 		case Font::TEXT_LEFT:
 			break;
 		case Font::TEXT_RIGHT:
-			lineiter->_dims.x = totalwidth - lineiter->_dims.w;
+			lineiter->_dims.moveTo(totalwidth - lineiter->_dims.width(), lineiter->_dims.top);
 			break;
 		case Font::TEXT_CENTER:
-			lineiter->_dims.x = (totalwidth - lineiter->_dims.w) / 2;
+			lineiter->_dims.moveTo((totalwidth - lineiter->_dims.width()) / 2, lineiter->_dims.top);
 			break;
 		}
 #if 0
 		pout << lineiter->_dims.x << "," << lineiter->_dims.y << " "
-		     << lineiter->_dims.w << "," << lineiter->_dims.h << ": "
+		     << lineiter->_dims.width() << "," << lineiter->_dims.height() << ": "
 		     << lineiter->text << Std::endl;
 #endif
 	}

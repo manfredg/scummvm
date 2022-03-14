@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,19 +51,11 @@ public:
 	virtual List<Event> mapEvent(const Event &ev);
 
 	/**
-	 * Registers a HardwareInputSet with the Keymapper
-	 * @note should only be called once (during backend initialisation)
+	 * Registers a HardwareInputSet and platform-specific default mappings with the Keymapper
 	 *
 	 * Transfers ownership to the Keymapper
 	 */
-	void registerHardwareInputSet(HardwareInputSet *inputs);
-
-	/**
-	 * Registers platform-specific default mappings for keymap actions
-	 *
-	 * Transfers ownership to the Keymapper
-	 */
-	void registerBackendDefaultBindings(KeymapperDefaultBindings *backendDefaultBindings);
+	void registerHardwareInputSet(HardwareInputSet *inputs, KeymapperDefaultBindings *backendDefaultBindings);
 
 	/**
 	 * Add a keymap to the global domain.
@@ -114,6 +105,7 @@ public:
 	 * Keymaps with the global type are always enabled
 	 */
 	void setEnabledKeymapType(Keymap::KeymapType type);
+	Keymap::KeymapType enabledKeymapType() const { return _enabledKeymapType; }
 
 	/**
 	 * Enable/disable the keymapper
@@ -131,6 +123,7 @@ public:
 	HardwareInput findHardwareInput(const Event &event);
 
 	void initKeymap(Keymap *keymap, ConfigManager::Domain *domain);
+	void reloadKeymapMappings(Keymap *keymap);
 
 private:
 	EventManager *_eventMan;
@@ -157,12 +150,34 @@ private:
 
 	bool _joystickAxisPreviouslyPressed[6];
 
+	Keymap::KeymapMatch getMappedActions(const Event &event, Keymap::ActionArray &actions, Keymap::KeymapType keymapType) const;
 	Event executeAction(const Action *act, const Event &incomingEvent);
 	EventType convertStartToEnd(EventType eventType);
 	IncomingEventType convertToIncomingEventType(const Event &ev) const;
 
 	void hardcodedEventMapping(Event ev);
 	void resetInputState();
+};
+
+/**
+ * RAII helper to temporarily enable a keymap type
+ */
+class KeymapTypeEnabler {
+public:
+	KeymapTypeEnabler(Keymapper *keymapper, Keymap::KeymapType keymapType) :
+			_keymapper(keymapper) {
+		assert(keymapper);
+		_previousKeymapType = keymapper->enabledKeymapType();
+		keymapper->setEnabledKeymapType(keymapType);
+	}
+
+	~KeymapTypeEnabler() {
+		_keymapper->setEnabledKeymapType(_previousKeymapType);
+	}
+
+private:
+	Keymapper *_keymapper;
+	Keymap::KeymapType _previousKeymapType;
 };
 
 class DelayedEventSource : public EventSource {

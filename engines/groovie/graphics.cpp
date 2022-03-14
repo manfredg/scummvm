@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,12 +34,14 @@ GraphicsMan::GraphicsMan(GroovieEngine *vm) :
 	// Create the game surfaces
 	_foreground.create(640, 320, _vm->_pixelFormat);
 	_background.create(640, 320, _vm->_pixelFormat);
+	_savedground.create(640, 480, _vm->_pixelFormat);
 }
 
 GraphicsMan::~GraphicsMan() {
 	// Free the game surfaces
 	_foreground.free();
 	_background.free();
+	_savedground.free();
 }
 
 void GraphicsMan::update() {
@@ -49,7 +50,7 @@ void GraphicsMan::update() {
 		uint32 time = _vm->_system->getMillis() - _fadeStartTime;
 
 		// Scale the time
-		int step = (time * 15 << 3) / 1000;
+		int step = (time * 20 << 3) / 1000;
 		if (step > 256) {
 			step = 256;
 		}
@@ -75,15 +76,19 @@ void GraphicsMan::update() {
 }
 
 void GraphicsMan::switchToFullScreen(bool fullScreen) {
+	// retain the image we currently have, Samantha's moves depend on this
+	_background.copyFrom(_foreground);
 	_foreground.free();
-	_background.free();
 
 	if (fullScreen) {
 		_foreground.create(640, 480, _vm->_pixelFormat);
+		_foreground.copyRectToSurface(_background, 0, 80, Common::Rect(0, 0, 640, 320));
+		_background.free();
 		_background.create(640, 480, _vm->_pixelFormat);
 	} else {
-		_vm->_system->fillScreen(0);
 		_foreground.create(640, 320, _vm->_pixelFormat);
+		_foreground.copyRectToSurface(_background, 0, 0, Common::Rect(0, 80, 640, 400));
+		_background.free();
 		_background.create(640, 320, _vm->_pixelFormat);
 	}
 
@@ -114,6 +119,17 @@ void GraphicsMan::updateScreen(Graphics::Surface *source) {
 		_vm->_system->copyRectToScreen(source->getPixels(), source->pitch, 0, 80, 640, 320);
 	else
 		_vm->_system->copyRectToScreen(source->getPixels(), source->pitch, 0, 0, 640, 480);
+	change();
+}
+
+void GraphicsMan::saveScreen() {
+	Graphics::Surface *screen = _vm->_system->lockScreen();
+	_vm->_graphicsMan->_savedground.copyFrom(screen->getSubArea(Common::Rect(0, 0, 640, 480)));
+	_vm->_system->unlockScreen();
+}
+
+void GraphicsMan::restoreScreen() {
+	_vm->_system->copyRectToScreen(_savedground.getPixels(), _savedground.pitch, 0, 0, 640, 480);
 	change();
 }
 

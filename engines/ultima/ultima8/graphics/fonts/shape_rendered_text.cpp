@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,12 +28,9 @@
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(ShapeRenderedText, RenderedText)
-
-
 ShapeRenderedText::ShapeRenderedText(const Std::list<PositionedText> &lines,
-                                     int width, int height, int vLead,
-                                     ShapeFont *font)
+									 int width, int height, int vLead,
+									 ShapeFont *font)
 	: _lines(lines), _font(font) {
 	_width = width;
 	_height = height;
@@ -47,21 +43,23 @@ ShapeRenderedText::~ShapeRenderedText() {
 void ShapeRenderedText::draw(RenderSurface *surface, int x, int y, bool /*destmasked*/) {
 	// TODO support masking here???
 
-	Std::list<PositionedText>::iterator iter;
+	Std::list<PositionedText>::const_iterator iter;
+
+	surface->BeginPainting();
 
 	for (iter = _lines.begin(); iter != _lines.end(); ++iter) {
-		int line_x = x + iter->_dims.x;
-		int line_y = y + iter->_dims.y;
+		int line_x = x + iter->_dims.left;
+		int line_y = y + iter->_dims.top;
 
 		size_t textsize = iter->_text.size();
 
 		for (size_t i = 0; i < textsize; ++i) {
-			surface->Paint(_font, static_cast<unsigned char>(iter->_text[i]),
+			surface->Paint(_font, _font->charToFrameNum(iter->_text[i]),
 			               line_x, line_y);
 
 			if (i == iter->_cursor) {
 				surface->Fill32(0xFF000000, line_x, line_y - _font->getBaseline(),
-				                1, iter->_dims.h);
+				                1, iter->_dims.height());
 			}
 
 			line_x += _font->getWidth(iter->_text[i]) - _font->getHlead();
@@ -69,20 +67,22 @@ void ShapeRenderedText::draw(RenderSurface *surface, int x, int y, bool /*destma
 
 		if (iter->_cursor == textsize) {
 			surface->Fill32(0xFF000000, line_x, line_y - _font->getBaseline(),
-			                1, iter->_dims.h);
+			                1, iter->_dims.height());
 		}
 	}
+
+	surface->EndPainting();
 }
 
 void ShapeRenderedText::drawBlended(RenderSurface *surface, int x, int y,
-                                    uint32 col, bool /*destmasked*/) {
+									uint32 col, bool /*destmasked*/) {
 	// TODO Support masking here ????
 
-	Std::list<PositionedText>::iterator iter;
+	Std::list<PositionedText>::const_iterator iter;
 
 	for (iter = _lines.begin(); iter != _lines.end(); ++iter) {
-		int line_x = x + iter->_dims.x;
-		int line_y = y + iter->_dims.y;
+		int line_x = x + iter->_dims.left;
+		int line_y = y + iter->_dims.top;
 
 		size_t textsize = iter->_text.size();
 

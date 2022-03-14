@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -358,7 +357,7 @@ void AGOSEngine_Simon2::os2_screenTextPObj() {
 
 	SubObject *subObject = (SubObject *)findChildOfType(getNextItemPtr(), kObjectType);
 	if (getFeatures() & GF_TALKIE) {
-		if (subObject != NULL && subObject->objectFlags & kOFVoice) {
+		if (subObject != nullptr && subObject->objectFlags & kOFVoice) {
 			uint speechId = subObject->objectFlagValue[getOffsetOfChild2Param(subObject, kOFVoice)];
 
 			if (subObject->objectFlags & kOFNumber) {
@@ -411,7 +410,7 @@ void AGOSEngine_Simon2::os2_screenTextPObj() {
 
 	}
 
-	if (subObject != NULL && subObject->objectFlags & kOFText && _subtitles) {
+	if (subObject != nullptr && subObject->objectFlags & kOFText && _subtitles) {
 		const char *stringPtr = (const char *)getStringPtrByID(subObject->objectFlagValue[0]);
 		TextLocation *tl = getTextLocation(vgaSpriteId);
 		char buf[256];
@@ -431,7 +430,7 @@ void AGOSEngine_Simon2::os2_screenTextPObj() {
 			}
 			stringPtr = buf;
 		}
-		if (stringPtr != NULL)
+		if (stringPtr != nullptr)
 			printScreenText(vgaSpriteId, color, stringPtr, tl->x, tl->y, tl->width);
 	}
 }

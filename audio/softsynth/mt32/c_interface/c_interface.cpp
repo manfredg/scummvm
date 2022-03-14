@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2021 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -14,6 +14,8 @@
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+#include <cstring>
 
 #include "../globals.h"
 #include "../Types.h"
@@ -41,7 +43,7 @@ static mt32emu_service_version getSynthVersionID(mt32emu_service_i) {
 	return MT32EMU_SERVICE_VERSION_CURRENT;
 }
 
-static const mt32emu_service_i_v2 SERVICE_VTABLE = {
+static const mt32emu_service_i_v4 SERVICE_VTABLE = {
 	getSynthVersionID,
 	mt32emu_get_supported_report_handler_version,
 	mt32emu_get_supported_midi_receiver_version,
@@ -112,7 +114,20 @@ static const mt32emu_service_i_v2 SERVICE_VTABLE = {
 	mt32emu_convert_synth_to_output_timestamp,
 	mt32emu_get_internal_rendered_sample_count,
 	mt32emu_set_nice_amp_ramp_enabled,
-	mt32emu_is_nice_amp_ramp_enabled
+	mt32emu_is_nice_amp_ramp_enabled,
+	mt32emu_set_nice_panning_enabled,
+	mt32emu_is_nice_panning_enabled,
+	mt32emu_set_nice_partial_mixing_enabled,
+	mt32emu_is_nice_partial_mixing_enabled,
+	mt32emu_preallocate_reverb_memory,
+	mt32emu_configure_midi_event_queue_sysex_storage,
+	mt32emu_get_machine_ids,
+	mt32emu_get_rom_ids,
+	mt32emu_identify_rom_data,
+	mt32emu_identify_rom_file,
+	mt32emu_merge_and_add_rom_data,
+	mt32emu_merge_and_add_rom_files,
+	mt32emu_add_machine_rom_file
 };
 
 } // namespace MT32Emu
@@ -142,111 +157,111 @@ protected:
 	void * const instanceData;
 
 private:
-	void printDebug(const char *fmt, va_list list) {
-		if (delegate.v0->printDebug == NULL) {
+	void printDebug(const char *fmt, va_list list) override {
+		if (delegate.v0->printDebug == nullptr) {
 			ReportHandler::printDebug(fmt, list);
 		} else {
 			delegate.v0->printDebug(instanceData, fmt, list);
 		}
 	}
 
-	void onErrorControlROM() {
-		if (delegate.v0->onErrorControlROM == NULL) {
+	void onErrorControlROM() override {
+		if (delegate.v0->onErrorControlROM == nullptr) {
 			ReportHandler::onErrorControlROM();
 		} else {
 			delegate.v0->onErrorControlROM(instanceData);
 		}
 	}
 
-	void onErrorPCMROM() {
-		if (delegate.v0->onErrorPCMROM == NULL) {
+	void onErrorPCMROM() override {
+		if (delegate.v0->onErrorPCMROM == nullptr) {
 			ReportHandler::onErrorPCMROM();
 		} else {
 			delegate.v0->onErrorPCMROM(instanceData);
 		}
 	}
 
-	void showLCDMessage(const char *message) {
-		if (delegate.v0->showLCDMessage == NULL) {
+	void showLCDMessage(const char *message) override {
+		if (delegate.v0->showLCDMessage == nullptr) {
 			ReportHandler::showLCDMessage(message);
 		} else {
 			delegate.v0->showLCDMessage(instanceData, message);
 		}
 	}
 
-	void onMIDIMessagePlayed() {
-		if (delegate.v0->onMIDIMessagePlayed == NULL) {
+	void onMIDIMessagePlayed() override {
+		if (delegate.v0->onMIDIMessagePlayed == nullptr) {
 			ReportHandler::onMIDIMessagePlayed();
 		} else {
 			delegate.v0->onMIDIMessagePlayed(instanceData);
 		}
 	}
 
-	bool onMIDIQueueOverflow() {
-		if (delegate.v0->onMIDIQueueOverflow == NULL) {
+	bool onMIDIQueueOverflow() override {
+		if (delegate.v0->onMIDIQueueOverflow == nullptr) {
 			return ReportHandler::onMIDIQueueOverflow();
 		}
 		return delegate.v0->onMIDIQueueOverflow(instanceData) != MT32EMU_BOOL_FALSE;
 	}
 
-	void onMIDISystemRealtime(Bit8u systemRealtime) {
-		if (delegate.v0->onMIDISystemRealtime == NULL) {
+	void onMIDISystemRealtime(Bit8u systemRealtime) override {
+		if (delegate.v0->onMIDISystemRealtime == nullptr) {
 			ReportHandler::onMIDISystemRealtime(systemRealtime);
 		} else {
 			delegate.v0->onMIDISystemRealtime(instanceData, systemRealtime);
 		}
 	}
 
-	void onDeviceReset() {
-		if (delegate.v0->onDeviceReset == NULL) {
+	void onDeviceReset() override {
+		if (delegate.v0->onDeviceReset == nullptr) {
 			ReportHandler::onDeviceReset();
 		} else {
 			delegate.v0->onDeviceReset(instanceData);
 		}
 	}
 
-	void onDeviceReconfig() {
-		if (delegate.v0->onDeviceReconfig == NULL) {
+	void onDeviceReconfig() override {
+		if (delegate.v0->onDeviceReconfig == nullptr) {
 			ReportHandler::onDeviceReconfig();
 		} else {
 			delegate.v0->onDeviceReconfig(instanceData);
 		}
 	}
 
-	void onNewReverbMode(Bit8u mode) {
-		if (delegate.v0->onNewReverbMode == NULL) {
+	void onNewReverbMode(Bit8u mode) override {
+		if (delegate.v0->onNewReverbMode == nullptr) {
 			ReportHandler::onNewReverbMode(mode);
 		} else {
 			delegate.v0->onNewReverbMode(instanceData, mode);
 		}
 	}
 
-	void onNewReverbTime(Bit8u time) {
-		if (delegate.v0->onNewReverbTime == NULL) {
+	void onNewReverbTime(Bit8u time) override {
+		if (delegate.v0->onNewReverbTime == nullptr) {
 			ReportHandler::onNewReverbTime(time);
 		} else {
 			delegate.v0->onNewReverbTime(instanceData, time);
 		}
 	}
 
-	void onNewReverbLevel(Bit8u level) {
-		if (delegate.v0->onNewReverbLevel == NULL) {
+	void onNewReverbLevel(Bit8u level) override {
+		if (delegate.v0->onNewReverbLevel == nullptr) {
 			ReportHandler::onNewReverbLevel(level);
 		} else {
 			delegate.v0->onNewReverbLevel(instanceData, level);
 		}
 	}
 
-	void onPolyStateChanged(Bit8u partNum) {
-		if (delegate.v0->onPolyStateChanged == NULL) {
+	void onPolyStateChanged(Bit8u partNum) override {
+		if (delegate.v0->onPolyStateChanged == nullptr) {
 			ReportHandler::onPolyStateChanged(partNum);
 		} else {
 			delegate.v0->onPolyStateChanged(instanceData, partNum);
 		}
 	}
 
-	void onProgramChanged(Bit8u partNum, const char *soundGroupName, const char *patchName) {
-		if (delegate.v0->onProgramChanged == NULL) {
+	void onProgramChanged(Bit8u partNum, const char *soundGroupName, const char *patchName) override {
+		if (delegate.v0->onProgramChanged == nullptr) {
 			ReportHandler::onProgramChanged(partNum, soundGroupName, patchName);
 		} else {
 			delegate.v0->onProgramChanged(instanceData, partNum, soundGroupName, patchName);
@@ -264,24 +279,24 @@ protected:
 	void *instanceData;
 
 private:
-	void handleShortMessage(const Bit32u message) {
-		if (delegate.v0->handleShortMessage == NULL) {
+	void handleShortMessage(const Bit32u message) override {
+		if (delegate.v0->handleShortMessage == nullptr) {
 			DefaultMidiStreamParser::handleShortMessage(message);
 		} else {
 			delegate.v0->handleShortMessage(instanceData, message);
 		}
 	}
 
-	void handleSysex(const Bit8u *stream, const Bit32u length) {
-		if (delegate.v0->handleSysex == NULL) {
+	void handleSysex(const Bit8u *stream, const Bit32u length) override {
+		if (delegate.v0->handleSysex == nullptr) {
 			DefaultMidiStreamParser::handleSysex(stream, length);
 		} else {
 			delegate.v0->handleSysex(instanceData, stream, length);
 		}
 	}
 
-	void handleSystemRealtimeMessage(const Bit8u realtime) {
-		if (delegate.v0->handleSystemRealtimeMessage == NULL) {
+	void handleSystemRealtimeMessage(const Bit8u realtime) override {
+		if (delegate.v0->handleSystemRealtimeMessage == nullptr) {
 			DefaultMidiStreamParser::handleSystemRealtimeMessage(realtime);
 		} else {
 			delegate.v0->handleSystemRealtimeMessage(instanceData, realtime);
@@ -289,30 +304,130 @@ private:
 	}
 };
 
-static mt32emu_return_code addROMFile(mt32emu_data *data, File *file) {
-	const ROMImage *image = ROMImage::makeROMImage(file);
-	const ROMInfo *info = image->getROMInfo();
-	if (info == NULL) {
-		ROMImage::freeROMImage(image);
+static void fillROMInfo(mt32emu_rom_info *rom_info, const ROMInfo *controlROMInfo, const ROMInfo *pcmROMInfo) {
+	if (controlROMInfo != nullptr) {
+		rom_info->control_rom_id = controlROMInfo->shortName;
+		rom_info->control_rom_description = controlROMInfo->description;
+		rom_info->control_rom_sha1_digest = controlROMInfo->sha1Digest;
+	} else {
+		rom_info->control_rom_id = nullptr;
+		rom_info->control_rom_description = nullptr;
+		rom_info->control_rom_sha1_digest = nullptr;
+	}
+	if (pcmROMInfo != nullptr) {
+		rom_info->pcm_rom_id = pcmROMInfo->shortName;
+		rom_info->pcm_rom_description = pcmROMInfo->description;
+		rom_info->pcm_rom_sha1_digest = pcmROMInfo->sha1Digest;
+	} else {
+		rom_info->pcm_rom_id = nullptr;
+		rom_info->pcm_rom_description = nullptr;
+		rom_info->pcm_rom_sha1_digest = nullptr;
+	}
+}
+
+static const MachineConfiguration *findMachineConfiguration(const char *machine_id) {
+	Bit32u configurationCount;
+	const MachineConfiguration * const *configurations = MachineConfiguration::getAllMachineConfigurations(&configurationCount);
+	for (Bit32u i = 0; i < configurationCount; i++) {
+		if (!strcmp(configurations[i]->getMachineID(), machine_id)) return configurations[i];
+	}
+	return nullptr;
+}
+
+static mt32emu_return_code identifyROM(mt32emu_rom_info *rom_info, File *romFile, const char *machineID) {
+	const ROMInfo *romInfo;
+	if (machineID == nullptr) {
+		romInfo = ROMInfo::getROMInfo(romFile);
+	} else {
+		const MachineConfiguration *configuration = findMachineConfiguration(machineID);
+		if (configuration == nullptr) {
+			fillROMInfo(rom_info, nullptr, nullptr);
+			return MT32EMU_RC_MACHINE_NOT_IDENTIFIED;
+		}
+		romInfo = ROMInfo::getROMInfo(romFile, configuration->getCompatibleROMInfos());
+	}
+	if (romInfo == nullptr) {
+		fillROMInfo(rom_info, nullptr, nullptr);
 		return MT32EMU_RC_ROM_NOT_IDENTIFIED;
 	}
-	if (info->type == ROMInfo::Control) {
-		if (data->controlROMImage != NULL) {
-			delete data->controlROMImage->getFile();
-			ROMImage::freeROMImage(data->controlROMImage);
-		}
-		data->controlROMImage = image;
-		return MT32EMU_RC_ADDED_CONTROL_ROM;
-	} else if (info->type == ROMInfo::PCM) {
-		if (data->pcmROMImage != NULL) {
-			delete data->pcmROMImage->getFile();
-			ROMImage::freeROMImage(data->pcmROMImage);
-		}
-		data->pcmROMImage = image;
-		return MT32EMU_RC_ADDED_PCM_ROM;
+	if (romInfo->type == ROMInfo::Control) fillROMInfo(rom_info, romInfo, nullptr);
+	else if (romInfo->type == ROMInfo::PCM) fillROMInfo(rom_info, nullptr, romInfo);
+	else fillROMInfo(rom_info, nullptr, nullptr);
+	return MT32EMU_RC_OK;
+}
+
+static bool isROMInfoCompatible(const MachineConfiguration *machineConfiguration, const ROMInfo *romInfo) {
+	Bit32u romCount;
+	const ROMInfo * const *compatibleROMInfos = machineConfiguration->getCompatibleROMInfos(&romCount);
+	for (Bit32u i = 0; i < romCount; i++) {
+		if (romInfo == compatibleROMInfos[i]) return true;
 	}
-	ROMImage::freeROMImage(image);
-	return MT32EMU_RC_OK; // No support for reverb ROM yet.
+	return false;
+}
+
+static mt32emu_return_code replaceOrMergeROMImage(const ROMImage *&contextROMImage, const ROMImage *newROMImage, const MachineConfiguration *machineConfiguration, mt32emu_return_code addedFullROM, mt32emu_return_code addedPartialROM) {
+	if (contextROMImage != nullptr) {
+		if (machineConfiguration != nullptr) {
+			const ROMImage *mergedROMImage = ROMImage::mergeROMImages(contextROMImage, newROMImage);
+			if (mergedROMImage != nullptr) {
+				if (newROMImage->isFileUserProvided()) delete newROMImage->getFile();
+				ROMImage::freeROMImage(newROMImage);
+				if (contextROMImage->isFileUserProvided()) delete contextROMImage->getFile();
+				ROMImage::freeROMImage(contextROMImage);
+				contextROMImage = mergedROMImage;
+				return addedFullROM;
+			}
+			if (newROMImage->getROMInfo() == contextROMImage->getROMInfo()
+				|| (newROMImage->getROMInfo()->pairType != ROMInfo::Full
+					&& isROMInfoCompatible(machineConfiguration, contextROMImage->getROMInfo()))) {
+				ROMImage::freeROMImage(newROMImage);
+				return MT32EMU_RC_OK;
+			}
+		}
+		if (contextROMImage->isFileUserProvided()) delete contextROMImage->getFile();
+		ROMImage::freeROMImage(contextROMImage);
+	}
+	contextROMImage = newROMImage;
+	return newROMImage->getROMInfo()->pairType == ROMInfo::Full ? addedFullROM: addedPartialROM;
+}
+
+static mt32emu_return_code addROMFiles(mt32emu_data *data, File *file1, File *file2 = nullptr, const MachineConfiguration *machineConfiguration = nullptr) {
+	const ROMImage *romImage;
+	if (machineConfiguration != nullptr) {
+		romImage = ROMImage::makeROMImage(file1, machineConfiguration->getCompatibleROMInfos());
+	} else {
+		romImage = file2 == nullptr ? ROMImage::makeROMImage(file1, ROMInfo::getFullROMInfos()) : ROMImage::makeROMImage(file1, file2);
+	}
+	if (romImage == nullptr) return MT32EMU_RC_ROMS_NOT_PAIRABLE;
+	const ROMInfo *info = romImage->getROMInfo();
+	if (info == nullptr) {
+		ROMImage::freeROMImage(romImage);
+		return MT32EMU_RC_ROM_NOT_IDENTIFIED;
+	}
+	switch (info->type) {
+	case ROMInfo::Control:
+		return replaceOrMergeROMImage(data->controlROMImage, romImage, machineConfiguration, MT32EMU_RC_ADDED_CONTROL_ROM, MT32EMU_RC_ADDED_PARTIAL_CONTROL_ROM);
+	case ROMInfo::PCM:
+		return replaceOrMergeROMImage(data->pcmROMImage, romImage, machineConfiguration, MT32EMU_RC_ADDED_PCM_ROM, MT32EMU_RC_ADDED_PARTIAL_PCM_ROM);
+	default:
+		ROMImage::freeROMImage(romImage);
+		return MT32EMU_RC_OK; // No support for reverb ROM yet.
+	}
+}
+
+static mt32emu_return_code createFileStream(const char *filename, FileStream *&fileStream) {
+	mt32emu_return_code rc;
+	fileStream = new FileStream;
+	if (!fileStream->open(filename)) {
+		rc = MT32EMU_RC_FILE_NOT_FOUND;
+	} else if (fileStream->getSize() == 0) {
+		rc = MT32EMU_RC_FILE_NOT_LOADED;
+	} else {
+		return MT32EMU_RC_OK;
+	}
+	delete fileStream;
+	fileStream = nullptr;
+	return rc;
 }
 
 } // namespace MT32Emu
@@ -323,7 +438,7 @@ extern "C" {
 
 mt32emu_service_i mt32emu_get_service_i() {
 	mt32emu_service_i i;
-	i.v2 = &SERVICE_VTABLE;
+	i.v4 = &SERVICE_VTABLE;
 	return i;
 }
 
@@ -351,94 +466,151 @@ mt32emu_analog_output_mode mt32emu_get_best_analog_output_mode(const double targ
 	return mt32emu_analog_output_mode(SampleRateConverter::getBestAnalogOutputMode(target_samplerate));
 }
 
+size_t mt32emu_get_machine_ids(const char **machine_ids, size_t machine_ids_size) {
+	Bit32u configurationCount;
+	const MachineConfiguration * const *configurations = MachineConfiguration::getAllMachineConfigurations(&configurationCount);
+	if (machine_ids != nullptr) {
+		for (Bit32u i = 0; i < machine_ids_size; i++) {
+			machine_ids[i] = i < configurationCount ? configurations[i]->getMachineID() : nullptr;
+		}
+	}
+	return configurationCount;
+}
+
+size_t mt32emu_get_rom_ids(const char **rom_ids, size_t rom_ids_size, const char *machine_id) {
+	const ROMInfo * const *romInfos;
+	Bit32u romCount;
+	if (machine_id != nullptr) {
+		const MachineConfiguration *configuration = findMachineConfiguration(machine_id);
+		if (configuration != nullptr) {
+			romInfos = configuration->getCompatibleROMInfos(&romCount);
+		} else {
+			romInfos = nullptr;
+			romCount = 0U;
+		}
+	} else {
+		romInfos = ROMInfo::getAllROMInfos(&romCount);
+	}
+	if (rom_ids != nullptr) {
+		for (size_t i = 0; i < rom_ids_size; i++) {
+			rom_ids[i] = i < romCount ? romInfos[i]->shortName : nullptr;
+		}
+	}
+	return romCount;
+}
+
+mt32emu_return_code mt32emu_identify_rom_data(mt32emu_rom_info *rom_info, const mt32emu_bit8u *data, size_t data_size, const char *machine_id) {
+	ArrayFile romFile = ArrayFile(data, data_size);
+	return identifyROM(rom_info, &romFile, machine_id);
+}
+
+mt32emu_return_code mt32emu_identify_rom_file(mt32emu_rom_info *rom_info, const char *filename, const char *machine_id) {
+	FileStream *fs;
+	mt32emu_return_code rc = createFileStream(filename, fs);
+	if (fs == nullptr) return rc;
+	rc = identifyROM(rom_info, fs, machine_id);
+	delete fs;
+	return rc;
+}
+
 mt32emu_context mt32emu_create_context(mt32emu_report_handler_i report_handler, void *instance_data) {
 	mt32emu_data *data = new mt32emu_data;
-	data->reportHandler = (report_handler.v0 != NULL) ? new DelegatingReportHandlerAdapter(report_handler, instance_data) : new ReportHandler;
+	data->reportHandler = (report_handler.v0 != nullptr) ? new DelegatingReportHandlerAdapter(report_handler, instance_data) : new ReportHandler;
 	data->synth = new Synth(data->reportHandler);
 	data->midiParser = new DefaultMidiStreamParser(*data->synth);
-	data->controlROMImage = NULL;
-	data->pcmROMImage = NULL;
+	data->controlROMImage = nullptr;
+	data->pcmROMImage = nullptr;
 	data->partialCount = DEFAULT_MAX_PARTIALS;
 	data->analogOutputMode = AnalogOutputMode_COARSE;
 
 	data->srcState = new SamplerateConversionState;
 	data->srcState->outputSampleRate = 0.0;
 	data->srcState->srcQuality = SamplerateConversionQuality_GOOD;
-	data->srcState->src = NULL;
+	data->srcState->src = nullptr;
 
 	return data;
 }
 
 void mt32emu_free_context(mt32emu_context data) {
-	if (data == NULL) return;
+	if (data == nullptr) return;
 
 	delete data->srcState->src;
-	data->srcState->src = NULL;
+	data->srcState->src = nullptr;
 	delete data->srcState;
-	data->srcState = NULL;
+	data->srcState = nullptr;
 
-	if (data->controlROMImage != NULL) {
-		delete data->controlROMImage->getFile();
+	if (data->controlROMImage != nullptr) {
+		if (data->controlROMImage->isFileUserProvided()) delete data->controlROMImage->getFile();
 		ROMImage::freeROMImage(data->controlROMImage);
-		data->controlROMImage = NULL;
+		data->controlROMImage = nullptr;
 	}
-	if (data->pcmROMImage != NULL) {
-		delete data->pcmROMImage->getFile();
+	if (data->pcmROMImage != nullptr) {
+		if (data->pcmROMImage->isFileUserProvided()) delete data->pcmROMImage->getFile();
 		ROMImage::freeROMImage(data->pcmROMImage);
-		data->pcmROMImage = NULL;
+		data->pcmROMImage = nullptr;
 	}
 	delete data->midiParser;
-	data->midiParser = NULL;
+	data->midiParser = nullptr;
 	delete data->synth;
-	data->synth = NULL;
+	data->synth = nullptr;
 	delete data->reportHandler;
-	data->reportHandler = NULL;
+	data->reportHandler = nullptr;
 	delete data;
 }
 
 mt32emu_return_code mt32emu_add_rom_data(mt32emu_context context, const mt32emu_bit8u *data, size_t data_size, const mt32emu_sha1_digest *sha1_digest) {
-	if (sha1_digest == NULL) return addROMFile(context, new ArrayFile(data, data_size));
-	return addROMFile(context, new ArrayFile(data, data_size, *sha1_digest));
+	if (sha1_digest == nullptr) return addROMFiles(context, new ArrayFile(data, data_size));
+	return addROMFiles(context, new ArrayFile(data, data_size, *sha1_digest));
 }
 
 mt32emu_return_code mt32emu_add_rom_file(mt32emu_context context, const char *filename) {
-	mt32emu_return_code rc = MT32EMU_RC_OK;
-	FileStream *fs = new FileStream;
-	if (fs->open(filename)) {
-		if (fs->getData() != NULL) {
-			rc = addROMFile(context, fs);
-			if (rc > 0) return rc;
-		} else {
-			rc = MT32EMU_RC_FILE_NOT_LOADED;
+	FileStream *fs;
+	mt32emu_return_code rc = createFileStream(filename, fs);
+	if (fs != nullptr) rc = addROMFiles(context, fs);
+	if (rc <= MT32EMU_RC_OK) delete fs;
+	return rc;
+}
+
+mt32emu_return_code mt32emu_merge_and_add_rom_data(mt32emu_context context, const mt32emu_bit8u *part1_data, size_t part1_data_size, const mt32emu_sha1_digest *part1_sha1_digest, const mt32emu_bit8u *part2_data, size_t part2_data_size, const mt32emu_sha1_digest *part2_sha1_digest) {
+	ArrayFile *file1 = part1_sha1_digest == nullptr ? new ArrayFile(part1_data, part1_data_size) : new ArrayFile(part1_data, part1_data_size, *part1_sha1_digest);
+	ArrayFile *file2 = part2_sha1_digest == nullptr ? new ArrayFile(part2_data, part2_data_size) : new ArrayFile(part2_data, part2_data_size, *part2_sha1_digest);
+	mt32emu_return_code rc = addROMFiles(context, file1, file2);
+	delete file1;
+	delete file2;
+	return rc;
+}
+
+mt32emu_return_code mt32emu_merge_and_add_rom_files(mt32emu_context context, const char *part1_filename, const char *part2_filename) {
+	FileStream *fs1;
+	mt32emu_return_code rc = createFileStream(part1_filename, fs1);
+	if (fs1 != nullptr) {
+		FileStream *fs2;
+		rc = createFileStream(part2_filename, fs2);
+		if (fs2 != nullptr) {
+			rc = addROMFiles(context, fs1, fs2);
+			delete fs2;
 		}
-	} else {
-		rc = MT32EMU_RC_FILE_NOT_FOUND;
+		delete fs1;
 	}
-	delete fs;
+	return rc;
+}
+
+mt32emu_return_code mt32emu_add_machine_rom_file(mt32emu_context context, const char *machine_id, const char *filename) {
+	const MachineConfiguration *machineConfiguration = findMachineConfiguration(machine_id);
+	if (machineConfiguration == nullptr) return MT32EMU_RC_MACHINE_NOT_IDENTIFIED;
+
+	FileStream *fs;
+	mt32emu_return_code rc = createFileStream(filename, fs);
+	if (fs == nullptr) return rc;
+	rc = addROMFiles(context, fs, nullptr, machineConfiguration);
+	if (rc <= MT32EMU_RC_OK) delete fs;
 	return rc;
 }
 
 void mt32emu_get_rom_info(mt32emu_const_context context, mt32emu_rom_info *rom_info) {
-	const ROMInfo *romInfo = context->controlROMImage == NULL ? NULL : context->controlROMImage->getROMInfo();
-	if (romInfo != NULL) {
-		rom_info->control_rom_id = romInfo->shortName;
-		rom_info->control_rom_description = romInfo->description;
-		rom_info->control_rom_sha1_digest = romInfo->sha1Digest;
-	} else {
-		rom_info->control_rom_id = NULL;
-		rom_info->control_rom_description = NULL;
-		rom_info->control_rom_sha1_digest = NULL;
-	}
-	romInfo = context->pcmROMImage == NULL ? NULL : context->pcmROMImage->getROMInfo();
-	if (romInfo != NULL) {
-		rom_info->pcm_rom_id = romInfo->shortName;
-		rom_info->pcm_rom_description = romInfo->description;
-		rom_info->pcm_rom_sha1_digest = romInfo->sha1Digest;
-	} else {
-		rom_info->pcm_rom_id = NULL;
-		rom_info->pcm_rom_description = NULL;
-		rom_info->pcm_rom_sha1_digest = NULL;
-	}
+	const ROMInfo *controlROMInfo = context->controlROMImage == nullptr ? nullptr : context->controlROMImage->getROMInfo();
+	const ROMInfo *pcmROMInfo = context->pcmROMImage == nullptr ? nullptr : context->pcmROMImage->getROMInfo();
+	fillROMInfo(rom_info, controlROMInfo, pcmROMInfo);
 }
 
 void mt32emu_set_partial_count(mt32emu_context context, const mt32emu_bit32u partial_count) {
@@ -466,7 +638,7 @@ mt32emu_renderer_type mt32emu_get_selected_renderer_type(mt32emu_context context
 }
 
 mt32emu_return_code mt32emu_open_synth(mt32emu_const_context context) {
-	if ((context->controlROMImage == NULL) || (context->pcmROMImage == NULL)) {
+	if ((context->controlROMImage == nullptr) || (context->pcmROMImage == nullptr)) {
 		return MT32EMU_RC_MISSING_ROMS;
 	}
 	if (!context->synth->open(*context->controlROMImage, *context->pcmROMImage, context->partialCount, context->analogOutputMode)) {
@@ -481,7 +653,7 @@ mt32emu_return_code mt32emu_open_synth(mt32emu_const_context context) {
 void mt32emu_close_synth(mt32emu_const_context context) {
 	context->synth->close();
 	delete context->srcState->src;
-	context->srcState->src = NULL;
+	context->srcState->src = nullptr;
 }
 
 mt32emu_boolean mt32emu_is_open(mt32emu_const_context context) {
@@ -489,21 +661,21 @@ mt32emu_boolean mt32emu_is_open(mt32emu_const_context context) {
 }
 
 mt32emu_bit32u mt32emu_get_actual_stereo_output_samplerate(mt32emu_const_context context) {
-	if (context->srcState->src == NULL) {
+	if (context->srcState->src == nullptr) {
 		return context->synth->getStereoOutputSampleRate();
 	}
 	return mt32emu_bit32u(0.5 + context->srcState->src->convertSynthToOutputTimestamp(SAMPLE_RATE));
 }
 
 mt32emu_bit32u mt32emu_convert_output_to_synth_timestamp(mt32emu_const_context context, mt32emu_bit32u output_timestamp) {
-	if (context->srcState->src == NULL) {
+	if (context->srcState->src == nullptr) {
 		return output_timestamp;
 	}
 	return mt32emu_bit32u(0.5 + context->srcState->src->convertOutputToSynthTimestamp(output_timestamp));
 }
 
 mt32emu_bit32u mt32emu_convert_synth_to_output_timestamp(mt32emu_const_context context, mt32emu_bit32u synth_timestamp) {
-	if (context->srcState->src == NULL) {
+	if (context->srcState->src == nullptr) {
 		return synth_timestamp;
 	}
 	return mt32emu_bit32u(0.5 + context->srcState->src->convertSynthToOutputTimestamp(synth_timestamp));
@@ -517,9 +689,13 @@ mt32emu_bit32u mt32emu_set_midi_event_queue_size(mt32emu_const_context context, 
 	return context->synth->setMIDIEventQueueSize(queue_size);
 }
 
+void mt32emu_configure_midi_event_queue_sysex_storage(mt32emu_const_context context, const mt32emu_bit32u storage_buffer_size) {
+	return context->synth->configureMIDIEventQueueSysexStorage(storage_buffer_size);
+}
+
 void mt32emu_set_midi_receiver(mt32emu_context context, mt32emu_midi_receiver_i midi_receiver, void *instance_data) {
 	delete context->midiParser;
-	context->midiParser = (midi_receiver.v0 != NULL) ? new DelegatingMidiStreamParser(context, midi_receiver, instance_data) : new DefaultMidiStreamParser(*context->synth);
+	context->midiParser = (midi_receiver.v0 != nullptr) ? new DelegatingMidiStreamParser(context, midi_receiver, instance_data) : new DefaultMidiStreamParser(*context->synth);
 }
 
 mt32emu_bit32u mt32emu_get_internal_rendered_sample_count(mt32emu_const_context context) {
@@ -610,6 +786,10 @@ mt32emu_boolean mt32emu_is_default_reverb_mt32_compatible(mt32emu_const_context 
 	return context->synth->isDefaultReverbMT32Compatible() ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE;
 }
 
+void mt32emu_preallocate_reverb_memory(mt32emu_const_context context, const mt32emu_boolean enabled) {
+	return context->synth->preallocateReverbMemory(enabled != MT32EMU_BOOL_FALSE);
+}
+
 void mt32emu_set_dac_input_mode(mt32emu_const_context context, const mt32emu_dac_input_mode mode) {
 	context->synth->setDACInputMode(static_cast<DACInputMode>(mode));
 }
@@ -658,8 +838,24 @@ mt32emu_boolean mt32emu_is_nice_amp_ramp_enabled(mt32emu_const_context context) 
 	return context->synth->isNiceAmpRampEnabled() ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE;
 }
 
+MT32EMU_EXPORT void mt32emu_set_nice_panning_enabled(mt32emu_const_context context, const mt32emu_boolean enabled) {
+	context->synth->setNicePanningEnabled(enabled != MT32EMU_BOOL_FALSE);
+}
+
+MT32EMU_EXPORT mt32emu_boolean mt32emu_is_nice_panning_enabled(mt32emu_const_context context) {
+	return context->synth->isNicePanningEnabled() ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE;
+}
+
+MT32EMU_EXPORT void mt32emu_set_nice_partial_mixing_enabled(mt32emu_const_context context, const mt32emu_boolean enabled) {
+	context->synth->setNicePartialMixingEnabled(enabled != MT32EMU_BOOL_FALSE);
+}
+
+MT32EMU_EXPORT mt32emu_boolean mt32emu_is_nice_partial_mixing_enabled(mt32emu_const_context context) {
+	return context->synth->isNicePartialMixingEnabled() ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE;
+}
+
 void mt32emu_render_bit16s(mt32emu_const_context context, mt32emu_bit16s *stream, mt32emu_bit32u len) {
-	if (context->srcState->src != NULL) {
+	if (context->srcState->src != nullptr) {
 		context->srcState->src->getOutputSamples(stream, len);
 	} else {
 		context->synth->render(stream, len);
@@ -667,7 +863,7 @@ void mt32emu_render_bit16s(mt32emu_const_context context, mt32emu_bit16s *stream
 }
 
 void mt32emu_render_float(mt32emu_const_context context, float *stream, mt32emu_bit32u len) {
-	if (context->srcState->src != NULL) {
+	if (context->srcState->src != nullptr) {
 		context->srcState->src->getOutputSamples(stream, len);
 	} else {
 		context->synth->render(stream, len);

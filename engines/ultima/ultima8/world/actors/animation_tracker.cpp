@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,15 +26,12 @@
 #include "ultima/ultima8/world/world.h"
 #include "ultima/ultima8/world/current_map.h"
 #include "ultima/ultima8/graphics/main_shape_archive.h"
+#include "ultima/ultima8/graphics/anim_dat.h"
 #include "ultima/ultima8/world/actors/anim_action.h"
-#include "ultima/ultima8/misc/direction.h"
-#include "ultima/ultima8/graphics/shape_info.h"
+#include "ultima/ultima8/misc/direction_util.h"
 #include "ultima/ultima8/usecode/uc_list.h"
 #include "ultima/ultima8/world/loop_script.h"
 #include "ultima/ultima8/world/get_object.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
-#include "ultima/ultima8/kernel/core_app.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -46,47 +42,61 @@ namespace Ultima8 {
 static const int watchactor = WATCHACTOR;
 #endif
 
-AnimationTracker::AnimationTracker() {
+AnimationTracker::AnimationTracker() : _firstFrame(true), _done(false),
+	_blocked(false), _unsupported(false), _hitObject(0), _mode(NormalMode),
+	_actor(0), _dir(dir_north), _animAction(nullptr), _x(0), _y(0), _z(0),
+	_prevX(0), _prevY(0), _prevZ(0), _startX(0), _startY(0), _startZ(0),
+	_targetDx(0), _targetDy(0), _targetDz(0), _targetOffGroundLeft(0),
+	_firstStep(false), _shapeFrame(0), _currentFrame(0), _startFrame(0),
+	_endFrame(0), _flipped(false) {
 }
 
 AnimationTracker::~AnimationTracker() {
 }
 
-bool AnimationTracker::init(Actor *actor_, Animation::Sequence action_,
-                            uint32 dir_, PathfindingState *state_) {
-	assert(actor_);
-	_actor = actor_->getObjId();
-	uint32 shape = actor_->getShape();
+
+bool AnimationTracker::init(const Actor *actor, Animation::Sequence action,
+							Direction dir, const PathfindingState *state) {
+	assert(actor);
+	_actor = actor->getObjId();
+	uint32 shape = actor->getShape();
+	uint32 actionnum = AnimDat::getActionNumberForSequence(action, actor);
 	_animAction = GameData::get_instance()->getMainShapes()->
-	             getAnim(shape, action_);
-	if (!_animAction) return false;
+	             getAnim(shape, actionnum);
+	if (!_animAction) {
+#ifdef WATCHACTOR
+		if (actor && actor->getObjId() == watchactor) {
+			debug(6, "AnimationTracker: no animation action %d for shape %d",
+				  actionnum, shape);
+		}
+#endif
+		return false;
+	}
 
-	_dir = dir_;
+	_dir = dir;
 
-	if (state_ == 0) {
-		_animAction->getAnimRange(actor_, _dir, _startFrame, _endFrame);
-		actor_->getLocation(_x, _y, _z);
-		_flipped = (actor_->getFlags() & Item::FLG_FLIPPED) != 0;
-		_firstStep = (actor_->getActorFlags() & Actor::ACT_FIRSTSTEP) != 0;
+	if (state == 0) {
+		_animAction->getAnimRange(actor, _dir, _startFrame, _endFrame);
+		actor->getLocation(_x, _y, _z);
+		_flipped = actor->hasFlags(Item::FLG_FLIPPED);
+		_firstStep = actor->hasActorFlags(Actor::ACT_FIRSTSTEP);
 	} else {
-		_animAction->getAnimRange(state_->_lastAnim, state_->_direction,
-		                         state_->_firstStep, _dir, _startFrame, _endFrame);
-		_flipped = state_->_flipped;
-		_firstStep = state_->_firstStep;
-		_x = state_->_x;
-		_y = state_->_y;
-		_z = state_->_z;
+		_animAction->getAnimRange(state->_lastAnim, state->_direction,
+		                         state->_firstStep, _dir, _startFrame, _endFrame);
+		_flipped = state->_flipped;
+		_firstStep = state->_firstStep;
+		_x = state->_x;
+		_y = state->_y;
+		_z = state->_z;
 	}
 	_startX = _x;
 	_startY = _y;
 	_startZ = _z;
 
 #ifdef WATCHACTOR
-	if (actor_ && actor_->getObjId() == watchactor) {
-		pout << "AnimationTracker: playing " << _startFrame << "-" << _endFrame
-		     << " (_animAction flags: " << Std::hex << _animAction->flags
-		     << Std::dec << ")" << Std::endl;
-
+	if (actor && actor->getObjId() == watchactor) {
+		debug(6, "AnimationTracker: playing action %d %d-%d (animAction flags: 0x04%x)",
+			  actionnum, _startFrame, _endFrame, _animAction->getFlags());
 	}
 #endif
 
@@ -104,13 +114,12 @@ bool AnimationTracker::init(Actor *actor_, Animation::Sequence action_,
 unsigned int AnimationTracker::getNextFrame(unsigned int frame) const {
 	frame++;
 
-	if (frame == _endFrame)
+	if (!_animAction || frame == _endFrame)
 		return _endFrame;
 
 	// loop if necessary
-	if (frame >= _animAction->_size) {
-		if (_animAction->_flags & (AnimAction::AAF_LOOPING |
-		                         AnimAction::AAF_LOOPING2)) {
+	if (frame >= _animAction->getSize()) {
+		if (_animAction->hasFlags(AnimAction::AAF_LOOPING)) {
 			// CHECKME: unknown flag
 			frame = 1;
 		} else {
@@ -121,15 +130,15 @@ unsigned int AnimationTracker::getNextFrame(unsigned int frame) const {
 	return frame;
 }
 
-bool AnimationTracker::stepFrom(int32 x_, int32 y_, int32 z_) {
-	_x = x_;
-	_y = y_;
-	_z = z_;
+bool AnimationTracker::stepFrom(int32 x, int32 y, int32 z) {
+	_x = x;
+	_y = y;
+	_z = z;
 
 	return step();
 }
 
-void AnimationTracker::evaluateMaxAnimTravel(int32 &max_endx, int32 &max_endy, uint32 dir_) {
+void AnimationTracker::evaluateMaxAnimTravel(int32 &max_endx, int32 &max_endy, Direction dir) {
 	max_endx = _x;
 	max_endy = _y;
 
@@ -145,10 +154,10 @@ void AnimationTracker::evaluateMaxAnimTravel(int32 &max_endx, int32 &max_endy, u
 		testframe = getNextFrame(_currentFrame);
 
 	for (;;) {
-		AnimFrame &f = _animAction->frames[dir_][testframe];
+		const AnimFrame &f = _animAction->getFrame(dir, testframe);
 		// determine movement for this frame
-		int32 dx = 4 * x_fact[dir_] * f._deltaDir;
-		int32 dy = 4 * y_fact[dir_] * f._deltaDir;
+		int32 dx = 4 * Direction_XFactor(dir) * f._deltaDir;
+		int32 dy = 4 * Direction_YFactor(dir) * f._deltaDir;
 		max_endx += dx;
 		max_endy += dy;
 		testframe = getNextFrame(testframe);
@@ -160,9 +169,6 @@ void AnimationTracker::evaluateMaxAnimTravel(int32 &max_endx, int32 &max_endy, u
 bool AnimationTracker::step() {
 	if (_done) return false;
 
-	Actor *a = getActor(_actor);
-	assert(a);
-
 	if (_firstFrame)
 		_currentFrame = _startFrame;
 	else
@@ -171,14 +177,16 @@ bool AnimationTracker::step() {
 	if (_currentFrame == _endFrame) {
 		_done = true;
 
-		// toggle ACT_FIRSTSTEP flag if necessary
-		if (_animAction->_flags & AnimAction::AAF_TWOSTEP)
+		// toggle ACT_FIRSTSTEP flag if necessary. This is remembered
+		// between two-step animations.
+		if (_animAction->hasFlags(AnimAction::AAF_TWOSTEP))
 			_firstStep = !_firstStep;
-		else
-			_firstStep = true;
 
 		return false;
 	}
+
+	const bool is_u8 = GAME_IS_U8;
+	const bool is_crusader = !is_u8;
 
 	_prevX = _x;
 	_prevY = _y;
@@ -191,17 +199,23 @@ bool AnimationTracker::step() {
 
 	_firstFrame = false;
 
-	AnimFrame &f = _animAction->frames[_dir][_currentFrame];
+	const AnimFrame &f = _animAction->getFrame(_dir, _currentFrame);
 
 	_shapeFrame = f._frame;
-	_flipped = f.is_flipped();
+	_flipped = (is_u8 && f.is_flipped())
+			|| (is_crusader && f.is_cruflipped());
 
 	// determine movement for this frame
-	int32 dx = 4 * x_fact[_dir] * f._deltaDir;
-	int32 dy = 4 * y_fact[_dir] * f._deltaDir;
+	Direction movedir = _dir;
+	if (_animAction->hasFlags(AnimAction::AAF_ROTATED)) {
+		movedir = Direction_TurnByDelta(movedir, 4, dirmode_16dirs);
+	}
+
+	int32 dx = 4 * Direction_XFactor(movedir) * f._deltaDir;
+	int32 dy = 4 * Direction_YFactor(movedir) * f._deltaDir;
 	int32 dz = f._deltaZ;
 
-	if (_mode == TargetMode && !(f._flags & AnimFrame::AFF_ONGROUND)) {
+	if (_mode == TargetMode && !f.is_onground()) {
 		dx += _targetDx / _targetOffGroundLeft;
 		dy += _targetDy / _targetOffGroundLeft;
 		dz += _targetDz / _targetOffGroundLeft;
@@ -214,7 +228,10 @@ bool AnimationTracker::step() {
 	}
 
 	// determine footpad
-	bool actorflipped = (a->getFlags() & Item::FLG_FLIPPED) != 0;
+	Actor *a = getActor(_actor);
+	assert(a);
+
+	bool actorflipped = a->hasFlags(Item::FLG_FLIPPED);
 	int32 xd, yd, zd;
 	a->getFootpadWorld(xd, yd, zd);
 	if (actorflipped != _flipped) {
@@ -222,6 +239,7 @@ bool AnimationTracker::step() {
 		xd = yd;
 		yd = t;
 	}
+
 	CurrentMap *cm = World::get_instance()->getCurrentMap();
 
 	// TODO: check if this step is allowed
@@ -264,8 +282,8 @@ bool AnimationTracker::step() {
 
 		// Do the sweep test
 		Std::list<CurrentMap::SweepItem> collisions;
-		Std::list<CurrentMap::SweepItem>::iterator it;
-		cm->sweepTest(start, end, dims, a->getShapeInfo()->_flags, a->getObjId(),
+		Std::list<CurrentMap::SweepItem>::const_iterator it;
+		cm->sweepTest(start, end, dims, a->getShapeInfo()->_flags, _actor,
 		              false, &collisions);
 
 
@@ -275,7 +293,7 @@ bool AnimationTracker::step() {
 #ifdef WATCHACTOR
 				if (a->getObjId() == watchactor) {
 					pout << "AnimationTracker: did sweepTest for large step; "
-					     << "collision at time " << it->hit_time << Std::endl;
+					     << "collision at time " << it->_hitTime << Std::endl;
 				}
 #endif
 				_blocked = true;
@@ -297,7 +315,7 @@ bool AnimationTracker::step() {
 	                                    a->getShapeInfo()->_flags,
 	                                    _actor, &support, 0);
 
-	if (GAME_IS_U8 && targetok && support) {
+	if (is_u8 && targetok && support) {
 		// Might need to check for bridge traversal adjustments
 		uint32 supportshape = support->getShape();
 		if (supportshape >= 675 && supportshape <= 681) {
@@ -314,13 +332,13 @@ bool AnimationTracker::step() {
 				descentdelta = -20;         // Descend
 
 			if (descentdelta) {
-				if (dy == 0 && dx != 0 && !(support->getFlags() & Item::FLG_FLIPPED)) {
+				if (dy == 0 && dx != 0 && !support->hasFlags(Item::FLG_FLIPPED)) {
 					// Moving left or right on horizontal bridge
 					// descentdelta = 60*dy/dx
 					// 60*dy = descentdelta * dx
 					// dy = descentdelta * dx / 60;
 					ty += descentdelta * dx / 60;
-				} else if (dx == 0 && dy != 0 && (support->getFlags() & Item::FLG_FLIPPED)) {
+				} else if (dx == 0 && dy != 0 && support->hasFlags(Item::FLG_FLIPPED)) {
 					// Moving up or down on vertical bridge
 					tx += descentdelta * dy / 60;
 				}
@@ -328,13 +346,13 @@ bool AnimationTracker::step() {
 		}
 	}
 
-	if (!targetok || ((f._flags & AnimFrame::AFF_ONGROUND) && !support)) {
-
-		// If on ground, try to adjust properly
+	if (!targetok || (f.is_onground() && !support)) {
+		// If on ground, try to adjust properly. Never do it for dead Crusader NPCs,
+		// as they don't get gravity and the death process gets stuck.
 		// TODO: Profile the effect of disabling this for pathfinding.
 		//       It shouldn't be necessary in that case, and may provide a
 		//       worthwhile speed-up.
-		if ((f._flags & AnimFrame::AFF_ONGROUND) && zd > 8) {
+		if (f.is_onground() && zd > 8 && !(is_crusader && a->isDead())) {
 			targetok = cm->scanForValidPosition(tx, ty, tz, a, _dir,
 			                                    true, tx, ty, tz);
 
@@ -344,8 +362,10 @@ bool AnimationTracker::step() {
 			} else {
 #ifdef WATCHACTOR
 				if (a->getObjId() == watchactor) {
-					pout << "AnimationTracker: adjusted step: "
-					     << tx - (_x + dx) << "," << ty - (_y + dy) << "," << tz - (_z + dz)
+					pout << "AnimationTracker: adjusted step: x: "
+					     << tx << "," << _x << "," << dx << " y: "
+						 << ty << "," << _y << "," << dy << " z: "
+						 << tz << "," << _z << "," << dz
 					     << Std::endl;
 				}
 #endif
@@ -360,7 +380,7 @@ bool AnimationTracker::step() {
 
 #ifdef WATCHACTOR
 	if (a->getObjId() == watchactor) {
-		pout << "AnimationTracker: step (" << tx - _x << "," << ty - _y
+		pout << "AnimationTracker: step (" << _x << "," << _y << "," << _z << ") +("<< tx - _x << "," << ty - _y
 		     << "," << tz - _z << ")" << Std::endl;
 	}
 #endif
@@ -371,12 +391,12 @@ bool AnimationTracker::step() {
 
 
 	// if attack animation, see if we hit something
-	if ((_animAction->_flags & AnimAction::AAF_ATTACK) &&
+	if (_animAction->hasFlags(AnimAction::AAF_ATTACK) &&
 	        (_hitObject == 0) && f.attack_range() > 0) {
 		checkWeaponHit();
 	}
 
-	if (f._flags & AnimFrame::AFF_ONGROUND) {
+	if (f.is_onground()) {
 		// needs support
 
 		/*bool targetok = */ cm->isValidPosition(tx, ty, tz,
@@ -385,35 +405,24 @@ bool AnimationTracker::step() {
 		        a->getShapeInfo()->_flags,
 		        _actor, &support, 0);
 
-
 		if (!support) {
 			_unsupported = true;
 			return false;
-		} else {
-#if 0
-			// This check causes really weird behaviour when fall()
-			// doesn't make things fall off non-land items, so disabled for now
-
-			Item *supportitem = getItem(support);
-			assert(supportitem);
-			if (!supportitem->getShapeInfo()->is_land()) {
-//				pout << "Not land: "; supportitem->dumpInfo();
-				// invalid support
-				_unsupported = true;
-				return false;
-			}
-#endif
 		}
+	}
+
+	if (f.is_callusecode()) {
+		a->callUsecodeEvent_calledFromAnim();
 	}
 
 	return true;
 }
 
-AnimFrame *AnimationTracker::getAnimFrame() const {
-	return &_animAction->frames[_dir][_currentFrame];
+const AnimFrame *AnimationTracker::getAnimFrame() const {
+	return &_animAction->getFrame(_dir, _currentFrame);
 }
 
-void AnimationTracker::setTargetedMode(int32 x_, int32 y_, int32 z_) {
+void AnimationTracker::setTargetedMode(int32 x, int32 y, int32 z) {
 	unsigned int i;
 	int totaldir = 0;
 	int totalz = 0;
@@ -421,23 +430,23 @@ void AnimationTracker::setTargetedMode(int32 x_, int32 y_, int32 z_) {
 	int32 end_dx, end_dy, end_dz;
 
 	for (i = _startFrame; i != _endFrame; i = getNextFrame(i)) {
-		AnimFrame &f = _animAction->frames[_dir][i];
+		const AnimFrame &f = _animAction->getFrame(_dir, i);
 		totaldir += f._deltaDir;  // This line sometimes seg faults.. ????
 		totalz += f._deltaZ;
-		if (!(f._flags & AnimFrame::AFF_ONGROUND))
+		if (!f.is_onground())
 			++offGround;
 	}
 
-	end_dx = 4 * x_fact[_dir] * totaldir;
-	end_dy = 4 * y_fact[_dir] * totaldir;
+	end_dx = 4 * Direction_XFactor(_dir) * totaldir;
+	end_dy = 4 * Direction_YFactor(_dir) * totaldir;
 	end_dz = totalz;
 
 	if (offGround) {
 		_mode = TargetMode;
 		_targetOffGroundLeft = offGround;
-		_targetDx = x_ - _x - end_dx;
-		_targetDy = y_ - _y - end_dy;
-		_targetDz = z_ - _z - end_dz;
+		_targetDx = x - _x - end_dx;
+		_targetDy = y - _y - end_dy;
+		_targetDz = z - _z - end_dz;
 
 		// Don't allow large changes in Z
 		if (_targetDz > 16)
@@ -450,7 +459,7 @@ void AnimationTracker::setTargetedMode(int32 x_, int32 y_, int32 z_) {
 }
 
 void AnimationTracker::checkWeaponHit() {
-	int range = _animAction->frames[_dir][_currentFrame].attack_range();
+	int range = _animAction->getFrame(_dir, _currentFrame).attack_range();
 
 	const Actor *a = getActor(_actor);
 	assert(a);
@@ -458,13 +467,13 @@ void AnimationTracker::checkWeaponHit() {
 
 	Box abox = a->getWorldBox();
 	abox.MoveAbs(_x, _y, _z);
-	abox.MoveRel(x_fact[_dir] * 32 * range, y_fact[_dir] * 32 * range, 0);
+	abox.MoveRel(Direction_XFactor(_dir) * 32 * range, Direction_YFactor(_dir) * 32 * range, 0);
 
 #ifdef WATCHACTOR
 	if (a->getObjId() == watchactor) {
 		pout << "AnimationTracker: Checking hit, range " << range << ", box "
-		     << abox._x << "," << abox._y << "," << abox._z << "," << abox.xd
-		     << "," << abox.yd << "," << abox.zd << ": ";
+		     << abox._x << "," << abox._y << "," << abox._z << "," << abox._xd
+		     << "," << abox._yd << "," << abox._zd << ": ";
 	}
 #endif
 
@@ -529,8 +538,8 @@ void AnimationTracker::updateActorFlags() {
 	else
 		a->clearActorFlag(Actor::ACT_FIRSTSTEP);
 
-	if (_animAction) {
-		bool hanging = (_animAction->_flags & AnimAction::AAF_HANGING) != 0;
+	if (_animAction && GAME_IS_U8) {
+		bool hanging = _animAction->hasFlags(AnimAction::AAF_HANGING);
 		if (hanging)
 			a->setFlag(Item::FLG_HANGING);
 		else
@@ -541,15 +550,17 @@ void AnimationTracker::updateActorFlags() {
 		a->_animFrame = _currentFrame;
 }
 
-void AnimationTracker::getInterpolatedPosition(int32 &x_, int32 &y_,
-                                               int32 &z_, int fc) const {
+void AnimationTracker::getInterpolatedPosition(int32 &x, int32 &y,
+											   int32 &z, int fc) const {
 	int32 dx = _x - _prevX;
 	int32 dy = _y - _prevY;
 	int32 dz = _z - _prevZ;
 
-	x_ = _prevX + (dx * fc) / (_animAction->_frameRepeat + 1);
-	y_ = _prevY + (dy * fc) / (_animAction->_frameRepeat + 1);
-	z_ = _prevZ + (dz * fc) / (_animAction->_frameRepeat + 1);
+	int repeat = _animAction->getFrameRepeat();
+
+	x = _prevX + (dx * fc) / (repeat + 1);
+	y = _prevY + (dy * fc) / (repeat + 1);
+	z = _prevZ + (dz * fc) / (repeat + 1);
 }
 
 void AnimationTracker::getSpeed(int32 &dx, int32 &dy, int32 &dz) const {
@@ -559,86 +570,86 @@ void AnimationTracker::getSpeed(int32 &dx, int32 &dy, int32 &dz) const {
 }
 
 
-void AnimationTracker::save(ODataSource *ods) {
-	ods->write4(_startFrame);
-	ods->write4(_endFrame);
+void AnimationTracker::save(Common::WriteStream *ws) {
+	ws->writeUint32LE(_startFrame);
+	ws->writeUint32LE(_endFrame);
 	uint8 ff = _firstFrame ? 1 : 0;
-	ods->write1(ff);
-	ods->write4(_currentFrame);
+	ws->writeByte(ff);
+	ws->writeUint32LE(_currentFrame);
 
-	ods->write2(_actor);
-	ods->write1(static_cast<uint8>(_dir));
+	ws->writeUint16LE(_actor);
+	ws->writeByte(static_cast<uint8>(Direction_ToUsecodeDir(_dir)));
 
 	if (_animAction) {
-		ods->write4(_animAction->_shapeNum);
-		ods->write4(_animAction->_action);
+		ws->writeUint32LE(_animAction->getShapeNum());
+		ws->writeUint32LE(_animAction->getAction());
 	} else {
-		ods->write4(0);
-		ods->write4(0);
+		ws->writeUint32LE(0);
+		ws->writeUint32LE(0);
 	}
 
-	ods->write4(static_cast<uint32>(_prevX));
-	ods->write4(static_cast<uint32>(_prevY));
-	ods->write4(static_cast<uint32>(_prevZ));
-	ods->write4(static_cast<uint32>(_x));
-	ods->write4(static_cast<uint32>(_y));
-	ods->write4(static_cast<uint32>(_z));
+	ws->writeUint32LE(static_cast<uint32>(_prevX));
+	ws->writeUint32LE(static_cast<uint32>(_prevY));
+	ws->writeUint32LE(static_cast<uint32>(_prevZ));
+	ws->writeUint32LE(static_cast<uint32>(_x));
+	ws->writeUint32LE(static_cast<uint32>(_y));
+	ws->writeUint32LE(static_cast<uint32>(_z));
 
-	ods->write2(static_cast<uint16>(_mode));
+	ws->writeUint16LE(static_cast<uint16>(_mode));
 	if (_mode == TargetMode) {
-		ods->write4(static_cast<uint32>(_targetDx));
-		ods->write4(static_cast<uint32>(_targetDy));
-		ods->write4(static_cast<uint32>(_targetDz));
-		ods->write4(static_cast<uint32>(_targetOffGroundLeft));
+		ws->writeUint32LE(static_cast<uint32>(_targetDx));
+		ws->writeUint32LE(static_cast<uint32>(_targetDy));
+		ws->writeUint32LE(static_cast<uint32>(_targetDz));
+		ws->writeUint32LE(static_cast<uint32>(_targetOffGroundLeft));
 	}
 	uint8 fs = _firstStep ? 1 : 0;
-	ods->write1(fs);
+	ws->writeByte(fs);
 	uint8 fl = _flipped ? 1 : 0;
-	ods->write1(fl);
-	ods->write4(_shapeFrame);
+	ws->writeByte(fl);
+	ws->writeUint32LE(_shapeFrame);
 
 	uint8 flag = _done ? 1 : 0;
-	ods->write1(flag);
+	ws->writeByte(flag);
 	flag = _blocked ? 1 : 0;
-	ods->write1(flag);
+	ws->writeByte(flag);
 	flag = _unsupported ? 1 : 0;
-	ods->write1(flag);
-	ods->write2(_hitObject);
+	ws->writeByte(flag);
+	ws->writeUint16LE(_hitObject);
 }
 
-bool AnimationTracker::load(IDataSource *ids, uint32 version) {
-	_startFrame = ids->read4();
-	_endFrame = ids->read4();
-	_firstFrame = (ids->read1() != 0);
-	_currentFrame = ids->read4();
+bool AnimationTracker::load(Common::ReadStream *rs, uint32 version) {
+	_startFrame = rs->readUint32LE();
+	_endFrame = rs->readUint32LE();
+	_firstFrame = (rs->readByte() != 0);
+	_currentFrame = rs->readUint32LE();
 
-	_actor = ids->read2();
-	_dir = ids->read1();
+	_actor = rs->readUint16LE();
+	_dir = Direction_FromUsecodeDir(rs->readByte());
 
-	uint32 shapenum = ids->read4();
-	uint32 action = ids->read4();
+	uint32 shapenum = rs->readUint32LE();
+	uint32 action = rs->readUint32LE();
 	if (shapenum == 0) {
-		_animAction = 0;
+		_animAction = nullptr;
 	} else {
 		_animAction = GameData::get_instance()->getMainShapes()->
 		             getAnim(shapenum, action);
 		assert(_animAction);
 	}
 
-	_prevX = ids->read4();
-	_prevY = ids->read4();
-	_prevZ = ids->read4();
-	_x = ids->read4();
-	_y = ids->read4();
-	_z = ids->read4();
+	_prevX = rs->readUint32LE();
+	_prevY = rs->readUint32LE();
+	_prevZ = rs->readUint32LE();
+	_x = rs->readUint32LE();
+	_y = rs->readUint32LE();
+	_z = rs->readUint32LE();
 
-	_mode = static_cast<Mode>(ids->read2());
+	_mode = static_cast<Mode>(rs->readUint16LE());
 	if (_mode == TargetMode) {
-		_targetDx = ids->read4();
-		_targetDy = ids->read4();
+		_targetDx = rs->readUint32LE();
+		_targetDy = rs->readUint32LE();
 		if (version >= 5) {
-			_targetDz = ids->read4();
-			_targetOffGroundLeft = ids->read4();
+			_targetDz = rs->readUint32LE();
+			_targetOffGroundLeft = rs->readUint32LE();
 		} else {
 			// Versions before 5 stored the only _x,_y adjustment
 			// to be made per frame. This is less accurate and ignores _z.
@@ -647,9 +658,9 @@ bool AnimationTracker::load(IDataSource *ids, uint32 version) {
 			unsigned int i = _currentFrame;
 			if (!_firstFrame) i = getNextFrame(i);
 
-			for (; i != _endFrame; i = getNextFrame(i)) {
-				AnimFrame &f = _animAction->frames[_dir][i];
-				if (!(f._flags & AnimFrame::AFF_ONGROUND))
+			for (; _animAction && i != _endFrame; i = getNextFrame(i)) {
+				const AnimFrame &f = _animAction->getFrame(_dir, i);
+				if (f.is_onground())
 					++_targetOffGroundLeft;
 			}
 
@@ -659,14 +670,14 @@ bool AnimationTracker::load(IDataSource *ids, uint32 version) {
 		}
 	}
 
-	_firstStep = (ids->read1() != 0);
-	_flipped = (ids->read1() != 0);
-	_shapeFrame = ids->read4();
+	_firstStep = (rs->readByte() != 0);
+	_flipped = (rs->readByte() != 0);
+	_shapeFrame = rs->readUint32LE();
 
-	_done = (ids->read1() != 0);
-	_blocked = (ids->read1() != 0);
-	_unsupported = (ids->read1() != 0);
-	_hitObject = ids->read2();
+	_done = (rs->readByte() != 0);
+	_blocked = (rs->readByte() != 0);
+	_unsupported = (rs->readByte() != 0);
+	_hitObject = rs->readUint16LE();
 
 	return true;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,26 +15,23 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/gumps/inverter_gump.h"
 
 #include "ultima/ultima8/graphics/render_surface.h"
-#include "ultima/ultima8/graphics/texture.h"
 #include "ultima/ultima8/ultima8.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(InverterGump, DesktopGump)
+DEFINE_RUNTIME_CLASSTYPE_CODE(InverterGump)
 
 InverterGump::InverterGump(int32 x, int32 y, int32 width, int32 height)
 	: DesktopGump(x, y, width, height) {
-	_buffer = 0;
+	_buffer = nullptr;
 }
 
 InverterGump::~InverterGump() {
@@ -90,7 +87,7 @@ void InverterGump::PaintChildren(RenderSurface *surf, int32 lerp_factor, bool sc
 		return;
 	}
 
-	int width = _dims.w, height = _dims.h;
+	int width = _dims.width(), height = _dims.height();
 
 
 	// need a backbuffer
@@ -98,9 +95,9 @@ void InverterGump::PaintChildren(RenderSurface *surf, int32 lerp_factor, bool sc
 		_buffer = RenderSurface::CreateSecondaryRenderSurface(width, height);
 	}
 
+	_buffer->BeginPainting();
 	DesktopGump::PaintChildren(_buffer, lerp_factor, scaled);
-
-	Texture *tex = _buffer->GetSurfaceAsTexture();
+	_buffer->EndPainting();
 
 	// now invert-blit _buffer to screen
 	int t = (state * height) / 0x10000;
@@ -108,25 +105,25 @@ void InverterGump::PaintChildren(RenderSurface *surf, int32 lerp_factor, bool sc
 	for (int i = 0; i < height; ++i) {
 		int src = getLine(getIndex(i, height / 2) + t, height / 2);
 //		pout << src << " -> " << i << Std::endl;
-		surf->Blit(tex, 0, src, width, 1, 0, i);
+		surf->Blit(_buffer->getRawSurface(), 0, src, width, 1, 0, i);
 	}
 }
 
 // Convert a parent relative point to a gump point
 void InverterGump::ParentToGump(int32 &px, int32 &py, PointRoundDir) {
 	px -= _x;
-	px += _dims.x;
+	px += _dims.left;
 	py -= _y;
-	if (Ultima8Engine::get_instance()->isInverted()) py = _dims.h - py - 1;
-	py += _dims.y;
+	if (Ultima8Engine::get_instance()->isInverted()) py = _dims.height() - py - 1;
+	py += _dims.top;
 }
 
 // Convert a gump point to parent relative point
 void InverterGump::GumpToParent(int32 &gx, int32 &gy, PointRoundDir) {
-	gx -= _dims.x;
+	gx -= _dims.left;
 	gx += _x;
-	gy -= _dims.y;
-	if (Ultima8Engine::get_instance()->isInverted()) gy = _dims.h - gy - 1;
+	gy -= _dims.top;
+	if (Ultima8Engine::get_instance()->isInverted()) gy = _dims.height() - gy - 1;
 	gy += _y;
 }
 

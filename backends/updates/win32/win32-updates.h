@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,20 +30,20 @@
 
 class SdlWindow_Win32;
 
-class Win32UpdateManager : public Common::UpdateManager {
+class Win32UpdateManager final : public Common::UpdateManager {
 public:
 	Win32UpdateManager(SdlWindow_Win32 *window);
 	virtual ~Win32UpdateManager();
 
-	virtual void checkForUpdates();
+	void checkForUpdates() override;
 
-	virtual void setAutomaticallyChecksForUpdates(UpdateState state);
-	virtual UpdateState getAutomaticallyChecksForUpdates();
+	void setAutomaticallyChecksForUpdates(UpdateState state) override;
+	UpdateState getAutomaticallyChecksForUpdates() override;
 
-	virtual void setUpdateCheckInterval(int interval);
-	virtual int getUpdateCheckInterval();
+	void setUpdateCheckInterval(int interval) override;
+	int getUpdateCheckInterval() override;
 
-	virtual bool getLastUpdateCheckTimeAndDate(TimeDate &t);
+	bool getLastUpdateCheckTimeAndDate(TimeDate &t) override;
 
 private:
 	static int canShutdownCallback();

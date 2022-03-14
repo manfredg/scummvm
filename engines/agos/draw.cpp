@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -324,7 +323,7 @@ restart:
 	}
 
 	AnimTable *animTable = _screenAnim1;
-	while (animTable->srcPtr != 0) {
+	while (animTable->srcPtr != nullptr) {
 		if (animTable->windowNum & 0x8000) {
 			x = animTable->x + _scrollX;
 			y = animTable->y;
@@ -384,7 +383,7 @@ void AGOSEngine::dirtyClipCheck(int16 x, int16 y, int16 w, int16 h) {
 	}
 
 	AnimTable *animTable = _screenAnim1;
-	for (; animTable->srcPtr != 0; animTable++) {
+	for (; animTable->srcPtr != nullptr; animTable++) {
 		if (animTable->windowNum & 0x8000)
 			continue;
 
@@ -452,7 +451,7 @@ void AGOSEngine::restoreBackGround() {
 		drawImage(&state);
 
 		if (getGameType() != GType_SIMON1 && getGameType() != GType_SIMON2) {
-			animTable->srcPtr = 0;
+			animTable->srcPtr = nullptr;
 		}
 	}
 	_backFlag = false;
@@ -468,7 +467,7 @@ void AGOSEngine::restoreBackGround() {
 			}
 			animTable++;
 		}
-		animTableTmp->srcPtr = 0;
+		animTableTmp->srcPtr = nullptr;
 	}
 }
 
@@ -501,7 +500,7 @@ void AGOSEngine::saveBackGround(VgaSprite *vsp) {
 	animTable->x = x;
 	animTable->y = y;
 
-	animTable->width = READ_BE_UINT16(ptr + 6) / 16;
+	animTable->width = (getPlatform() == Common::kPlatformPC98 ? READ_LE_UINT16(ptr + 6) : READ_BE_UINT16(ptr + 6)) / 16;
 	if (vsp->flags & 0x40) {
 		animTable->width++;
 	}
@@ -512,7 +511,7 @@ void AGOSEngine::saveBackGround(VgaSprite *vsp) {
 	animTable->zoneNum = vsp->zoneNum;
 
 	animTable++;
-	animTable->srcPtr = 0;
+	animTable->srcPtr = nullptr;
 }
 
 void AGOSEngine::displayBoxStars() {
@@ -536,7 +535,7 @@ void AGOSEngine::displayBoxStars() {
 		ha = _hitAreas;
 		count = ARRAYSIZE(_hitAreas);
 
-		Graphics::Surface *screen = _system->lockScreen();
+		Graphics::Surface *screen = getBackendSurface();
 
 		do {
 			if (ha->id != 0 && ha->flags & kBFBoxInUse && !(ha->flags & kBFBoxDead)) {
@@ -604,7 +603,7 @@ void AGOSEngine::displayBoxStars() {
 			}
 		} while (ha++, --count);
 
-		_system->unlockScreen();
+		updateBackendSurface();
 
 		delay(100);
 
@@ -693,7 +692,7 @@ void AGOSEngine::scrollScreen() {
 	if (getGameType() == GType_SIMON2) {
 		AnimTable *animTable = _screenAnim1;
 		while (animTable->srcPtr) {
-			animTable->srcPtr = 0;
+			animTable->srcPtr = nullptr;
 			animTable++;
 		}
 
@@ -724,7 +723,7 @@ void AGOSEngine::fillBackFromBackGround(uint16 height, uint16 width) {
 }
 
 void AGOSEngine::fillBackFromFront() {
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = getBackendSurface();
 	byte *src = (byte *)screen->getPixels();
 	byte *dst = getBackBuf();
 
@@ -733,7 +732,7 @@ void AGOSEngine::fillBackFromFront() {
 		src += screen->pitch;
 		dst += _backBuf->pitch;
 	}
-	_system->unlockScreen();
+	updateBackendSurface();
 }
 
 void AGOSEngine::fillBackGroundFromBack() {
@@ -747,7 +746,7 @@ void AGOSEngine::fillBackGroundFromBack() {
 }
 
 void AGOSEngine::fillBackGroundFromFront() {
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = getBackendSurface();
 	byte *src = (byte *)screen->getPixels();
 	byte *dst = getBackGround();
 
@@ -756,7 +755,7 @@ void AGOSEngine::fillBackGroundFromFront() {
 		src += screen->pitch;
 		dst += _backGroundBuf->pitch;
 	}
-	_system->unlockScreen();
+	updateBackendSurface();
 }
 
 void AGOSEngine::setMoveRect(uint16 x, uint16 y, uint16 width, uint16 height) {
@@ -782,7 +781,7 @@ void AGOSEngine::displayScreen() {
 		}
 	}
 
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = getBackendSurface();
 	if (getGameType() == GType_PP || getGameType() == GType_FF) {
 		byte *src = getBackBuf();
 		byte *dst = (byte *)screen->getPixels();
@@ -841,7 +840,7 @@ void AGOSEngine::displayScreen() {
 		}
 	}
 
-	_system->unlockScreen();
+	updateBackendSurface();
 
 	if (getGameType() == GType_FF && _scrollFlag) {
 		scrollScreen();

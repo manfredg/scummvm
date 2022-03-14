@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@
 #include "lure/events.h"
 #include "lure/lure.h"
 
-#if defined(__SYMBIAN32__) || defined(WEBOS) || defined(__ANDROID__) || defined(__WII__)
+#if defined(__SYMBIAN32__) || defined(__ANDROID__) || defined(__WII__)
 #define LURE_CLICKABLE_MENUS
 #endif
 
@@ -57,7 +56,7 @@ MenuRecord::MenuRecord(const MenuRecordBounds *bounds, int numParams, ...) {
 
 MenuRecord::~MenuRecord() {
 	free(_entries);
-	_entries = NULL;
+	_entries = nullptr;
 }
 
 const char *MenuRecord::getEntry(uint8 index) {
@@ -67,7 +66,7 @@ const char *MenuRecord::getEntry(uint8 index) {
 
 /*--------------------------------------------------------------------------*/
 
-static Menu *int_menu = NULL;
+static Menu *int_menu = nullptr;
 
 const MenuRecordLanguage menuList[] = {
 	{Common::EN_ANY, {{40, 87, 3, 7}, {127, 179, 13, 12}, {224, 281, 27, 10}}},
@@ -101,7 +100,7 @@ Menu::Menu() {
 	_menus[2] = new MenuRecord(&rec->menus[2], 3,
 		sl.getString(S_QUIT), sl.getString(S_SLOW_TEXT), sl.getString(S_SOUND_ON));
 
-	_selectedMenu = NULL;
+	_selectedMenu = nullptr;
 }
 
 Menu::~Menu() {
@@ -124,8 +123,8 @@ uint8 Menu::execute() {
 	system.copyRectToScreen(_menu->data(), FULL_SCREEN_WIDTH, 0, 0,
 		FULL_SCREEN_WIDTH, MENUBAR_Y_SIZE);
 
-	_selectedMenu = NULL;
-	_surfaceMenu = NULL;
+	_selectedMenu = nullptr;
+	_surfaceMenu = nullptr;
 	_selectedIndex = 0;
 
 	while (mouse.lButton() || mouse.rButton()) {
@@ -141,7 +140,7 @@ uint8 Menu::execute() {
 						toggleHighlight(_selectedMenu);
 						screen.updateArea(0, 0, FULL_SCREEN_WIDTH, _surfaceMenu->height() + 8);
 						delete _surfaceMenu;
-						_surfaceMenu = NULL;
+						_surfaceMenu = nullptr;
 						_selectedIndex = 0;
 					}
 
@@ -183,7 +182,7 @@ uint8 Menu::execute() {
 	// Restore the previous screen
 	screen.update();
 
-	if ((_selectedMenu == NULL) || (_selectedIndex == 0)) return MENUITEM_NONE;
+	if ((_selectedMenu == nullptr) || (_selectedIndex == 0)) return MENUITEM_NONE;
 	else if (_selectedMenu == _menus[0])
 		return MENUITEM_CREDITS;
 	else if (_selectedMenu == _menus[1]) {
@@ -217,7 +216,7 @@ MenuRecord *Menu::getMenuAt(int x) {
 		if ((x >= _menus[ctr]->hsxstart()) && (x <= _menus[ctr]->hsxend()))
 			return _menus[ctr];
 
-	return NULL;
+	return nullptr;
 }
 
 uint8 Menu::getIndexAt(uint16 x, uint16 y) {
@@ -599,9 +598,10 @@ uint16 PopupMenu::Show(int numEntries, const char *actions[]) {
 
 				if (r.contains(x, y)) {
 					selectedIndex = (y - r.top) / FONT_HEIGHT;
-					if (e.type() == Common::EVENT_LBUTTONDOWN)
+					if (e.type() == Common::EVENT_LBUTTONDOWN) {
 						bailOut = true;
 						break;
+					}
 				}
 #else
 			} else if ((e.type() == Common::EVENT_LBUTTONDOWN) ||

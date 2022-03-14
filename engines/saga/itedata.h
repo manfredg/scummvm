@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -101,6 +100,7 @@ enum {
 	kITECreditsPCCD         = (1 << 1),
 	kITECreditsMac          = (1 << 2),
 	kITECreditsWyrmKeep     = (1 << 3),
+	kITECreditsPC98		    = (1 << 4),
 	kITECreditsAny          = 0xffff,
 	kITECreditsNotWyrmKeep  = kITECreditsAny & ~kITECreditsWyrmKeep
 };
@@ -137,11 +137,12 @@ extern const IntroDialogue introDialogueCave2[][3];
 extern const IntroDialogue introDialogueCave3[][3];
 extern const IntroDialogue introDialogueCave4[][4];
 
-extern const IntroCredit creditsValley[16];
-extern const IntroCredit creditsTreeHouse1[17];
-extern const IntroCredit creditsTreeHouse2[23];
-extern const IntroCredit creditsFairePath1[20];
-extern const IntroCredit creditsFairePath2[7];
+extern const IntroCredit creditsValley[43];
+extern const IntroCredit creditsTreeHouse1[36];
+extern const IntroCredit creditsTreeHouse2[51];
+extern const IntroCredit creditsFairePath1[45];
+extern const IntroCredit creditsFairePath2[21];
+extern const IntroCredit creditsTent[6];
 
 } // End of namespace Saga
 

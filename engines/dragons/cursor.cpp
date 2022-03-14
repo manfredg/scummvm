@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "dragons/cursor.h"
@@ -33,8 +32,15 @@
 
 namespace Dragons {
 
-Cursor::Cursor(DragonsEngine *vm): _vm(vm), _actor(0), _x(0), _y(0) {
+Cursor::Cursor(DragonsEngine *vm): _vm(vm), _actor(nullptr), _x(0), _y(0) {
 	_sequenceID = 0;
+	_data_800728b0_cursor_seqID = 0;
+	_iniUnderCursor = 0;
+	_performActionTargetINI = 0;
+	_objectInHandSequenceID = 0;
+	_cursorActivationSeqOffset = 0;
+	_iniItemInHand = 0;
+	_handPointerSequenceID = _vm->getCursorHandPointerSequenceID();
 }
 
 void Cursor::init(ActorManager *actorManager, DragonINIResource *dragonINIResource) {
@@ -78,22 +84,22 @@ void Cursor::update() {
 	if (_iniUnderCursor != 0
 			&& ((_iniUnderCursor & 0x8000 && _vm->_inventory->isOpen())
 			||(!(_iniUnderCursor & 0x8000) && _vm->getINI(_iniUnderCursor - 1)->flags & 0x80))) {
-		if (_actor->_sequenceID != 0x84) {
-			_actor->updateSequence(0x84);
+		if (_actor->_sequenceID != _handPointerSequenceID) {
+			_actor->updateSequence(_handPointerSequenceID);
 		}
 		return;
 	}
 	int32 inventorySequenceID = _vm->_inventory->getSequenceId();
 	if ((_iniUnderCursor == 0x8001) && (inventorySequenceID == 1)) {
-		if (_actor->_sequenceID != 0x84) {
-			_actor->updateSequence(0x84);
+		if (_actor->_sequenceID != _handPointerSequenceID) {
+			_actor->updateSequence(_handPointerSequenceID);
 		}
 		return;
 	}
 
 	if (_iniUnderCursor == 0x8002 && inventorySequenceID == 4) {//goto LAB_80028204;
-		if (_actor->_sequenceID != 0x84) {
-			_actor->updateSequence(0x84);
+		if (_actor->_sequenceID != _handPointerSequenceID) {
+			_actor->updateSequence(_handPointerSequenceID);
 		}
 		return;
 	}
@@ -119,8 +125,8 @@ void Cursor::update() {
 	}
 
 	if (_iniItemInHand == 0) {
-		if (_actor->_sequenceID != 0x84) {
-			_actor->updateSequence(0x84);
+		if (_actor->_sequenceID != _handPointerSequenceID) {
+			_actor->updateSequence(_handPointerSequenceID);
 		}
 		return;
 	} else {

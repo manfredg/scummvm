@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,7 +45,7 @@ namespace Gob {
 #define OPCODEFUNC(i, x)  _opcodesFunc[i]._OPCODEFUNC(OPCODEVER, x)
 #define OPCODEGOB(i, x)   _opcodesGob[i]._OPCODEGOB(OPCODEVER, x)
 
-Inter_v7::Inter_v7(GobEngine *vm) : Inter_Playtoons(vm), _cursors(0) {
+Inter_v7::Inter_v7(GobEngine *vm) : Inter_Playtoons(vm), _cursors(nullptr) {
 }
 
 Inter_v7::~Inter_v7() {
@@ -175,15 +174,15 @@ void Inter_v7::o7_loadCursor() {
 		return;
 	}
 
-	Graphics::WinCursorGroup *cursorGroup = 0;
-	Graphics::Cursor *defaultCursor = 0;
+	Graphics::WinCursorGroup *cursorGroup = nullptr;
+	Graphics::Cursor *defaultCursor = nullptr;
 
 	// Load the cursor file and cursor group
 	if (loadCursorFile())
 		cursorGroup = Graphics::WinCursorGroup::createCursorGroup(_cursors, Common::WinResourceID(cursorName));
 
 	// If the requested cursor does not exist, create a default one
-	const Graphics::Cursor *cursor = 0;
+	const Graphics::Cursor *cursor = nullptr;
 	if (!cursorGroup || cursorGroup->cursors.empty() || !cursorGroup->cursors[0].cursor) {
 		defaultCursor = Graphics::makeDefaultWinCursor();
 
@@ -650,7 +649,7 @@ bool Inter_v7::loadCursorFile() {
 		return true;
 
 	delete _cursors;
-	_cursors = 0;
+	_cursors = nullptr;
 
 	return false;
 }

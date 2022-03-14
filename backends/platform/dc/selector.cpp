@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,7 @@
 #include "dc.h"
 #include "icon.h"
 #include "label.h"
+#include "dcutils.h"
 
 #include <ronin/gddrive.h>
 
@@ -40,98 +40,6 @@
 #define MAX_GAMES 100
 #define MAX_DIR 100
 #define MAX_PLUGIN_DIRS 100
-
-
-void draw_solid_quad(float x1, float y1, float x2, float y2,
-		     int c0, int c1, int c2, int c3)
-{
-  struct polygon_list mypoly;
-  struct packed_colour_vertex_list myvertex;
-
-  mypoly.cmd =
-    TA_CMD_POLYGON|TA_CMD_POLYGON_TYPE_OPAQUE|TA_CMD_POLYGON_SUBLIST|
-    TA_CMD_POLYGON_STRIPLENGTH_2|TA_CMD_POLYGON_PACKED_COLOUR|
-    TA_CMD_POLYGON_GOURAUD_SHADING;
-  mypoly.mode1 = TA_POLYMODE1_Z_ALWAYS|TA_POLYMODE1_NO_Z_UPDATE;
-  mypoly.mode2 =
-    TA_POLYMODE2_BLEND_SRC|TA_POLYMODE2_FOG_DISABLED;
-  mypoly.texture = 0;
-
-  mypoly.red = mypoly.green = mypoly.blue = mypoly.alpha = 0;
-
-  ta_commit_list(&mypoly);
-
-  myvertex.cmd = TA_CMD_VERTEX;
-  myvertex.ocolour = 0;
-  myvertex.z = 0.5;
-  myvertex.u = 0.0;
-  myvertex.v = 0.0;
-
-  myvertex.colour = c0;
-  myvertex.x = x1;
-  myvertex.y = y1;
-  ta_commit_list(&myvertex);
-
-  myvertex.colour = c1;
-  myvertex.x = x2;
-  ta_commit_list(&myvertex);
-
-  myvertex.colour = c2;
-  myvertex.x = x1;
-  myvertex.y = y2;
-  ta_commit_list(&myvertex);
-
-  myvertex.colour = c3;
-  myvertex.x = x2;
-  myvertex.cmd |= TA_CMD_VERTEX_EOS;
-  ta_commit_list(&myvertex);
-}
-
-void draw_trans_quad(float x1, float y1, float x2, float y2,
-		     int c0, int c1, int c2, int c3)
-{
-  struct polygon_list mypoly;
-  struct packed_colour_vertex_list myvertex;
-
-  mypoly.cmd =
-    TA_CMD_POLYGON|TA_CMD_POLYGON_TYPE_TRANSPARENT|TA_CMD_POLYGON_SUBLIST|
-    TA_CMD_POLYGON_STRIPLENGTH_2|TA_CMD_POLYGON_PACKED_COLOUR|
-    TA_CMD_POLYGON_GOURAUD_SHADING;
-  mypoly.mode1 = TA_POLYMODE1_Z_ALWAYS|TA_POLYMODE1_NO_Z_UPDATE;
-  mypoly.mode2 =
-    TA_POLYMODE2_BLEND_SRC_ALPHA|TA_POLYMODE2_BLEND_DST_INVALPHA|
-    TA_POLYMODE2_FOG_DISABLED|TA_POLYMODE2_ENABLE_ALPHA;
-  mypoly.texture = 0;
-
-  mypoly.red = mypoly.green = mypoly.blue = mypoly.alpha = 0;
-
-  ta_commit_list(&mypoly);
-
-  myvertex.cmd = TA_CMD_VERTEX;
-  myvertex.ocolour = 0;
-  myvertex.z = 0.5;
-  myvertex.u = 0.0;
-  myvertex.v = 0.0;
-
-  myvertex.colour = c0;
-  myvertex.x = x1;
-  myvertex.y = y1;
-  ta_commit_list(&myvertex);
-
-  myvertex.colour = c1;
-  myvertex.x = x2;
-  ta_commit_list(&myvertex);
-
-  myvertex.colour = c2;
-  myvertex.x = x1;
-  myvertex.y = y2;
-  ta_commit_list(&myvertex);
-
-  myvertex.colour = c3;
-  myvertex.x = x2;
-  myvertex.cmd |= TA_CMD_VERTEX_EOS;
-  ta_commit_list(&myvertex);
-}
 
 
 struct Game
@@ -157,7 +65,7 @@ static Game the_game;
 
 static bool isIcon(const Common::FSNode &entry)
 {
-	return entry.getDisplayName().hasSuffixIgnoreCase(".ICO");
+	return entry.getName().hasSuffixIgnoreCase(".ICO");
 }
 
 static bool loadIcon(Game &game, Dir *dirs, int num_dirs)
@@ -165,15 +73,15 @@ static bool loadIcon(Game &game, Dir *dirs, int num_dirs)
   char icofn[520];
   sprintf(icofn, "%s%s.ICO", game.dir, game.filename_base);
   if (game.icon.load(icofn))
-    return true;
-  for (int i=0; i<num_dirs; i++)
-    if (!strcmp(dirs[i].name, game.dir) &&
-       dirs[i].deficon[0]) {
-      sprintf(icofn, "%s%s", game.dir, dirs[i].deficon);
-      if (game.icon.load(icofn))
 	return true;
-      break;
-    }
+  for (int i=0; i<num_dirs; i++)
+	if (!strcmp(dirs[i].name, game.dir) &&
+	   dirs[i].deficon[0]) {
+	  sprintf(icofn, "%s%s", game.dir, dirs[i].deficon);
+	  if (game.icon.load(icofn))
+	return true;
+	  break;
+	}
   return false;
 }
 
@@ -187,9 +95,9 @@ static bool sameOrSubdir(const char *dir1, const char *dir2)
 {
   int l1 = strlen(dir1), l2 = strlen(dir2);
   if (l1<=l2)
-    return !strcmp(dir1, dir2);
+	return !strcmp(dir1, dir2);
   else
-    return !memcmp(dir1, dir2, l2);
+	return !memcmp(dir1, dir2, l2);
 }
 
 static bool uniqueGame(const char *base, const char *dir,
@@ -197,16 +105,16 @@ static bool uniqueGame(const char *base, const char *dir,
 		       Game *games, int cnt)
 {
   while (cnt--)
-    if (/*Don't detect the same game in a subdir,
+	if (/*Don't detect the same game in a subdir,
 	  this is a workaround for the detector bug in toon... */
 	sameOrSubdir(dir, games->dir) &&
 	/*!strcmp(dir, games->dir) &&*/
 	!scumm_stricmp(base, games->filename_base) &&
 	lang == games->language &&
 	plf == games->platform)
-      return false;
-    else
-      games++;
+	  return false;
+	else
+	  games++;
   return true;
 }
 
@@ -216,23 +124,27 @@ static int findGames(Game *games, int max, bool use_ini)
   int curr_game = 0, curr_dir = 0, num_dirs = 0;
 
   if (use_ini) {
-    ConfMan.loadDefaultConfigFile();
-    const Common::ConfigManager::DomainMap &game_domains = ConfMan.getGameDomains();
-    for(Common::ConfigManager::DomainMap::const_iterator i =
+	Common::ConfigManager::Domain *appDomain =
+	  ConfMan.getDomain(Common::ConfigManager::kApplicationDomain);
+	Common::ConfigManager::Domain savedAppDomain = *appDomain;
+	ConfMan.loadDefaultConfigFile();
+	*appDomain = savedAppDomain;
+	const Common::ConfigManager::DomainMap &game_domains = ConfMan.getGameDomains();
+	for(Common::ConfigManager::DomainMap::const_iterator i =
 	  game_domains.begin(); curr_game < max && i != game_domains.end(); i++) {
-      Common::String path = (*i)._value["path"];
-      if (path.size() && path.lastChar() != '/')
+	  Common::String path = (*i)._value["path"];
+	  if (path.size() && path.lastChar() != '/')
 	path += "/";
-      int j;
-      for (j=0; j<num_dirs; j++)
+	  int j;
+	  for (j=0; j<num_dirs; j++)
 	if (path.equals(dirs[j].node.getPath()))
 	  break;
-      if (j >= num_dirs) {
+	  if (j >= num_dirs) {
 	if (num_dirs >= MAX_DIR)
 	  continue;
 	dirs[j = num_dirs++].node = Common::FSNode(path);
-      }
-      if (curr_game < max) {
+	  }
+	  if (curr_game < max) {
 	strcpy(games[curr_game].filename_base, (*i)._key.c_str());
 	strncpy(games[curr_game].engine_id, (*i)._value["engineid"].c_str(), 256);
 	games[curr_game].engine_id[255] = '\0';
@@ -242,24 +154,24 @@ static int findGames(Game *games, int max, bool use_ini)
 	games[curr_game].platform = Common::kPlatformUnknown;
 	strcpy(games[curr_game].text, (*i)._value["description"].c_str());
 	curr_game++;
-      }
-    }
+	  }
+	}
   } else {
-    dirs[num_dirs++].node = Common::FSNode("");
+	dirs[num_dirs++].node = Common::FSNode("");
   }
 
   while ((curr_game < max || use_ini) && curr_dir < num_dirs) {
-    strncpy(dirs[curr_dir].name, dirs[curr_dir].node.getPath().c_str(), 251);
-    dirs[curr_dir].name[250] = '\0';
-    if (!dirs[curr_dir].name[0] ||
+	strncpy(dirs[curr_dir].name, dirs[curr_dir].node.getPath().c_str(), 251);
+	dirs[curr_dir].name[250] = '\0';
+	if (!dirs[curr_dir].name[0] ||
 	dirs[curr_dir].name[strlen(dirs[curr_dir].name)-1] != '/')
-      strcat(dirs[curr_dir].name, "/");
-    dirs[curr_dir].deficon[0] = '\0';
-    Common::FSList files, fslist;
-    dirs[curr_dir++].node.getChildren(fslist, Common::FSNode::kListAll);
-    for (Common::FSList::const_iterator entry = fslist.begin(); entry != fslist.end();
+	  strcat(dirs[curr_dir].name, "/");
+	dirs[curr_dir].deficon[0] = '\0';
+	Common::FSList files, fslist;
+	dirs[curr_dir++].node.getChildren(fslist, Common::FSNode::kListAll);
+	for (Common::FSList::const_iterator entry = fslist.begin(); entry != fslist.end();
 	 ++entry) {
-      if (entry->isDirectory()) {
+	  if (entry->isDirectory()) {
 	if (!use_ini && num_dirs < MAX_DIR) {
 	  dirs[num_dirs].node = *entry;
 	  num_dirs++;
@@ -267,18 +179,18 @@ static int findGames(Game *games, int max, bool use_ini)
 	/* Toonstruck detector needs directories to be present too */
 	if(!use_ini)
 	  files.push_back(*entry);
-      } else
+	  } else
 	if (isIcon(*entry))
-	  strcpy(dirs[curr_dir-1].deficon, entry->getDisplayName().c_str());
+	  strcpy(dirs[curr_dir-1].deficon, entry->getName().c_str());
 	else if(!use_ini)
 	  files.push_back(*entry);
-    }
+	}
 
-    if (!use_ini) {
-      DetectionResults detectionResults = EngineMan.detectGames(files);
-      DetectedGames candidates = detectionResults.listRecognizedGames();
+	if (!use_ini) {
+	  DetectionResults detectionResults = EngineMan.detectGames(files);
+	  DetectedGames candidates = detectionResults.listRecognizedGames();
 
-      for (DetectedGames::const_iterator ge = candidates.begin();
+	  for (DetectedGames::const_iterator ge = candidates.begin();
 	   ge != candidates.end(); ++ge)
 	if (curr_game < max) {
 	  strcpy(games[curr_game].engine_id, ge->engineId.c_str());
@@ -303,21 +215,14 @@ static int findGames(Game *games, int max, bool use_ini)
 	    curr_game++;
 	  }
 	}
-    }
+	}
   }
 
   for (int i=0; i<curr_game; i++)
-    if (!loadIcon(games[i], dirs, num_dirs))
-      makeDefIcon(games[i].icon);
+	if (!loadIcon(games[i], dirs, num_dirs))
+	  makeDefIcon(games[i].icon);
   delete[] dirs;
   return curr_game;
-}
-
-int getCdState()
-{
-  unsigned int param[4];
-  gdGdcGetDrvStat(param);
-  return param[0];
 }
 
 static void drawBackground()
@@ -326,45 +231,29 @@ static void drawBackground()
 		  0xff0000, 0x00ff00, 0x0000ff, 0xffffff);
 }
 
+namespace {
+  class SelectorDiscSwap : public DiscSwap {
+    using DiscSwap::DiscSwap;
+  protected:
+    void background() override {
+	drawBackground();
+    }
+    void interact() override {
+	int mousex = 0, mousey = 0;
+	byte shiftFlags;
+
+	int mask = getimask();
+	setimask(15);
+	handleInput(locked_get_pads(), mousex, mousey, shiftFlags);
+	setimask(mask);
+    }
+  };
+}
+
 void waitForDisk()
 {
-  Label lab;
-  int wasopen = 0;
-  ta_sync();
-  void *mark = ta_txmark();
-  lab.create_texture("Please insert game CD.");
   //printf("waitForDisk, cdstate = %d\n", getCdState());
-  for (;;) {
-    int s = getCdState();
-    if (s >= 6)
-      wasopen = 1;
-    if (s > 0 && s < 6 && wasopen) {
-      cdfs_reinit();
-      chdir("/");
-      chdir("/");
-      ta_sync();
-      ta_txrelease(mark);
-      return;
-    }
-
-    ta_begin_frame();
-
-    drawBackground();
-
-    ta_commit_end();
-
-    lab.draw(166.0, 200.0, 0xffff2020);
-
-    ta_commit_frame();
-
-    int mousex = 0, mousey = 0;
-    byte shiftFlags;
-
-    int mask = getimask();
-    setimask(15);
-    handleInput(locked_get_pads(), mousex, mousey, shiftFlags);
-    setimask(mask);
-  }
+  SelectorDiscSwap("Please insert game CD.", 0xffff2020).run();
 }
 
 static void drawGameLabel(Game &game, int pal, float x, float y,
@@ -383,47 +272,47 @@ int gameMenu(Game *games, int num_games)
   float y;
 
   if (!num_games)
-    return -1;
+	return -1;
 
   for (;;) {
 
-    if (getCdState()>=6)
-      return -1;
+	if (getCdState()>=6)
+	  return -1;
 
-    ta_begin_frame();
+	ta_begin_frame();
 
-    drawBackground();
+	drawBackground();
 
-    ta_commit_end();
+	ta_commit_end();
 
-    y = 40.0;
-    for (int i=top_game, cnt=0; cnt<10 && i<num_games; i++, cnt++) {
-      int pal = 48+(i&15);
+	y = 40.0;
+	for (int i=top_game, cnt=0; cnt<10 && i<num_games; i++, cnt++) {
+	  int pal = 48+(i&15);
 
-      if (cnt == selector_pos)
+	  if (cnt == selector_pos)
 	draw_trans_quad(100.0, y, 590.0, y+32.0,
 			0x7000ff00, 0x7000ff00, 0x7000ff00, 0x7000ff00);
 
-      games[i].icon.setPalette(pal);
-      drawGameLabel(games[i], pal, 50.0, y, (cnt == selector_pos?
+	  games[i].icon.setPalette(pal);
+	  drawGameLabel(games[i], pal, 50.0, y, (cnt == selector_pos?
 					     0xffff00 : 0xffffff));
-      y += 40.0;
-    }
+	  y += 40.0;
+	}
 
-    ta_commit_frame();
+	ta_commit_frame();
 
-    byte shiftFlags;
-    int event;
+	byte shiftFlags;
+	int event;
 
-    int mask = getimask();
-    setimask(15);
-    event = handleInput(locked_get_pads(), mousex, mousey, shiftFlags);
-    setimask(mask);
+	int mask = getimask();
+	setimask(15);
+	event = handleInput(locked_get_pads(), mousex, mousey, shiftFlags);
+	setimask(mask);
 
-    if (event==-Common::EVENT_LBUTTONDOWN || event==Common::KEYCODE_RETURN || event==Common::KEYCODE_F5) {
-      int selected_game = top_game + selector_pos;
+	if (event==-Common::EVENT_LBUTTONDOWN || event==Common::KEYCODE_RETURN || event==Common::KEYCODE_F5) {
+	  int selected_game = top_game + selector_pos;
 
-      for (int fade=0; fade<=256; fade+=4) {
+	  for (int fade=0; fade<=256; fade+=4) {
 
 	ta_begin_frame();
 
@@ -447,25 +336,25 @@ int gameMenu(Game *games, int num_games)
 		      0xffff00, 0, scale);
 
 	ta_commit_frame();
-      }
-      return selected_game;
-    }
+	  }
+	  return selected_game;
+	}
 
-    if (mousey>=16) {
-      if (selector_pos + top_game + 1 < num_games)
+	if (mousey>=16) {
+	  if (selector_pos + top_game + 1 < num_games)
 	if (++selector_pos >= 10) {
 	  --selector_pos;
 	  ++top_game;
 	}
-      mousey -= 16;
-    } else if (mousey<=-16) {
-      if (selector_pos + top_game > 0)
+	  mousey -= 16;
+	} else if (mousey<=-16) {
+	  if (selector_pos + top_game > 0)
 	if (--selector_pos < 0) {
 	  ++selector_pos;
 	  --top_game;
 	}
-      mousey += 16;
-    }
+	  mousey += 16;
+	}
   }
 }
 
@@ -474,54 +363,51 @@ bool selectGame(char *&engineId, char *&ret, char *&dir_ret, Common::Language &l
   Game *games = new Game[MAX_GAMES];
   int selected, num_games;
 
-  ta_sync();
-  void *mark = ta_txmark();
-
   for (;;) {
-    num_games = findGames(games, MAX_GAMES, true);
-    if (!num_games)
-      num_games = findGames(games, MAX_GAMES, false);
+	num_games = findGames(games, MAX_GAMES, true);
+	if (!num_games)
+	  num_games = findGames(games, MAX_GAMES, false);
 
-    for (int i=0; i<num_games; i++) {
-      games[i].icon.create_texture();
-      games[i].label.create_texture(games[i].text);
-    }
+	{
+	  TextureStack txstack;
 
-    selected = gameMenu(games, num_games);
+	  for (int i=0; i<num_games; i++) {
+	    games[i].icon.create_texture();
+	    games[i].label.create_texture(games[i].text);
+	  }
 
-    ta_sync();
-    ta_txrelease(mark);
+	  selected = gameMenu(games, num_games);
+	}
 
-    if (selected == -1)
-      waitForDisk();
-    else
-      break;
-
+	if (selected == -1)
+	  waitForDisk();
+	else
+	  break;
   }
 
   if (selected >= num_games)
-    selected = -1;
+	selected = -1;
 
   if (selected >= 0)
-    the_game = games[selected];
+	the_game = games[selected];
 
   delete[] games;
 
   if (selected>=0) {
 #if 0
-    chdir(the_game.dir);
+	chdir(the_game.dir);
 #else
-    chdir("/");
-    dir_ret = the_game.dir;
+	chdir("/");
+	dir_ret = the_game.dir;
 #endif
-    engineId = the_game.engine_id;
-    ret = the_game.filename_base;
-    lang_ret = the_game.language;
-    plf_ret = the_game.platform;
-    icon = the_game.icon;
-    return true;
+	engineId = the_game.engine_id;
+	ret = the_game.filename_base;
+	lang_ret = the_game.language;
+	plf_ret = the_game.platform;
+	icon = the_game.icon;
+	return true;
   } else
-    return false;
+	return false;
 }
 
 #ifdef DYNAMIC_MODULES
@@ -531,15 +417,15 @@ static int findPluginDirs(Game *plugin_dirs, int max, const Common::FSNode &base
   int curr_dir = 0;
   base.getChildren(fslist, Common::FSNode::kListDirectoriesOnly);
   for (Common::FSList::const_iterator entry = fslist.begin(); entry != fslist.end();
-       ++entry) {
-    if (entry->isDirectory()) {
-      if (curr_dir >= max)
+	   ++entry) {
+	if (entry->isDirectory()) {
+	  if (curr_dir >= max)
 	break;
-      strncpy(plugin_dirs[curr_dir].dir, (*entry).getPath().c_str(), 256);
-      strncpy(plugin_dirs[curr_dir].text, (*entry).getDisplayName().c_str(), 256);
-      plugin_dirs[curr_dir].icon.load(NULL, 0, 0);
-      curr_dir++;
-    }
+	  strncpy(plugin_dirs[curr_dir].dir, (*entry).getPath().c_str(), 256);
+	  strncpy(plugin_dirs[curr_dir].text, (*entry).getName().c_str(), 256);
+	  plugin_dirs[curr_dir].icon.load(NULL, 0, 0);
+	  curr_dir++;
+	}
   }
   return curr_dir;
 }
@@ -549,26 +435,24 @@ bool selectPluginDir(Common::String &selection, const Common::FSNode &base)
   Game *plugin_dirs = new Game[MAX_PLUGIN_DIRS];
   int selected, num_plugin_dirs;
 
-  ta_sync();
-  void *mark = ta_txmark();
-
   num_plugin_dirs = findPluginDirs(plugin_dirs, MAX_PLUGIN_DIRS, base);
 
-  for (int i=0; i<num_plugin_dirs; i++) {
-    plugin_dirs[i].icon.create_texture();
-    plugin_dirs[i].label.create_texture(plugin_dirs[i].text);
+  {
+    TextureStack txstack;
+
+    for (int i=0; i<num_plugin_dirs; i++) {
+	plugin_dirs[i].icon.create_texture();
+	plugin_dirs[i].label.create_texture(plugin_dirs[i].text);
+    }
+
+    selected = gameMenu(plugin_dirs, num_plugin_dirs);
   }
 
-  selected = gameMenu(plugin_dirs, num_plugin_dirs);
-
-  ta_sync();
-  ta_txrelease(mark);
-
   if (selected >= num_plugin_dirs)
-    selected = -1;
+	selected = -1;
 
   if (selected >= 0)
-    selection = plugin_dirs[selected].dir;
+	selection = plugin_dirs[selected].dir;
 
   delete[] plugin_dirs;
 

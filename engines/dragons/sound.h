@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #ifndef DRAGONS_SOUND_H
@@ -25,6 +24,7 @@
 #include "common/scummsys.h"
 #include "audio/mixer.h"
 #include "audio/audiostream.h"
+#include "midimusicplayer.h"
 
 
 namespace Dragons {
@@ -54,9 +54,11 @@ public:
 	void loadMsf(uint32 sceneId);
 	void playOrStopSound(uint16 soundId);
 
+	void playMusic(int16 song);
 	void playSpeech(uint32 textIndex);
 	bool isSpeechPlaying();
-	void PauseCDMusic();
+	void resumeMusic();
+	void syncSoundSettings();
 
 public:
 	uint16 _dat_8006bb60_sound_related;
@@ -70,19 +72,22 @@ private:
 	uint8 _sfxVolume;
 	uint8 _musicVolume;
 
-	// SOUND_ARR_DAT_80071f6c
-	uint8 _soundArr[0x780];
+	uint8 _sfxVolumeTbl[0x780];
 
 	VabSound* _vabMusx;
+	VabSound* _vabMsf;
 	VabSound* _vabGlob;
 
 	Audio::SoundHandle _speechHandle;
+	MidiMusicPlayer *_midiPlayer;
+
 	Voice _voice[NUM_VOICES];
+	int16 _currentSong;
 
 private:
 	void SomeInitSound_FUN_8003f64c();
 
-	void loadMusAndGlob();
+	void initVabData();
 
 	void playSound(uint16 soundId, uint16 i);
 
@@ -100,20 +105,18 @@ private:
 
 private:
 	class PSXAudioTrack {
-	public:
-		PSXAudioTrack(Common::SeekableReadStream *sector, Audio::Mixer::SoundType soundType);
-		~PSXAudioTrack();
-
-		void queueAudioFromSector(Common::SeekableReadStream *sector);
-		Audio::QueuingAudioStream *getAudioStream() {
-			return _audStream;
-		}
 	private:
-		Audio::QueuingAudioStream *_audStream;
-
 		struct ADPCMStatus {
 			int16 sample[2];
 		} _adpcmStatus[2];
+
+	public:
+		PSXAudioTrack();
+
+		Audio::QueuingAudioStream *createNewAudioStream(Common::File *fd, uint16 sectorStart, int8 startOffset, uint16 sectorEnd);
+
+	private:
+		void queueAudioFromSector(Audio::QueuingAudioStream *audStream, Common::SeekableReadStream *sector);
 	};
 };
 

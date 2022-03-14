@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,8 +38,8 @@ bool Confirm::execute(const Common::String &msg, int mode) {
 	SpriteResource confirmSprites;
 
 	confirmSprites.load("confirm.icn");
-	addButton(Common::Rect(129, 112, 153, 122), Common::KEYCODE_y, &confirmSprites);
-	addButton(Common::Rect(185, 112, 209, 122), Common::KEYCODE_n, &confirmSprites);
+	addButton(Common::Rect(129, 112, 153, 132), Common::KEYCODE_y, &confirmSprites);
+	addButton(Common::Rect(185, 112, 209, 132), Common::KEYCODE_n, &confirmSprites);
 
 	Window &w = windows[mode ? 22 : 21];
 	w.open();
@@ -102,11 +101,7 @@ bool YesNo::show(XeenEngine *vm, bool type, bool townFlag) {
 bool YesNo::execute(bool type, bool townFlag) {
 	EventsManager &events = *_vm->_events;
 	Interface &intf = *_vm->_interface;
-	Map &map = *_vm->_map;
-	Party &party = *_vm->_party;
-	Resources &res = *_vm->_resources;
 	LocationManager &loc = *_vm->_locations;
-	Windows &windows = *_vm->_windows;
 	SpriteResource confirmSprites;
 	bool result = false;
 
@@ -116,6 +111,11 @@ bool YesNo::execute(bool type, bool townFlag) {
 	setWaitBounds();
 
 	if (!type) {
+		Map &map = *_vm->_map;
+		Party &party = *_vm->_party;
+		Resources &res = *_vm->_resources;
+		Windows &windows = *_vm->_windows;
+
 		confirmSprites.load("confirm.icn");
 		res._globalSprites.draw(0, 7, Common::Point(232, 74));
 		confirmSprites.draw(0, 0, Common::Point(235, 75));

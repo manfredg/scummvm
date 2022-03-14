@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,8 @@
 #define GLOBAL_DIALOGS_H
 
 #include "gui/dialog.h"
+#include "gui/options.h"
+#include "gui/widget.h"
 
 class Engine;
 
@@ -44,7 +45,7 @@ public:
 		kHelpCmd = 'HELP',
 		kAboutCmd = 'ABOU',
 		kQuitCmd = 'QUIT',
-		kRTLCmd = 'RTL ',
+		kLauncherCmd = 'LNCR',
 		kChooseCmd = 'CHOS'
 	};
 
@@ -65,7 +66,7 @@ protected:
 
 	GUI::GraphicsWidget  *_logo;
 
-	GUI::ButtonWidget    *_rtlButton;
+	GUI::ButtonWidget    *_returnToLauncherButton;
 	GUI::ButtonWidget    *_loadButton;
 	GUI::ButtonWidget    *_saveButton;
 	GUI::ButtonWidget    *_helpButton;
@@ -75,5 +76,43 @@ protected:
 	GUI::SaveLoadChooser *_loadDialog;
 	GUI::SaveLoadChooser *_saveDialog;
 };
+
+namespace GUI {
+
+class ConfigDialog : public OptionsDialog {
+public:
+	ConfigDialog();
+	~ConfigDialog() override;
+
+	// OptionsDialog API
+	void build() override;
+	void apply() override;
+
+private:
+	OptionsContainerWidget *_engineOptions;
+};
+
+class ExtraGuiOptionsWidget : public OptionsContainerWidget {
+public:
+	ExtraGuiOptionsWidget(GuiObject *widgetsBoss, const Common::String &name, const Common::String &domain, const ExtraGuiOptions &options);
+	~ExtraGuiOptionsWidget() override;
+
+	// OptionsContainerWidget API
+	void load() override;
+	bool save() override;
+
+protected:
+	void defineLayout(ThemeEval& layouts, const Common::String& layoutName, const Common::String& overlayedLayout) const override;
+
+private:
+	typedef Common::Array<CheckboxWidget *> CheckboxWidgetList;
+
+	static Common::String dialogLayout(const Common::String &domain);
+
+	ExtraGuiOptions _options;
+	CheckboxWidgetList _checkboxes;
+};
+
+} // End of namespace GUI
 
 #endif

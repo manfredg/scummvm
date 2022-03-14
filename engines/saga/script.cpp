@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,7 +52,7 @@ SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 	//initialize member variables
 	_abortEnabled = true;
 	_skipSpeeches = false;
-	_conversingThread = NULL;
+	_conversingThread = nullptr;
 	_firstObjectSet = false;
 	_secondObjectNeeded = false;
 	_pendingVerb = getVerbType(kVerbNone);
@@ -69,12 +68,12 @@ SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 	debug(8, "Initializing scripting subsystem");
 	// Load script resource file context
 	_scriptContext = _vm->_resource->getContext(GAME_SCRIPTFILE);
-	if (_scriptContext == NULL) {
+	if (_scriptContext == nullptr) {
 		error("Script::Script() script context not found");
 	}
 
 	resourceContext = _vm->_resource->getContext(GAME_RESOURCEFILE);
-	if (resourceContext == NULL) {
+	if (resourceContext == nullptr) {
 		error("Script::Script() resource context not found");
 	}
 
@@ -147,50 +146,6 @@ SAGA1Script::SAGA1Script(SagaEngine *vm) : Script(vm) {
 
 SAGA1Script::~SAGA1Script() {
 	debug(8, "Shutting down scripting subsystem.");
-}
-
-SAGA2Script::SAGA2Script(SagaEngine *vm) : Script(vm) {
-	ByteArray resourceData;
-
-	debug(8, "Initializing scripting subsystem");
-	// Load script resource file context
-	_scriptContext = _vm->_resource->getContext(GAME_SCRIPTFILE);
-	if (_scriptContext == NULL) {
-		error("Script::Script() script context not found");
-	}
-
-	// Script export segment (lookup table)
-	uint32 saga2ExportSegId = MKTAG('_','E','X','P');
-	int32 entryNum = _scriptContext->getEntryNum(saga2ExportSegId);
-	if (entryNum < 0)
-		error("Unable to locate the script's export segment");
-	debug(3, "Loading module LUT from resource %i", entryNum);
-	_vm->_resource->loadResource(_scriptContext, (uint32)entryNum, resourceData);
-
-	_modulesLUTEntryLen = sizeof(uint32);
-
-	// Calculate number of entries
-	int modulesCount = resourceData.size() / _modulesLUTEntryLen + 1;
-
-	debug(3, "LUT has %i entries", modulesCount);
-
-	// Script data segment
-	/*
-	uint32 saga2DataSegId = MKTAG('_','_','D','A');
-	entryNum = _scriptContext->getEntryNum(saga2DataSegId);
-	if (entryNum < 0)
-		error("Unable to locate the script's data segment");
-	debug(3, "Loading module data from resource %i", entryNum);
-	_vm->_resource->loadResource(_scriptContext, (uint32)entryNum, resourcePointer, resourceLength);
-	*/
-
-	// TODO
-}
-
-SAGA2Script::~SAGA2Script() {
-	debug(8, "Shutting down scripting subsystem.");
-
-	// TODO
 }
 
 // Initializes the scripting module.
@@ -316,134 +271,7 @@ void Script::setupScriptOpcodeList() {
 		OPCODE(opAnimate)		// 87
 	};
 
-#ifdef ENABLE_SAGA2
-	static const ScriptOpDescription SAGA2ScriptOpcodes[] = {
-		OPCODE(opDummy),		// 00: Undefined
-		// Internal operations
-		OPCODE(opNextBlock),	// 01: Continue execution at next block
-		OPCODE(opDup),			// 02: Duplicate 16-bit value on stack
-		OPCODE(opDrop),			// 03: Drop 16-bit value on stack
-		// Primary values
-		OPCODE(opZero),			// 04: Push a zero on the stack
-		OPCODE(opOne),			// 05: Push a one on the stack
-		OPCODE(opConstInt),		// 06: Constant integer
-		OPCODE(opDummy),		// 07: Constant ID reference (unused)
-		OPCODE(opStrLit),		// 08: String literal
-		OPCODE(opDummy),		// 09: Symbol address (unused)
-		OPCODE(opDummy),		// 10: Symbol contents (unused)
-		OPCODE(opDummy),		// 11: Reference to "this" (unused)
-		OPCODE(opDummy),		// 12: Dereference of an ID (unused)
-		// References within this module
-		OPCODE(opGetFlag),		// 13: Read flag bit
-		OPCODE(opGetByte),		// 14: Read byte
-		OPCODE(opGetInt),		// 15: Read integer
-		OPCODE(opDummy),		// 16: Read string (unused)
-		OPCODE(opDummy),		// 17: Read id (unused)
-		OPCODE(opPutFlag),		// 18: Write flag bit
-		OPCODE(opPutByte),		// 19: Write byte
-		OPCODE(opPutInt),		// 20: Write integer
-		OPCODE(opDummy),		// 21: Write string (unused)
-		OPCODE(opDummy),		// 22: Write id (unused)
-		OPCODE(opDummy),		// 23: Push effective address (unused)
-		// Void versions, which consume their arguments
-		OPCODE(opPutFlagV),		// 24: Write flag bit
-		OPCODE(opPutByteV),		// 25: Write byte
-		OPCODE(opPutIntV),		// 26: Write integer
-		OPCODE(opDummy),		// 27: Write string (unused)
-		OPCODE(opDummy),		// 28: Write id (unused)
-		// Function calling
-		OPCODE(opCallNear),		// 29: Call function in the same segment
-		OPCODE(opCallFar),		// 30: Call function in other segment
-		OPCODE(opCcall),		// 31: Call C function
-		OPCODE(opCcallV),		// 32: Call C function ()
-		OPCODE(opCallMember),	// 33: Call member function
-		OPCODE(opCallMemberV),	// 34: Call member function ()
-		OPCODE(opEnter),		// 35: Enter a function
-		OPCODE(opReturn),		// 36: Return from a function
-		OPCODE(opReturnV),		// 37: Return from a function ()
-		// Branching
-		OPCODE(opJmp),			// 38
-		OPCODE(opJmpTrueV),		// 39: Test argument and consume it
-		OPCODE(opJmpFalseV),	// 40: Test argument and consume it
-		OPCODE(opJmpTrue),		// 41: Test argument but don't consume it
-		OPCODE(opJmpFalse),		// 42: Test argument but don't consume it
-		OPCODE(opJmpSwitch),	// 43: Switch (integer)
-		OPCODE(opDummy),		// 44: Switch (string) (unused)
-		OPCODE(opJmpRandom),	// 45: Random jump
-		// Unary operators
-		OPCODE(opNegate),		// 46
-		OPCODE(opNot),			// 47
-		OPCODE(opCompl),		// 48
-		OPCODE(opIncV),			// 49: Increment, don't push
-		OPCODE(opDecV),			// 50: Increment, don't push
-		OPCODE(opPostInc),		// 51
-		OPCODE(opPostDec),		// 52
-		// Arithmetic
-		OPCODE(opAdd),			// 53
-		OPCODE(opSub),			// 54
-		OPCODE(opMul),			// 55
-		OPCODE(opDiv),			// 56
-		OPCODE(opMod),			// 57
-		// Conditional
-		OPCODE(opDummy),		// 58: opConditional (unused)
-		OPCODE(opDummy),		// 59: opComma (unused)
-		// Comparison
-		OPCODE(opEq),			// 60
-		OPCODE(opNe),			// 61
-		OPCODE(opGt),			// 62
-		OPCODE(opLt),			// 63
-		OPCODE(opGe),			// 64
-		OPCODE(opLe),			// 65
-		// String comparison
-		OPCODE(opDummy),		// 66: opStrEq (unused)
-		OPCODE(opDummy),		// 67: opStrNe (unused)
-		OPCODE(opDummy),		// 68: opStrGt (unused)
-		OPCODE(opDummy),		// 69: opStrLt (unused)
-		OPCODE(opDummy),		// 70: opStrGe (unused)
-		OPCODE(opDummy),		// 71: opStrLe (unused)
-		// Shift
-		OPCODE(opRsh),			// 72
-		OPCODE(opLsh),			// 73
-		// Bitwise
-		OPCODE(opAnd),			// 74
-		OPCODE(opOr),			// 75
-		OPCODE(opXor),			// 76
-		// Logical
-		OPCODE(opLAnd),			// 77
-		OPCODE(opLOr),			// 78
-		OPCODE(opLXor),			// 79
-		// String manipulation
-		OPCODE(opDummy),		// 80: opStrCat, string concatenation (unused)
-		OPCODE(opDummy),		// 81: opStrFormat, string formatting (unused)
-		// Assignment
-		OPCODE(opDummy),		// 82: assign (unused)
-		OPCODE(opDummy),		// 83: += (unused)
-		OPCODE(opDummy),		// 84: -= (unused)
-		OPCODE(opDummy),		// 85: *= (unused)
-		OPCODE(opDummy),		// 86: /= (unused)
-		OPCODE(opDummy),		// 87: %= (unused)
-		OPCODE(opDummy),		// 88: <<= (unused)
-		OPCODE(opDummy),		// 89: >>= (unused)
-		OPCODE(opDummy),		// 90: and (unused)
-		OPCODE(opDummy),		// 91: or (unused)
-		// Special
-		OPCODE(opSpeak),		// 92
-		OPCODE(opDialogBegin),	// 93
-		OPCODE(opDialogEnd),	// 94
-		OPCODE(opReply),		// 95
-		OPCODE(opAnimate),		// 96
-		OPCODE(opJmpSeedRandom),// 97: Seeded random jump
-		OPCODE(opDummy)			// 98: Get seeded export number (unused)
-	};
-#endif
-
-	if (!_vm->isSaga2()) {
-		_scriptOpsList = SAGA1ScriptOpcodes;
-#ifdef ENABLE_SAGA2
-	} else {
-		_scriptOpsList = SAGA2ScriptOpcodes;
-#endif
-	}
+	_scriptOpsList = SAGA1ScriptOpcodes;
 }
 
 
@@ -945,7 +773,7 @@ void Script::opSpeak(SCRIPTOP_PARAMS) {
 	}
 
 #ifdef ENABLE_IHNM
-	// WORKAROUND for script bug #3358007 in IHNM. When the zeppelin is landing
+	// WORKAROUND for script bug #5788 in IHNM. When the zeppelin is landing
 	// and the player attempts to exit from the right door in room 13, the game
 	// scripts change to scene 5, but do not clear the cutaway that appears
 	// before Gorrister's speech starts, resulting in a deadlock. We do this
@@ -979,10 +807,11 @@ void Script::opSpeak(SCRIPTOP_PARAMS) {
 
 	// now data contains last string index
 
-	if (_vm->getFeatures() & GF_ITE_DOS_DEMO) {
+	if (_vm->getFeatures() & GF_ITE_DOS_DEMO || _vm->getPlatform() == Common::kPlatformPC98) {
+		int offset = (_vm->getPlatform() == Common::kPlatformPC98) ? 295 : 288;
 		if ((_vm->_scene->currentSceneNumber() == ITE_DEFAULT_SCENE) &&
-			(iparam1 >= 288) && (iparam1 <= (RID_SCENE1_VOICE_END - RID_SCENE1_VOICE_START + 288))) {
-			sampleResourceId = RID_SCENE1_VOICE_START + iparam1 - 288;
+			(iparam1 >= offset) && (iparam1 <= (RID_SCENE1_VOICE_END - RID_SCENE1_VOICE_START + offset))) {
+			sampleResourceId = RID_SCENE1_VOICE_START + iparam1 - offset;
 		}
 	} else {
 		if (thread->_voiceLUT->size() > uint16(first))
@@ -1366,7 +1195,7 @@ void Script::doVerb() {
 			scriptModuleNumber = _vm->_scene->getScriptModuleNumber();
 			hitZone = _vm->_scene->_objectMap->getHitZone(objectIdToIndex(_pendingObject[0]));
 
-			if (hitZone == NULL)
+			if (hitZone == nullptr)
 				return;
 
 			if ((hitZone->getFlags() & kHitZoneExit) == 0) {
@@ -1396,7 +1225,7 @@ void Script::doVerb() {
 	// Edna" action altogether, because if the player wants to kill Edna, he can do that by talking to her and
 	// choosing "[Cut out Edna's heart]", which works correctly. To disable this action, if the knife is used on Edna, we
 	// change the action here to "use knife with the knife", which yields a better reply ("I'd just dull my knife").
-	// Fixes bug #1826871 - "IHNM: Edna's got two hearts but loves to be on the hook"
+	// Fixes bug #3449 - "IHNM: Edna's got two hearts but loves to be on the hook"
 	if (_vm->getGameId() == GID_IHNM && _pendingObject[0] == 16385 && _pendingObject[1] == 8197 && _pendingVerb == 4)
 		_pendingObject[1] = 16385;
 
@@ -1543,7 +1372,7 @@ void Script::playfieldClick(const Point& mousePoint, bool leftButton) {
 	}
 
 
-	hitZone = NULL;
+	hitZone = nullptr;
 
 	if (objectTypeId(_pendingObject[0]) == kGameObjectHitZone) {
 		 hitZone = _vm->_scene->_objectMap->getHitZone(objectIdToIndex(_pendingObject[0]));
@@ -1553,7 +1382,7 @@ void Script::playfieldClick(const Point& mousePoint, bool leftButton) {
 		}
 	}
 
-	if (hitZone != NULL) {
+	if (hitZone != nullptr) {
 		if (_vm->getGameId() == GID_ITE) {
 			if (hitZone->getFlags() & kHitZoneNoWalk) {
 				_vm->_actor->actorFaceTowardsPoint(ID_PROTAG, pickLocation);
@@ -1572,7 +1401,7 @@ void Script::playfieldClick(const Point& mousePoint, bool leftButton) {
 		if (hitZone->getFlags() & kHitZoneProject) {
 			if (!hitZone->getSpecialPoint(specialPoint)) {
 				// Original behaved this way and this prevents from crash
-				// at ruins. See bug #1257459
+				// at ruins. See bug #2134
 				specialPoint.x = specialPoint.y = 0;
 			}
 
@@ -1685,12 +1514,23 @@ void Script::whichObject(const Point& mousePoint) {
 	newRightButtonVerb = getVerbType(kVerbNone);
 
 	// _protagonist can be null while loading a game from the command line
-	if (_vm->_actor->_protagonist == NULL)
+	if (_vm->_actor->_protagonist == nullptr)
 		return;
 
 	if (_vm->_actor->_protagonist->_currentAction != kActionWalkDir) {
 		if (_vm->_scene->getHeight() >= mousePoint.y) {
 			newObjectId = _vm->_actor->hitTest(mousePoint, true);
+
+			// WORKAROUND for #10369
+			// For some reason at Alamma's cottage hitTest returns the cottage door objectId when using it with an item.
+			// This makes it hard to use the letter item with the actual door and progress the story,
+			// so we reset it to ID_NOTHING here.
+			if (_vm->getGameId() == GID_ITE) {
+				if (_vm->_scene->currentChapterNumber() == 0 && _vm->_scene->currentSceneNumber() == 15) {
+					if (newObjectId == 8295 && _currentVerb == getVerbType(kVerbUse))
+						newObjectId = ID_NOTHING;
+				}
+			}
 
 			if (newObjectId != ID_NOTHING) {
 				if (objectTypeId(newObjectId) == kGameObjectObject) {

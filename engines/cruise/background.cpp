@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,20 +15,19 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/textconsole.h"
-
 #include "cruise/cruise_main.h"
+#include "cruise/cruise.h"
 
 namespace Cruise {
 
 uint8 colorMode = 0;
 
-uint8 *backgroundScreens[8] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };	// wasn't initialized in original, but it's probably better
+uint8 *backgroundScreens[8] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };	// wasn't initialized in original, but it's probably better
 bool backgroundChanged[8] = { false, false, false, false, false, false, false, false };
 backgroundTableStruct backgroundTable[8];
 
@@ -90,6 +89,11 @@ int loadBackground(const char *name, int idx) {
 
 	debug(1, "Loading BG: %s", name);
 
+	// WORKAROUND: Don't allow saving during endgame
+	if (!strcmp(name, "DGF1.PI1")) {
+		userEnabled = false;
+	}
+
 	if (!backgroundScreens[idx]) {
 		backgroundScreens[idx] = (uint8 *)mallocAndZero(320 * 200);
 	}
@@ -102,7 +106,7 @@ int loadBackground(const char *name, int idx) {
 	backgroundChanged[idx] = true;
 
 	ptrToFree = gfxModuleData.pPage10;
-	if (loadFileSub1(&ptrToFree, name, NULL) < 0) {
+	if (loadFileSub1(&ptrToFree, name, nullptr) < 0) {
 		if (ptrToFree != gfxModuleData.pPage10)
 			MemFree(ptrToFree);
 

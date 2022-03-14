@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -51,19 +50,14 @@ class MsgScroll;
 
 #define TORCH_LIGHT_LEVEL    3
 
-// Explicit packing used below to fix MSVC warning
-#include "common/pack-start.h"	// START STRUCT PACKING
-
 struct U6ObjectType { // object properties & usecode
+	bool (U6UseCode::*usefunc)(Obj *, UseCodeEvent); // usecode function
 	uint16 obj_n; // type
 	uint8 frame_n; // 0xFF matches any frame
 	uint8 dist; // distance to trigger (depends on event, usually 0)
 	UseCodeEvent trigger; // accepted event(s)
-	bool (U6UseCode::*usefunc)(Obj *, UseCodeEvent); // usecode function
 	uint16 flags; // properties (OBJTYPE)
-} PACKED_STRUCT;
-
-#include "common/pack-end.h"	// END STRUCT PACKING
+};
 
 typedef enum {
 	LAT,

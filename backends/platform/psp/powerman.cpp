@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,7 @@
 #include <pspthreadman.h>
 
 #include "backends/platform/psp/powerman.h"
-#include "engine.h"
+#include "engines/engine.h"
 
 //#define __PSP_DEBUG_FUNCS__	/* can put this locally too */
 //#define __PSP_DEBUG_PRINT__
@@ -121,12 +120,12 @@ void PowerManager::pollPauseEngine() {
 		if (g_engine) { // Check to see if we have an engine
 			if (pause && _pauseClientState == UNPAUSED) {
 				_pauseClientState = PAUSING;		// Tell PM we're in the middle of pausing
-				g_engine->pauseEngine(true);
 				PSP_DEBUG_PRINT_FUNC("Pausing engine\n");
+				_pauseToken = g_engine->pauseEngine();
 				_pauseClientState = PAUSED;			// Tell PM we're done pausing
 			} else if (!pause && _pauseClientState == PAUSED) {
-				g_engine->pauseEngine(false);
 				PSP_DEBUG_PRINT_FUNC("Unpausing for resume\n");
+				_pauseToken.clear();
 				_pauseClientState = UNPAUSED;		// Tell PM we're unpaused
 			}
 		}

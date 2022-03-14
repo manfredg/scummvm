@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -252,7 +251,7 @@ void Inter_v1::checkSwitchTable(uint32 &offset) {
 	len = _vm->_game->_script->readInt8();
 	while (len != -5) {
 		for (int i = 0; i < len; i++) {
-			_vm->_game->_script->evalExpr(0);
+			_vm->_game->_script->evalExpr(nullptr);
 
 			if (_terminate)
 				return;
@@ -471,12 +470,12 @@ void Inter_v1::o1_initMult() {
 		delete[] _vm->_mult->_objects;
 		delete[] _vm->_mult->_renderData;
 
-		_vm->_mult->_objects = 0;
-		_vm->_mult->_renderObjs = 0;
+		_vm->_mult->_objects = nullptr;
+		_vm->_mult->_renderObjs = nullptr;
 
 	}
 
-	if (_vm->_mult->_objects == 0) {
+	if (_vm->_mult->_objects == nullptr) {
 		_vm->_mult->_renderData = new int16[_vm->_mult->_objCount * 9];
 		memset(_vm->_mult->_renderData, 0,
 				_vm->_mult->_objCount * 9 * sizeof(int16));
@@ -830,7 +829,7 @@ void Inter_v1::o1_if(OpFuncParams &params) {
 	byte cmd;
 	bool boolRes;
 
-	// WORKAROUND: Gob1 goblin stuck on reload bugs present in original - bugs #3018918 and 3065914
+	// WORKAROUND: Gob1 goblin stuck on reload bugs present in original - bugs #4909 and 3065914
 	if ((_vm->getGameType() == kGameTypeGob1) && (_vm->_game->_script->pos() == 2933) &&
 			_vm->isCurrentTot("inter.tot") && VAR(285) != 0) {
 		warning("Workaround for Gob1 Goblin Stuck On Reload Bug applied...");
@@ -1208,7 +1207,7 @@ void Inter_v1::o1_keyFunc(OpFuncParams &params) {
 
 	handleBusyWait();
 
-	// WORKAROUND for bug #1726130: Ween busy-waits in the intro for a counter
+	// WORKAROUND for bug #3205: Ween busy-waits in the intro for a counter
 	// to become 5000. We deliberately slow down busy-waiting, so we shorten
 	// the counting, too.
 	if ((_vm->getGameType() == kGameTypeWeen) && (VAR(59) < 4000) &&
@@ -1335,7 +1334,7 @@ void Inter_v1::o1_goblinFunc(OpFuncParams &params) {
 	int16 cmd;
 
 	gobParams.extraData = 0;
-	gobParams.objDesc = 0;
+	gobParams.objDesc = nullptr;
 	gobParams.retVarPtr.set(*_variables, 236);
 
 	cmd = _vm->_game->_script->readInt16();
@@ -1373,7 +1372,7 @@ void Inter_v1::o1_goblinFunc(OpFuncParams &params) {
 	checking if it is zero. If it was not set, we do not return. This
 	fixes a crash in the EGA version if the life bar is depleted, because
 	interFunc is called multiple times with cmd == 39.
-	Bug #1324814
+	Bug #2246
 */
 
 	if ((cmd < 40) && objDescSet && !gobParams.objDesc)
@@ -1631,7 +1630,7 @@ void Inter_v1::o1_insertStr(OpFuncParams &params) {
 	int16 strVar;
 
 	strVar = _vm->_game->_script->readVarIndex();
-	_vm->_game->_script->evalExpr(0);
+	_vm->_game->_script->evalExpr(nullptr);
 	pos = _vm->_game->_script->readValExpr();
 
 	char *str = GET_VARO_FSTR(strVar);
@@ -1655,7 +1654,7 @@ void Inter_v1::o1_strstr(OpFuncParams &params) {
 	int16 pos;
 
 	strVar = _vm->_game->_script->readVarIndex();
-	_vm->_game->_script->evalExpr(0);
+	_vm->_game->_script->evalExpr(nullptr);
 	resVar = _vm->_game->_script->readVarIndex();
 
 	char *res = strstr(GET_VARO_STR(strVar), _vm->_game->_script->getResultStr());
@@ -1723,7 +1722,7 @@ void Inter_v1::o1_freeFont(OpFuncParams &params) {
 	}
 
 	delete _vm->_draw->_fonts[index];
-	_vm->_draw->_fonts[index] = 0;
+	_vm->_draw->_fonts[index] = nullptr;
 }
 
 void Inter_v1::o1_readData(OpFuncParams &params) {

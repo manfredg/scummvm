@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,15 @@
 #include "common/scummsys.h"
 
 namespace Common {
+
+/**
+ * @defgroup common_rendermode Render modes
+ * @ingroup common
+ *
+ * @brief API for render modes.
+ *
+ * @{
+ */
 
 class String;
 
@@ -48,7 +56,8 @@ enum RenderMode {
 	kRenderPC9801 = 9,
 	kRenderApple2GS = 10,
 	kRenderAtariST = 11,
-	kRenderMacintosh = 12
+	kRenderMacintosh = 12,
+	kRenderMacintoshBW = 13
 };
 
 struct RenderModeDescription {
@@ -70,6 +79,7 @@ extern String renderMode2GUIO(RenderMode id);
 // TODO: Rename the following to something better; also, document it
 extern String allRenderModesGUIOs();
 
+/** @} */
 
 } // End of namespace Common
 

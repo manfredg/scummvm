@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Graphics Memory Manager data structures
  */
@@ -24,40 +23,80 @@
 #ifndef TINSEL_HANDLE_H
 #define TINSEL_HANDLE_H
 
+#include "common/str.h"
 #include "tinsel/dw.h"			// new data types
+
+namespace Common {
+class File;
+}
 
 namespace Tinsel {
 
-/*----------------------------------------------------------------------*\
-|*                              Function Prototypes                     *|
-\*----------------------------------------------------------------------*/
+struct FONT;
+struct MEMHANDLE;
+struct PALETTE;
+struct IMAGE;
+struct ACTORDATA;
 
-/**
- * Loads the graphics handle table index file and preloads all the permanent graphics etc.
- */
-void SetupHandleTable();
-void FreeHandleTable();
+class Handle {
+public:
+	Handle();
+	virtual ~Handle();
 
-byte *LockMem(SCNHANDLE offset);
+	/**
+	 * Loads the graphics handle table index file and preloads all the permanent graphics etc.
+	 */
+	void SetupHandleTable();
 
-void LockScene(SCNHANDLE offset);
-void UnlockScene(SCNHANDLE offset);
+	FONT *GetFont(SCNHANDLE offset);
+	PALETTE *GetPalette(SCNHANDLE offset);
+	const IMAGE *GetImage(SCNHANDLE offset);
+	void SetImagePalette(SCNHANDLE offset, SCNHANDLE palHandle);
+	SCNHANDLE GetFontImageHandle(SCNHANDLE offset);
+	const ACTORDATA *GetActorData(SCNHANDLE offset, int numActors);
+	byte *LockMem(SCNHANDLE offset);
 
-bool IsCdPlayHandle(SCNHANDLE offset);
+	void LockScene(SCNHANDLE offset);
+	void UnlockScene(SCNHANDLE offset);
 
-void TouchMem(SCNHANDLE offset);
+	bool IsCdPlayHandle(SCNHANDLE offset);
 
-// Called at scene startup
-void SetCdPlaySceneDetails(int sceneNum, const char *fileName);
+	void TouchMem(SCNHANDLE offset);
 
-// Called at game startup
-void SetCdPlayHandle(int	fileNum);
+	// Called at scene startup
+	void SetCdPlaySceneDetails(const char *fileName);
 
-void LoadExtraGraphData(
-	SCNHANDLE start,		// Handle of start of range
-	SCNHANDLE next);		// Handle of end of range + 1
+	// Called at game startup
+	void SetCdPlayHandle(int	fileNum);
 
-int CdNumber(SCNHANDLE offset);
+	void LoadExtraGraphData(
+		SCNHANDLE start,		// Handle of start of range
+		SCNHANDLE next);		// Handle of end of range + 1
+
+	int CdNumber(SCNHANDLE offset);
+
+#ifdef BODGE
+	bool ValidHandle(SCNHANDLE offset);
+#endif
+
+private:
+	void LoadFile(MEMHANDLE *pH); // load a memory block as a file
+	void OpenCDGraphFile();
+	void LoadCDGraphData(MEMHANDLE *pH);
+
+	// handle table gets loaded from index file at runtime
+	MEMHANDLE *_handleTable;
+
+	// number of handles in the handle table
+	uint _numHandles;
+
+	uint32 _cdPlayHandle;
+
+	SCNHANDLE _cdBaseHandle, _cdTopHandle;
+	Common::File *_cdGraphStream;
+
+	Common::String _szCdPlayFile;
+};
 
 } // End of namespace Tinsel
 

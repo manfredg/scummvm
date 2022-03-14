@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -73,7 +72,7 @@ enum {
 
 #define NUM_SHAKE_POSITIONS 8
 static const int8 shake_positions[NUM_SHAKE_POSITIONS] = {
-	0, 1 * 2, 2 * 2, 1 * 2, 0 * 2, 2 * 2, 3 * 2, 1 * 2
+	0, 1, 2, 1, 0, 2, 3, 1
 };
 
 /**
@@ -220,7 +219,7 @@ Gdi::Gdi(ScummEngine *vm) : _vm(vm) {
 Gdi::~Gdi() {
 }
 
-GdiHE::GdiHE(ScummEngine *vm) : Gdi(vm), _tmskPtr(0) {
+GdiHE::GdiHE(ScummEngine *vm) : Gdi(vm), _tmskPtr(nullptr) {
 }
 
 
@@ -245,7 +244,7 @@ GdiV1::GdiV1(ScummEngine *vm) : Gdi(vm) {
 }
 
 GdiV2::GdiV2(ScummEngine *vm) : Gdi(vm) {
-	_roomStrips = 0;
+	_roomStrips = nullptr;
 }
 
 GdiV2::~GdiV2() {
@@ -269,7 +268,7 @@ void Gdi::init() {
 		// virtual screen strips don't match the display screen strips anymore. To
 		// overcome that problem, we simply use a screen pitch that is 8 pixel wider
 		// than the actual screen width, and always draw one strip more than needed to
-		// the backbuf (thus we have to treat the right border seperately).
+		// the backbuf (thus we have to treat the right border separately).
 		_numStrips += 1;
 	}
 }
@@ -306,7 +305,7 @@ void GdiV1::roomChanged(byte *roomptr) {
 	decodeV1Gfx(roomptr + READ_LE_UINT16(roomptr + 16), _V1.maskMap, roomptr[4] * roomptr[5]);
 
 	// Read the mask data. The 16bit length value seems to always be 8 too big.
-	// See bug #1837375 for details on this.
+	// See bug #3458 for details on this.
 	const byte *maskPtr = roomptr + READ_LE_UINT16(roomptr + 18);
 	decodeV1Gfx(maskPtr + 2, _V1.maskChar, READ_LE_UINT16(maskPtr) - 8);
 	_objectMode = true;
@@ -343,6 +342,11 @@ void ScummEngine::initScreens(int b, int h) {
 	}
 #endif
 
+	if (_macScreen) {
+		_macScreen->fillRect(Common::Rect(_macScreen->w, _macScreen->h), 0);
+		clearTextSurface();
+	}
+
 	if (!getResourceAddress(rtBuffer, 4)) {
 		// Since the size of screen 3 is fixed, there is no need to reallocate
 		// it if its size changed.
@@ -372,6 +376,11 @@ void ScummEngine::initScreens(int b, int h) {
 	_screenH = h;
 
 	_gdi->init();
+
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+	// The right most visible strip for FM-Towns smooth scrolling
+	_scrollFeedStrips[0] = _gdi->_numStrips - 1;
+#endif
 }
 
 void ScummEngine::initVirtScreen(VirtScreenNumber slot, int top, int width, int height, bool twobufs,
@@ -393,7 +402,7 @@ void ScummEngine::initVirtScreen(VirtScreenNumber slot, int top, int width, int 
 	vs->h = height;
 	vs->hasTwoBuffers = twobufs;
 	vs->xstart = 0;
-	vs->backBuf = NULL;
+	vs->backBuf = nullptr;
 	if (_game.features & GF_16BIT_COLOR)
 		vs->format = Graphics::PixelFormat(2, 5, 5, 5, 0, 10, 5, 0, 0);
 	else
@@ -423,7 +432,10 @@ void ScummEngine::initVirtScreen(VirtScreenNumber slot, int top, int width, int 
 
 	_res->createResource(rtBuffer, slot + 1, size);
 	vs->setPixels(getResourceAddress(rtBuffer, slot + 1));
-	memset(vs->getBasePtr(0, 0), 0, size);	// reset background
+	if (_game.platform == Common::kPlatformNES)
+		memset(vs->getBasePtr(0, 0), 0x1d, size);	// reset background (MM NES)
+	else
+		memset(vs->getBasePtr(0, 0), 0, size);		// reset background
 
 	if (twobufs) {
 		vs->backBuf = _res->createResource(rtBuffer, slot + 5, size);
@@ -443,7 +455,7 @@ VirtScreen *ScummEngine::findVirtScreen(int y) {
 			return vs;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 void ScummEngine::markRectAsDirty(VirtScreenNumber virt, int left, int right, int top, int bottom, int dirtybit) {
@@ -518,15 +530,6 @@ void ScummEngine::drawDirtyScreenParts() {
 		vs->setDirtyRange(vs->h, 0);
 	} else {
 		updateDirtyScreen(kMainVirtScreen);
-	}
-
-	// Handle shaking
-	if (_shakeEnabled) {
-		_shakeFrame = (_shakeFrame + 1) % NUM_SHAKE_POSITIONS;
-		_system->setShakePos(0, shake_positions[_shakeFrame]);
-	} else if (!_shakeEnabled &&_shakeFrame != 0) {
-		_shakeFrame = 0;
-		_system->setShakePos(0, 0);
 	}
 }
 
@@ -630,12 +633,22 @@ void ScummEngine::drawStripToScreen(VirtScreen *vs, int x, int width, int top, i
 	if (width <= 0 || height <= 0)
 		return;
 
+	if (_macScreen) {
+		mac_drawStripToScreen(vs, top, x, y, width, height);
+		return;
+	}
+
 	const void *src = vs->getPixels(x, top);
 	int m = _textSurfaceMultiplier;
 	int vsPitch;
 	int pitch = vs->pitch;
 	vsPitch = vs->pitch - width * vs->format.bytesPerPixel;
 
+	// In MM NES If we're repainting the entire screen, just make everything black
+	if ((_game.platform == Common::kPlatformNES) && width == 256 && height == 240) {
+		_system->fillScreen(0x1d);
+		return;
+	}
 
 	if (_game.version < 7) {
 		// For The Dig, FT and COMI, we just blit everything to the screen at once.
@@ -653,13 +666,13 @@ void ScummEngine::drawStripToScreen(VirtScreen *vs, int x, int width, int top, i
 		assert(IS_ALIGNED(text, 4));
 		assert(0 == (width & 3));
 
-		// Compose the text over the game graphics
 #ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
 		if (_game.platform == Common::kPlatformFMTowns) {
 			towns_drawStripToScreen(vs, x, y, x, top, width, height);
 			return;
 		} else
 #endif
+		// Compose the text over the game graphics
 		if (_outputPixelFormat.bytesPerPixel == 2) {
 			const byte *srcPtr = (const byte *)src;
 			const byte *textPtr = (byte *)_textSurface.getBasePtr(x * m, y * m);
@@ -957,10 +970,10 @@ void ScummEngine::redrawBGAreas() {
 		diff = camera._cur.x - camera._last.x;
 		if (!_fullRedraw && diff == 8) {
 			val = -1;
-			redrawBGStrip(_gdi->_numStrips - 1, 1);
+			scrollLeft();
 		} else if (!_fullRedraw && diff == -8) {
 			val = +1;
-			redrawBGStrip(0, 1);
+			scrollRight();
 		} else if (_fullRedraw || diff != 0) {
 			if (_game.version <= 5) {
 				((ScummEngine_v5 *)this)->clearFlashlight();
@@ -1015,12 +1028,12 @@ void ScummEngine::restoreBackground(Common::Rect rect, byte backColor) {
 	VirtScreen *vs;
 	byte *screenBuf;
 
- 	if (rect.top < 0)
+	if (rect.top < 0)
 		rect.top = 0;
 	if (rect.left >= rect.right || rect.top >= rect.bottom)
 		return;
 
-	if ((vs = findVirtScreen(rect.top)) == NULL)
+	if ((vs = findVirtScreen(rect.top)) == nullptr)
 		return;
 
 	if (rect.left > vs->w)
@@ -1034,6 +1047,11 @@ void ScummEngine::restoreBackground(Common::Rect rect, byte backColor) {
 			backColor = _verbPalette[backColor];
 		else
 			backColor = _roomPalette[backColor];
+	}
+
+	// MM NES background color is 0x1d
+	if (_game.platform == Common::kPlatformNES) {
+		backColor = 0x1d;
 	}
 
 	// Convert 'rect' to local (virtual screen) coordinates
@@ -1080,6 +1098,11 @@ void ScummEngine::restoreBackground(Common::Rect rect, byte backColor) {
 		}
 #endif
 
+		if (_macScreen) {
+			byte *mask = (byte *)_textSurface.getBasePtr(rect.left * _textSurfaceMultiplier, (rect.top + vs->topline) * _textSurfaceMultiplier);
+			fill(mask, _textSurface.pitch, CHARSET_MASK_TRANSPARENCY, width * _textSurfaceMultiplier, height * _textSurfaceMultiplier, _textSurface.format.bytesPerPixel);
+		}
+
 		if (_game.features & GF_16BIT_COLOR)
 			fill(screenBuf, vs->pitch, _16BitPalette[backColor], width, height, vs->format.bytesPerPixel);
 		else
@@ -1095,6 +1118,11 @@ void ScummEngine::restoreCharsetBg() {
 		_charset->_hasMask = false;
 		_charset->_str.left = -1;
 		_charset->_left = -1;
+
+		if (_macScreen && _game.id == GID_INDY3 && _charset->_textScreenID == kTextVirtScreen) {
+			mac_undrawIndy3TextBox();
+			return;
+		}
 
 		// Restore background on the whole text area. This code is based on
 		// restoreBackground(), but was changed to only restore those parts which are
@@ -1116,10 +1144,13 @@ void ScummEngine::restoreCharsetBg() {
 			}
 		} else {
 			// Clear area
-			memset(screenBuf, 0, vs->h * vs->pitch);
+			if (_game.platform == Common::kPlatformNES)
+				memset(screenBuf, 0x1d, vs->h * vs->pitch);
+			else
+				memset(screenBuf, 0, vs->h * vs->pitch);
 		}
 
-		if (vs->hasTwoBuffers) {
+		if (vs->hasTwoBuffers || _macScreen) {
 			// Clean out the charset mask
 			clearTextSurface();
 		}
@@ -1160,8 +1191,8 @@ byte *Gdi::getMaskBuffer(int x, int y, int z) {
 static void blit(byte *dst, int dstPitch, const byte *src, int srcPitch, int w, int h, uint8 bitDepth) {
 	assert(w > 0);
 	assert(h > 0);
-	assert(src != NULL);
-	assert(dst != NULL);
+	assert(src != nullptr);
+	assert(dst != nullptr);
 
 	if ((w * bitDepth == srcPitch) && (w * bitDepth == dstPitch)) {
 		memcpy(dst, src, w * h * bitDepth);
@@ -1176,7 +1207,7 @@ static void blit(byte *dst, int dstPitch, const byte *src, int srcPitch, int w, 
 
 static void fill(byte *dst, int dstPitch, uint16 color, int w, int h, uint8 bitDepth) {
 	assert(h > 0);
-	assert(dst != NULL);
+	assert(dst != nullptr);
 
 	if (bitDepth == 2) {
 		do {
@@ -1227,11 +1258,15 @@ static void clear8Col(byte *dst, int dstPitch, int height, uint8 bitDepth) {
 #if defined(SCUMM_NEED_ALIGNMENT)
 		memset(dst, 0, 8 * bitDepth);
 #else
-		((uint32 *)dst)[0] = 0;
-		((uint32 *)dst)[1] = 0;
-		if (bitDepth == 2) {
-			((uint32 *)dst)[2] = 0;
-			((uint32 *)dst)[3] = 0;
+		if (g_scumm->_game.platform == Common::kPlatformNES) {
+			memset(dst, 0x1d, 8);
+		} else {
+			((uint32*)dst)[0] = 0;
+			((uint32*)dst)[1] = 0;
+			if (bitDepth == 2) {
+				((uint32*)dst)[2] = 0;
+				((uint32*)dst)[3] = 0;
+			}
 		}
 #endif
 		dst += dstPitch;
@@ -1243,7 +1278,7 @@ void ScummEngine::drawBox(int x, int y, int x2, int y2, int color) {
 	VirtScreen *vs;
 	byte *backbuff, *bgbuff;
 
-	if ((vs = findVirtScreen(y)) == NULL)
+	if ((vs = findVirtScreen(y)) == nullptr)
 		return;
 
 	// Indy4 Amiga always uses the room or verb palette map to match colors to
@@ -1293,7 +1328,7 @@ void ScummEngine::drawBox(int x, int y, int x2, int y2, int color) {
 	width = x2 - x;
 	height = y2 - y;
 
-	// This will happen in the Sam & Max intro - see bug #1039162 - where
+	// This will happen in the Sam & Max intro - see bug #1797 - where
 	// it would trigger an assertion in blit().
 
 	if (width <= 0 || height <= 0)
@@ -1372,6 +1407,11 @@ void ScummEngine::drawBox(int x, int y, int x2, int y2, int color) {
 			}
 #endif
 
+			if (_macScreen) {
+				byte *mask = (byte *)_textSurface.getBasePtr(x * _textSurfaceMultiplier, (y - _screenTop + vs->topline) * _textSurfaceMultiplier);
+				fill(mask, _textSurface.pitch, CHARSET_MASK_TRANSPARENCY, width * _textSurfaceMultiplier, height * _textSurfaceMultiplier, _textSurface.format.bytesPerPixel);
+			}
+
 			fill(backbuff, vs->pitch, color, width, height, vs->format.bytesPerPixel);
 		}
 	}
@@ -1398,12 +1438,17 @@ void ScummEngine::moveScreen(int dx, int dy, int height) {
 
 void ScummEngine_v5::clearFlashlight() {
 	_flashlight.isDrawn = false;
-	_flashlight.buffer = NULL;
+	_flashlight.buffer = nullptr;
 }
 
 void ScummEngine_v5::drawFlashlight() {
 	int i, j, x, y;
 	VirtScreen *vs = &_virtscr[kMainVirtScreen];
+	byte backgroundColor = 0;
+
+	// NES uses 0x1d for black
+	if (g_scumm->_game.platform == Common::kPlatformNES)
+		backgroundColor = 0x1d;
 
 	// Remove the flash light first if it was previously drawn
 	if (_flashlight.isDrawn) {
@@ -1411,7 +1456,7 @@ void ScummEngine_v5::drawFlashlight() {
 										_flashlight.y, _flashlight.y + _flashlight.h, USAGE_BIT_DIRTY);
 
 		if (_flashlight.buffer) {
-			fill(_flashlight.buffer, vs->pitch, 0, _flashlight.w, _flashlight.h, vs->format.bytesPerPixel);
+			fill(_flashlight.buffer, vs->pitch, backgroundColor, _flashlight.w, _flashlight.h, vs->format.bytesPerPixel);
 		}
 		_flashlight.isDrawn = false;
 	}
@@ -1460,9 +1505,8 @@ void ScummEngine_v5::drawFlashlight() {
 
 	blit(_flashlight.buffer, vs->pitch, bgbak, vs->pitch, _flashlight.w, _flashlight.h, vs->format.bytesPerPixel);
 
-	// C64 does not round the flashlight
-	if (_game.platform != Common::kPlatformC64) {
-
+	// C64 & NES does not round the flashlight
+	if (_game.platform != Common::kPlatformC64 && _game.platform != Common::kPlatformNES) {
 		// Round the corners. To do so, we simply hard-code a set of nicely
 		// rounded corners.
 		static const int corner_data[] = { 8, 6, 4, 3, 2, 2, 1, 1 };
@@ -1481,10 +1525,10 @@ void ScummEngine_v5::drawFlashlight() {
 					WRITE_UINT16(&_flashlight.buffer[maxrow + maxcol - 2 * j], 0);
 				}
 				else {
-					_flashlight.buffer[minrow + j] = 0;
-					_flashlight.buffer[minrow + maxcol - j] = 0;
-					_flashlight.buffer[maxrow + j] = 0;
-					_flashlight.buffer[maxrow + maxcol - j] = 0;
+					_flashlight.buffer[minrow + j] = backgroundColor;
+					_flashlight.buffer[minrow + maxcol - j] = backgroundColor;
+					_flashlight.buffer[maxrow + j] = backgroundColor;
+					_flashlight.buffer[maxrow + maxcol - j] = backgroundColor;
 				}
 			}
 		}
@@ -1539,7 +1583,7 @@ void GdiHE::prepareDrawBitmap(const byte *ptr, VirtScreen *vs,
 	if (_vm->_game.heversion >= 72) {
 		_tmskPtr = _vm->findResource(MKTAG('T','M','S','K'), ptr);
 	} else
-		_tmskPtr = 0;
+		_tmskPtr = nullptr;
 }
 
 void GdiV1::prepareDrawBitmap(const byte *ptr, VirtScreen *vs,
@@ -1578,7 +1622,7 @@ void GdiV2::prepareDrawBitmap(const byte *ptr, VirtScreen *vs,
 	// difficult to draw only parts of a room/object. We handle the V2 graphics
 	// differently from all other (newer) graphic formats for this reason.
 	//
-	StripTable *table = (_objectMode ? 0 : _roomStrips);
+	StripTable *table = (_objectMode ? nullptr : _roomStrips);
 	const int left = (stripnr * 8);
 	const int right = left + (numstrip * 8);
 	byte *dst;
@@ -1708,7 +1752,7 @@ int Gdi::getZPlanes(const byte *ptr, const byte *zplane_list[9], bool bmapImage)
 		assert(numzbuf <= 9);
 
 		if (_vm->_game.id == GID_LOOM && _vm->_game.platform == Common::kPlatformPCEngine) {
-			zplane_list[1] = 0;
+			zplane_list[1] = nullptr;
 		} else if (_vm->_game.features & GF_SMALL_HEADER) {
 			if (_vm->_game.features & GF_16COLOR)
 				zplane_list[1] = ptr + READ_LE_UINT16(ptr);
@@ -1716,7 +1760,7 @@ int Gdi::getZPlanes(const byte *ptr, const byte *zplane_list[9], bool bmapImage)
 				zplane_list[1] = ptr + READ_LE_UINT32(ptr);
 				if (_vm->_game.features & GF_OLD256) {
 					if (0 == READ_LE_UINT32(zplane_list[1]))
-						zplane_list[1] = 0;
+						zplane_list[1] = nullptr;
 				}
 			}
 			for (i = 2; i < numzbuf; i++) {
@@ -1879,7 +1923,7 @@ bool Gdi::drawStrip(byte *dstPtr, VirtScreen *vs, int x, int y, const int width,
 	// Do some input verification and make sure the strip/strip offset
 	// are actually valid. Normally, this should never be a problem,
 	// but if e.g. a savegame gets corrupted, we can easily get into
-	// trouble here. See also bug #795214.
+	// trouble here. See also bug #1191.
 	int offset = -1, smapLen;
 	if (_vm->_game.features & GF_16COLOR) {
 		smapLen = READ_LE_UINT16(smap_ptr);
@@ -2562,10 +2606,6 @@ void ScummEngine::NES_loadCostumeSet(int n) {
 	byte *palette = getResourceAddress(rtCostume, v1MMNEScostTables[n][5]) + 2;
 	for (i = 0; i < 16; i++) {
 		byte c = *palette++;
-		if (c == 0x1D)	// HACK - switch around colors 0x00 and 0x1D
-			c = 0;		// so we don't need a zillion extra checks
-		else if (c == 0)// for determining the proper background color
-			c = 0x1D;
 		_NESPalette[1][i] = c;
 	}
 
@@ -2588,14 +2628,6 @@ void GdiNES::decodeNESGfx(const byte *room) {
 	decodeNESTileData(_vm->getResourceAddress(rtCostume, 37 + tileset), _vm->_NESPatTable[1] + _vm->_NESBaseTiles * 16);
 	for (i = 0; i < 16; i++) {
 		byte c = *gdata++;
-		if (c == 0x0D)
-			c = 0x1D;
-
-		if (c == 0x1D)	 // HACK - switch around colors 0x00 and 0x1D
-			c = 0;		 // so we don't need a zillion extra checks
-		else if (c == 0) // for determining the proper background color
-			c = 0x1D;
-
 		_vm->_NESPalette[0][i] = c;
 	}
 	for (i = 0; i < 16; i++) {
@@ -2726,9 +2758,17 @@ void GdiNES::decodeNESObject(const byte *ptr, int xpos, int ypos, int width, int
 }
 
 void GdiNES::drawStripNES(byte *dst, byte *mask, int dstPitch, int stripnr, int top, int height) {
+	const byte darkPalette[16] = { 0x2d,0x1d,0x3d,0x20, 0x2d,0x1d,0x3d,0x20, 0x2d,0x1d,0x3d,0x20, 0x2d,0x1d,0x3d,0x20 };
+	const byte* stripPalette;
 	top /= 8;
 	height /= 8;
 	int x = stripnr + 2;	// NES version has a 2 tile gap on each edge
+
+	// MM NES does not paint the background when lit with a flashlight
+	if (_vm->isLightOn())
+		stripPalette = _vm->_NESPalette[0];
+	else
+		stripPalette = darkPalette;
 
 	if (_objectMode)
 		x += _NES.objX; // for objects, need to start at the left edge of the object, not the screen
@@ -2744,7 +2784,7 @@ void GdiNES::drawStripNES(byte *dst, byte *mask, int dstPitch, int stripnr, int 
 			byte c0 = _vm->_NESPatTable[1][tile * 16 + i];
 			byte c1 = _vm->_NESPatTable[1][tile * 16 + i + 8];
 			for (int j = 0; j < 8; j++)
-				dst[j] = _vm->_NESPalette[0][((c0 >> (7 - j)) & 1) | (((c1 >> (7 - j)) & 1) << 1) | (palette << 2)];
+				dst[j] = stripPalette[((c0 >> (7 - j)) & 1) | (((c1 >> (7 - j)) & 1) << 1) | (palette << 2)];
 			dst += dstPitch;
 			*mask = c0 | c1;
 			mask += _numStrips;
@@ -3200,7 +3240,7 @@ void GdiV1::decodeV1Gfx(const byte *src, byte *dst, int size) const {
 StripTable *GdiV2::generateStripTable(const byte *src, int width, int height, StripTable *table) const {
 
 	// If no strip table was given to use, allocate a new one
-	if (table == 0)
+	if (table == nullptr)
 		table = (StripTable *)calloc(1, sizeof(StripTable));
 
 	const byte *bitmapStart = src;
@@ -3727,7 +3767,7 @@ void GdiHE16bit::writeRoomColor(byte *dst, byte color) const {
 #endif
 
 void Gdi::writeRoomColor(byte *dst, byte color) const {
-	// As described in bug #1294513 "FOA/Amiga: Palette problem (Regression)"
+	// As described in bug #2204 "FOA/Amiga: Palette problem (Regression)"
 	// the original AMIGA version of Indy4: The Fate of Atlantis allowed
 	// overflowing of the palette index. To have the same result in our code,
 	// we need to do an logical AND 0xFF here to keep the result in [0, 255].
@@ -3749,7 +3789,7 @@ void ScummEngine::fadeIn(int effect) {
 		_screenEffectFlag = true;
 		return;
 	}
-
+	towns_waitForScroll(0);
 	updatePalette();
 
 	switch (effect) {
@@ -3795,8 +3835,9 @@ void ScummEngine::fadeIn(int effect) {
 }
 
 void ScummEngine::fadeOut(int effect) {
-	VirtScreen *vs = &_virtscr[kMainVirtScreen];
+	towns_waitForScroll(0);
 
+	VirtScreen *vs = &_virtscr[kMainVirtScreen];
 	vs->setDirtyRange(0, 0);
 	if (_game.version < 7)
 		camera._last.x = camera._cur.x;
@@ -3817,7 +3858,10 @@ void ScummEngine::fadeOut(int effect) {
 	// when bypassed of FT and TheDig.
 	if ((_game.version == 7 || _screenEffectFlag) && effect != 0) {
 		// Fill screen 0 with black
-		memset(vs->getPixels(0, 0), 0, vs->pitch * vs->h);
+		if (_game.platform == Common::kPlatformNES)
+			memset(vs->getPixels(0, 0), 0x1d, vs->pitch * vs->h);
+		else
+			memset(vs->getPixels(0, 0), 0, vs->pitch * vs->h);
 
 		// Fade to black with the specified effect, if any.
 		switch (effect) {
@@ -3836,10 +3880,7 @@ void ScummEngine::fadeOut(int effect) {
 			// Just blit screen 0 to the display (i.e. display will be black)
 			vs->setDirtyRange(0, vs->h);
 			updateDirtyScreen(kMainVirtScreen);
-#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
-			if (_townsScreen)
-				_townsScreen->update();
-#endif
+			towns_updateGfx();
 			break;
 		case 134:
 			dissolveEffect(1, 1);
@@ -3957,7 +3998,7 @@ void ScummEngine::dissolveEffect(int width, int height) {
 		h++;
 
 	offsets = (int *) malloc(w * h * sizeof(int));
-	if (offsets == NULL)
+	if (offsets == nullptr)
 		error("dissolveEffect: out of memory");
 
 	// Create a permutation of offsets into the frame buffer
@@ -3983,7 +4024,7 @@ void ScummEngine::dissolveEffect(int width, int height) {
 				offsets[i++] = y * vs->pitch + x;
 
 		offsets2 = (int *) malloc(w * h * sizeof(int));
-		if (offsets2 == NULL)
+		if (offsets2 == nullptr)
 			error("dissolveEffect: out of memory");
 
 		memcpy(offsets2, offsets, w * h * sizeof(int));
@@ -4022,6 +4063,9 @@ void ScummEngine::dissolveEffect(int width, int height) {
 			towns_drawStripToScreen(vs, x, y + vs->topline, x, y, width, height);
 		else
 #endif
+		if (_macScreen)
+			mac_drawStripToScreen(vs, y, x, y + vs->topline, width, height);
+		else
 			_system->copyRectToScreen(vs->getPixels(x, y), vs->pitch, x, y + vs->topline, width, height);
 
 
@@ -4039,6 +4083,13 @@ void ScummEngine::dissolveEffect(int width, int height) {
 }
 
 void ScummEngine::scrollEffect(int dir) {
+#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
+	// The FM-Towns versions use smooth scrolling here, but only for left and right.
+	if (_enableSmoothScrolling && dir > 1) {
+		towns_scriptScrollEffect((dir & 1) * 2 - 1);
+		return;
+	}
+#endif
 	VirtScreen *vs = &_virtscr[kMainVirtScreen];
 
 	int x, y;
@@ -4061,7 +4112,7 @@ void ScummEngine::scrollEffect(int dir) {
 		//up
 		y = 1 + step;
 		while (y < vs->h) {
-			moveScreen(0, -step, vs->h);
+			moveScreen(0, -step * m, vs->h * m);
 #ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
 			if (_townsScreen) {
 				towns_drawStripToScreen(vs, 0, vs->topline + vs->h - step, 0, y - step, vs->w, step);
@@ -4084,7 +4135,7 @@ void ScummEngine::scrollEffect(int dir) {
 		// down
 		y = 1 + step;
 		while (y < vs->h) {
-			moveScreen(0, step, vs->h);
+			moveScreen(0, step * m, vs->h * m);
 #ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
 			if (_townsScreen) {
 				towns_drawStripToScreen(vs, 0, vs->topline, 0, vs->h - y, vs->w, step);
@@ -4107,21 +4158,14 @@ void ScummEngine::scrollEffect(int dir) {
 		// left
 		x = 1 + step;
 		while (x < vs->w) {
-			moveScreen(-step, 0, vs->h);
+			moveScreen(-step * m, 0, vs->h * m);
 
-#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
-			if (_townsScreen) {
-				towns_drawStripToScreen(vs, vs->w - step, vs->topline, x - step, 0, step, vs->h);
-			} else
-#endif
-			{
-				src = vs->getPixels(x - step, 0);
-				_system->copyRectToScreen(src,
-					vsPitch,
-					(vs->w - step) * m, 0,
-					step * m, vs->h * m);
-				_system->updateScreen();
-			}
+			src = vs->getPixels(x - step, 0);
+			_system->copyRectToScreen(src,
+				vsPitch,
+				(vs->w - step) * m, 0,
+				step * m, vs->h * m);
+			_system->updateScreen();
 
 			waitForTimer(delay);
 			x += step;
@@ -4131,21 +4175,14 @@ void ScummEngine::scrollEffect(int dir) {
 		// right
 		x = 1 + step;
 		while (x < vs->w) {
-			moveScreen(step, 0, vs->h);
+			moveScreen(step * m, 0, vs->h * m);
 
-#ifndef DISABLE_TOWNS_DUAL_LAYER_MODE
-			if (_townsScreen) {
-				towns_drawStripToScreen(vs, 0, vs->topline, vs->w - x, 0, step, vs->h);
-			} else
-#endif
-			{
-				src = vs->getPixels(vs->w - x, 0);
-				_system->copyRectToScreen(src,
-					vsPitch,
-					0, 0,
-					step, vs->h);
-				_system->updateScreen();
-			}
+			src = vs->getPixels(vs->w - x, 0);
+			_system->copyRectToScreen(src,
+				vsPitch,
+				0, 0,
+				step, vs->h);
+			_system->updateScreen();
 
 			waitForTimer(delay);
 			x += step;
@@ -4158,10 +4195,40 @@ void ScummEngine::scrollEffect(int dir) {
 
 void ScummEngine::unkScreenEffect6() {
 	// CD Loom (but not EGA Loom!) uses a more fine-grained dissolve
-	if (_game.id == GID_LOOM && (_game.version == 4))
+	if (_game.id == GID_LOOM && _game.version == 4)
 		dissolveEffect(1, 1);
+	else if (_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine)
+		dissolveEffect(8, 8);
 	else
 		dissolveEffect(8, 4);
+}
+
+void ScummEngine::updateScreenShakeEffect() {
+	if (!_shakeEnabled) {
+		if (_shakeFrame) {
+			_shakeFrame = 0;
+			_system->setShakePos(0, 0);
+		}
+		_shakeNextTick = _shakeTickCounter = 0;
+		return;
+	}
+
+	uint32 now = _system->getMillis();
+	if (!_shakeNextTick)
+		_shakeNextTick = now;
+
+	while (now >= _shakeNextTick) {
+		_shakeFrame = (_shakeFrame + 1) % NUM_SHAKE_POSITIONS;
+		_system->setShakePos(0, -shake_positions[_shakeFrame] * _textSurfaceMultiplier);
+		// In DOTT (and probably all other imuse games) this runs on the imuse timer which is a PIT 0 Timer at 291.304 Hz.
+		// Apparently it is the same timer setting for all sound drivers although it is set up not in the main executable
+		// but inside each respective ims driver during the driver load/init process. The screen shakes update every 8 ticks.
+		// LOOM uses either 236.696 Hz at 8 ticks delay or 473.297 Hz at 16 ticks delay, depending on the sound card selection.
+		// The outcome is the same...
+		_shakeTickCounter += ((1000000000 / _shakeTimerRate) * 8);
+		_shakeNextTick += (_shakeTickCounter / 1000);
+		_shakeTickCounter %= 1000;
+	}
 }
 
 } // End of namespace Scumm

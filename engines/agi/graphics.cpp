@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,10 +64,10 @@ GfxMgr::GfxMgr(AgiBase *vm, GfxFont *font) : _vm(vm), _font(font) {
 	_pixels = 0;
 	_displayPixels = 0;
 
-	_activeScreen = NULL;
-	_gameScreen = NULL;
-	_priorityScreen = NULL;
-	_displayScreen = NULL;
+	_activeScreen = nullptr;
+	_gameScreen = nullptr;
+	_priorityScreen = nullptr;
+	_displayScreen = nullptr;
 }
 
 /**
@@ -1203,7 +1202,7 @@ void GfxMgr::shakeScreen(int16 repeatCount) {
 	int16 shakeHorizontalPixels = SHAKE_HORIZONTAL_PIXELS * (2 + _displayWidthMulAdjust);
 	int16 shakeVerticalPixels = SHAKE_VERTICAL_PIXELS * (1 + _displayHeightMulAdjust);
 
-	if ((blackSpace = (uint8 *)calloc(shakeHorizontalPixels * _displayScreenWidth, 1)) == NULL)
+	if ((blackSpace = (uint8 *)calloc(shakeHorizontalPixels * _displayScreenWidth, 1)) == nullptr)
 		return;
 
 	shakeCount = repeatCount * 8; // effectively 4 shakes per repeat
@@ -1313,7 +1312,7 @@ int16 GfxMgr::priorityToY(int16 priority) {
 	//  Dwarf is screen object 13 (view 152), gets fixed priority of 8, which would normally
 	//  result in a Y of 101. Ego is priority (non-fixed) 8, which would mean that dwarf is
 	//  drawn first, followed by ego, which would then draw ego over the dwarf.
-	//  For more information see bug #1712585 (dwarf sprite priority)
+	//  For more information see bug #3182 (dwarf sprite priority)
 	//
 	// This glitch is definitely present in 2.425, 2.936 and 3.002.086.
 	//

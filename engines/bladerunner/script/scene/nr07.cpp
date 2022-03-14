@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,6 +34,17 @@ void SceneScriptNR07::InitializeScene() {
 void SceneScriptNR07::SceneLoaded() {
 	Obstacle_Object("VANITY", true);
 	Clickable_Object("VASE");
+
+	if (_vm->_cutContent
+	    && Global_Variable_Query(kVariableChapter) < 4) {
+		// The car is only bought by Reps from CrazyLegs
+		// if Dektora is a Replicant (so she will have the note from CrazyLegs)
+		// or if Dektora  is human and Gordo is also human (in which case, there'll be no note in the drawer) 
+		// We add the region in any case - on Restored Content mode
+		// to indicate there might be something of interest there,
+		// albeit not all playthroughs will have the note in there.
+		Scene_2D_Region_Add(0, 501, 381, 522, 466);
+	}
 }
 
 bool SceneScriptNR07::MouseClick(int x, int y) {
@@ -65,12 +75,14 @@ bool SceneScriptNR07::ClickedOnActor(int actorId) {
 			DM_Add_To_List_Never_Repeat_Once_Selected(1100, -1, 3, 8); // VOIGT-KAMPFF
 			DM_Add_To_List_Never_Repeat_Once_Selected(1110, 8, -1, -1); // CRYSTAL
 			if (Actor_Clue_Query(kActorMcCoy, kClueSuspectDektora)) { // cut content? clue is not obtainable
+				// TODO - restore trigger
 				DM_Add_To_List_Never_Repeat_Once_Selected(1120, 3, 6, 7); // MOONBUS
 			}
 			if (Actor_Clue_Query(kActorMcCoy, kClueCarRegistration1)) {
 				DM_Add_To_List_Never_Repeat_Once_Selected(1130, 3, 5, 7); // BLACK SEDAN
 			}
 			if (Game_Flag_Query(kFlagNotUsed510)) { // cut content? flag is never set
+				// TODO - restore trigger
 				DM_Add_To_List_Never_Repeat_Once_Selected(1140, 1, 4, 7); // SCORPIONS
 			}
 		} else {
@@ -90,7 +102,12 @@ bool SceneScriptNR07::ClickedOnActor(int actorId) {
 
 		case 1090: // EARLY-Q
 			Actor_Says(kActorMcCoy, 3650, 13);
+#if BLADERUNNER_ORIGINAL_BUGS
 			Actor_Says(kActorDektora, 630, 30);
+#else
+			// Dektora is interrupted here
+			Actor_Says_With_Pause(kActorDektora, 630, 0.0f, 30);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 			Actor_Says(kActorMcCoy, 3655, 16);
 			Actor_Says(kActorDektora, 640, 31);
 			break;
@@ -133,7 +150,7 @@ bool SceneScriptNR07::ClickedOnExit(int exitId) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -102.0f, -73.5f, -233.0f, 0, true, false, false)) {
 			Actor_Set_Goal_Number(kActorHanoi, kGoalHanoiResetTimer);
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagNR07toNR06);
 			Set_Enter(kSetNR06, kSceneNR06);
 		}
@@ -143,6 +160,45 @@ bool SceneScriptNR07::ClickedOnExit(int exitId) {
 }
 
 bool SceneScriptNR07::ClickedOn2DRegion(int region) {
+	if (_vm->_cutContent
+	    && region == 0) {
+		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -134.5f, -73.35f, 43.98f, 4, true, false, false)) {
+			Player_Loses_Control();
+			Actor_Face_Object(kActorMcCoy, "VANITY", true);
+			if (Actor_Query_Is_In_Current_Set(kActorDektora)) {
+				Actor_Modify_Friendliness_To_Other(kActorDektora, kActorMcCoy, -2);
+				Actor_Says(kActorDektora, 560, 31); // Please don't touch that. It's private.
+				Actor_Says(kActorMcCoy, 8525, 19);  // Hmph.
+			} else {
+				if (Game_Flag_Query(kFlagDektoraIsReplicant)) {
+					if (Actor_Clue_Query(kActorMcCoy, kClueCrazysInvolvement)) {
+						Actor_Says(kActorMcCoy, 8580, 12); // Nothing else there
+					} else {
+						Sound_Play(kSfxDRAWER1, 90, 85, 85, 50);
+						Delay(700);
+						Actor_Clue_Acquire(kActorMcCoy, kClueCrazysInvolvement, false, -1);
+						// McCoy picks up a sales brochure (it's CrazyLeg's -- but the model is the same as the Tyrell's Pamphlet)
+						Item_Pickup_Spin_Effect(kModelAnimationTyrellSalesPamphlet, 508, 401);
+						// McCoy finds something inside the brochure - CrazyLeg's note to the Replicants
+						// Logic is similar to HC03 (finding photos inside Izo's camera)
+						Actor_Voice_Over(3690, kActorVoiceOver); // Hmm
+						Delay(1200);
+						Item_Pickup_Spin_Effect(kModelAnimationLetter, 508, 401);
+						Actor_Says(kActorMcCoy, 6975, 12); // Interesting
+						// We don't remove the region after picking the clue
+						// McCoy will just point out that there's nothing more there to find.
+						// (Saves us from using up a flag and having to write extra code)
+					}
+				} else {
+					Sound_Play(kSfxDRAWER1, 90, 85, 85, 50);
+					Delay(700);
+					Actor_Voice_Over(3700, kActorVoiceOver); // Nothing
+				}
+			}
+			Player_Gains_Control();
+		}
+		return true;
+	}
 	return false;
 }
 
@@ -223,8 +279,16 @@ void SceneScriptNR07::callHolloway() {
 	Actor_Face_Actor(kActorMcCoy, kActorDektora, true);
 	Actor_Says(kActorMcCoy, 3760, 19);
 	Actor_Says(kActorDektora, 960, kAnimationModeSit);
+	if (_vm->_cutContent) {
+		Actor_Says(kActorMcCoy, 3765, kAnimationModeTalk); // Let me show you my ID.
+	}
 	Actor_Says(kActorDektora, 920, kAnimationModeSit);
+#if BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorMcCoy, 3780, kAnimationModeIdle);
+#else
+	// McCoy is interrupted here
+	Actor_Says_With_Pause(kActorMcCoy, 3780, 0.0f, kAnimationModeIdle);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorDektora, 970, kAnimationModeSit);
 	Actor_Voice_Over(1710, kActorVoiceOver);
 	Actor_Voice_Over(1720, kActorVoiceOver);
@@ -283,6 +347,9 @@ void SceneScriptNR07::talkAboutBelt1() {
 	Actor_Says(kActorMcCoy, 3630, 13);
 	Actor_Says_With_Pause(kActorDektora, 590, 1.0f, 30);
 	Actor_Says(kActorDektora, 600, 30);
+	if (_vm->_cutContent) {
+		Actor_Says_With_Pause(kActorMcCoy, 3635, 1.5f, 18); // Insects, hm.
+	}
 	Actor_Start_Speech_Sample(kActorMcCoy, 3640);  // Tell you the truth, I'm from the LPD. (...)
 	Loop_Actor_Walk_To_XYZ(kActorMcCoy, -109.0f, -73.0f, -89.0f, 0, false, false, false);
 	Actor_Face_Actor(kActorMcCoy, kActorDektora, true);
@@ -314,7 +381,12 @@ void SceneScriptNR07::talkAboutBelt2() {
 		Actor_Modify_Friendliness_To_Other(kActorDektora, kActorMcCoy, -1);
 	}
 
+#if BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorDektora, 610, 31);
+#else
+	// Dektora is interrupted here
+	Actor_Says_With_Pause(kActorDektora, 610, 0.0f, 31);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorMcCoy, 3645, 12);
 	Actor_Says(kActorDektora, 620, 30);
 
@@ -370,6 +442,9 @@ void SceneScriptNR07::talkAboutSteele() {
 	Actor_Face_Actor(kActorMcCoy, kActorDektora, true);
 	Actor_Face_Actor(kActorDektora, kActorMcCoy, true);
 	Actor_Says(kActorMcCoy, 3695, 15);
+	if (_vm->_cutContent) {
+		Actor_Says(kActorMcCoy, 3700, kAnimationModeTalk); // If I found you, so will she.
+	}
 	Actor_Modify_Friendliness_To_Other(kActorDektora, kActorMcCoy, 5);
 
 	if (Game_Flag_Query(kFlagDektoraIsReplicant)) {
@@ -380,14 +455,20 @@ void SceneScriptNR07::talkAboutSteele() {
 }
 
 void SceneScriptNR07::talkAboutMoonbus() {
-	// cut content?
-
+	// TODO cut content - restore trigger
 	Actor_Says(kActorMcCoy, 3705, 19);
-	Actor_Says(kActorDektora, 760, kAnimationModeSit);
+	Actor_Says(kActorDektora, 760, kAnimationModeSit); // Excuse me?
 
 	if (Game_Flag_Query(kFlagDektoraIsReplicant)) {
 		Actor_Modify_Friendliness_To_Other(kActorDektora, kActorMcCoy, -5);
+#if BLADERUNNER_ORIGINAL_BUGS
 		Actor_Says(kActorMcCoy, 3710, 18);
+#else
+		Actor_Says(kActorMcCoy, 3710, kAnimationModeTalk); // Somebody told me about this moonbus that got hijacked.
+#endif // BLADERUNNER_ORIGINAL_BUGS
+		if (_vm->_cutContent) {
+			Actor_Says(kActorMcCoy, 3715, 15); // You know, the one where all those humans got killed?
+		}
 		callHolloway();
 	} else {
 		Actor_Modify_Friendliness_To_Other(kActorDektora, kActorMcCoy, -3);
@@ -416,17 +497,30 @@ void SceneScriptNR07::talkAboutBlackSedan() {
 }
 
 void SceneScriptNR07::talkAboutScorpions() {
-	// cut content?
+	// TODO cut content - restore trigger
 	Actor_Says(kActorMcCoy, 3620, 19);
 	Actor_Says(kActorDektora, 840, 30);
 	Actor_Says(kActorMcCoy, 3745, 9);
+#if BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says_With_Pause(kActorDektora, 850, 1.0f, 30);
 	Actor_Says(kActorDektora, 860, 30);
 	Actor_Says(kActorDektora, 870, kAnimationModeSit);
+#else
+	if (Game_Flag_Query(kFlagDektoraIsReplicant)) {
+		Actor_Says_With_Pause(kActorDektora, 850, 1.0f, 30); // I didn't know what they were called
+		// Note: this plays a bit loud and maybe in inconsistent tone, but surely belongs here
+		Actor_Says(kActorDektora, 870, 31);
+	} else {
+		Actor_Says(kActorDektora, 860, 31);
+	}
+#endif // BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorMcCoy, 3750, 11);
 	Actor_Says(kActorDektora, 880, 30);
 	Actor_Says(kActorMcCoy, 3755, 16);
 	Actor_Says(kActorDektora, 890, 31);
+	if (_vm->_cutContent) {
+		Actor_Says(kActorDektora, 900, 30); // Who would need to add insects to the list?
+	}
 }
 
 } // End of namespace BladeRunner

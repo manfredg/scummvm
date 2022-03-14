@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "common/list.h"
 
 #include "gui/ThemeEngine.h"
+#include "gui/widget.h"
 
 class OSystem;
 
@@ -75,6 +75,11 @@ public:
 	// until no dialogs are active anymore.
 	void runLoop();
 
+	// If the GUI loop is running close all the dialogs causing the loop to finish.
+	// Typically you may want to use it after setting the ConfMan active domain to
+	// a game domain to cause the game to start.
+	void exitLoop();
+
 	void processEvent(const Common::Event &event, Dialog *const activeDialog);
 	Common::Keymap *getKeymap() const;
 	void scheduleTopDialogRedraw();
@@ -86,12 +91,23 @@ public:
 
 	ThemeEval *xmlEval() { return _theme->getEvaluator(); }
 
-	int getWidth() const { return _width; }
-	int getHeight() const { return _height; }
+	Common::SearchSet &getIconsSet() { return _iconsSet; }
+
+	int16 getGUIWidth() const { return _baseWidth; }
+	int16 getGUIHeight() const { return _baseHeight; }
+	float getScaleFactor() const { return _scaleFactor; }
+	void computeScaleFactor();
+
+	bool useRTL() const { return _useRTL; }
+	void setLanguageRTL();
+
+	void setDialogPaddings(int l, int r);
+	int getOverlayOffset() { return _topDialogRightPadding - _topDialogLeftPadding; }
 
 	const Graphics::Font &getFont(ThemeEngine::FontStyle style = ThemeEngine::kFontStyleBold) const { return *(_theme->getFont(style)); }
 	int getFontHeight(ThemeEngine::FontStyle style = ThemeEngine::kFontStyleBold) const { return _theme->getFontHeight(style); }
 	int getStringWidth(const Common::String &str, ThemeEngine::FontStyle style = ThemeEngine::kFontStyleBold) const { return _theme->getStringWidth(str, style); }
+	int getStringWidth(const Common::U32String &str, ThemeEngine::FontStyle style = ThemeEngine::kFontStyleBold) const { return _theme->getStringWidth(str, style); }
 	int getCharWidth(byte c, ThemeEngine::FontStyle style = ThemeEngine::kFontStyleBold) const { return _theme->getCharWidth(c, style); }
 	int getKerningOffset(byte left, byte right, ThemeEngine::FontStyle font = ThemeEngine::kFontStyleBold) const { return _theme->getKerningOffset(left, right, font); }
 
@@ -115,6 +131,8 @@ public:
 
 	void redrawFull();
 
+	void initIconsSet();
+
 protected:
 	enum RedrawStatus {
 		kRedrawDisabled = 0,
@@ -131,12 +149,20 @@ protected:
 //	bool		_needRedraw;
 	RedrawStatus _redrawStatus;
 	int			_lastScreenChangeID;
-	int			_width, _height;
+	int16		_baseWidth, _baseHeight;
+	float		_scaleFactor;
 	DialogStack	_dialogStack;
 
 	bool		_stateIsSaved;
 
 	bool		_useStdCursor;
+
+	bool		_useRTL;
+
+	int			_topDialogLeftPadding;
+	int			_topDialogRightPadding;
+
+	Common::SearchSet _iconsSet;
 
 	// position and time of last mouse click (used to detect double clicks)
 	struct MousePos {
@@ -145,6 +171,13 @@ protected:
 		uint32 time;	// Time
 		int count;	// How often was it already pressed?
 	} _lastClick, _lastMousePosition, _globalMousePosition;
+
+	struct TooltipData {
+		TooltipData() : x(-1), y(-1) { time = 0; wdg = nullptr; }
+		uint32 time; // Time
+		Widget *wdg; // Widget that had its tooltip shown
+		int16 x, y;  // Position of mouse before tooltip was focused
+	} _lastTooltipShown;
 
 	// mouse cursor state
 	int		_cursorAnimateCounter;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
 
 namespace Cine {
 
+bool allocatedFailureMessages = false;
 const char *const *failureMessages;
 const CommandeType *defaultActionCommand;
 const CommandeType *systemMenu;
@@ -60,7 +60,7 @@ void loadTextData(const char *filename) {
 	static const uint bytesPerRow = FONT_WIDTH / 2;    // The input font data is 4-bit so it takes only half the space
 
 	if (headerSize + fontDataSize != (uint)fileHandle.size()) {
-		warning("loadTextData: file '%s' (entrySize = %d, entryCount = %d) is of incorrect size %d", filename, entrySize, entryCount, fileHandle.size());
+		warning("loadTextData: file '%s' (entrySize = %d, entryCount = %d) is of incorrect size %d", filename, entrySize, entryCount, (int)fileHandle.size());
 	}
 
 	Common::Array<byte> source;
@@ -185,6 +185,78 @@ void initLanguage(Common::Language lang) {
 		"A wall of silence ..."
 	};
 
+	/**
+	 * British English error messages for Operation Stealth.
+	 */
+	static const char *const failureMessages_OS_EN[] = {
+		// EXAMINE
+		"You haven't noticed anything special.",
+		"Nothing interesting.",
+		"Nothing to say about it.",
+		"You find nothing.",
+		// TAKE
+		"Let's forget about it.",
+		"I could if I wanted, but I don't.",
+		"There are so many things to take and you want this one!",
+		"No need.",
+		// INVENTORY
+		"",
+		"",
+		"",
+		"",
+		// USE
+		"That won't do anything.",
+		"Nothing's happening.",
+		"If you have anything else like this, go ahead and finish it.",
+		"It's like you did nothing.",
+		// OPERATE
+		"You do it, nothing happens.",
+		"Why don't you try it and we won't talk about it anymore.",
+		"Nothing's happening.",
+		"No result.",
+		// SPEAK
+		"You speak with him. No answer.",
+		"More action and less talk.",
+		"My name is GLAMES... JOHN GLAMES.",
+		"A wall of silence..."
+	};
+
+	/**
+	 * American English error messages for Operation Stealth.
+	 */
+	static const char *const failureMessages_OS_US[] = {
+		// EXAMINE
+		"You haven't noticed anything special.",
+		"Nothing interesting.",
+		"Nothing to say about it.",
+		"You find nothing.",
+		// TAKE
+		"Let's forget about it.",
+		"I could if I wanted, but I don't.",
+		"There are so many things to take and you want this one!",
+		"No need.",
+		// INVENTORY
+		"",
+		"",
+		"",
+		"",
+		// USE
+		"That won't do anything.",
+		"Nothing's happening.",
+		"If you have anything else like this, go ahead and finish it.",
+		"It's like you did nothing.",
+		// OPERATE
+		"You do it, nothing happens.",
+		"Absolutely not! It would be a waste of my valuable time.",
+		"Nothing's happening.",
+		"No result.",
+		// SPEAK
+		"You speak with him. No answer.",
+		"More action and less talk.",
+		"My name is BOND... JAMES BOND.   ",
+		"A wall of silence..."
+	};
+
 	static const CommandeType defaultActionCommand_EN[] = {
 		"EXAMINE",
 		"TAKE",
@@ -262,6 +334,42 @@ void initLanguage(Common::Language lang) {
 		"Un mur de silence ..."
 	};
 
+	/**
+	 * French error messages for Operation Stealth.
+	 */
+	static const char *const failureMessages_OS_FR[] = {
+		// EXAMINER
+		"Vous ne remarquez rien de sp\x82""cial.",
+		"Rien d'int\x82ressant.",
+		"Peu de choses \x85 dire l\x85-dessus.",
+		"Vous ne trouvez rien.",
+		// PRENDRE
+		"N'en parlons plus...",
+		"Je pourrais si je le voulais! MAIS JE NE VEUX PAS!",
+		"Il y a des tas de choses \x85 prendre et vous voulez celle l\x85!",
+		"C'est inutile!",
+		// INVENTAIRE
+		"",
+		"",
+		"",
+		"",
+		// UTILISER
+		"C'est absolument sans effet.",
+		"Il ne se passe rien.",
+		"Si vous en avez d'autres comme \x87""a, allez-y qu'on en finisse.",
+		"C'est comme si vous n'aviez rien fait!",
+		// ACTIONNER
+		"OK! vous l'actionnez. Il ne se passe rien.",
+		"Supposons que vous essayiez et n'en parlons plus.",
+		"Rien n'y fait.",
+		"Aucun r\x82sultat.",
+		// PARLER
+		"Vous lui parlez . Pas de r\x82ponse.",
+		"Plus d'actes et moins de Paroles !",
+		"Mon nom est GLAMES... JOHN GLAMES.",
+		"Un mur de silence ..."
+	};
+
 	static const CommandeType defaultActionCommand_FR[] = {
 		"EXAMINER",
 		"PRENDRE",
@@ -301,7 +409,7 @@ void initLanguage(Common::Language lang) {
 		"Could not create save file ...", //
 		"PAUSE",
 		"Sauvegarde de | %s",
-		"Sauvegarde Annul\x82""e ...",
+		("Sauvegarde Annul\x82""e ..."),
 		"Aucune sauvegarde dans le lecteur ...",
 		"Veuillez entrer le Nom de la Sauvegarde ."
 	};
@@ -406,7 +514,7 @@ void initLanguage(Common::Language lang) {
 		"Versuchen Sie, etwas anderes zu finden",
 		// OPERATE
 		"Es geht nicht",
-		"Sagen wir, das war ein Versuch, und reden wir nicht mehr dr\x81""ber",
+		("Sagen wir, das war ein Versuch, und reden wir nicht mehr dr\x81""ber"),
 		"Nichts passiert",
 		"Sie haben wirklich was Besseres zu tun",
 		// SPEAK
@@ -416,8 +524,44 @@ void initLanguage(Common::Language lang) {
 		"Eine Wand des Schweigens..."
 	};
 
+	/**
+	 * German error messages for Operation Stealth.
+	 */
+	static const char *const failureMessages_OS_DE[] = {
+		// EXAMINE
+		"Ich sehe nichts Besonderes",
+		"Es gibt hier nichts Interessantes",
+		"Das ist nicht besonders interessant",
+		"Sie werden nichts finden",
+		// TAKE
+		"Ich Kann das nicht nehmen",
+		"Das finde ich schwierig",
+		"Ich wei\x9e nicht, was ich nehmen soll",
+		"Ich kann Ihnen nicht folgen",
+		// INVENTORY
+		"Das bringt nichts",
+		"Sie haben wirklich was Besseres zu tun",
+		"Los, wir sollten keine Zeit verschwenden",
+		"Das scheint mir eine gute Idee zu sein",
+		// USE
+		"Ich wei\x9e nicht, warum ich das tun soll",
+		"Es hat so oder so nichts begracht",
+		"Davon haben wir nichts",
+		"Versuchen Sie, etwas anderes zu finden",
+		// OPERATE
+		"Es geht nicht",
+		"Nichts passiert",
+		"Nichts passiert",
+		"Sie haben wirklich was Besseres zu tun",
+		// SPEAK
+		"Sie sprechen mit ihm. Keine Antwort",
+		"Nicht reden, sondern handeln!",
+		"Wenn Sie eine Antwork bek\x84men, w\x81rde es mich sehr wundern",
+		"Eine Wand des Schweigens..."
+	};
+
 	static const CommandeType defaultActionCommand_DE[] = {
-		"Pr\x81""fe", // FIXME? The third letter should be Latin Small Letter U with diaeresis
+		("Pr\x81""fe"), // FIXME? The third letter should be Latin Small Letter U with diaeresis
 		"Nimm",
 		"Bestand",
 		"Benutze",
@@ -454,7 +598,7 @@ void initLanguage(Common::Language lang) {
 		"Diese Sicherungskopie gibt es nicht",
 		"Could not create save file ...", //
 		"PAUSE",
-		"Er L\x84""dt | %s",
+		("Er L\x84""dt | %s"),
 		"Ladevorgang Abgebrochen...",
 		"Kein Backup im Laufwerk...",
 		"Geben Sie den Namen|der Sicherungsdiskette ein"
@@ -539,7 +683,11 @@ void initLanguage(Common::Language lang) {
 
 	switch (lang) {
 	case Common::FR_FRA:
-		failureMessages = failureMessages_FR;
+		if (g_cine->getGameType() == Cine::GType_OS) {
+			setFailureMessages(failureMessages_OS_FR, false);
+		} else {
+			setFailureMessages(failureMessages_FR, false);
+		}
 		defaultActionCommand = defaultActionCommand_FR;
 		systemMenu = systemMenu_FR;
 		confirmMenu = confirmMenu_FR;
@@ -549,7 +697,7 @@ void initLanguage(Common::Language lang) {
 		break;
 
 	case Common::ES_ESP:
-		failureMessages = failureMessages_ES;
+		setFailureMessages(failureMessages_ES, false);
 		defaultActionCommand = defaultActionCommand_ES;
 		systemMenu = systemMenu_ES;
 		confirmMenu = confirmMenu_ES;
@@ -559,7 +707,11 @@ void initLanguage(Common::Language lang) {
 		break;
 
 	case Common::DE_DEU:
-		failureMessages = failureMessages_DE;
+		if (g_cine->getGameType() == Cine::GType_OS) {
+			setFailureMessages(failureMessages_OS_DE, false);
+		} else {
+			setFailureMessages(failureMessages_DE, false);
+		}
 		defaultActionCommand = defaultActionCommand_DE;
 		systemMenu = systemMenu_DE;
 		confirmMenu = confirmMenu_DE;
@@ -569,7 +721,7 @@ void initLanguage(Common::Language lang) {
 		break;
 
 	case Common::IT_ITA:
-		failureMessages = failureMessages_IT;
+		setFailureMessages(failureMessages_IT, false);
 		defaultActionCommand = defaultActionCommand_IT;
 		systemMenu = systemMenu_IT;
 		confirmMenu = confirmMenu_IT;
@@ -579,7 +731,15 @@ void initLanguage(Common::Language lang) {
 		break;
 
 	default:
-		failureMessages = failureMessages_EN;
+		if (g_cine->getGameType() == Cine::GType_OS) {
+			if (lang == Common::EN_USA) {
+				setFailureMessages(failureMessages_OS_US, false);
+			} else {
+				setFailureMessages(failureMessages_OS_EN, false);
+			}
+		} else {
+			setFailureMessages(failureMessages_EN, false);
+		}
 		defaultActionCommand = defaultActionCommand_EN;
 		systemMenu = systemMenu_EN;
 		confirmMenu = confirmMenu_EN;
@@ -604,25 +764,38 @@ void loadErrmessDat(const char *fname) {
 	in.open(fname);
 
 	if (in.isOpen()) {
-		// FIXME - This can leak in some situations in Operation Stealth
-		//         Engine Restart - multiple allocations with no free?
+		if (allocatedFailureMessages) {
+			freeErrmessDat();
+		}
+
 		char **ptr = (char **)malloc(sizeof(char *) * 6 * 4 + 60 * 6 * 4);
 
 		for (int i = 0; i < 6 * 4; i++) {
 			ptr[i] = (char *)ptr + (sizeof(char *) * 6 * 4) + 60 * i;
 			in.read(ptr[i], 60);
 		}
-		failureMessages = const_cast<const char *const *>(ptr);
+		setFailureMessages(const_cast<const char *const *>(ptr), true);
 
 		in.close();
 	} else {
-		error("Cannot open file %s for reading", fname);
+		warning("Cannot read error messages from '%s'. Using default values. Error messages may be incorrect!", fname);
 	}
 }
 
+void setFailureMessages(const char *const *messages, bool allocated) {
+	if (allocatedFailureMessages) {
+		freeErrmessDat();
+	}
+	failureMessages = messages;
+	allocatedFailureMessages = allocated;
+}
+
 void freeErrmessDat() {
-	free(const_cast<const char **>(failureMessages));
-	failureMessages = 0;
+	if (allocatedFailureMessages) {
+		free(const_cast<const char **>(failureMessages));
+	}
+	failureMessages = nullptr;
+	allocatedFailureMessages = false;
 }
 
 void loadPoldatDat(const char *fname) {

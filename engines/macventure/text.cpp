@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -145,32 +144,18 @@ void TextAsset::decodeHuffman() {
 		} else if (symbol == 2) { // Composite
 			if (stream.getBit()) { // TextID
 				ObjID embedId = stream.getBits(15);
-				uint pos = stream.pos(); // HACK, part 1
+			
 				TextAsset embedded(_engine, embedId, _sourceObj, _targetObj, _container, _isOld, _huffman);
-				stream.rewind();// HACK, part 2
-				stream.skip(pos);
-
-				_decoded.replace(_decoded.end(), _decoded.end(), *embedded.decode());
-
-				// Another HACK, to get around that EOS char I insert at the end
-				_decoded.replace(_decoded.end() - 1, _decoded.end(), "");
+				_decoded += *embedded.decode();
 			} else { //Composite obj string
 				ObjID embedId = stream.getBits(8);
-				uint pos = stream.pos(); // HACK, part 1
-
-				_decoded.replace(_decoded.end(), _decoded.end(), getNoun(embedId));
-				stream.rewind();// HACK, part 2
-				stream.skip(pos);
-
-				// Another HACK, to get around that EOS char I insert at the end
-				_decoded.replace(_decoded.end() - 1, _decoded.end(), "");
+				_decoded += getNoun(embedId);
 			}
 		} else { // Plain ascii
 			c = symbol & 0xFF;
-			_decoded.replace(_decoded.end(), _decoded.end(), Common::String(c));
+			_decoded += Common::String(c);
 		}
 	}
-	_decoded += '\0';
 	debugC(3, kMVDebugText, "Decoded string [%d] (new encoding): %s", _id, _decoded.c_str());
 }
 Common::String TextAsset::getNoun(ObjID subval) {

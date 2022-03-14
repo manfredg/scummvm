@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
 #include "osystem.h"
 
 #include "backends/platform/3ds/config.h"
+#include "backends/mutex/3ds/3ds-mutex.h"
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
 #include "backends/events/default/default-events.h"
@@ -41,7 +41,7 @@
 #include <unistd.h>
 #include <time.h>
 
-namespace _3DS {
+namespace N3DS {
 
 OSystem_3DS::OSystem_3DS():
 	_focusDirty(true),
@@ -79,11 +79,13 @@ OSystem_3DS::OSystem_3DS():
 	_magWidth(400),
 	_magHeight(240),
 	_gameTextureDirty(false),
+	_filteringEnabled(true),
 	_overlayVisible(false),
 	_screenChangeId(0),
 	_magnifyMode(MODE_MAGOFF),
 	exiting(false),
-	sleeping(false)
+	sleeping(false),
+	_logger(0)
 {
 	chdir("sdmc:/");
 
@@ -115,6 +117,9 @@ OSystem_3DS::~OSystem_3DS() {
 	destroyAudio();
 	destroy3DSGraphics();
 
+	delete _logger;
+	_logger = 0;
+
 	delete _timerManager;
 	_timerManager = 0;
 }
@@ -124,10 +129,19 @@ void OSystem_3DS::quit() {
 }
 
 void OSystem_3DS::initBackend() {
+	if (!_logger)
+		_logger = new Backends::Log::Log(this);
+
+	if (_logger) {
+		Common::WriteStream *logFile = createLogFile();
+		if (logFile)
+			_logger->open(logFile);
+	}
+
 	loadConfig();
-	ConfMan.set("joystick_num", 0);
 	ConfMan.registerDefault("fullscreen", true);
 	ConfMan.registerDefault("aspect_ratio", true);
+	ConfMan.registerDefault("filtering", true);
 	if (!ConfMan.hasKey("vkeybd_pack_name")) {
 		ConfMan.set("vkeybd_pack_name", "vkeybd_small");
 	}
@@ -156,6 +170,10 @@ Common::String OSystem_3DS::getDefaultConfigFileName() {
 	return "sdmc:/3ds/scummvm/scummvm.ini";
 }
 
+Common::String OSystem_3DS::getDefaultLogFileName() {
+	return "sdmc:/3ds/scummvm/scummvm.log";
+}
+
 void OSystem_3DS::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
 	s.add("RomFS", new Common::FSDirectory(DATA_PATH"/"), priority);
 }
@@ -168,7 +186,7 @@ void OSystem_3DS::delayMillis(uint msecs) {
 	svcSleepThread(msecs * 1000000);
 }
 
-void OSystem_3DS::getTimeAndDate(TimeDate& td) const {
+void OSystem_3DS::getTimeAndDate(TimeDate& td, bool skipRecord) const {
 	time_t curTime = time(0);
 	struct tm t = *localtime(&curTime);
 	td.tm_sec = t.tm_sec;
@@ -180,19 +198,8 @@ void OSystem_3DS::getTimeAndDate(TimeDate& td) const {
 	td.tm_wday = t.tm_wday;
 }
 
-OSystem::MutexRef OSystem_3DS::createMutex() {
-	RecursiveLock *mutex = new RecursiveLock();
-	RecursiveLock_Init(mutex);
-	return (OSystem::MutexRef) mutex;
-}
-void OSystem_3DS::lockMutex(MutexRef mutex) {
-	RecursiveLock_Lock((RecursiveLock*)mutex);
-}
-void OSystem_3DS::unlockMutex(MutexRef mutex) {
-	RecursiveLock_Unlock((RecursiveLock*)mutex);
-}
-void OSystem_3DS::deleteMutex(MutexRef mutex) {
-	delete (RecursiveLock*)mutex;
+Common::MutexInternal *OSystem_3DS::createMutex() {
+	return create3DSMutexInternal();
 }
 
 Common::String OSystem_3DS::getSystemLanguage() const {
@@ -221,6 +228,30 @@ void OSystem_3DS::fatalError() {
 
 void OSystem_3DS::logMessage(LogMessageType::Type type, const char *message) {
 	printf("%s", message);
+
+	// Then log into file (via the logger)
+	if (_logger)
+		_logger->print(message);
 }
 
-} // namespace _3DS
+Common::WriteStream *OSystem_3DS::createLogFile() {
+	// Start out by resetting _logFilePath, so that in case
+	// of a failure, we know that no log file is open.
+	_logFilePath.clear();
+
+	Common::String logFile;
+	if (ConfMan.hasKey("logfile"))
+		logFile = ConfMan.get("logfile");
+	else
+		logFile = getDefaultLogFileName();
+	if (logFile.empty())
+		return nullptr;
+
+	Common::FSNode file(logFile);
+	Common::WriteStream *stream = file.createWriteStream();
+	if (stream)
+		_logFilePath = logFile;
+	return stream;
+}
+
+} // namespace N3DS

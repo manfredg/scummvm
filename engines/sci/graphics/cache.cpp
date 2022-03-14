@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +27,9 @@
 #include "sci/engine/state.h"
 #include "sci/engine/selector.h"
 #include "sci/graphics/cache.h"
-#include "sci/graphics/font.h"
+#include "sci/graphics/scifont.h"
 #include "sci/graphics/fontsjis.h"
+#include "sci/graphics/fontkorean.h"
 #include "sci/graphics/view.h"
 
 namespace Sci {
@@ -66,8 +66,11 @@ GfxFont *GfxCache::getFont(GuiResourceId fontId) {
 		purgeFontCache();
 
 	if (!_cachedFonts.contains(fontId)) {
+		// Create special Korean font in korean games, when font 1001 is selected
+		if ((fontId == 1001) && (g_sci->getLanguage() == Common::KO_KOR))
+			_cachedFonts[fontId] = new GfxFontKorean(_screen, fontId);
 		// Create special SJIS font in japanese games, when font 900 is selected
-		if ((fontId == 900) && (g_sci->getLanguage() == Common::JA_JPN))
+		else if ((fontId == 900) && (g_sci->getLanguage() == Common::JA_JPN))
 			_cachedFonts[fontId] = new GfxFontSjis(_screen, fontId);
 		else
 			_cachedFonts[fontId] = new GfxFontFromResource(_resMan, _screen, fontId);

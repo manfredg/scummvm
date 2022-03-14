@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,8 +41,8 @@ Common::JSONObject ListAjaxHandler::listDirectory(Common::String path) {
 
 	if (path == "" || path == "/") {
 		if (ConfMan.hasKey("rootpath", "cloud"))
-			addItem(itemsList, IT_DIRECTORY, "/root/", HandlerUtils::toUtf8(_("File system root")));
-		addItem(itemsList, IT_DIRECTORY, "/saves/", HandlerUtils::toUtf8(_("Saved games")));
+			addItem(itemsList, IT_DIRECTORY, "/root/", Common::convertFromU32String(_("File system root")));
+		addItem(itemsList, IT_DIRECTORY, "/saves/", Common::convertFromU32String(_("Saved games")));
 		successResult.setVal("items", new Common::JSONValue(itemsList));
 		return successResult;
 	}
@@ -81,12 +80,12 @@ Common::JSONObject ListAjaxHandler::listDirectory(Common::String path) {
 			filePath = "/";
 		else
 			filePath = parentPath(prefixToAdd + filePath);
-		addItem(itemsList, IT_PARENT_DIRECTORY, filePath, HandlerUtils::toUtf8(_("Parent directory")));
+		addItem(itemsList, IT_PARENT_DIRECTORY, filePath, Common::convertFromU32String(_("Parent directory")));
 	}
 
 	// fill the content
 	for (Common::FSList::iterator i = _nodeContent.begin(); i != _nodeContent.end(); ++i) {
-		Common::String name = i->getDisplayName();
+		Common::String name = i->getName();
 		if (i->isDirectory()) name += "/";
 
 		Common::String filePath = i->getPath();

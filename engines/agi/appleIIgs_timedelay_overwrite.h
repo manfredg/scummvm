@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,6 +68,12 @@ static const AgiAppleIIgsDelayOverwriteRoomEntry appleIIgsDelayOverwriteMH1[] = 
 	{  -1,  -1, -1, -1, false }
 };
 
+static const AgiAppleIIgsDelayOverwriteRoomEntry appleIIgsDelayOverwriteMIXEDUP[] = {
+	{   1,   1, -1,  3, true }, // Jack and Jill cutscene	(issue 11210)
+	{  -1,  -1, -1, -1, false }
+};
+
+
 static const AgiAppleIIgsDelayOverwriteRoomEntry appleIIgsDelayOverwriteSQ2[] = {
 	{   1,   1, -1, -1, false }, // Intro: space ship entering space port, don't touch speed
 	{  -1,  -1, -1, -1, false }
@@ -83,7 +88,7 @@ static const AgiAppleIIgsDelayOverwriteGameEntry appleIIgsDelayOverwriteGameTabl
 	{ GID_KQ4,        2, appleIIgsDelayOverwriteKQ4 },
 	{ GID_LSL1,       2, nullptr }, // Switch Larry 1 to 10 cycles per second (that's around PC Larry 1's "normal" speed
 	{ GID_MH1,        2, appleIIgsDelayOverwriteMH1 },
-	{ GID_MIXEDUP,    2, nullptr },
+	{ GID_MIXEDUP,    2, appleIIgsDelayOverwriteMIXEDUP },
 	{ GID_PQ1,        2, nullptr },
 	{ GID_SQ1,        2, nullptr }, // completed, no issues using these settings
 	{ GID_SQ2,        2, appleIIgsDelayOverwriteSQ2 },

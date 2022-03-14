@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -79,7 +78,7 @@ bool SceneScriptPS03::ClickedOnExit(int exitId) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -674.0f, -354.0f, 550.0f, 0, true, false, false)) {
 			Game_Flag_Set(kFlagPS03toPS04);
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Set_Enter(kSetPS04, kScenePS04);
 		}
 #else
@@ -87,7 +86,7 @@ bool SceneScriptPS03::ClickedOnExit(int exitId) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -674.0f, -354.0f, 690.0f, 0, true, false, false)) {
 			Game_Flag_Set(kFlagPS03toPS04);
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Set_Enter(kSetPS04, kScenePS04);
 		}
 #endif // BLADERUNNER_ORIGINAL_BUGS
@@ -96,7 +95,7 @@ bool SceneScriptPS03::ClickedOnExit(int exitId) {
 	if (exitId == 1) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -569.54f, -354.62f, -1076.15f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Set_Enter(kSetPS02, kScenePS02);
 			Game_Flag_Reset(kFlagMcCoyAtPS03);
 			if (Global_Variable_Query(kVariableChapter) < 4) {
@@ -110,7 +109,7 @@ bool SceneScriptPS03::ClickedOnExit(int exitId) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -875.0f, -354.0f, -1241.0f, 0, true, false, false)) {
 			Game_Flag_Set(kFlagPS03toPS14);
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Set_Enter(kSetPS14, kScenePS14);
 		}
 #else
@@ -118,7 +117,7 @@ bool SceneScriptPS03::ClickedOnExit(int exitId) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -875.0f, -354.0f, -1231.0f, 0, true, false, false)) {
 			Game_Flag_Set(kFlagPS03toPS14);
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Set_Enter(kSetPS14, kScenePS14);
 		}
 #endif // BLADERUNNER_ORIGINAL_BUGS

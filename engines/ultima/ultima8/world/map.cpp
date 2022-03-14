@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,22 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/world/map.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 #include "ultima/ultima8/world/item_factory.h"
-#include "ultima/ultima8/world/item.h"
 #include "ultima/ultima8/world/container.h"
+#include "ultima/ultima8/world/coord_utils.h"
 #include "ultima/ultima8/kernel/object_manager.h"
-#include "ultima/ultima8/kernel/core_app.h"
-#include "ultima/ultima8/games/game_info.h"
-#include "ultima/ultima8/graphics/shape_info.h" // debugging only
+#include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/games/game_data.h"
 #include "ultima/ultima8/graphics/main_shape_archive.h"
 
@@ -61,8 +56,8 @@ void Map::clear() {
 	_dynamicItems.clear();
 }
 
-void Map::loadNonFixed(IDataSource *ds) {
-	loadFixedFormatObjects(_dynamicItems, ds, 0);
+void Map::loadNonFixed(Common::SeekableReadStream *rs) {
+	loadFixedFormatObjects(_dynamicItems, rs, 0);
 }
 
 
@@ -86,8 +81,10 @@ void Map::addMapFix(uint32 shape, uint32 frame, int32 x, int32 y, int32 z) {
 }
 
 
-void Map::loadFixed(IDataSource *ds) {
-	loadFixedFormatObjects(_fixedItems, ds, Item::EXT_FIXED);
+void Map::loadFixed(Common::SeekableReadStream *rs) {
+	loadFixedFormatObjects(_fixedItems, rs, Item::EXT_FIXED);
+
+	// WORKAROUND - add some missing map tiles from game data
 
 	// U8 hack for missing ground tiles on map 25. See docs/u8bugs.txt
 	if (GAME_IS_U8 && _mapNum == 25) {
@@ -99,6 +96,13 @@ void Map::loadFixed(IDataSource *ds) {
 		addMapFix(301, 1, 2815, 25727, 8);
 		addMapFix(301, 1, 9983, 21157, 8);
 		addMapFix(301, 1, 13183, 16511, 8);
+	}
+
+	// Upper Catacombs after using the skull (ScummVM bug #12097)
+	// Not a perfect fix (still a few pixels off) but reduces chance
+	// of bug happening
+	if (GAME_IS_U8 && _mapNum == 50) {
+		addMapFix(34, 7, 16127, 6143, 0);
 	}
 
 	// U8 hack for missing ground/wall tiles on map 62. See docs/u8bugs.txt
@@ -198,10 +202,11 @@ void Map::unloadFixed() {
 	_fixedItems.clear();
 }
 
-void Map::loadFixedFormatObjects(Std::list<Item *> &itemlist, IDataSource *ds,
-                                 uint32 extendedflags) {
-	if (!ds) return;
-	uint32 size = ds->getSize();
+void Map::loadFixedFormatObjects(Std::list<Item *> &itemlist,
+								 Common::SeekableReadStream *rs,
+								 uint32 extendedflags) {
+	if (!rs) return;
+	uint32 size = rs->size();
 	if (size == 0) return;
 
 	uint32 itemcount = size / 16;
@@ -211,22 +216,19 @@ void Map::loadFixedFormatObjects(Std::list<Item *> &itemlist, IDataSource *ds,
 
 	for (uint32 i = 0; i < itemcount; ++i) {
 		// These are ALL unsigned on disk
-		int32 x = static_cast<int32>(ds->readX(2));
-		int32 y = static_cast<int32>(ds->readX(2));
-		int32 z = static_cast<int32>(ds->readX(1));
+		int32 x = static_cast<int32>(rs->readUint16LE());
+		int32 y = static_cast<int32>(rs->readUint16LE());
+		int32 z = static_cast<int32>(rs->readByte());
 
-		if (GAME_IS_CRUSADER) {
-			x *= 2;
-			y *= 2;
-		}
+		World_FromUsecodeXY(x, y);
 
-		uint32 shape = ds->read2();
-		uint32 frame = ds->read1();
-		uint16 flags = ds->read2();
-		uint16 quality = ds->read2();
-		uint16 npcNum = static_cast<uint16>(ds->read1());
-		uint16 mapNum = static_cast<uint16>(ds->read1());
-		uint16 next = ds->read2(); // do we need next for anything?
+		uint32 shape = rs->readUint16LE();
+		uint32 frame = rs->readByte();
+		uint16 flags = rs->readUint16LE();
+		uint16 quality = rs->readUint16LE();
+		uint16 npcNum = static_cast<uint16>(rs->readByte());
+		uint16 mapNum = static_cast<uint16>(rs->readByte());
+		uint16 next = rs->readUint16LE(); // do we need next for anything?
 
 		// find container this item belongs to, if any.
 		// the x coordinate stores the container-depth of this item,
@@ -241,21 +243,27 @@ void Map::loadFixedFormatObjects(Std::list<Item *> &itemlist, IDataSource *ds,
 		}
 
 #ifdef DUMP_ITEMS
-		pout << shape << "," << frame << ":\t(" << x << "," << y << "," << z << "),\t" << Std::hex << flags << Std::dec << ", " << quality << ", " << npcNum << ", " << mapNum << ", " << next << Std::endl;
+		pout << shape << "," << frame << ":\t(" << x << "," << y << "," << z << "),\t" << ConsoleStream::hex << flags << ConsoleStream::dec << ", " << quality << ", " << npcNum << ", " << mapNum << ", " << next << Std::endl;
 #endif
 
 		Item *item = ItemFactory::createItem(shape, frame, quality, flags, npcNum,
 		                                     mapNum, extendedflags, false);
 		if (!item) {
-			pout << shape << "," << frame << ":\t(" << x << "," << y << "," << z << "),\t" << Std::hex << flags << Std::dec << ", " << quality << ", " << npcNum << ", " << mapNum << ", " << next;
+			pout << shape << "," << frame << ":\t(" << x << "," << y << "," << z << "),\t" << ConsoleStream::hex << flags << ConsoleStream::dec << ", " << quality << ", " << npcNum << ", " << mapNum << ", " << next;
 
-			ShapeInfo *info = GameData::get_instance()->getMainShapes()->
+			const ShapeInfo *info = GameData::get_instance()->getMainShapes()->
 			                  getShapeInfo(shape);
 			if (info) pout << ", family = " << info->_family;
 			pout << Std::endl;
 
 			pout << "Couldn't create item" << Std::endl;
 			continue;
+		} else {
+			const ShapeInfo *info = item->getShapeInfo();
+			assert(info);
+			if (info->_family > 10) {
+				//warning("Created fixed item unknown family %d, shape (%d, %d) at (%d, %d, %d)", info->_family, shape, frame, x, y, z);
+			}
 		}
 		item->setLocation(x, y, z);
 
@@ -265,7 +273,7 @@ void Map::loadFixedFormatObjects(Std::list<Item *> &itemlist, IDataSource *ds,
 			itemlist.push_back(item);
 		}
 
-		Container *c = p_dynamic_cast<Container *>(item);
+		Container *c = dynamic_cast<Container *>(item);
 		if (c) {
 			// container, so prepare to read contents
 			contdepth++;
@@ -278,22 +286,28 @@ void Map::loadFixedFormatObjects(Std::list<Item *> &itemlist, IDataSource *ds,
 }
 
 
-void Map::save(ODataSource *ods) {
-	ods->write4(static_cast<uint32>(_dynamicItems.size()));
+void Map::save(Common::WriteStream *ws) {
+	ws->writeUint32LE(static_cast<uint32>(_dynamicItems.size()));
 
 	Std::list<Item *>::iterator iter;
 	for (iter = _dynamicItems.begin(); iter != _dynamicItems.end(); ++iter) {
-		(*iter)->save(ods);
+		ObjectManager::get_instance()->saveObject(ws, *iter);
 	}
 }
 
 
-bool Map::load(IDataSource *ids, uint32 version) {
-	uint32 itemcount = ids->read4();
+bool Map::load(Common::ReadStream *rs, uint32 version) {
+	uint32 itemcount = rs->readUint32LE();
+
+	// Integrity check
+	if (itemcount > 65536) {
+		warning("improbable item count in map data: %d", itemcount);
+		return false;
+	}
 
 	for (unsigned int i = 0; i < itemcount; ++i) {
-		Object *obj = ObjectManager::get_instance()->loadObject(ids, version);
-		Item *item = p_dynamic_cast<Item *>(obj);
+		Object *obj = ObjectManager::get_instance()->loadObject(rs, version);
+		Item *item = dynamic_cast<Item *>(obj);
 		if (!item) return false;
 		_dynamicItems.push_back(item);
 	}

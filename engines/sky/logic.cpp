@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -105,7 +104,7 @@ Logic::~Logic() {
 void Logic::initScreen0() {
 	fnEnterSection(0, 0, 0);
 	_skyMusic->startMusic(2);
-	SkyEngine::_systemVars.currentMusic = 2;
+	SkyEngine::_systemVars->currentMusic = 2;
 }
 
 void Logic::parseSaveData(uint32 *data) {
@@ -200,7 +199,7 @@ void Logic::autoRoute() {
 	_compact->downFlag = _skyAutoRoute->autoRoute(_compact);
 	if ((_compact->downFlag == 2) && _skyCompact->cptIsId(_compact, CPT_JOEY) &&
 	   (_compact->mode == 0) && (_compact->baseSub == JOEY_OUT_OF_LIFT)) {
-		   // workaround for script bug #1064113. Details unclear...
+		   // workaround for script bug #1823. Details unclear...
 		   _compact->downFlag = 0;
 	}
 	if (_compact->downFlag != 1) { // route ok
@@ -541,7 +540,7 @@ void Logic::talk() {
 	if (_skyMouse->wasClicked())
 		for (int i = 0; i < ARRAYSIZE(clickTable); i++)
 			if (clickTable[i] == (uint16)_scriptVariables[CUR_ID]) {
-				if ((SkyEngine::_systemVars.systemFlags & SF_ALLOW_SPEECH) && (!_skySound->speechFinished()))
+				if ((SkyEngine::_systemVars->systemFlags & SF_ALLOW_SPEECH) && (!_skySound->speechFinished()))
 					_skySound->stopSpeech();
 				if ((_compact->spTextId > 0) &&
 					(_compact->spTextId < 0xFFFF)) {
@@ -648,7 +647,7 @@ void Logic::choose() {
 
 	fnNoHuman(0, 0, 0); // kill mouse again
 
-	SkyEngine::_systemVars.systemFlags &= ~SF_CHOOSING; // restore save/restore
+	SkyEngine::_systemVars->systemFlags &= ~SF_CHOOSING; // restore save/restore
 
 	_compact->logic = L_SCRIPT; // and continue script
 	logicScript();
@@ -1158,7 +1157,7 @@ void Logic::initScriptVariables() {
 	_scriptVariables[SC40_LOCKER_4_FLAG] = 1;
 	_scriptVariables[SC40_LOCKER_5_FLAG] = 1;
 
-	if (SkyEngine::_systemVars.gameVersion == 288)
+	if (SkyEngine::_systemVars->gameVersion == 288)
 		memcpy(_scriptVariables + 352, forwardList1b288, sizeof(forwardList1b288));
 	else
 		memcpy(_scriptVariables + 352, forwardList1b, sizeof(forwardList1b));
@@ -1176,7 +1175,7 @@ uint16 Logic::mouseScript(uint32 scrNum, Compact *scriptComp) {
 	_compact = tmpComp;
 
 	if (scrNum == MENU_SELECT || (scrNum >= LINC_MENU_SELECT && scrNum <= DOC_MENU_SELECT)) {
-		// HACK: See patch #1689516 for details. The short story:
+		// HACK: See bug #8627 for details. The short story:
 		// The user has clicked on an inventory item.  We update the
 		// mouse cursor instead of waiting for the script to update it.
 		// In the original game the cursor is just updated when the mouse
@@ -1216,7 +1215,7 @@ uint16 Logic::script(uint16 scriptNo, uint16 offset) {
 
 		debug(3, "Doing Script: %d:%d:%x", moduleNo, scriptNo & 0xFFF, offset ? (offset - moduleStart[scriptNo & 0xFFF]) : 0);
 
-		// WORKAROUND for bug #3149412: "Invalid Mode when giving shades to travel agent"
+		// WORKAROUND for bug #5567: "Invalid Mode when giving shades to travel agent"
 		// Using the dark glasses on Trevor (travel agent) multiple times in succession would
 		// wreck the trevor compact's mode, as the script in question doesn't account for using
 		// this item at this point in the game (you will only have it here if you play the game
@@ -1407,11 +1406,11 @@ bool Logic::fnCacheFast(uint32 a, uint32 b, uint32 c) {
 
 bool Logic::fnDrawScreen(uint32 a, uint32 b, uint32 c) {
 	debug(5, "Call: fnDrawScreen(%X, %X)",a,b);
-	SkyEngine::_systemVars.currentPalette = a;
+	SkyEngine::_systemVars->currentPalette = a;
 	_skyScreen->fnDrawScreen(a, b);
 
 	if (Logic::_scriptVariables[SCREEN] == 32) {
-		/* workaround for script bug #786482
+		/* workaround for script bug #1140
 		    Under certain circumstances, which never got completely cleared,
 		    the gardener can get stuck in an animation, waiting for a sync
 		    signal from foster.
@@ -1683,7 +1682,7 @@ bool Logic::fnQuit(uint32 a, uint32 b, uint32 c) {
 }
 
 bool Logic::fnSpeakMe(uint32 targetId, uint32 mesgNum, uint32 animNum) {
-	/* WORKAROUND for #2687172: When Mrs. Piermont is talking
+	/* WORKAROUND for #4230: When Mrs. Piermont is talking
 	   on the phone in her apartment, ignore her fnSpeakMe calls
 	   on other screens, as the lack of speech files for these lines
 	   will cause Foster's speech to be aborted if the timing is bad.
@@ -1746,7 +1745,7 @@ bool Logic::fnChooser(uint32 a, uint32 b, uint32 c) {
 	// setup the text questions to be clicked on
 	// read from TEXT1 until 0
 
-	SkyEngine::_systemVars.systemFlags |= SF_CHOOSING; // can't save/restore while choosing
+	SkyEngine::_systemVars->systemFlags |= SF_CHOOSING; // can't save/restore while choosing
 
 	_scriptVariables[THE_CHOSEN_ONE] = 0; // clear result
 
@@ -2233,7 +2232,7 @@ bool Logic::fnCustomJoey(uint32 id, uint32 b, uint32 c) {
 
 bool Logic::fnSetPalette(uint32 a, uint32 b, uint32 c) {
 	_skyScreen->setPaletteEndian((uint8 *)_skyCompact->fetchCpt(a));
-	SkyEngine::_systemVars.currentPalette = a;
+	SkyEngine::_systemVars->currentPalette = a;
 	return true;
 }
 
@@ -2312,19 +2311,19 @@ bool Logic::fnEnterSection(uint32 sectionNo, uint32 b, uint32 c) {
 		_skyControl->showGameQuitMsg();
 
 	_scriptVariables[CUR_SECTION] = sectionNo;
-	SkyEngine::_systemVars.currentMusic = 0;
+	SkyEngine::_systemVars->currentMusic = 0;
 
 	if (sectionNo == 5) //linc section - has different mouse icons
 		_skyMouse->replaceMouseCursors(60302);
 
-	if ((sectionNo != _currentSection) || (SkyEngine::_systemVars.systemFlags & SF_GAME_RESTORED)) {
+	if ((sectionNo != _currentSection) || (SkyEngine::_systemVars->systemFlags & SF_GAME_RESTORED)) {
 		_currentSection = sectionNo;
 
 		sectionNo++;
 		_skyMusic->loadSection((byte)sectionNo);
 		_skySound->loadSection((byte)sectionNo);
 		_skyGrid->loadGrids();
-		SkyEngine::_systemVars.systemFlags &= ~SF_GAME_RESTORED;
+		SkyEngine::_systemVars->systemFlags &= ~SF_GAME_RESTORED;
 	}
 
 	return true;
@@ -2355,8 +2354,14 @@ bool Logic::fnWaitSwingEnd(uint32 a, uint32 b, uint32 c) {
 	return true;
 }
 
+/**
+ * This function is called by the script logic
+ * even when the intro sequence has completed without skipping it.
+ * This means that it (also) gets called at the point after the intro
+ * when Foster in on the top level of the factory and finished his monologue.
+*/
 bool Logic::fnSkipIntroCode(uint32 a, uint32 b, uint32 c) {
-	SkyEngine::_systemVars.pastIntro = true;
+	SkyEngine::_systemVars->pastIntro = true;
 	return true;
 }
 
@@ -2452,15 +2457,15 @@ bool Logic::fnStopFx(uint32 a, uint32 b, uint32 c) {
 }
 
 bool Logic::fnStartMusic(uint32 a, uint32 b, uint32 c) {
-	if (!(SkyEngine::_systemVars.systemFlags & SF_MUS_OFF))
+	if (!(SkyEngine::_systemVars->systemFlags & SF_MUS_OFF))
 		_skyMusic->startMusic((uint16)a);
-	SkyEngine::_systemVars.currentMusic = (uint16)a;
+	SkyEngine::_systemVars->currentMusic = (uint16)a;
 	return true;
 }
 
 bool Logic::fnStopMusic(uint32 a, uint32 b, uint32 c) {
 	_skyMusic->startMusic(0);
-	SkyEngine::_systemVars.currentMusic = 0;
+	SkyEngine::_systemVars->currentMusic = 0;
 	return true;
 }
 
@@ -2470,7 +2475,7 @@ bool Logic::fnFadeDown(uint32 a, uint32 b, uint32 c) {
 }
 
 bool Logic::fnFadeUp(uint32 a, uint32 b, uint32 c) {
-	SkyEngine::_systemVars.currentPalette = a;
+	SkyEngine::_systemVars->currentPalette = a;
 	_skyScreen->fnFadeUp(a,b);
 	return true;
 }
@@ -2524,7 +2529,7 @@ void Logic::stdSpeak(Compact *target, uint32 textNum, uint32 animNum, uint32 bas
 	_skyScreen->setFocusRectangle(Common::Rect::center(x, y, 192, 128));
 
 
-	if ((SkyEngine::_systemVars.systemFlags & SF_ALLOW_TEXT) || !speechFileFound) {
+	if ((SkyEngine::_systemVars->systemFlags & SF_ALLOW_TEXT) || !speechFileFound) {
 		// form the text sprite, if player wants subtitles or
 		// if we couldn't find the speech file
 		DisplayedText textInfo;

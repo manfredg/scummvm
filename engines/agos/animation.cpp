@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -344,9 +343,9 @@ void MoviePlayerDXA::handleNextFrame() {
 }
 
 bool MoviePlayerDXA::processFrame() {
-	Graphics::Surface *screen = _vm->_system->lockScreen();
+	Graphics::Surface *screen = _vm->getBackendSurface();
 	copyFrameToBuffer((byte *)screen->getPixels(), (_vm->_screenWidth - getWidth()) / 2, (_vm->_screenHeight - getHeight()) / 2, screen->pitch);
-	_vm->_system->unlockScreen();
+	_vm->updateBackendSurface();
 
 	uint32 soundTime = _mixer->getSoundElapsedTime(_bgSound);
 	uint32 nextFrameStartTime = ((Video::VideoDecoder::VideoTrack *)getTrack(0))->getNextFrameStartTime();
@@ -495,9 +494,9 @@ void MoviePlayerSMK::nextFrame() {
 }
 
 bool MoviePlayerSMK::processFrame() {
-	Graphics::Surface *screen = _vm->_system->lockScreen();
+	Graphics::Surface *screen = _vm->getBackendSurface();
 	copyFrameToBuffer((byte *)screen->getPixels(), (_vm->_screenWidth - getWidth()) / 2, (_vm->_screenHeight - getHeight()) / 2, screen->pitch);
-	_vm->_system->unlockScreen();
+	_vm->updateBackendSurface();
 
 	uint32 waitTime = getTimeToNextFrame();
 
@@ -555,7 +554,7 @@ MoviePlayer *makeMoviePlayer(AGOSEngine_Feeble *vm, const char *name) {
 		return new MoviePlayerSMK(vm, baseName);
 	}
 
-	Common::String buf = Common::String::format(_("Cutscene file '%s' not found!"), baseName);
+	Common::U32String buf = Common::U32String::format(_("Cutscene file '%s' not found!"), baseName);
 	GUI::MessageDialog dialog(buf, _("OK"));
 	dialog.runModal();
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -181,7 +180,7 @@ protected:
 	bool _needsUpdate;
 
 	/**
-	 * Current frame rendered by playUntilEvent() 
+	 * Current frame rendered by playUntilEvent()
 	 */
 	const Graphics::Surface* _currentFrame;
 
@@ -273,6 +272,23 @@ private:
 	 * Playback status of the player.
 	 */
 	AVIStatus _status;
+};
+
+#pragma mark -
+#pragma mark QuickTimePlayer
+
+/**
+ * QuickTimePlayer is used to play QuickTime animations.
+ * Used by Mac version of KQ7.
+ */
+class QuickTimePlayer : public VideoPlayer {
+public:
+	QuickTimePlayer(EventManager *eventMan);
+
+	/**
+	 * Plays a QuickTime animation with the given file name
+	 */
+	void play(const Common::String& fileName);
 };
 
 #pragma mark -
@@ -526,7 +542,9 @@ private:
 	}
 
 	bool isNormallyComposited() const {
-		return getSciVersion() == SCI_VERSION_3;
+		return (getSciVersion() == SCI_VERSION_3) ||
+				(g_sci->getPlatform() == Common::kPlatformMacintosh &&
+				 getSciVersion() >= SCI_VERSION_2_1_LATE);
 	}
 
 	void initOverlay();
@@ -764,6 +782,7 @@ public:
 	Video32(SegManager *segMan, EventManager *eventMan) :
 	_SEQPlayer(eventMan),
 	_AVIPlayer(eventMan),
+	_QuickTimePlayer(eventMan),
 	_VMDPlayer(eventMan, segMan),
 	_robotPlayer(segMan),
 	_duckPlayer(eventMan, segMan) {}
@@ -773,6 +792,7 @@ public:
 
 	SEQPlayer &getSEQPlayer() { return _SEQPlayer; }
 	AVIPlayer &getAVIPlayer() { return _AVIPlayer; }
+	QuickTimePlayer &getQuickTimePlayer() { return _QuickTimePlayer; }
 	VMDPlayer &getVMDPlayer() { return _VMDPlayer; }
 	RobotDecoder &getRobotPlayer() { return _robotPlayer; }
 	DuckPlayer &getDuckPlayer() { return _duckPlayer; }
@@ -780,6 +800,7 @@ public:
 private:
 	SEQPlayer _SEQPlayer;
 	AVIPlayer _AVIPlayer;
+	QuickTimePlayer _QuickTimePlayer;
 	VMDPlayer _VMDPlayer;
 	RobotDecoder _robotPlayer;
 	DuckPlayer _duckPlayer;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,7 @@
 
 namespace Cine {
 
-const Opcode *OSScript::_opcodeTable = 0;
+const Opcode *OSScript::_opcodeTable = nullptr;
 unsigned int OSScript::_numOpcodes = 0;
 
 void OSScript::setupTable() {
@@ -62,9 +61,9 @@ void OSScript::setupTable() {
 		{ &FWScript::o1_compareVar, "bc" },
 		{ &FWScript::o1_modifyObjectParam2, "bbb" },
 		/* 10 */
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_loadMask0, "b" },
 		/* 14 */
 		{ &FWScript::o1_unloadMask0, "b" },
@@ -75,9 +74,9 @@ void OSScript::setupTable() {
 		{ &FWScript::o1_loadMask4, "b" },
 		{ &FWScript::o1_unloadMask4, "b" },
 		{ &FWScript::o1_addSpriteFilledToBgList, "b" },
-		{ &FWScript::o1_op1B, "" }, /* TODO: Name this opcode properly. */
+		{ &FWScript::o1_clearBgIncrustList, "" },
 		/* 1C */
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_label, "l" },
 		{ &FWScript::o1_goto, "b" },
 		{ &FWScript::o1_gotoIfSup, "b" },
@@ -90,56 +89,56 @@ void OSScript::setupTable() {
 		{ &FWScript::o1_gotoIfDiff, "b" },
 		{ &FWScript::o1_removeLabel, "b" },
 		{ &FWScript::o1_loop, "bb" },
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		/* 28 */
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		/* 2C */
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		/* 30 */
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_startGlobalScript, "b" },
 		{ &FWScript::o1_endGlobalScript, "b" },
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		/* 34 */
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		/* 38 */
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_loadAnim, "s" },
 		/* 3C */
 		{ &FWScript::o1_loadBg, "s" },
 		{ &FWScript::o2_loadCt, "s" },
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		{ &FWScript::o2_loadPart, "s" },
 		/* 40 */
 		{ &FWScript::o1_closePart, "" },
 		{ &FWScript::o1_loadNewPrcName, "bs" },
 		{ &FWScript::o1_requestCheckPendingDataLoad, "" },
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		/* 44 */
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_blitAndFade, "" },
 		{ &FWScript::o1_fadeToBlack, "" },
 		{ &FWScript::o1_transformPaletteRange, "bbwww" },
 		/* 48 */
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_setDefaultMenuBgColor, "b" },
 		{ &FWScript::o1_palRotate, "bbb" },
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		/* 4C */
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_break, "" },
 		/* 50 */
 		{ &FWScript::o1_endScript, "x" },
@@ -147,24 +146,24 @@ void OSScript::setupTable() {
 		{ &FWScript::o1_loadGlobalVar, "bc" },
 		{ &FWScript::o1_compareGlobalVar, "bc" },
 		/* 54 */
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		/* 58 */
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_declareFunctionName, "s" },
 		{ &FWScript::o1_freePartRange, "bb" },
 		{ &FWScript::o1_unloadAllMasks, "" },
 		/* 5C */
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		/* 60 */
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_setScreenDimensions, "wwww" },
 		/* 64 */
 		{ &FWScript::o1_displayBackground, "" },
@@ -177,7 +176,7 @@ void OSScript::setupTable() {
 		{ &FWScript::o1_disallowPlayerInput, "" },
 		{ &FWScript::o1_changeDataDisk, "b" }, /* Same as opcodes 0x95 and 0xA9. */
 		/* 6C */
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_loadMusic, "s" },
 		{ &FWScript::o1_playMusic, "" },
 		{ &FWScript::o1_fadeOutMusic, "" },
@@ -187,9 +186,9 @@ void OSScript::setupTable() {
 		{ &FWScript::o1_op72, "wbw" }, /* Same as opcode 0x73. TODO: Name this opcode properly. */
 		{ &FWScript::o1_op72, "wbw" }, /* Same as opcode 0x72. */
 		/* 74 */
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		{ &FWScript::o2_playSample, "bbwbww" },
 		/* 78 */
 		{ &FWScript::o2_playSampleAlt, "bbwbww" },
@@ -197,13 +196,13 @@ void OSScript::setupTable() {
 		{ &FWScript::o1_loadMask5, "b" },
 		{ &FWScript::o1_unloadMask5, "b" }, /* Last opcode used by Future Wars. */
 		/* 7C */
-		{ 0, 0 },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		{ &FWScript::o2_addSeqListElement, "bbbbwww" },
 		/* 80 */
 		{ &FWScript::o2_removeSeq, "bb" },
-		{ &FWScript::o2_op81, "" }, /* TODO: Name this opcode properly. */
+		{ &FWScript::o2_clearSeqList, "" },
 		{ &FWScript::o2_modifySeqListElement, "bbwwb" },
 		{ &FWScript::o2_isSeqRunning, "bb" },
 		/* 84 */
@@ -214,7 +213,7 @@ void OSScript::setupTable() {
 		/* 88 */
 		{ &FWScript::o2_gotoIfEquNearest, "b" },
 		{ &FWScript::o2_gotoIfDiffNearest, "b" },
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		{ &FWScript::o2_startObjectScript, "b" },
 		/* 8C */
 		{ &FWScript::o2_stopObjectScript, "b" },
@@ -224,16 +223,16 @@ void OSScript::setupTable() {
 		/* 90 */
 		{ &FWScript::o2_loadAbs, "bs" },
 		{ &FWScript::o2_loadBg, "b" },
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		/* 94 */
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_changeDataDisk, "b" }, /* Same as opcodes 0x6B and 0xA9. */
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		/* 98 */
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		{ &FWScript::o2_wasZoneChecked, "b" },
 		{ &FWScript::o2_op9B, "wwwwwwww" }, /* TODO: Name this opcode properly. */
 		/* 9C */
@@ -249,10 +248,10 @@ void OSScript::setupTable() {
 		/* A4 */
 		{ &FWScript::o2_loadMask22, "b" }, /* TODO: Name this opcode properly. */
 		{ &FWScript::o2_unloadMask22, "b" }, /* TODO: Name this opcode properly. */
-		{ 0, 0 },
-		{ 0, 0 },
+		{ nullptr, nullptr },
+		{ nullptr, nullptr },
 		/* A8 */
-		{ 0, 0 },
+		{ nullptr, nullptr },
 		{ &FWScript::o1_changeDataDisk, "b" } /* Same as opcodes 0x6B and 0x95. */
 	};
 	OSScript::_opcodeTable = (const Opcode *)opcodeTable;
@@ -297,12 +296,12 @@ void OSScript::load(const ScriptVars &labels, const ScriptVars &local, uint16 co
  */
 const char *OSScriptInfo::opcodeInfo(byte opcode) const {
 	if (opcode == 0 || opcode > OSScript::_numOpcodes) {
-		return NULL;
+		return nullptr;
 	}
 
 	if (!OSScript::_opcodeTable[opcode - 1].args) {
 		warning("Undefined opcode 0x%02X in OSScriptInfo::opcodeInfo", opcode - 1);
-		return NULL;
+		return nullptr;
 	}
 
 	return OSScript::_opcodeTable[opcode - 1].args;
@@ -314,12 +313,12 @@ const char *OSScriptInfo::opcodeInfo(byte opcode) const {
  */
 OpFunc OSScriptInfo::opcodeHandler(byte opcode) const {
 	if (opcode == 0 || opcode > OSScript::_numOpcodes) {
-		return NULL;
+		return nullptr;
 	}
 
 	if (!OSScript::_opcodeTable[opcode - 1].proc) {
 		warning("Undefined opcode 0x%02X in OSScriptInfo::opcodeHandler", opcode - 1);
-		return NULL;
+		return nullptr;
 	}
 
 	return OSScript::_opcodeTable[opcode - 1].proc;
@@ -385,6 +384,7 @@ int FWScript::o2_loadCt() {
 
 	debugC(5, kCineDebugScript, "Line: %d: loadCt(\"%s\")", _line, param);
 	loadCtOS(param);
+	removeBgIncrustsWithBgIdx(kCollisionPageBgIdxAlias);
 	return 0;
 }
 
@@ -406,15 +406,42 @@ int FWScript::o2_playSample() {
 		getNextWord();
 		return 0;
 	}
-	return o1_playSample();
+
+	debugC(5, kCineDebugScript, "Line: %d: o2_playSample()", _line);
+
+	byte mode = getNextByte();
+	byte channel = getNextByte();
+
+	int16 param3 = getNextWord();
+	int16 param4 = getNextByte();
+
+	int16 param5 = getNextWord();
+	uint16 size = getNextWord();
+
+	if (mode == 2) {
+		switch (param4) {
+		case 0:
+			param4 = param5;
+			break;
+		case 1:
+			param4 = _localVars[param5];
+			break;
+		case 2:
+			param4 = _globalVars[param5];
+			break;
+		}
+	}
+
+	g_sound->playSound(mode, channel, param3, param4, param5, size);
+	return 0;
 }
 
 int FWScript::o2_playSampleAlt() {
 	byte num = getNextByte();
 	byte channel = getNextByte();
 	uint16 frequency = getNextWord();
-	getNextByte();
-	getNextWord();
+	/* byte param4 = */getNextByte();
+	/* uint16 param5 = */getNextWord();
 	uint16 size = getNextWord();
 
 	if (size == 0xFFFF) {
@@ -451,18 +478,17 @@ int FWScript::o2_removeSeq() {
 	byte a = getNextByte();
 	byte b = getNextByte();
 
-	debugC(5, kCineDebugScript, "Line: %d: removeSeq(%d,%d) -> TODO", _line, a, b);
+	debugC(5, kCineDebugScript, "Line: %d: removeSeq(%d,%d)", _line, a, b);
 	removeSeq(a, 0, b);
 	return 0;
 }
 
 /**
- * @todo Implement this instruction
  * @note According to the scripts' opcode usage comparison this opcode isn't used at all.
  */
-int FWScript::o2_op81() {
-	warning("STUB: o2_op81()");
-	// freeUnkList();
+int FWScript::o2_clearSeqList() {
+	debugC(5, kCineDebugScript, "Line: %d: clearSeqList()", _line);
+	g_cine->_seqList.clear();
 	return 0;
 }
 
@@ -639,7 +665,8 @@ int FWScript::o2_addBackground() {
 	const char *param2 = getNextString();
 
 	debugC(5, kCineDebugScript, "Line: %d: addBackground(%s,%d)", _line, param2, param1);
-	addBackground(param2, param1);
+	renderer->addBackground(param2, param1);
+	removeBgIncrustsWithBgIdx(param1);
 	return 0;
 }
 
@@ -651,6 +678,7 @@ int FWScript::o2_removeBackground() {
 	debugC(5, kCineDebugScript, "Line: %d: removeBackground(%d)", _line, param);
 
 	renderer->removeBg(param);
+	removeBgIncrustsWithBgIdx(param);
 	return 0;
 }
 
@@ -687,11 +715,11 @@ int FWScript::o2_loadAbs() {
 int FWScript::o2_loadBg() {
 	byte param = getNextByte();
 
-	assert(param < 9);
-
 	debugC(5, kCineDebugScript, "Line: %d: useBg(%d)", _line, param);
 
-	renderer->selectBg(param);
+	if (param <= 8) {
+		renderer->selectBg(param);
+	}
 	return 0;
 }
 
@@ -705,6 +733,7 @@ int FWScript::o2_wasZoneChecked() {
 /**
  * @todo Implement this instruction
  * @note According to the scripts' opcode usage comparison this opcode isn't used at all.
+ * @note In Operation Stealth 16 color DOS version this calculates temporary values and discards them.
  */
 int FWScript::o2_op9B() {
 	uint16 a = getNextWord();
@@ -722,6 +751,7 @@ int FWScript::o2_op9B() {
 /**
  * @todo Implement this instruction
  * @note According to the scripts' opcode usage comparison this opcode isn't used at all.
+ * @note In Operation Stealth 16 color DOS version this calculates temporary values and discards them.
  */
 int FWScript::o2_op9C() {
 	uint16 a = getNextWord();
@@ -739,35 +769,64 @@ int FWScript::o2_useBgScroll() {
 
 	debugC(5, kCineDebugScript, "Line: %d: useBgScroll(%d)", _line, param);
 
-	renderer->selectScrollBg(param);
+	if (param <= 8)	{
+		renderer->selectScrollBg(param);
+	}
 	return 0;
 }
 
 int FWScript::o2_setAdditionalBgVScroll() {
+	uint16 mouseX, mouseY;
+	unsigned int scroll = renderer->getScroll();
 	byte param1 = getNextByte();
 
 	if (param1) {
 		byte param2 = getNextByte();
 
-		debugC(5, kCineDebugScript, "Line: %d: additionalBgVScroll = var[%d]", _line, param2);
-		renderer->setScroll(_localVars[param2]);
+		switch (param1)	{
+		case 1:
+			debugC(5, kCineDebugScript, "Line: %d: additionalBgVScroll = var[%d]", _line, param2);
+			scroll = _localVars[param2];
+			break;
+		case 2:
+			debugC(5, kCineDebugScript, "Line: %d: additionalBgVScroll = globalVar[%d]", _line, param2);
+			scroll = _globalVars[param2];
+			break;
+		case 3:
+			debugC(5, kCineDebugScript, "Line: %d: additionalBgVScroll = mouseX", _line);
+			getMouseData(mouseUpdateStatus, &dummyU16, &mouseX, &mouseY);
+			scroll = mouseX;
+			break;
+		case 4:
+			debugC(5, kCineDebugScript, "Line: %d: additionalBgVScroll = mouseY", _line);
+			getMouseData(mouseUpdateStatus, &dummyU16, &mouseX, &mouseY);
+			scroll = mouseY;
+			break;
+		case 5:
+			debugC(5, kCineDebugScript, "Line: %d: additionalBgVScroll = rand() %% %d", _line, param2);
+			scroll = ((param2 == 0) ? 0 : g_cine->_rnd.getRandomNumber(param2 - 1));
+			break;
+		}
 	} else {
 		uint16 param2 = getNextWord();
 
 		debugC(5, kCineDebugScript, "Line: %d: additionalBgVScroll = %d", _line, param2);
-		renderer->setScroll(param2);
+		scroll = param2;
 	}
+
+	renderer->setScroll(scroll);
 	return 0;
 }
 
 /**
  * @todo Implement this instruction
  * @note According to the scripts' opcode usage comparison this opcode isn't used at all.
+ * @note In Operation Stealth 16 color DOS version this calculates temporary values and discards them.
  */
 int FWScript::o2_op9F() {
 	warning("o2_op9F()");
-	getNextWord();
-	getNextWord();
+	/* uint16 param1 = */getNextWord();
+	/* uint16 param2 = */getNextWord();
 	return 0;
 }
 

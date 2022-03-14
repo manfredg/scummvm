@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -85,7 +84,7 @@ bool PrinceEngine::loadSample(uint32 sampleSlot, const Common::String &streamNam
 		delete sampleStream;
 		error("Can't load sample %s to slot %d", normalizedPath.c_str(), sampleSlot);
 	}
-	_audioStream[sampleSlot] = Audio::makeWAVStream(sampleStream, DisposeAfterUse::NO);
+	_audioStream[sampleSlot] = Audio::makeWAVStream(sampleStream->readStream(sampleStream->size()), DisposeAfterUse::YES);
 	delete sampleStream;
 	return true;
 }
@@ -93,6 +92,8 @@ bool PrinceEngine::loadSample(uint32 sampleSlot, const Common::String &streamNam
 bool PrinceEngine::loadVoice(uint32 slot, uint32 sampleSlot, const Common::String &streamName) {
 	if (getFeatures() & GF_NOVOICES)
 		return false;
+
+	_missingVoice = false;
 
 	debugEngine("Loading wav %s slot %d", streamName.c_str(), slot);
 
@@ -105,6 +106,9 @@ bool PrinceEngine::loadVoice(uint32 slot, uint32 sampleSlot, const Common::Strin
 	Common::SeekableReadStream *sampleStream = SearchMan.createReadStreamForMember(streamName);
 	if (sampleStream == nullptr) {
 		warning("loadVoice: Can't open %s", streamName.c_str());
+		_missingVoice = true;	// Insert END tag if needed
+		_textSlots[slot]._time = 1; // Set phrase time to none
+		_mainHero->_talkTime = 1;
 		return false;
 	}
 
@@ -136,7 +140,7 @@ bool PrinceEngine::loadVoice(uint32 slot, uint32 sampleSlot, const Common::Strin
 
 	debugEngine("SetVoice slot %d time %04x", slot, id);
 	sampleStream->seek(SEEK_SET);
-	_audioStream[sampleSlot] = Audio::makeWAVStream(sampleStream, DisposeAfterUse::NO);
+	_audioStream[sampleSlot] = Audio::makeWAVStream(sampleStream->readStream(sampleStream->size()), DisposeAfterUse::YES);
 	delete sampleStream;
 	return true;
 }
@@ -152,7 +156,11 @@ void PrinceEngine::setVoice(uint16 slot, uint32 sampleSlot, uint16 flag) {
 		sampleName = Common::String::format("inv%02d-01.WAV", currentString - 70000);
 	} else if (currentString >= 60000) {
 		sampleName = Common::String::format("M%04d-%02d.WAV", currentString - 60000, flag);
-	} else if (currentString >= 2000) {
+	// String 316.
+	// Fixes PRINCE: conversation with the priest bug #11771
+	// When Galador starts conversation with the priest with any gesture,
+	// the priest sits down to his place and conversation cannot be continued.
+	} else if (currentString == 316 || currentString >= 2000) {
 		return;
 	} else if (flag >= 100) {
 		sampleName = Common::String::format("%03d-%03d.WAV", currentString, flag);

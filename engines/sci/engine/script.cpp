@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "sci/console.h"
 #include "sci/sci.h"
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/util.h"
 #include "sci/engine/features.h"
 #include "sci/engine/state.h"
@@ -62,7 +61,7 @@ void Script::freeScript(const bool keepLocalsSegment) {
 	if (!keepLocalsSegment) {
 		_localsSegment = 0;
 	}
-	_localsBlock = NULL;
+	_localsBlock = nullptr;
 	_localsCount = 0;
 
 	_lockers = 1;
@@ -125,7 +124,7 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 		// fit the string showing how many shots are left (a nasty script bug,
 		// corrupting heap memory). We add 10 more locals so that it has enough
 		// space to use as the target for its kFormat operation. Fixes bug
-		// #3059871.
+		// #5335.
 		extraLocalsWorkaround = 10;
 	}
 	bufSize += extraLocalsWorkaround * 2;
@@ -154,7 +153,7 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 		// Some buggy game scripts contain two export tables (e.g. script 912
 		// in Camelot and script 306 in KQ4); in these scripts, the first table
 		// is broken, so we ignore it and use the last one instead
-		// Fixes bugs #3039785 and #3037595.
+		// Fixes bugs #5151 and #5079.
 		SciSpan<const uint16> exportTable = findBlockSCI0(SCI_OBJ_EXPORTS, true).subspan<const uint16>(0);
 		if (exportTable) {
 			// The export table is after the block header (4 bytes / 2 uint16s)
@@ -224,6 +223,8 @@ void Script::load(int script_nr, ResourceManager *resMan, ScriptPatcher *scriptP
 
 	// find all strings of this script
 	identifyOffsets();
+
+	applySaidWorkarounds();
 }
 
 void Script::identifyOffsets() {
@@ -638,14 +639,14 @@ Object *Script::getObject(uint32 offset) {
 	if (_objects.contains(offset))
 		return &_objects[offset];
 	else
-		return 0;
+		return nullptr;
 }
 
 const Object *Script::getObject(uint32 offset) const {
 	if (_objects.contains(offset))
 		return &_objects[offset];
 	else
-		return 0;
+		return nullptr;
 }
 
 Object *Script::scriptObjInit(reg_t obj_pos, bool fullObjectInit) {
@@ -951,7 +952,7 @@ SegmentRef Script::dereference(reg_t pointer) {
 
 LocalVariables *Script::allocLocalsSegment(SegManager *segMan) {
 	if (!getLocalsCount()) { // No locals
-		return NULL;
+		return nullptr;
 	} else {
 		LocalVariables *locals;
 
@@ -987,7 +988,7 @@ void Script::initializeLocals(SegManager *segMan) {
 }
 
 void Script::syncLocalsBlock(SegManager *segMan) {
-	_localsBlock = (_localsSegment == 0) ? NULL : (LocalVariables *)(segMan->getSegment(_localsSegment, SEG_TYPE_LOCALS));
+	_localsBlock = (_localsSegment == 0) ? nullptr : (LocalVariables *)(segMan->getSegment(_localsSegment, SEG_TYPE_LOCALS));
 }
 
 void Script::initializeClasses(SegManager *segMan) {
@@ -1055,6 +1056,8 @@ void Script::initializeClasses(SegManager *segMan) {
 					segMan->resizeClassTable(species + 1);
 				else if (g_sci->getGameId() == GID_SQ3 && !g_sci->isDemo() && _nr == 99)
 					segMan->resizeClassTable(species + 1);
+				else if (g_sci->getGameId() == GID_KQ5 && g_sci->getPlatform() == Common::kPlatformAmiga && _nr == 220)
+					segMan->resizeClassTable(species + 1);
 			}
 
 			if (species < 0 || species >= (int)segMan->classTableSize())
@@ -1072,7 +1075,7 @@ void Script::initializeObjectsSci0(SegManager *segMan, SegmentId segmentId, bool
 	bool oldScriptHeader = (getSciVersion() == SCI_VERSION_0_EARLY);
 
 	// We need to make two passes, as the objects in the script might be in the
-	// wrong order (e.g. in the demo of Iceman) - refer to bug #3034713
+	// wrong order (e.g. in the demo of Iceman) - refer to bug #4963
 	for (int pass = 1; pass <= 2; pass++) {
 		SciSpan<const byte> seeker = _buf->subspan(oldScriptHeader ? 2 : 0);
 
@@ -1096,8 +1099,8 @@ void Script::initializeObjectsSci0(SegManager *segMan, SegmentId segmentId, bool
 							if ((_nr == 202 || _nr == 764) && g_sci->getGameId() == GID_KQ5) {
 								// WORKAROUND: Script 202 of KQ5 French and German
 								// (perhaps Spanish too?) has an invalid object.
-								// This is non-fatal. Refer to bugs #3035396 and
-								// #3150767.
+								// This is non-fatal. Refer to bugs #4996 and
+								// #5568.
 								// Same happens with script 764, it seems to
 								// contain junk towards its end.
 								_objects.erase(addr.toUint16() - SCRIPT_OBJECT_MAGIC_OFFSET);
@@ -1273,6 +1276,55 @@ Common::Array<reg_t> Script::listObjectReferences() const {
 
 bool Script::offsetIsObject(uint32 offset) const {
 	return _buf->getUint16SEAt(offset + SCRIPT_OBJECT_MAGIC_OFFSET) == SCRIPT_OBJECT_MAGIC_NUMBER;
+}
+
+void Script::applySaidWorkarounds() {
+	// WORKAROUND: SQ3 version 1.018 has a messy vocab problem.
+	// Sierra added the vocab entry "scout" to this version at group id 0x953
+	// and then apparently never recompiled all the scripts. 30 scripts still
+	// reference the old vocab group ids from 0x953 to 0x990 in their Said
+	// strings. All of these commands are off by one and linked to wrong words. 
+	// For example, looking at the escape pod in the first room with "look pod"
+	// no longer works but "look chute" does. We fix this by patching the Said
+	// strings; any group ids within the broken range are incremented by one.
+	// Four scripts correctly reference vocabs in the broken range, such as
+	// the one that added "scout", and so they must not be patched.
+	// Only version 1.018 has this problem but it's also the most common as
+	// it's the final English DOS version and included in the SQ collections.
+	if (g_sci->getGameId() == GID_SQ3 &&
+		g_sci->getPlatform() == Common::kPlatformDOS &&
+		g_sci->getLanguage() == Common::EN_ANY &&
+		_nr != 0 && _nr != 42 && _nr != 44 && _nr != 70) { // exclude working scripts
+
+		// Identify SQ3 1.018 by the presence of "scout" at 0x953
+		const uint16 sq3FirstBadVocabGroup = 0x953; // scout
+		const uint16 sq3LastBadVocabGroup  = 0x990; // devil
+		ResultWordList words;
+		g_sci->getVocabulary()->lookupWord(words, "scout", 5);
+		if (!words.empty() && words.front()._group == sq3FirstBadVocabGroup) {
+			for (size_t i = 0; i < _offsetLookupArray.size(); ++i) {
+				offsetLookupArrayEntry &offsetEntry = _offsetLookupArray[i];
+				if (offsetEntry.type != SCI_SCR_OFFSET_TYPE_SAID) {
+					continue;
+				}
+
+				// parse the said string and increment groups in the broken range
+				byte *saidPtr = _buf->getUnsafeDataAt(offsetEntry.offset);
+				while (*saidPtr != 0xff) {
+					if (*saidPtr < 0xf0) {
+						uint16 vocabGroup = (*saidPtr << 8) | *(saidPtr + 1);
+						if (sq3FirstBadVocabGroup <= vocabGroup && vocabGroup <= sq3LastBadVocabGroup) {
+							vocabGroup += 1;
+							*saidPtr = vocabGroup >> 8;
+							*(saidPtr + 1) = vocabGroup & 0xff;
+						}
+						saidPtr++;
+					}
+					saidPtr++;
+				}
+			}
+		}
+	}
 }
 
 } // End of namespace Sci

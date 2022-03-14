@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "sci/sci.h"
 #include "sci/engine/kernel.h"
 #include "sci/event.h"
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/engine/features.h"
 #include "sci/engine/kernel_tables.h"
 #include "sci/engine/state.h"
@@ -174,8 +173,8 @@ void Kernel::loadSelectorNames() {
 static uint16 *parseKernelSignature(const char *kernelName, const char *writtenSig) {
 	const char *curPos;
 	char curChar;
-	uint16 *result = NULL;
-	uint16 *writePos = NULL;
+	uint16 *result = nullptr;
+	uint16 *writePos = nullptr;
 	int size = 0;
 	bool validType = false;
 	bool optionalType = false;
@@ -185,7 +184,7 @@ static uint16 *parseKernelSignature(const char *kernelName, const char *writtenS
 
 	// No signature given? no signature out
 	if (!writtenSig)
-		return NULL;
+		return nullptr;
 
 	// First, we check how many bytes the result will be
 	//  we also check, if the written signature makes any sense
@@ -439,7 +438,7 @@ static const SignatureDebugType signatureDebugTypeList[] = {
 	{ SIG_TYPE_NODE,          "node" },
 	{ SIG_TYPE_ERROR,         "error" },
 	{ SIG_IS_INVALID,         "invalid" },
-	{ 0,                      NULL }
+	{ 0,                      nullptr }
 };
 
 static void kernelSignatureDebugType(Common::String &signatureDetailsStr, const uint16 type) {
@@ -593,11 +592,11 @@ void Kernel::mapFunctions(GameFeatures *features) {
 		Common::String kernelName = _kernelNames[id];
 
 		// Reset the table entry
-		_kernelFuncs[id].function = NULL;
-		_kernelFuncs[id].signature = NULL;
-		_kernelFuncs[id].name = NULL;
-		_kernelFuncs[id].workarounds = NULL;
-		_kernelFuncs[id].subFunctions = NULL;
+		_kernelFuncs[id].function = nullptr;
+		_kernelFuncs[id].signature = nullptr;
+		_kernelFuncs[id].name = nullptr;
+		_kernelFuncs[id].workarounds = nullptr;
+		_kernelFuncs[id].subFunctions = nullptr;
 		_kernelFuncs[id].subFunctionCount = 0;
 		if (kernelName.empty()) {
 			// No name was given -> must be an unknown opcode
@@ -645,7 +644,7 @@ void Kernel::mapFunctions(GameFeatures *features) {
 			_kernelFuncs[id].workarounds = kernelMap->workarounds;
 			if (kernelMap->subFunctions) {
 				// Get version for subfunction identification
-				SciVersion mySubVersion = (SciVersion)kernelMap->function(NULL, 0, NULL).getOffset();
+				SciVersion mySubVersion = (SciVersion)kernelMap->function(nullptr, 0, nullptr).getOffset();
 				// Now check whats the highest subfunction-id for this version
 				const SciKernelMapSubEntry *kernelSubMap = kernelMap->subFunctions;
 				uint16 subFunctionCount = 0;
@@ -660,9 +659,8 @@ void Kernel::mapFunctions(GameFeatures *features) {
 					error("k%s[%x]: no subfunctions found for requested version %s", kernelName.c_str(), id, getSciVersionDesc(mySubVersion));
 				// Now allocate required memory and go through it again
 				_kernelFuncs[id].subFunctionCount = subFunctionCount;
-				KernelSubFunction *subFunctions = new KernelSubFunction[subFunctionCount];
+				KernelSubFunction *subFunctions = new KernelSubFunction[subFunctionCount]();
 				_kernelFuncs[id].subFunctions = subFunctions;
-				memset(subFunctions, 0, sizeof(KernelSubFunction) * subFunctionCount);
 				// And fill this info out
 				kernelSubMap = kernelMap->subFunctions;
 				uint kernelSubNr = 0;
@@ -865,9 +863,8 @@ void Kernel::loadKernelNames(GameFeatures *features) {
 			_kernelNames[id] = "Dummy";
 		}
 
-		// Used by Hoyle5 script patches to remove CPU spinning on kGetTime
-		// (this repurposes the existing SCI16 kWait call that was removed in SCI32)
-		_kernelNames[kScummVMWaitId] = "Wait";
+		// Used by SCI32 script patches to remove CPU spinning on kGetTime
+		_kernelNames[kScummVMSleepId] = "ScummVMSleep";
 
 		// Used by GuestAdditions to support integrated save/load dialogue
 		_kernelNames[kScummVMSaveLoadId] = "ScummVMSaveLoad";
@@ -920,7 +917,7 @@ Common::String Kernel::lookupText(reg_t address, int index) {
 	}
 
 	int _index = index;
-	while (index--)
+	while (index-- && textlen)
 		while (textlen-- && *seeker++)
 			;
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -143,6 +142,18 @@ FACES Screen::getFontId(const Common::String &name) {
 	if (name == "propi") return PROPI;
 	if (name == "propz") return PROPZ;
 	return MONOR;
+}
+
+Common::String Screen::getFontName(FACES font) {
+	if (font == MONOR) return "monor";
+	if (font == MONOB) return "monob";
+	if (font == MONOI) return "monoi";
+	if (font == MONOZ) return "monoz";
+	if (font == PROPR) return "propr";
+	if (font == PROPB) return "propb";
+	if (font == PROPI) return "propi";
+	if (font == PROPZ) return "propz";
+	return "monor";
 }
 
 int Screen::drawString(const Point &pos, int fontIdx, uint color, const Common::String &text, int spw) {

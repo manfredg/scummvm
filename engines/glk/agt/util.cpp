@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,13 +27,13 @@ namespace Glk {
 namespace AGT {
 
 /* This includes wrappers for malloc, realloc, strdup, and free
-     that exit gracefully if we run out of memory. */
+	 that exit gracefully if we run out of memory. */
 /* There are also various utilities:
-    concdup:  Creates a new string that is concatation of two others.
-    strcasecmp: case insensitive comparison of strings
-    strncasecmp: case insensitive compare of first n characters of strings
-    fixsign16, fixsign32: routines to assemble signed ints out of
-          individual bytes in an endian-free way. */
+	concdup:  Creates a new string that is concatation of two others.
+	strcasecmp: case insensitive comparison of strings
+	strncasecmp: case insensitive compare of first n characters of strings
+	fixsign16, fixsign32: routines to assemble signed ints out of
+		  individual bytes in an endian-free way. */
 /* Also buffered file i/o routines and some misc. file utilites. */
 
 #ifdef force16
@@ -151,9 +150,9 @@ void *rmalloc(long size) {
 		error("Memory allocation error: Over-sized structure requested.");
 	}
 	assert(size >= 0);
-	if (size == 0) return NULL;
+	if (size == 0) return nullptr;
 	p = malloc((size_t)size);
-	if (p == NULL && rm_trap && size > 0) {
+	if (p == nullptr && rm_trap && size > 0) {
 		error("Memory allocation error: Out of memory.");
 	}
 	if (rm_acct) ralloc_cnt++;
@@ -169,44 +168,32 @@ void *rrealloc(void *old, long size) {
 	assert(size >= 0);
 	if (size == 0) {
 		r_free(old);
-		return NULL;
+		return nullptr;
 	}
-	if (rm_acct && old == NULL) ralloc_cnt++;
+	if (rm_acct && old == nullptr) ralloc_cnt++;
 	p = realloc(old, (size_t)size);
-	if (p == NULL && rm_trap && size > 0) {
+	if (p == nullptr && rm_trap && size > 0) {
 		error("Memory reallocation error: Out of memory.");
 	}
 	return p;
 }
 
 char *rstrdup(const char *s) {
-	char *t;
-#ifndef HAVE_STRDUP
-	int i;
-#endif
+	if (s == nullptr) return nullptr;
 
-	if (s == NULL) return NULL;
-#ifdef HAVE_STRDUP
-	t = strdup(s);
-#else
-	t = (char *)malloc((strlen(s) + 1) * sizeof(char));
-#endif
-	if (t == NULL && rm_trap) {
+	char *t = scumm_strdup(s);
+	if (t == nullptr && rm_trap) {
 		error("Memory duplication error: Out of memory.");
 	}
 	if (rm_acct) ralloc_cnt++;
-#ifndef HAVE_STRDUP
-	for (i = 0; s[i] != 0; i++)
-		t[i] = s[i];
-	t[i] = 0;
-#endif
+
 	return t;
 }
 
 void r_free(void *p) {
 	int tmp;
 
-	if (p == NULL) return;
+	if (p == nullptr) return;
 
 	tmp = get_rm_size();            /* Take worst case in all cases */
 	if (tmp > rm_size) rm_size = tmp;
@@ -260,14 +247,14 @@ char *concdup(const char *s1, const char *s2) {
 	char *s;
 
 	len1 = len2 = 0;
-	if (s1 != NULL) len1 = strlen(s1);
-	if (s2 != NULL) len2 = strlen(s2);
+	if (s1 != nullptr) len1 = strlen(s1);
+	if (s2 != nullptr) len2 = strlen(s2);
 
 	s = (char *)rmalloc(sizeof(char) * (len1 + len2 + 2));
-	if (s1 != NULL)
+	if (s1 != nullptr)
 		memcpy(s, s1, len1);
 	memcpy(s + len1, " ", 1);
-	if (s2 != NULL)
+	if (s2 != nullptr)
 		memcpy(s + len1 + 1, s2, len2);
 	s[len1 + len2 + 1] = 0;
 	return s;
@@ -398,7 +385,7 @@ genfile openfile(fc_type fc, filetype ext, const char *err, rbool ferr)
 	const char *errstr;
 
 	tfile = readopen(fc, ext, &errstr);
-	if (errstr != NULL && err != NULL)
+	if (errstr != nullptr && err != nullptr)
 		print_error("", ext, err, ferr);
 
 	return tfile;
@@ -418,7 +405,7 @@ genfile openbin(fc_type fc, filetype ext, const char *err, rbool ferr)
 	char *fname;
 
 	f = readopen(fc, ext, &errstr);
-	if (errstr != NULL && err != NULL) {
+	if (errstr != nullptr && err != nullptr) {
 		fname = formal_name(fc, ext);
 		print_error(fname, ext, err, ferr);
 		rfree(fname);
@@ -433,9 +420,9 @@ genfile openbin(fc_type fc, filetype ext, const char *err, rbool ferr)
    regardless of the EOL conventions of the platform, at least up to a point.
    It should work with files that have \n, \r, or \r\n termined lines.  */
 
-#define READLN_GRAIN 64 /* Granularity of readln() rrealloc requests 
-                this needs to be at least the size of a tab 
-                character */
+#define READLN_GRAIN 64 /* Granularity of readln() rrealloc requests
+				this needs to be at least the size of a tab
+				character */
 #define DOS_EOF 26    /* Ctrl-Z is the DOS end-of-file marker */
 
 char *readln(genfile f, char *buff, int n)
@@ -451,7 +438,7 @@ pass it back as its return value.  n is ignored in this case */
 	int i, j, csize;
 	int buffsize; /* Current size of buff, if we are allocating it dynamically */
 
-	if (buff == NULL) {
+	if (buff == nullptr) {
 		buff = (char *)rrealloc(buff, READLN_GRAIN * sizeof(char));
 		buffsize = READLN_GRAIN;
 		n = buffsize - 1;
@@ -492,7 +479,7 @@ pass it back as its return value.  n is ignored in this case */
 
 	if (i == 0 && (c == EOF || c == DOS_EOF)) { /* We've hit the end of the file */
 		if (buffsize >= 0) rfree(buff);
-		return NULL;
+		return nullptr;
 	}
 
 	if (buffsize >= 0) { /* Shrink buffer to appropriate size */
@@ -515,7 +502,7 @@ pass it back as its return value.  n is ignored in this case */
 
 genfile bfile;
 
-static uchar *buffer = NULL;
+static uchar *buffer = nullptr;
 static long buffsize; /* How big the buffer is */
 static long record_size;  /* Size of a record in the file */
 static long buff_frame;  /* The file index corrosponding to buffer[0] */
@@ -524,9 +511,9 @@ static long real_buff_fcnt;  /* Number of records actually held in buffer */
 static long buff_rsize;  /* Minimum amount that must be read. */
 
 static long block_size;  /* Size of the current block
-                (for non-AGX files, this is just the filesize) */
+				(for non-AGX files, this is just the filesize) */
 static long block_offset; /* Offset of current block in file (this should
-               be zero for non-AGX files) */
+			   be zero for non-AGX files) */
 
 
 static void buff_setrecsize(long recsize) {
@@ -563,12 +550,12 @@ buffreopen will be called before any major file activity
 	char ebuff[200];
 	const char *errstr;
 
-	assert(buffer == NULL); /* If not, it means these routines have been
-               called by someone else who isn't done yet */
+	assert(buffer == nullptr); /* If not, it means these routines have been
+			   called by someone else who isn't done yet */
 
 	bfile = readopen(fc, ext, &errstr);
-	if (errstr != NULL) {
-		if (rectype == NULL) {
+	if (errstr != nullptr) {
+		if (rectype == nullptr) {
 			return 0;
 		} else
 			fatal(errstr);
@@ -603,7 +590,7 @@ buffreopen will be called before any major file activity
 		s = formal_name(fc, ext);
 		rprintf("Reading %s file %s (size:%ld)\n", rectype, s, filesize);
 		rfree(s);
-		rprintf("  Record size=  Formal:%d    File:%ld", minbuff, recsize);
+		rprintf("  Record size=  Formal:%ld    File:%ld", minbuff, recsize);
 	}
 	if (agx_file) return (long) filesize;
 	else return (long) recsize;
@@ -628,7 +615,7 @@ uchar *buffread(long index) {
 	else {
 		binseek(bfile, block_offset + index * record_size);
 		real_buff_fcnt = block_size / record_size - index;  /* How many records
-                             could we read in? */
+							 could we read in? */
 		if (real_buff_fcnt > buff_fcnt)
 			real_buff_fcnt = buff_fcnt; /* Don't overflow buffer */
 		if (!binread(bfile, buffer, record_size, real_buff_fcnt, &errstr))
@@ -651,7 +638,7 @@ void buffclose(void) {
    file so we can read files that consist of multiple sections with
    different structures */
 static void buffreopen(long f_ofs, long file_recsize, long recnum,
-                       long bl_size, const char *rectype) {
+					   long bl_size, const char *rectype) {
 	char ebuff[200];
 	long recsize;
 
@@ -699,9 +686,9 @@ static void buffreopen(long f_ofs, long file_recsize, long recnum,
 /* #define DEBUG_SEEK*/  /* Debug seek beyond EOF problem */
 
 static long bw_first, bw_last;  /* First and last record in buffer written to.
-                 This is relative to the beginning of the
-                 buffer bw_last points just beyond the last
-                 one written to */
+				 This is relative to the beginning of the
+				 buffer bw_last points just beyond the last
+				 one written to */
 #ifdef DEBUG_SEEK
 static long bw_fileleng;  /* Current file length */
 #endif /* DEBUG_SEEK */
@@ -713,13 +700,13 @@ file_id_type bw_fileid;
 void bw_open(fc_type fc, filetype ext) {
 	const char *errstr;
 
-	assert(buffer == NULL);
+	assert(buffer == nullptr);
 
 	bfile = writeopen(fc, ext, &bw_fileid, &errstr);
-	if (errstr != NULL) fatal(errstr);
+	if (errstr != nullptr) fatal(errstr);
 	bw_last = 0;
 	buffsize = 0;
-	buffer = NULL;
+	buffer = nullptr;
 #ifdef DEBUG_SEEK
 	bw_fileleng = 0;
 #endif
@@ -752,7 +739,7 @@ static void bw_setblock(long fofs, long recnum, long rsize)
 /* Set parameters for current block */
 {
 	/* First, flush old block if neccessary */
-	if (buffer != NULL) {
+	if (buffer != nullptr) {
 		bw_flush();
 		rfree(buffer);
 	}
@@ -793,10 +780,6 @@ void bw_close(void) {
 	writeclose(bfile, bw_fileid);
 }
 
-void bw_abort(void) {
-	binremove(bfile, bw_fileid);
-}
-
 
 /*-------------------------------------------------------------------------*/
 /* Block reading and writing code and support for internal buffers         */
@@ -806,7 +789,7 @@ void bw_abort(void) {
 /* If the internal buffer is not NULL, it is used instead of a file */
 /* (This is used by RESTART, etc. to save state to memory rather than
    to a file) */
-static uchar *int_buff = NULL;
+static uchar *int_buff = nullptr;
 static long ibuff_ofs, ibuff_rsize;
 
 void set_internal_buffer(void *buff) {
@@ -829,7 +812,7 @@ static uchar *get_ibuff(long index) {
 static void buff_blockread(void *buff, long size, long offset) {
 	const char *errstr;
 
-	if (int_buff != NULL)
+	if (int_buff != nullptr)
 		memcpy((char *)buff, int_buff + offset, size);
 	else {
 		binseek(bfile, offset);
@@ -840,7 +823,7 @@ static void buff_blockread(void *buff, long size, long offset) {
 
 /* This writes buff to disk. */
 static void bw_blockwrite(void *buff, long size, long offset) {
-	if (int_buff != NULL)
+	if (int_buff != nullptr)
 		memcpy(int_buff + offset, (char *)buff, size);
 	else {
 		bw_flush();
@@ -861,14 +844,14 @@ static void bw_blockwrite(void *buff, long size, long offset) {
 
 /* Length of file datatypes */
 const size_t ft_leng[FT_COUNT] = {0, 2, 2, /* END, int16, and uint16 */
-                                  4, 4,  /* int32 and uint32 */
-                                  1, 2, 0, /* byte, version, rbool */
-                                  8, 4,  /* descptr, ss_ptr */
-                                  2, 26,  /* slist, path[13] */
-                                  4, 4, /* cmdptr, dictptr */
-                                  81,  /* tline */
-                                  1, 1
-                                 };  /* char, cfg */
+								  4, 4,  /* int32 and uint32 */
+								  1, 2, 0, /* byte, version, rbool */
+								  8, 4,  /* descptr, ss_ptr */
+								  2, 26,  /* slist, path[13] */
+								  4, 4, /* cmdptr, dictptr */
+								  81,  /* tline */
+								  1, 1
+								 };  /* char, cfg */
 
 
 long compute_recsize(file_info *recinfo) {
@@ -886,8 +869,8 @@ long compute_recsize(file_info *recinfo) {
 }
 
 static const int agx_version[] = {0, 0000, 1800, 2000, 3200, 3500, 8200, 8300,
-                                  5000, 5050, 5070, 10000, 10050, 15000, 15500, 16000, 20000
-                                 };
+								  5000, 5050, 5070, 10000, 10050, 15000, 15500, 16000, 20000
+								 };
 
 static int agx_decode_version(int vercode) {
 	if (vercode & 1) /* Large/Soggy */
@@ -947,17 +930,17 @@ static int agx_decode_version(int vercode) {
 
 /* This is as large as the largest data structure we could run into */
 static const uchar zero_block[81] = {0, 0, 0, 0, 0, 0, 0, 0,
-                                     0, 0, 0, 0, 0, 0, 0, 0,
-                                     0, 0, 0, 0, 0, 0, 0, 0,
-                                     0, 0, 0, 0, 0, 0, 0, 0,
-                                     0, 0, 0, 0, 0, 0, 0, 0,
-                                     0, 0, 0, 0, 0, 0, 0, 0,
-                                     0, 0, 0, 0, 0, 0, 0, 0,
-                                     0, 0, 0, 0, 0, 0, 0, 0,
-                                     0, 0, 0, 0, 0, 0, 0, 0,
-                                     0, 0, 0, 0, 0, 0, 0, 0,
-                                     0
-                                    };
+									 0, 0, 0, 0, 0, 0, 0, 0,
+									 0, 0, 0, 0, 0, 0, 0, 0,
+									 0, 0, 0, 0, 0, 0, 0, 0,
+									 0, 0, 0, 0, 0, 0, 0, 0,
+									 0, 0, 0, 0, 0, 0, 0, 0,
+									 0, 0, 0, 0, 0, 0, 0, 0,
+									 0, 0, 0, 0, 0, 0, 0, 0,
+									 0, 0, 0, 0, 0, 0, 0, 0,
+									 0, 0, 0, 0, 0, 0, 0, 0,
+									 0
+									};
 
 static void read_filerec(file_info *rec_desc, const uchar *filedata) {
 	uchar mask;
@@ -972,12 +955,12 @@ static void read_filerec(file_info *rec_desc, const uchar *filedata) {
 			mask = 1;
 			filedata += 1;
 		}
-		if (filebase == NULL || (filedata - filebase) >= record_size) {
+		if (filebase == nullptr || (filedata - filebase) >= record_size) {
 			/* We're past the end of the block; read in zeros for the rest
 			of entries. */
 			past_eob = 1;
 			filedata = zero_block;
-			filebase = NULL;
+			filebase = nullptr;
 		}
 		switch (rec_desc->ftype) {
 		case FT_INT16:
@@ -1055,7 +1038,7 @@ static void read_filerec(file_info *rec_desc, const uchar *filedata) {
 			                                 filedata[2], filedata[3]);
 			break;
 		default:
-			fatal("Unreconized field type");
+			fatal("Unrecognized field type");
 		}
 		filedata += ft_leng[rec_desc->ftype];
 	}
@@ -1175,7 +1158,7 @@ static void write_filerec(file_info *rec_desc, uchar *filedata) {
 			break;
 		}
 		default:
-			fatal("Unreconized field type");
+			fatal("Unrecognized field type");
 		}
 		filedata += ft_leng[rec_desc->ftype];
 	}
@@ -1196,13 +1179,13 @@ static void write_filerec(file_info *rec_desc, uchar *filedata) {
    file_offset = the offset of the beginning of the array into the file
    */
 void *read_recarray(void *base, long eltsize, long numelts,
-                    file_info *field_info, const char *rectype,
-                    long file_offset, long file_blocksize) {
+					file_info *field_info, const char *rectype,
+					long file_offset, long file_blocksize) {
 	long i;
 	file_info *curr;
 	uchar *file_data;
 
-	if (numelts == 0) return NULL;
+	if (numelts == 0) return nullptr;
 
 	if (int_buff)
 		set_ibuff(file_offset, compute_recsize(field_info));
@@ -1210,7 +1193,7 @@ void *read_recarray(void *base, long eltsize, long numelts,
 		buffreopen(file_offset, compute_recsize(field_info), numelts,
 		           file_blocksize, rectype);
 
-	if (base == NULL)
+	if (base == nullptr)
 		base = rmalloc(eltsize * numelts);
 
 	for (curr = field_info; curr->ftype != FT_END; curr++)
@@ -1240,7 +1223,7 @@ void *read_recarray(void *base, long eltsize, long numelts,
    a placeholder for systems that can't seek beyond the end-of-file */
 
 long write_recarray(void *base, long eltsize, long numelts,
-                    file_info *field_info, long file_offset) {
+					file_info *field_info, long file_offset) {
 	long i;
 	file_info *curr;
 	uchar *file_data;
@@ -1252,7 +1235,7 @@ long write_recarray(void *base, long eltsize, long numelts,
 	else
 		bw_setblock(file_offset, numelts, compute_recsize(field_info));
 
-	if (base != NULL)
+	if (base != nullptr)
 		for (curr = field_info; curr->ftype != FT_END; curr++)
 			if (curr->dtype != DT_DESCPTR && curr->dtype != DT_CMDPTR)
 				curr->ptr = ((char *)base + curr->offset);
@@ -1262,7 +1245,7 @@ long write_recarray(void *base, long eltsize, long numelts,
 			file_data = get_ibuff(i);
 		else
 			file_data = bw_getbuff(i);
-		if (base != NULL) {
+		if (base != nullptr) {
 			write_filerec(field_info, file_data);
 			for (curr = field_info; curr->ftype != FT_END; curr++)
 				if (curr->dtype == DT_DESCPTR)
@@ -1278,7 +1261,7 @@ long write_recarray(void *base, long eltsize, long numelts,
 
 
 void read_globalrec(file_info *global_info, const char *rectype,
-                    long file_offset, long file_blocksize) {
+					long file_offset, long file_blocksize) {
 	uchar *file_data;
 
 	if (int_buff) {
@@ -1310,20 +1293,20 @@ long write_globalrec(file_info *global_info, long file_offset) {
 
 
 static file_info fi_temp[] = {
-	{0, DT_DEFAULT, NULL, 0},
+	{0, DT_DEFAULT, nullptr, 0},
 	endrec
 };
 
 /* This routine reads in an array of simple data */
 
 void *read_recblock(void *base, int ftype, long numrec,
-                    long offset, long bl_size) {
+					long offset, long bl_size) {
 	int dsize;
 
 	switch (ftype) {
 	case FT_CHAR:
 	case FT_BYTE:
-		if (base == NULL) base = rmalloc(numrec * sizeof(char));
+		if (base == nullptr) base = rmalloc(numrec * sizeof(char));
 		buff_blockread(base, numrec, offset);
 		if (ftype == FT_CHAR) {
 			long i;
@@ -1348,7 +1331,7 @@ void *read_recblock(void *base, int ftype, long numrec,
 	default:
 		fatal("Invalid argument to read_recblock.");
 		dsize = 0; /* Silence compiler warnings; this will never actually
-          be reached. */
+		  be reached. */
 	}
 
 	fi_temp[0].ftype = ftype;
@@ -1386,7 +1369,7 @@ long write_recblock(void *base, int ftype, long numrec, long offset) {
 	default:
 		fatal("Invalid argument to write_recblock.");
 		dsize = 0; /* Silence compiler warnings; this will never actually
-          be reached. */
+		  be reached. */
 	}
 
 	fi_temp[0].ftype = ftype;

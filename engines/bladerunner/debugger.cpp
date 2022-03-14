@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "bladerunner/debugger.h"
 
 #include "bladerunner/actor.h"
+#include "bladerunner/ambient_sounds.h"
 #include "bladerunner/bladerunner.h"
 #include "bladerunner/boundingbox.h"
 #include "bladerunner/combat.h"
@@ -33,6 +33,7 @@
 #include "bladerunner/game_info.h"
 #include "bladerunner/light.h"
 #include "bladerunner/lights.h"
+#include "bladerunner/music.h"
 #include "bladerunner/regions.h"
 #include "bladerunner/savefile.h"
 #include "bladerunner/scene.h"
@@ -108,6 +109,9 @@ Debugger::Debugger(BladeRunnerEngine *vm) : GUI::Debugger() {
 	_showStatsVk = false;
 	_showMazeScore = false;
 	_showMouseClickInfo = false;
+	_useBetaCrosshairsCursor = false;
+	_useAdditiveDrawModeForMouseCursorMode0 = false;
+	_useAdditiveDrawModeForMouseCursorMode1 = false;
 
 	registerCmd("anim", WRAP_METHOD(Debugger, cmdAnimation));
 	registerCmd("health", WRAP_METHOD(Debugger, cmdHealth));
@@ -117,6 +121,7 @@ Debugger::Debugger(BladeRunnerEngine *vm) : GUI::Debugger() {
 	registerCmd("goal", WRAP_METHOD(Debugger, cmdGoal));
 	registerCmd("loop", WRAP_METHOD(Debugger, cmdLoop));
 	registerCmd("pos", WRAP_METHOD(Debugger, cmdPosition));
+	registerCmd("music", WRAP_METHOD(Debugger, cmdMusic));
 	registerCmd("say", WRAP_METHOD(Debugger, cmdSay));
 	registerCmd("scene", WRAP_METHOD(Debugger, cmdScene));
 	registerCmd("var", WRAP_METHOD(Debugger, cmdVariable));
@@ -132,7 +137,7 @@ Debugger::Debugger(BladeRunnerEngine *vm) : GUI::Debugger() {
 	registerCmd("object", WRAP_METHOD(Debugger, cmdObject));
 	registerCmd("item", WRAP_METHOD(Debugger, cmdItem));
 	registerCmd("region", WRAP_METHOD(Debugger, cmdRegion));
-	registerCmd("click", WRAP_METHOD(Debugger, cmdClick));
+	registerCmd("mouse", WRAP_METHOD(Debugger, cmdMouse));
 	registerCmd("difficulty", WRAP_METHOD(Debugger, cmdDifficulty));
 #if BLADERUNNER_ORIGINAL_BUGS
 #else
@@ -575,6 +580,90 @@ bool Debugger::cmdPosition(int argc, const char **argv) {
 	return true;
 }
 
+/**
+ * @brief Auxiliary function to determine if a String is comprised exclusively of "0"
+ *
+ * This is basically a very simplified (and smaller scope) version of
+ * checking the String with isdigit() (which is banned).
+ *
+ * @param valStr The String to examine
+ * @return true if String is all zeroes, false otherwise
+*/
+bool isAllZeroes(Common::String valStr) {
+	for (uint i = 0; i < valStr.size();  ++i) {
+		if (valStr.c_str()[i] != '0') {
+			return false;
+		}
+	}
+	return true;
+}
+
+// Tracks marked as (G) are only available in-game ie. not in the official OST by Frank Klepacki on his site.
+//
+// Note, that there are a few tracks that are not proper music tracks but rather SFX tracks.
+// For example, the re-used track "Iron Fist" from Command & Conquer - The Covert Operations (OST),
+// which is played at the NightClub Row (NR01), is "kSfxMUSBLEED" (looping).
+// TODO maybe support those too?
+const char* kMusicTracksArr[] = {"Animoid Row (G)",                 // kMusicArabLoop
+								 "Battle Theme",                    // kMusicBatl226M
+								 "Blade Runner Blues",              // kMusicBRBlues
+								 "Etsuko Theme",                    // kMusicKyoto
+								 "One More Time, Love (G)",         // kMusicOneTime
+								 "Gothic Club 2",                   // kMusicGothic3
+								 "Arcane Dragon Fly (G)",           // kMusicArkdFly1
+								 "Arcane Dance (G)",                // kMusicArkDnce1
+								 "Taffy's Club 2",                  // kMusicTaffy2
+								 "Enigma Drift",                    // kMusicTaffy3
+								 "Late Call",                       // kMusicTaffy4
+								 "Nexus (aka Beating 1)",           // kMusicBeating1
+								 "Awakenings (aka Crystal Dies 1)", // kMusicCrysDie1
+								 "Gothic Club",                     // kMusicGothic1
+								 "Transition",                      // kMusicGothic2
+								 "The Eyes Follow",                 // kMusicStrip1
+								 "Dektora's Dance (G)",             // kMusicDkoDnce1
+								 "End Credits",                     // kMusicCredits
+								 "Ending (aka Moraji)",             // kMusicMoraji
+								 "Remorse (aka Clovis Dies 1)",     // kMusicClovDie1
+								 "Solitude (aka Clovis Dies)",      // kMusicClovDies
+								 "Love Theme"};                     // kMusicLoveSong
+
+bool Debugger::cmdMusic(int argc, const char** argv) {
+	if (argc != 2) {
+		debugPrintf("Play the specified music track, list the available tracks\nor stop the current playing track.\n");
+		debugPrintf("Usage: %s (list|stop|<musicId>)\n", argv[0]);
+		debugPrintf("musicId can be in [0, %d]\n", (int)_vm->_gameInfo->getMusicTrackCount() - 1);
+		return true;
+	}
+
+	Common::String trackArgStr = argv[1];
+	if (trackArgStr == "list") {
+		for (int i = 0; i < (int)_vm->_gameInfo->getMusicTrackCount(); ++i) {
+			debugPrintf("%2d %s\n", i, kMusicTracksArr[i]);
+		}
+		return true;
+	} else if (trackArgStr == "stop") {
+		_vm->_music->stop(0u);
+		//_vm->_ambientSounds->removeLoopingSound(kSfxMUSBLEED, 0);
+	} else {
+		int musicId = atoi(argv[1]);
+
+		if ((musicId == 0 && !isAllZeroes(trackArgStr))
+		    || musicId < 0
+		    || musicId >= (int)_vm->_gameInfo->getMusicTrackCount()) {
+			debugPrintf("Invalid music track id specified.\nPlease choose an integer between 0 and %d.\n", (int)_vm->_gameInfo->getMusicTrackCount() - 1);
+			return true;
+		} else {
+			_vm->_music->stop(0u);
+			_vm->_music->play(_vm->_gameInfo->getMusicTrack(musicId), 100, 0, 0, -1, kMusicLoopPlayOnce, 0);
+			//debugPrintf("Now playing track %2d - \"%s\" (%s)\n", musicId, kMusicTracksArr[musicId], _vm->_gameInfo->getMusicTrack(musicId).c_str());
+			debugPrintf("Now playing track %2d - \"%s\"\n", musicId, kMusicTracksArr[musicId]);
+		}
+		//_vm->_ambientSounds->removeLoopingSound(kSfxMUSBLEED, 0);
+		//_vm->_ambientSounds->addLoopingSound(kSfxMUSBLEED, 100, 0, 0);
+	}
+	return false;
+}
+
 bool Debugger::cmdSay(int argc, const char **argv) {
 	if (argc != 3) {
 		debugPrintf("Actor will say specified line.\n");
@@ -661,8 +750,45 @@ const struct SceneList {
 	{ 4, "UG12", 84, 96 },   { 4, "UG13", 85, 97 },  { 4, "UG14", 86, 98 },   { 4, "UG15", 87, 99 },
 	{ 4, "UG16", 16, 100 },  { 4, "UG17", 88, 101 }, { 4, "UG18", 89, 102 },  { 4, "UG19", 90, 103 },
 
-	{ 0, NULL, 0, 0 }
+	{ 0, nullptr, 0, 0 }
 };
+
+// Auxialliary method to validate chapter, set and scene combination
+// and if the triad is valid, then load that scene
+bool Debugger::dbgAttemptToLoadChapterSetScene(int chapterId, int setId, int sceneId) {
+	if (chapterId < 1 || chapterId > 5) {
+		debugPrintf("chapterID must be between 1 and 5\n");
+		return false;
+	}
+
+	int chapterIdNormalized = chapterId;
+
+	if (chapterId == 3 || chapterId == 5) {
+		chapterIdNormalized = chapterId - 1;
+	}
+
+	// Sanity check
+	uint i;
+	for (i = 0; sceneList[i].chapter != 0; ++i) {
+		if (sceneList[i].chapter == chapterIdNormalized &&
+		    sceneList[i].set == setId &&
+		    sceneList[i].scene == sceneId
+		) {
+			break;
+		}
+	}
+
+	if (sceneList[i].chapter == 0) { // end of list
+		debugPrintf("chapterId, setId and sceneId combination is not valid.\n");
+		return false;
+	}
+
+	if (chapterId != _vm->_settings->getChapter()) {
+		_vm->_settings->setChapter(chapterId);
+	}
+	_vm->_settings->setNewSetAndScene(setId, sceneId);
+	return true;
+}
 
 bool Debugger::cmdScene(int argc, const char **argv) {
 	if (argc != 0 && argc > 4) {
@@ -677,38 +803,7 @@ bool Debugger::cmdScene(int argc, const char **argv) {
 		int setId = atoi(argv[2]);
 		int sceneId = atoi(argv[3]);
 
-		if (chapterId < 1 || chapterId > 5) {
-			debugPrintf("chapterID must be between 1 and 5\n");
-			return true;
-		}
-
-		int chapterIdNormalized = chapterId;
-
-		if (chapterId == 3 || chapterId == 5) {
-			chapterIdNormalized = chapterId - 1;
-		}
-
-		// Sanity check
-		uint i;
-		for (i = 0; sceneList[i].chapter != 0; ++i) {
-			if (sceneList[i].chapter == chapterIdNormalized &&
-			    sceneList[i].set == setId &&
-			    sceneList[i].scene == sceneId
-			) {
-				break;
-			}
-		}
-
-		if (sceneList[i].chapter == 0) { // end of list
-			debugPrintf("chapterId, setId and sceneId combination is not valid.\n");
-			return true;
-		}
-
-		if (chapterId != _vm->_settings->getChapter()) {
-			_vm->_settings->setChapter(chapterId);
-		}
-		_vm->_settings->setNewSetAndScene(setId, sceneId);
-		return false;
+		return !dbgAttemptToLoadChapterSetScene(chapterId, setId, sceneId);
 	} else if (argc > 1) {
 		int chapterId = 0;
 		Common::String sceneName;
@@ -793,7 +888,7 @@ bool Debugger::cmdVariable(int argc, const char **argv) {
 
 bool Debugger::cmdClue(int argc, const char **argv) {
 	if (argc != 3 && argc != 4) {
-		debugPrintf("Get or changes clue for an actor.\n");
+		debugPrintf("Gets or changes clue for an actor.\n");
 		debugPrintf("Usage: %s <actorId> <clueId> [<value>]\n", argv[0]);
 		return true;
 	}
@@ -829,7 +924,7 @@ bool Debugger::cmdClue(int argc, const char **argv) {
 
 bool Debugger::cmdTimer(int argc, const char **argv) {
 	if (argc != 2 && argc != 4) {
-		debugPrintf("Get or changes timers for an actor.\n");
+		debugPrintf("Gets or changes timers for an actor.\n");
 		debugPrintf("Usage: %s <actorId> [<timer> <value>]\n", argv[0]);
 		return true;
 	}
@@ -871,7 +966,7 @@ bool Debugger::cmdTimer(int argc, const char **argv) {
 
 bool Debugger::cmdFriend(int argc, const char **argv) {
 	if (argc != 3 && argc != 4) {
-		debugPrintf("Get or changes friendliness for an actor towards another actor.\n");
+		debugPrintf("Gets or changes friendliness for an actor towards another actor.\n");
 		debugPrintf("Usage: %s <actorId> <otherActorId> [<value>]\n", argv[0]);
 		return true;
 	}
@@ -924,9 +1019,14 @@ bool Debugger::cmdLoad(int argc, const char **argv) {
 		return true;
 	}
 
+	if (fs.isDirectory()) {
+		debugPrintf("Warning: Given path %s is a folder. Please provide a path to a file!\n", argv[1]);
+		return true;
+	}
+
 	Common::SeekableReadStream *saveFile = fs.createReadStream();
 
-	_vm->loadGame(*saveFile);
+	_vm->loadGame(*saveFile, 3);
 
 	delete saveFile;
 
@@ -947,12 +1047,17 @@ bool Debugger::cmdSave(int argc, const char **argv) {
 		return true;
 	}
 
+	if (fs.isDirectory()) {
+		debugPrintf("Warning: Given path %s is a folder. Please provide a path to a file!\n", argv[1]);
+		return true;
+	}
+
 	Common::WriteStream *saveFile = fs.createWriteStream();
 
 	Graphics::Surface thumbnail = _vm->generateThumbnail();
 
 	_vm->_time->pause();
-	_vm->saveGame(*saveFile, thumbnail);
+	_vm->saveGame(*saveFile, &thumbnail, true);
 	_vm->_time->resume();
 
 	saveFile->finalize();
@@ -1033,7 +1138,7 @@ const struct OverlayAndScenesVQAsList {
 	{ 6, "VKKASH", true },   { 6, "PS02ELEV", false },{ 6, "ESPER", false },   { 6, "VKDEKT", true },   { 6, "MA06ELEV", false },
 	{ 6, "VKBOB", true },    { 6, "SCORE", false },
 
-	{ 0, NULL, false }
+	{ 0, nullptr, false }
 };
 
 /**
@@ -1135,7 +1240,7 @@ bool Debugger::cmdOverlay(int argc, const char **argv) {
 
 				_vm->_scene->_vqaPlayer = new VQAPlayer(_vm, &_vm->_surfaceBack, origVqaName);
 				if (!_vm->_scene->_vqaPlayer->open()) {
-					debugPrintf("Error: Could not open player while reseting\nto scene VQA named: %s!\n", (origVqaName + ".VQA").c_str());
+					debugPrintf("Error: Could not open player while resetting\nto scene VQA named: %s!\n", (origVqaName + ".VQA").c_str());
 					return true;
 				}
 				_vm->_scene->startDefaultLoop();
@@ -1220,7 +1325,7 @@ bool Debugger::cmdOverlay(int argc, const char **argv) {
 				// even if it's not already loaded for the scene (in _vm->_overlays->_videos)
 				int overlayVideoIdx = _vm->_overlays->play(overlayName, overlayAnimationId, loopForever, startNowFlag, 0);
 				if ( overlayVideoIdx == -1 ) {
-					debugPrintf("Could not load the overlay animation: %s in this scene. Try reseting overlays first to free up slots!\n", overlayName.c_str());
+					debugPrintf("Could not load the overlay animation: %s in this scene. Try resetting overlays first to free up slots!\n", overlayName.c_str());
 				} else {
 					debugPrintf("Loading overlay animation: %s...\n", overlayName.c_str());
 
@@ -1752,31 +1857,55 @@ bool Debugger::cmdRegion(int argc, const char **argv) {
 }
 
 /**
-* Toggle showing mouse click info in the text console (not the debugger window)
+* click:  Toggle showing mouse click info in the text console (not the debugger window)
+* beta:   Toggle beta crosshairs for aiming in combat mode
+* add0:   Toggle semi-transparent hotspot cursor (additive draw mode 0)
+* add1:   Toggle semi-transparent hotspot cursor (additive draw mode 1)
 */
-bool Debugger::cmdClick(int argc, const char **argv) {
+bool Debugger::cmdMouse(int argc, const char **argv) {
 	bool invalidSyntax = false;
 
-	if (argc != 2) {
-		invalidSyntax = true;
-	} else {
+	if (argc == 2) {
 		//
 		// set a debug variable to enable showing the mouse click info
 		//
 		Common::String argName = argv[1];
 		argName.toLowercase();
-		if (argc == 2 && argName == "toggle") {
+
+		invalidSyntax = false;
+		if (argName == "click") {
 			_showMouseClickInfo = !_showMouseClickInfo;
-			debugPrintf("Showing mouse click info = %s\n", _showMouseClickInfo ? "True":"False");
-			return false; // close the debugger console
+		} else if (argName == "beta") {
+			_useBetaCrosshairsCursor = !_useBetaCrosshairsCursor;
+		} else if (argName == "add0") {
+			_useAdditiveDrawModeForMouseCursorMode0  = !_useAdditiveDrawModeForMouseCursorMode0;
+			_useAdditiveDrawModeForMouseCursorMode1  = false;
+		} else if (argName == "add1") {
+			_useAdditiveDrawModeForMouseCursorMode0  = false;
+			_useAdditiveDrawModeForMouseCursorMode1  = !_useAdditiveDrawModeForMouseCursorMode1;
 		} else {
 			invalidSyntax = true;
 		}
+
+		if (!invalidSyntax) {
+			debugPrintf("Showing mouse click info   = %s\n", _showMouseClickInfo ? "True":"False");
+			debugPrintf("Showing beta crosshairs    = %s\n", _useBetaCrosshairsCursor ? "True":"False");
+			debugPrintf("Mouse draw additive mode 0 = %s\n", _useAdditiveDrawModeForMouseCursorMode0 ? "True":"False");
+			debugPrintf("Mouse draw additive mode 1 = %s\n", _useAdditiveDrawModeForMouseCursorMode1 ? "True":"False");
+		}
+	} else {
+		invalidSyntax = true;
 	}
 
 	if (invalidSyntax) {
-		debugPrintf("Toggle showing mouse info (on mouse click) in the text console\n");
-		debugPrintf("Usage: %s toggle\n", argv[0]);
+		debugPrintf("click: Toggle showing mouse info (on mouse click) in the text console\n");
+		debugPrintf("beta:  Toggle beta crosshairs cursor\n");
+		debugPrintf("add0:  Toggle semi-transparent hotspot cursor (additive mode 0)\n");
+		debugPrintf("add1:  Toggle semi-transparent hotspot cursor (additive mode 1)\n");
+		debugPrintf("Usage 1: %s click\n", argv[0]);
+		debugPrintf("Usage 2: %s beta\n", argv[0]);
+		debugPrintf("Usage 3: %s add0\n", argv[0]);
+		debugPrintf("Usage 4: %s add1\n", argv[0]);
 	}
 	return true;
 }
@@ -1953,11 +2082,12 @@ bool Debugger::cmdList(int argc, const char **argv) {
 						             sceneObject->isPresent?   "T" : "F",
 						             sceneObject->isObstacle?  "T" : "F",
 						             sceneObject->isMoving?    "T" : "F");
-						debugPrintf("    Goal: %d, Set: %d, Anim mode: %d id:%d showDmg: %s inCombat: %s\n",
+						debugPrintf("    Goal: %d, Set: %d, Anim mode: %d id:%d fps: %d showDmg: %s inCombat: %s\n",
 						             actor->getGoal(),
 						             actor->getSetId(),
 						             actor->getAnimationMode(),
 						             actor->getAnimationId(),
+						             actor->getFPS(),
 						             actor->getFlagDamageAnimIfMoving()? "T" : "F",
 						             actor->inCombat()? "T" : "F");
 						debugPrintf("    Pos(%02.2f,%02.2f,%02.2f)\n",
@@ -2282,8 +2412,11 @@ void Debugger::drawSceneObjects() {
 				) {
 					color = _vm->_surfaceFront.format.RGBToColor(255, 0, 0);
 					drawBBox(a, b, _vm->_view, &_vm->_surfaceFront, color);
+					Actor *actor = _vm->_actors[sceneObject->id - kSceneObjectOffsetActors];
+					//const Common::Rect &screenRect = actor->getScreenRectangle();
+					//_vm->_surfaceFront.frameRect(screenRect, color);
 					_vm->_surfaceFront.frameRect(sceneObject->screenRectangle, color);
-					_vm->_mainFont->drawString(&_vm->_surfaceFront, _vm->_textActorNames->getText(sceneObject->id - kSceneObjectOffsetActors), pos.x, pos.y, _vm->_surfaceFront.w, color);
+					_vm->_mainFont->drawString(&_vm->_surfaceFront, _vm->_textActorNames->getText(actor->getId()), pos.x, pos.y, _vm->_surfaceFront.w, color);
 				}
 				break;
 			case kSceneObjectTypeItem:
@@ -2510,12 +2643,11 @@ void Debugger::drawScreenEffects() {
 					Common::Rect r((entry.x + x) * 2, (entry.y + y) * 2, (entry.x + x) * 2 + 2, (entry.y + y) * 2 + 2);
 
 					int ec = entry.data[j++];
-					const int bladeToScummVmConstant = 256 / 16;
-
+					// We need to convert from 5 bits per channel (r,g,b) to 8 bits
 					int color = _vm->_surfaceFront.format.RGBToColor(
-						CLIP(entry.palette[ec].r * bladeToScummVmConstant, 0, 255),
-						CLIP(entry.palette[ec].g * bladeToScummVmConstant, 0, 255),
-						CLIP(entry.palette[ec].b * bladeToScummVmConstant, 0, 255));
+						Color::get8BitColorFrom5Bit(entry.palette[ec].r),
+						Color::get8BitColorFrom5Bit(entry.palette[ec].g),
+						Color::get8BitColorFrom5Bit(entry.palette[ec].b));
 					_vm->_surfaceFront.fillRect(r, color);
 				}
 			}

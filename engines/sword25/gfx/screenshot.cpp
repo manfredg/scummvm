@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,8 +47,8 @@ bool Screenshot::saveToFile(Graphics::Surface *data, Common::WriteStream *stream
 	stream->writeUint16LE(data->h);
 	stream->writeByte(THUMBNAIL_VERSION);
 
-	for (uint y = 0; y < data->h; y++) {
-		for (uint x = 0; x < data->w; x++) {
+	for (int y = 0; y < data->h; y++) {
+		for (int x = 0; x < data->w; x++) {
 			// This is only called by createThumbnail below, which
 			// provides a fake 'surface' with LE data in it.
 			byte a, r, g, b;
@@ -106,7 +105,7 @@ Common::SeekableReadStream *Screenshot::createThumbnail(Graphics::Surface *data)
 
 		// Move to next block
 		++x;
-		if (x == thumbnail.w) {
+		if (x == (uint)thumbnail.w) {
 			x = 0;
 			++y;
 		}

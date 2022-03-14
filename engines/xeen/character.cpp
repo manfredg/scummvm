@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -403,7 +402,7 @@ uint Character::getStat(Attribute attrib, bool baseOnly) const {
 		attr._permanent += attr._temporary;
 	}
 
-	return MAX(attr._permanent, (uint)0);
+	return MAX(attr._permanent, 0);
 }
 
 int Character::statColor(int amount, int threshold) {
@@ -485,24 +484,26 @@ bool Character::noActions() {
 	}
 }
 
-void Character::setAward(int awardId, bool value) {
+static int fixAwardId(int awardId) {
 	int v = awardId;
 	if (awardId == 73)
 		v = 126;
 	else if (awardId == 81)
 		v = 127;
 
-	_awards[v] = value ? 1 : 0;
+	return v;
+}
+
+void Character::setAward(int awardId, bool value) {
+	_awards[fixAwardId(awardId)] = value ? 1 : 0;
 }
 
 bool Character::hasAward(int awardId) const {
-	int v = awardId;
-	if (awardId == 73)
-		v = 126;
-	else if (awardId == 81)
-		v = 127;
+	return _awards[fixAwardId(awardId)] ? true : false;
+}
 
-	return _awards[v];
+int Character::getAwardCount(int awardId) const {
+	return _awards[fixAwardId(awardId)];
 }
 
 int Character::getArmorClass(bool baseOnly) const {
@@ -548,7 +549,7 @@ int Character::getThievery() const {
 }
 
 uint Character::getCurrentLevel() const {
-	return MAX(_level._permanent + _level._temporary, (uint)0);
+	return MAX(_level._permanent + _level._temporary, 0);
 }
 
 int Character::itemScan(int itemId) const {

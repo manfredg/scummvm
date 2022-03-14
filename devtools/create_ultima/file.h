@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,9 @@
 #include <cassert>
 
 typedef unsigned char byte;
+typedef unsigned int uint32;
+
+#include "create_ultima.h"
 
 class File {
 private:
@@ -38,7 +40,11 @@ private:
 public:
 	File(const char *filename) {
 		_file = fopen(filename, "rb");
-		assert(_file);
+		if (!_file) {
+			char buf[255];
+			sprintf(buf, "Could not open file %s", filename);
+			error(buf);
+		}
 	}
 	~File() {
 		fclose(_file);
@@ -64,6 +70,16 @@ public:
 	void read(void *buf, int size) {
 		fread(buf, 1, size, _file);
 	}
+
+	bool eof() const {
+		return feof(_file);
+	}
+
+	int pos() const {
+		return ftell(_file);
+	}
+
+	uint32 computeMD5();
 };
 
 class WriteFile {
@@ -93,9 +109,17 @@ public:
 		writeWord((val >> 16) & 0xffff);
 	}
 
-	int write(void *buf, int size) {
+	int write(const void *buf, int size) {
 		return (int)fwrite(buf, 1, size, _file);
 	}
+
+	void write(File &src, int size) {
+		byte *data = new byte[size];
+		src.read(data, size);
+		write(data, size);
+		delete[] data;
+	}
+
 	void writeRepeating(byte val, size_t count) {
 		while (count-- > 0)
 			writeByte(val);
@@ -115,7 +139,7 @@ struct Surface {
 		_pixels = new byte[w * h];
 		memset(_pixels, 0xff, w * h);
 
-		// Set a default palette		
+		// Set a default palette
 		for (int idx = 0; idx < 256; ++idx) {
 			memset(_palette + idx * 3, idx, 3);
 		}

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -288,6 +287,15 @@ void InventoryItems::capitalizeItem(Common::String &name) {
 		name.setChar(toupper(name[3]), 3);
 }
 
+const char *InventoryItems::getMaeName(int material) {
+	if (Common::RU_RUS == g_vm->getLanguage() && GType_Clouds == g_vm->getGameID()) {
+		return Res.CLOUDS_MAE_NAMES[material];
+	} else {
+		Resources &res = *getVm()->_resources;
+		return res._maeNames[material].c_str();
+	}
+}
+
 /*------------------------------------------------------------------------*/
 
 void WeaponItems::equipItem(int itemIndex) {
@@ -342,17 +350,27 @@ void WeaponItems::equipItem(int itemIndex) {
 
 Common::String WeaponItems::getFullDescription(int itemIndex, int displayNum) {
 	XeenItem &i = operator[](itemIndex);
-	Resources &res = *getVm()->_resources;
-
-	Common::String desc = Common::String::format("\f%02u%s%s%s\f%02u%s%s%s", displayNum,
-		i._state._cursed || i._state._broken ? "" : res._maeNames[i._material].c_str(),
-		i._state._broken ? Res.ITEM_BROKEN : "",
-		i._state._cursed ? Res.ITEM_CURSED : "",
-		displayNum,
-		Res.WEAPON_NAMES[i._id],
-		!i._state._counter ? "" : Res.BONUS_NAMES[i._state._counter],
-		(i._state._cursed || i._state._broken) || !i._id ? "\b " : ""
-	);
+	Common::String desc;
+	if (Common::RU_RUS == g_vm->getLanguage())
+		 desc = Common::String::format("\f%02u%s%s\f%02u%s%s%s%s", displayNum,
+			i._state._broken ? Res.ITEM_BROKEN : "",
+			i._state._cursed ? Res.ITEM_CURSED : "",
+			displayNum,
+			Res.WEAPON_NAMES[i._id],
+			i._state._cursed || i._state._broken ? "" : getMaeName(i._material),
+			!i._state._counter ? "" : Res.BONUS_NAMES[i._state._counter],
+			(i._state._cursed || i._state._broken) || !i._id ? "\b " : ""
+		);
+	else
+		desc = Common::String::format("\f%02u%s%s%s\f%02u%s%s%s", displayNum,
+			i._state._cursed || i._state._broken ? "" : getMaeName(i._material),
+			i._state._broken ? Res.ITEM_BROKEN : "",
+			i._state._cursed ? Res.ITEM_CURSED : "",
+			displayNum,
+			Res.WEAPON_NAMES[i._id],
+			!i._state._counter ? "" : Res.BONUS_NAMES[i._state._counter],
+			(i._state._cursed || i._state._broken) || !i._id ? "\b " : ""
+		);
 	capitalizeItem(desc);
 	return desc;
 }
@@ -515,16 +533,26 @@ void ArmorItems::equipItem(int itemIndex) {
 
 Common::String ArmorItems::getFullDescription(int itemIndex, int displayNum) {
 	XeenItem &i = operator[](itemIndex);
-	Resources &res = *getVm()->_resources;
+	Common::String desc;
 
-	Common::String desc = Common::String::format("\f%02u%s%s%s\f%02u%s%s", displayNum,
-		i._state._cursed || i._state._broken ? "" : res._maeNames[i._material].c_str(),
-		i._state._broken ? Res.ITEM_BROKEN : "",
-		i._state._cursed ? Res.ITEM_CURSED : "",
-		displayNum,
-		Res.ARMOR_NAMES[i._id],
-		(i._state._cursed || i._state._broken) || !i._id ? "\b " : ""
-	);
+	if (Common::RU_RUS == g_vm->getLanguage()) 
+		desc = Common::String::format("\f%02u%s%s\f%02u%s%s%s", displayNum,
+			i._state._broken ? Res.ITEM_BROKEN : "",
+			i._state._cursed ? Res.ITEM_CURSED : "",
+			displayNum,
+			Res.ARMOR_NAMES[i._id],
+			i._state._cursed || i._state._broken ? "" : getMaeName(i._material),
+			(i._state._cursed || i._state._broken) || !i._id ? "\b " : ""
+		);
+	else
+		desc = Common::String::format("\f%02u%s%s%s\f%02u%s%s", displayNum,
+			i._state._cursed || i._state._broken ? "" : getMaeName(i._material),
+			i._state._broken ? Res.ITEM_BROKEN : "",
+			i._state._cursed ? Res.ITEM_CURSED : "",
+			displayNum,
+			Res.ARMOR_NAMES[i._id],
+			(i._state._cursed || i._state._broken) || !i._id ? "\b " : ""
+		);
 	capitalizeItem(desc);
 	return desc;
 }
@@ -635,16 +663,26 @@ void AccessoryItems::equipItem(int itemIndex) {
 
 Common::String AccessoryItems::getFullDescription(int itemIndex, int displayNum) {
 	XeenItem &i = operator[](itemIndex);
-	Resources &res = *getVm()->_resources;
+	Common::String desc;
 
-	Common::String desc = Common::String::format("\f%02u%s%s%s\f%02u%s%s", displayNum,
-		i._state._cursed || i._state._broken ? "" : res._maeNames[i._material].c_str(),
-		i._state._broken ? Res.ITEM_BROKEN : "",
-		i._state._cursed ? Res.ITEM_CURSED : "",
-		displayNum,
-		Res.ACCESSORY_NAMES[i._id],
-		(i._state._cursed || i._state._broken) || !i._id ? "\b " : ""
-	);
+	if (Common::RU_RUS == g_vm->getLanguage()) 
+		desc = Common::String::format("\f%02u%s%s\f%02u%s%s%s", displayNum,
+			i._state._broken ? Res.ITEM_BROKEN : "",
+			i._state._cursed ? Res.ITEM_CURSED : "",
+			displayNum,
+			Res.ACCESSORY_NAMES[i._id],
+			i._state._cursed || i._state._broken ? "" : getMaeName(i._material),
+			(i._state._cursed || i._state._broken) || !i._id ? "\b " : ""
+		);
+	else
+		desc = Common::String::format("\f%02u%s%s%s\f%02u%s%s", displayNum,
+			i._state._cursed || i._state._broken ? "" : getMaeName(i._material),
+			i._state._broken ? Res.ITEM_BROKEN : "",
+			i._state._cursed ? Res.ITEM_CURSED : "",
+			displayNum,
+			Res.ACCESSORY_NAMES[i._id],
+			(i._state._cursed || i._state._broken) || !i._id ? "\b " : ""
+		);
 	capitalizeItem(desc);
 	return desc;
 }

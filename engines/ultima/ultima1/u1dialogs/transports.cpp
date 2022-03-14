@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -166,13 +165,13 @@ void Transports::drawSell() {
 	centerText(String(_game->_res->TRANSPORTS_TEXT[0]).split("\r\n"), titleLines + 2);
 }
 
-bool Transports::CharacterInputMsg(CCharacterInputMsg &msg) {
+bool Transports::CharacterInputMsg(CCharacterInputMsg *msg) {
 	Shared::Character &c = *_game->_party;
-	int transportIndex = msg._keyState.keycode - Common::KEYCODE_a;
+	int transportIndex = msg->_keyState.keycode - Common::KEYCODE_a;
 
 	if (_mode == BUY) {
-		if (msg._keyState.keycode >= Common::KEYCODE_a &&
-				msg._keyState.keycode <= Common::KEYCODE_f &&
+		if (msg->_keyState.keycode >= Common::KEYCODE_a &&
+				msg->_keyState.keycode <= Common::KEYCODE_f &&
 				_transports[transportIndex]) {
 			uint cost = getBuyCost(transportIndex + 1);
 			if (cost <= c._coins) {

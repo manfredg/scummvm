@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #include "codeblocks.h"
 
 #include <fstream>
+#include <cstring>
 
 namespace CreateProjectTool {
 
@@ -44,10 +44,7 @@ void CodeBlocksProvider::createWorkspace(const BuildSetup &setup) {
 	writeReferences(setup, workspace);
 
 	// Note we assume that the UUID map only includes UUIDs for enabled engines!
-	for (UUIDMap::const_iterator i = _uuidMap.begin(); i != _uuidMap.end(); ++i) {
-		if (i->first == setup.projectName)
-			continue;
-
+	for (UUIDMap::const_iterator i = _engineUuidMap.begin(); i != _engineUuidMap.end(); ++i) {
 		workspace << "\t\t<Project filename=\"" << i->first << ".cbp\" />\n";
 	}
 
@@ -55,29 +52,52 @@ void CodeBlocksProvider::createWorkspace(const BuildSetup &setup) {
 	             "</CodeBlocks_workspace_file>";
 }
 
-// HACK We need to pre-process library names
-//      since the MSVC and mingw precompiled
-//      libraries have different names :(
-std::string processLibraryName(std::string name) {
-	// Remove "_static" in lib name
-	size_t pos = name.find("_static");
-	if (pos != std::string::npos)
-		return name.replace(pos, 7, "");
+StringList getFeatureLibraries(const BuildSetup &setup) {
+	StringList libraries;
 
-	// Remove "-static" in lib name
-	pos = name.find("-static");
-	if (pos != std::string::npos)
-		return name.replace(pos, 7, "");
+	for (FeatureList::const_iterator i = setup.features.begin(); i != setup.features.end(); ++i) {
+		if (i->enable && i->library) {
+			std::string libname;
+			if (!std::strcmp(i->name, "libcurl")) {
+				libname = i->name;
+			} else if (!std::strcmp(i->name, "zlib")) {
+				libname = "libz";
+			} else if (!std::strcmp(i->name, "vorbis")) {
+				libname = "libvorbis";
+				libraries.push_back("libvorbisfile");
+			} else if (!std::strcmp(i->name, "png")) {
+				libname = "libpng16";
+			} else if (!std::strcmp(i->name, "sdlnet")) {
+				if (setup.useSDL2) {
+					libname = "libSDL2_net";
+				} else {
+					libname = "libSDL_net";
+				}
+				libraries.push_back("iphlpapi");
+			} else {
+				libname = "lib";
+				libname += i->name;
+			}
+			libraries.push_back(libname);
+		}
+	}
 
-	// Replace "zlib" by "libz"
-	if (name == "zlib")
-		return "libz";
+	if (setup.useSDL2) {
+		libraries.push_back("libSDL2");
+	} else {
+		libraries.push_back("libSDL");
+	}
 
-	return name;
+	// Win32 libraries
+	libraries.push_back("ole32");
+	libraries.push_back("uuid");
+	libraries.push_back("winmm");
+
+	return libraries;
 }
 
 void CodeBlocksProvider::createProjectFile(const std::string &name, const std::string &, const BuildSetup &setup, const std::string &moduleDir,
-                                           const StringList &includeList, const StringList &excludeList) {
+										   const StringList &includeList, const StringList &excludeList) {
 
 	const std::string projectFile = setup.outputDir + '/' + name + getProjectExtension();
 	std::ofstream project(projectFile.c_str());
@@ -94,15 +114,16 @@ void CodeBlocksProvider::createProjectFile(const std::string &name, const std::s
 	           "\t\t<Build>\n";
 
 	if (name == setup.projectName) {
-		std::string libraries;
+		StringList libraries = getFeatureLibraries(setup);
 
-		for (StringList::const_iterator i = setup.libraries.begin(); i != setup.libraries.end(); ++i)
-			libraries += processLibraryName(*i) + ".a;";
+		std::string deps;
+		for (StringList::const_iterator i = libraries.begin(); i != libraries.end(); ++i)
+			deps += (*i) + ".a;";
 
 		project << "\t\t\t<Target title=\"default\">\n"
 		           "\t\t\t\t<Option output=\"" << setup.projectName << "\\" << setup.projectName << "\" prefix_auto=\"1\" extension_auto=\"1\" />\n"
 		           "\t\t\t\t<Option object_output=\"" << setup.projectName << "\" />\n"
-		           "\t\t\t\t<Option external_deps=\"" << libraries /* + list of engines engines\name\name.a */ << "\" />\n"
+		           "\t\t\t\t<Option external_deps=\"" << deps /* + list of engines engines\name\name.a */ << "\" />\n"
 		           "\t\t\t\t<Option type=\"1\" />\n"
 		           "\t\t\t\t<Option compiler=\"gcc\" />\n"
 		           "\t\t\t\t<Option parameters=\"-d 8 --debugflags=parser\" />\n"
@@ -114,6 +135,9 @@ void CodeBlocksProvider::createProjectFile(const std::string &name, const std::s
 
 		writeWarnings(name, project);
 		writeDefines(setup.defines, project);
+
+		for (StringList::const_iterator i = setup.includeDirs.begin(); i != setup.includeDirs.end(); ++i)
+			project << "\t\t\t\t\t<Add directory=\"" << convertPathToWin(*i) << "\" />\n";
 
 		project << "\t\t\t\t\t<Add directory=\"$(" << LIBS_DEFINE << ")include\" />\n"
 		           "\t\t\t\t\t<Add directory=\"$(" << LIBS_DEFINE << ")include\\SDL\" />\n"
@@ -127,15 +151,15 @@ void CodeBlocksProvider::createProjectFile(const std::string &name, const std::s
 		// Linker
 		project << "\t\t\t\t<Linker>\n";
 
-		for (StringList::const_iterator i = setup.libraries.begin(); i != setup.libraries.end(); ++i)
-			project << "\t\t\t\t\t<Add library=\"" << processLibraryName(*i) << "\" />\n";
+		for (StringList::const_iterator i = libraries.begin(); i != libraries.end(); ++i)
+			project << "\t\t\t\t\t<Add library=\"" << (*i) << "\" />\n";
 
-		for (UUIDMap::const_iterator i = _uuidMap.begin(); i != _uuidMap.end(); ++i) {
-			if (i->first == setup.projectName)
-				continue;
-
+		for (UUIDMap::const_iterator i = _engineUuidMap.begin(); i != _engineUuidMap.end(); ++i) {
 			project << "\t\t\t\t\t<Add library=\"" << setup.projectName << "\\engines\\" << i->first << "\\lib" << i->first << ".a\" />\n";
 		}
+
+		for (StringList::const_iterator i = setup.libraryDirs.begin(); i != setup.libraryDirs.end(); ++i)
+			project << "\t\t\t\t\t<Add directory=\"" << convertPathToWin(*i) << "\" />\n";
 
 		project << "\t\t\t\t\t<Add directory=\"$(" << LIBS_DEFINE << ")lib\\mingw\" />\n"
 		           "\t\t\t\t\t<Add directory=\"$(" << LIBS_DEFINE << ")lib\" />\n"
@@ -185,7 +209,7 @@ void CodeBlocksProvider::createProjectFile(const std::string &name, const std::s
 			modulePath.erase(0, 1);
 	}
 
-	if (modulePath.size())
+	if (!modulePath.empty())
 		addFilesToProject(moduleDir, project, includeList, excludeList, setup.filePrefix + '/' + modulePath);
 	else
 		addFilesToProject(moduleDir, project, includeList, excludeList, setup.filePrefix);
@@ -224,14 +248,14 @@ void CodeBlocksProvider::writeDefines(const StringList &defines, std::ofstream &
 		output << "\t\t\t\t\t<Add option=\"-D" << *i << "\" />\n";
 }
 
-void CodeBlocksProvider::writeFileListToProject(const FileNode &dir, std::ofstream &projectFile, const int indentation,
-                                                const StringList &duplicate, const std::string &objPrefix, const std::string &filePrefix) {
+void CodeBlocksProvider::writeFileListToProject(const FileNode &dir, std::ostream &projectFile, const int indentation,
+												const std::string &objPrefix, const std::string &filePrefix) {
 
 	for (FileNode::NodeList::const_iterator i = dir.children.begin(); i != dir.children.end(); ++i) {
 		const FileNode *node = *i;
 
 		if (!node->children.empty()) {
-			writeFileListToProject(*node, projectFile, indentation + 1, duplicate, objPrefix + node->name + '_', filePrefix + node->name + '/');
+			writeFileListToProject(*node, projectFile, indentation + 1, objPrefix + node->name + '_', filePrefix + node->name + '/');
 		} else {
 			std::string name, ext;
 			splitFilename(node->name, name, ext);
@@ -254,10 +278,7 @@ void CodeBlocksProvider::writeFileListToProject(const FileNode &dir, std::ofstre
 void CodeBlocksProvider::writeReferences(const BuildSetup &setup, std::ofstream &output) {
 	output << "\t\t<Project filename=\"" << setup.projectName << ".cbp\" active=\"1\">\n";
 
-	for (UUIDMap::const_iterator i = _uuidMap.begin(); i != _uuidMap.end(); ++i) {
-		if (i->first == " << PROJECT_NAME << ")
-			continue;
-
+	for (UUIDMap::const_iterator i = _engineUuidMap.begin(); i != _engineUuidMap.end(); ++i) {
 		output << "\t\t\t<Depends filename=\"" << i->first << ".cbp\" />\n";
 	}
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,7 +62,7 @@ OnScreenDialog::OnScreenDialog(bool isRecord) : Dialog("OnScreenDialog") {
 #ifndef DISABLE_FANCY_THEMES
 	if (g_gui.xmlEval()->getVar("Globals.OnScreenDialog.ShowPics") == 1 && g_gui.theme()->supportsImages()) {
 		GUI::PicButtonWidget *button;
-		button = new PicButtonWidget(this, "OnScreenDialog.StopButton", nullptr, kStopCmd, 0);
+		button = new PicButtonWidget(this, "OnScreenDialog.StopButton", Common::U32String(), kStopCmd, 0);
 		button->useThemeTransparency(true);
 
 		if (g_system->getOverlayWidth() > 320)
@@ -72,7 +71,7 @@ OnScreenDialog::OnScreenDialog(bool isRecord) : Dialog("OnScreenDialog") {
 			button->setGfx(g_gui.theme()->getImageSurface(ThemeEngine::kImageStopSmallButton));
 
 		if (isRecord) {
-			button = new PicButtonWidget(this, "OnScreenDialog.EditButton", nullptr, kEditCmd, 0);
+			button = new PicButtonWidget(this, "OnScreenDialog.EditButton", Common::U32String(), kEditCmd, 0);
 			button->useThemeTransparency(true);
 
 			if (g_system->getOverlayWidth() > 320)
@@ -80,14 +79,14 @@ OnScreenDialog::OnScreenDialog(bool isRecord) : Dialog("OnScreenDialog") {
 			else
 				button->setGfx(g_gui.theme()->getImageSurface(ThemeEngine::kImageEditSmallButton));
 		} else {
-			button = new PicButtonWidget(this, "OnScreenDialog.SwitchModeButton", nullptr, kSwitchModeCmd, 0);
+			button = new PicButtonWidget(this, "OnScreenDialog.SwitchModeButton", Common::U32String(), kSwitchModeCmd, 0);
 			button->useThemeTransparency(true);
 			if (g_system->getOverlayWidth() > 320)
 				button->setGfx(g_gui.theme()->getImageSurface(ThemeEngine::kImageSwitchModeButton));
 			else
 				button->setGfx(g_gui.theme()->getImageSurface(ThemeEngine::kImageSwitchModeSmallButton));
 
-			button = new PicButtonWidget(this, "OnScreenDialog.FastReplayButton", nullptr, kFastModeCmd, 0);
+			button = new PicButtonWidget(this, "OnScreenDialog.FastReplayButton", Common::U32String(), kFastModeCmd, 0);
 			button->useThemeTransparency(true);
 			if (g_system->getOverlayWidth() > 320)
 				button->setGfx(g_gui.theme()->getImageSurface(ThemeEngine::kImageFastReplayButton));
@@ -98,21 +97,21 @@ OnScreenDialog::OnScreenDialog(bool isRecord) : Dialog("OnScreenDialog") {
 #endif
 	{
 		if (g_system->getOverlayWidth() > 320)
-			new ButtonWidget(this, "OnScreenDialog.StopButton", "[ ]", _("Stop"), kStopCmd);
+			new ButtonWidget(this, "OnScreenDialog.StopButton", Common::U32String("[ ]"), _("Stop"), kStopCmd);
 		else
-			new ButtonWidget(this, "OnScreenDialog.StopButton", "[]", _("Stop"), kStopCmd);
+			new ButtonWidget(this, "OnScreenDialog.StopButton", Common::U32String("[]"), _("Stop"), kStopCmd);
 
 		if (isRecord) {
-			new ButtonWidget(this, "OnScreenDialog.EditButton", "E", _("Edit record description"), kEditCmd);
+			new ButtonWidget(this, "OnScreenDialog.EditButton", Common::U32String("E"), _("Edit record description"), kEditCmd);
 		} else {
-			new ButtonWidget(this, "OnScreenDialog.SwitchModeButton", "G", _("Switch to Game"), kSwitchModeCmd);
+			new ButtonWidget(this, "OnScreenDialog.SwitchModeButton", Common::U32String("G"), _("Switch to Game"), kSwitchModeCmd);
 
-			new ButtonWidget(this, "OnScreenDialog.FastReplayButton", ">>", _("Fast replay"), kFastModeCmd);
+			new ButtonWidget(this, "OnScreenDialog.FastReplayButton", Common::U32String(">>"), _("Fast replay"), kFastModeCmd);
 		}
 	}
 
 
-	_text = new GUI::StaticTextWidget(this, "OnScreenDialog.TimeLabel", "00:00:00");
+	_text = new GUI::StaticTextWidget(this, "OnScreenDialog.TimeLabel", Common::U32String("00:00:00"));
 	_enableDrag = false;
 	_mouseOver = false;
 	_editDlgShown = false;
@@ -122,11 +121,11 @@ OnScreenDialog::OnScreenDialog(bool isRecord) : Dialog("OnScreenDialog") {
 }
 
 void OnScreenDialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
-	Common::Event eventRTL;
+	Common::Event eventReturnToLauncher;
 	switch (cmd) {
 	case kStopCmd:
-		eventRTL.type = Common::EVENT_RTL;
-		g_system->getEventManager()->pushEvent(eventRTL);
+		eventReturnToLauncher.type = Common::EVENT_RETURN_TO_LAUNCHER;
+		g_system->getEventManager()->pushEvent(eventReturnToLauncher);
 		close();
 		break;
 	case kEditCmd:

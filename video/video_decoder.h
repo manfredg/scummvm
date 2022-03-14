@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 #include "audio/mixer.h"
 #include "audio/timestamp.h"	// TODO: Move this to common/ ?
 #include "common/array.h"
+#include "common/path.h"
 #include "common/rational.h"
 #include "common/str.h"
 #include "graphics/pixelformat.h"
@@ -66,7 +66,7 @@ public:
 	 * @param filename	the filename to load
 	 * @return whether loading the file succeeded
 	 */
-	virtual bool loadFile(const Common::String &filename);
+	virtual bool loadFile(const Common::Path &filename);
 
 	/**
 	 * Load a video from a generic read stream. The ownership of the
@@ -719,6 +719,16 @@ protected:
 		void setBalance(int8 balance);
 
 		/**
+		 * Get the sound type for this track
+		 */
+		Audio::Mixer::SoundType getSoundType() const { return _soundType; }
+
+		/**
+		 * Set the sound type for this track
+		 */
+		void setSoundType(Audio::Mixer::SoundType soundType) { _soundType = soundType; }
+
+		/**
 		 * Get the time the AudioStream behind this track has been
 		 * running
 		 */
@@ -934,7 +944,7 @@ private:
 
 	// Current playback status
 	bool _needsUpdate;
-	Audio::Timestamp _lastTimeChange, _endTime;
+	Audio::Timestamp _endTime;
 	bool _endTimeSet;
 	Common::Rational _playbackRate;
 	VideoTrack *_nextVideoTrack;
@@ -949,6 +959,7 @@ private:
 	// Default PixelFormat settings
 	Graphics::PixelFormat _defaultHighColorFormat;
 
+protected:
 	// Internal helper functions
 	void stopAudio();
 	void startAudio();
@@ -956,7 +967,10 @@ private:
 	bool hasFramesLeft() const;
 	bool hasAudio() const;
 
+	Audio::Timestamp _lastTimeChange;
 	int32 _startTime;
+
+private:
 	uint32 _pauseLevel;
 	uint32 _pauseStartTime;
 	byte _audioVolume;

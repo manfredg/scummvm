@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -383,6 +382,10 @@ struct AIStateDef {
 	const char *name;
 };
 
+// Structs for Function Table Lookup for SaveGames
+typedef void(*FuncPtr)(AIEntity *);
+typedef void(*EntFuncPtr)(AIEntity *, int, int);
+
 struct AIEntity {
 	AIType type;
 	AIState state;
@@ -390,11 +393,11 @@ struct AIEntity {
 
 	Tile *draw;											// Current frame to draw
 
-	void (*aiInit)(AIEntity *e);						// func ptr to init routine
-	void (*aiInit2)(AIEntity *e);						// func ptr to init2 routine - graphic init only (this for LoadGame functionality)
-	void (*aiAction)(AIEntity *e);						// func ptr to action routine
-	void (*aiUse)(AIEntity *e);							// func ptr to use routine
-	void (*aiDraw)(AIEntity *e, int x, int y);			// func ptr to extra drawing routine (only for special stuff) - pass in mapx, mapy
+	FuncPtr aiInit;										// func ptr to init routine
+	FuncPtr aiInit2;									// func ptr to init2 routine - graphic init only (this for LoadGame functionality)
+	FuncPtr aiAction;									// func ptr to action routine
+	FuncPtr aiUse;										// func ptr to use routine
+	EntFuncPtr aiDraw;									// func ptr to extra drawing routine (only for special stuff) - pass in mapx, mapy
 
 	char		luaFuncInit[32];						// Lua function for Init (always called after entity's init). These are ptrs into the map header.
 	char		luaFuncAction[32];						// Lua function for Action
@@ -467,12 +470,12 @@ struct AIEntity {
 		state = STATE_NONE;
 		dir = DIR_NONE;
 
-		draw = NULL;
+		draw = nullptr;
 
-		aiInit = aiInit2 = NULL;
-		aiAction = NULL;
-		aiUse = NULL;
-		aiDraw = NULL;
+		aiInit = aiInit2 = nullptr;
+		aiAction = nullptr;
+		aiUse = nullptr;
+		aiDraw = nullptr;
 
 		level = 0;
 		value1 = value2 = 0;
@@ -495,52 +498,52 @@ struct AIEntity {
 
 		blinkFrames = 0;
 		for (int i = 0; i < kMaxAnimFrames; i++) {
-			blinkGfx[i] = NULL;
+			blinkGfx[i] = nullptr;
 		}
 
 		special1Frames = 0;
 		for (int i = 0; i < kMaxAnimFrames; i++) {
-			special1Gfx[i] = NULL;
+			special1Gfx[i] = nullptr;
 		}
 
 		standdownFrames = 0;
 		for (int i = 0; i < kMaxAnimFrames; i++) {
-			standdownGfx[i] = NULL;
+			standdownGfx[i] = nullptr;
 		}
 
 		standupFrames = 0;
 		for (int i = 0; i < kMaxAnimFrames; i++) {
-			standupGfx[i] = NULL;
+			standupGfx[i] = nullptr;
 		}
 
 		standleftFrames = 0;
 		for (int i = 0; i < kMaxAnimFrames; i++) {
-			standleftGfx[i] = NULL;
+			standleftGfx[i] = nullptr;
 		}
 
 		standrightFrames = 0;
 		for (int i = 0; i < kMaxAnimFrames; i++) {
-			standrightGfx[i] = NULL;
+			standrightGfx[i] = nullptr;
 		}
 
 		movedownFrames = 0;
 		for (int i = 0; i < kMaxAnimFrames; i++) {
-			movedownGfx[i] = NULL;
+			movedownGfx[i] = nullptr;
 		}
 
 		moveupFrames = 0;
 		for (int i = 0; i < kMaxAnimFrames; i++) {
-			moveupGfx[i] = NULL;
+			moveupGfx[i] = nullptr;
 		}
 
 		moveleftFrames = 0;
 		for (int i = 0; i < kMaxAnimFrames; i++) {
-			moveleftGfx[i] = NULL;
+			moveleftGfx[i] = nullptr;
 		}
 
 		moverightFrames = 0;
 		for (int i = 0; i < kMaxAnimFrames; i++) {
-			moverightGfx[i] = NULL;
+			moverightGfx[i] = nullptr;
 		}
 	}
 
@@ -555,35 +558,25 @@ struct AIEntity {
 	void load(Common::InSaveFile *in);
 };
 
-// Structs for Function Table Lookup for SaveGames
-typedef void(*FuncPtr)(AIEntity *);
-typedef void(*EntFuncPtr)(AIEntity *, int, int);
-
 struct AIEntTypeInfo {
 	AIType type;
 	const char *luaName;
 	AIStateDef *stateDef;
-	void (*initFunc)(AIEntity *e);
-	void (*initFunc2)(AIEntity *e);
-};
-
-struct FuncLookUp {
-	void(*function)(AIEntity *e);
-	const char *funcName;
+	FuncPtr initFunc;
+	FuncPtr initFunc2;
 };
 
 extern AIEntTypeInfo aiEntList[];
-extern FuncLookUp aiFuncList[];
 
 struct AIEntLevel2 {
 	uint16 x;
 	uint16 y;
 	Tile *draw;
 	AIEntity *e;
-	void(*aiDraw)(AIEntity *e, int x, int y);
+	EntFuncPtr aiDraw;
 	uint32 stunnedWait;
 
-	AIEntLevel2() : x(0), y(0), draw(NULL), e(NULL), aiDraw(NULL), stunnedWait(0) {}
+	AIEntLevel2() : x(0), y(0), draw(nullptr), e(nullptr), aiDraw(nullptr), stunnedWait(0) {}
 };
 
 struct AnimTarget {
@@ -598,7 +591,7 @@ struct AnimTarget {
 
 	AnimTarget() : x(0), y(0), start(0), end(0), vel(0), animCycle(0), animFrame(0), killAuto(false), inMap(false) {
 		for (int i = 0; i < kMaxAnimTFrames; i++) {
-			gfxList[i] = NULL;
+			gfxList[i] = nullptr;
 		}
 	}
 };
@@ -628,7 +621,7 @@ struct DlvEnt {
 
 	char id[32];
 
-	DlvEnt() : itemGfx(NULL), destGfx(NULL) {
+	DlvEnt() : itemGfx(nullptr), destGfx(nullptr) {
 		itemTextName[0] = 0;
 		itemGfxName[0] = 0;
 		destTextName[0] = 0;
@@ -636,8 +629,8 @@ struct DlvEnt {
 	}
 
 	~DlvEnt() {
-		itemGfx = NULL;
-		destGfx = NULL;
+		itemGfx = nullptr;
+		destGfx = nullptr;
 	}
 };
 
@@ -662,10 +655,18 @@ struct LuaT {
 	char luaFuncAction[32];
 	char luaFuncUse[32];
 
-	LuaT() : x(0), y(0), value1(0), value2(0) {
-		luaFuncInit[0] = 0;
-		luaFuncAction[0] = 0;
-		luaFuncUse[0] = 0;
+	LuaT() {
+		clear();
+	}
+
+	void clear() {
+		x = 0;
+		y = 0;
+		value1 = 0;
+		value2 = 0;
+		for (uint i = 0; i < ARRAYSIZE(luaFuncInit); i++) luaFuncInit[i] = 0;
+		for (uint i = 0; i < ARRAYSIZE(luaFuncAction); i++) luaFuncAction[i] = 0;
+		for (uint i = 0; i < ARRAYSIZE(luaFuncUse); i++) luaFuncUse[i] = 0;
 	}
 };
 
@@ -676,10 +677,18 @@ struct ActionInfo {
 	char luaFuncUse[32];
 	char entityName[32];
 
-	ActionInfo() : x1(0), y1(0), x2(0), y2(0) {
-		luaFuncInit[0] = 0;
-		luaFuncUse[0] = 0;
-		entityName[0] = 0;
+	ActionInfo() {
+		clear();
+	}
+
+	void clear() {
+		x1 = 0;
+		y1 = 0;
+		x2 = 0;
+		y2 = 0;
+		for (uint i = 0; i < ARRAYSIZE(luaFuncInit); i++) luaFuncInit[i] = 0;
+		for (uint i = 0; i < ARRAYSIZE(luaFuncUse); i++) luaFuncUse[i] = 0;
+		for (uint i = 0; i < ARRAYSIZE(entityName); i++) entityName[i] = 0;
 	}
 };
 
@@ -694,9 +703,25 @@ struct TeleInfo {
 	char luaFuncUse1[32];
 	char luaFuncUse2[32];
 
-	TeleInfo() : x1(0), y1(0), x2(0), y2(0), dir1(DIR_NONE), dir2(DIR_NONE), level1(0), level2(0), usable1(0), usable2(0), anim1(0), anim2(0) {
-		luaFuncUse1[0] = 0;
-		luaFuncUse2[0] = 0;
+	TeleInfo() {
+		clear();
+	}
+
+	void clear() {
+		x1 = 0;
+		y1 = 0;
+		x2 = 0;
+		y2 = 0;
+		dir1 = DIR_NONE;
+		dir2 = DIR_NONE;
+		level1 = 0;
+		level2 = 0;
+		usable1 = 0;
+		usable2 = 0;
+		anim1 = 0;
+		anim2 = 0;
+		for (uint i = 0; i < ARRAYSIZE(luaFuncUse1); i++) luaFuncUse1[i] = 0;
+		for (uint i = 0; i < ARRAYSIZE(luaFuncUse2); i++) luaFuncUse2[i] = 0;
 	}
 };
 
@@ -714,10 +739,17 @@ struct AutoAction {
 	char luaFuncUse[32];
 	char entityName[32];
 
-	AutoAction() : x(0), y(0), activated(false) {
-		luaFuncInit[0] = 0;
-		luaFuncUse[0] = 0;
-		entityName[0] = 0;
+	AutoAction() {
+		clear();
+	}
+
+	void clear() {
+		x = 0;
+		y = 0;
+		activated = false;
+		for (uint i = 0; i < ARRAYSIZE(luaFuncInit); i++) luaFuncInit[i] = 0;
+		for (uint i = 0; i < ARRAYSIZE(luaFuncUse); i++) luaFuncUse[i] = 0;
+		for (uint i = 0; i < ARRAYSIZE(entityName); i++) entityName[i] = 0;
 	}
 };
 
@@ -758,7 +790,16 @@ struct Callback {
 	uint16 x, y;
 	uint16 delay;
 
-	Callback() : type(NO_FUNCTION), x(0), y(0), delay(0) {}
+	Callback() {
+		clear();
+	}
+
+	void clear() {
+		type = NO_FUNCTION;
+		x = 0;
+		y = 0;
+		delay = 0;
+	}
 };
 
 struct Fairystone {
@@ -802,7 +843,7 @@ struct CineCommand {
 	Picture *pic;
 
 	CineCommand() : cmdType(C_NO_COMMAND), x(0.0), y(0.0), x2(0.0), y2(0.0), xv(0.0), yv(0.0),
-				start(0), end(0), delay(0), speed(0), title(NULL), string(NULL), id(NULL), e(NULL), pic(NULL) {}
+				start(0), end(0), delay(0), speed(0), title(nullptr), string(nullptr), id(nullptr), e(nullptr), pic(nullptr) {}
 };
 
 struct CineBlit {
@@ -812,7 +853,7 @@ struct CineBlit {
 	const char *id;
 	bool masked;
 
-	CineBlit() : x(0), y(0), pic(NULL), name(NULL), id(NULL), masked(false) {}
+	CineBlit() : x(0), y(0), pic(nullptr), name(nullptr), id(nullptr), masked(false) {}
 };
 
 #define onEvenTile(x, y)		( !(x & 31) && !(y & 31) )
@@ -827,7 +868,7 @@ struct CineBlit {
 				e->animFrame = 0; \
 		} \
 	}
-#define spawnBlocking(x, y, level)	g_hdb->_ai->spawn(AI_NONE, DIR_NONE, x, y, NULL, NULL, NULL, DIR_NONE, level, 0, 0, 0)
+#define spawnBlocking(x, y, level)	g_hdb->_ai->spawn(AI_NONE, DIR_NONE, x, y, nullptr, nullptr, nullptr, DIR_NONE, level, 0, 0, 0)
 
 class AI {
 public:
@@ -837,7 +878,7 @@ public:
 	void init();
 	void clearPersistent();
 	void restartSystem();
-	const char *funcLookUp(void(*function)(AIEntity *e));
+	const char *funcLookUp(FuncPtr function);
 	FuncPtr funcLookUp(const char *function);
 	void save(Common::OutSaveFile *out);
 	void loadSaveFile(Common::InSaveFile *in);

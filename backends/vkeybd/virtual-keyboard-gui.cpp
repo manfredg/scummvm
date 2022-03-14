@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -106,8 +105,17 @@ VirtualKeyboardGUI::~VirtualKeyboardGUI() {
 void VirtualKeyboardGUI::initMode(VirtualKeyboard::Mode *mode) {
 	assert(mode->image);
 
-	_kbdSurface = mode->image;
-	_kbdTransparentColor = mode->transparentColor;
+	Graphics::PixelFormat kbdFormat = mode->image->format;
+	Graphics::PixelFormat overlayFormat = _system->getOverlayFormat();
+	if (kbdFormat.bytesPerPixel == overlayFormat.bytesPerPixel) {
+		_kbdSurface = mode->image;
+		_kbdTransparentColor = mode->transparentColor;
+	} else {
+		_kbdSurface = mode->image->convertTo(overlayFormat);
+		byte a, r, g, b;
+		kbdFormat.colorToARGB(mode->transparentColor, a, r, g, b);
+		_kbdTransparentColor = overlayFormat.ARGBToColor(a, r, g, b);
+	}
 	_kbdBound.setWidth(_kbdSurface->w);
 	_kbdBound.setHeight(_kbdSurface->h);
 
@@ -169,7 +177,7 @@ void VirtualKeyboardGUI::run() {
 		_system->clearOverlay();
 	}
 	_overlayBackup.create(_screenW, _screenH, _system->getOverlayFormat());
-	_system->grabOverlay(_overlayBackup.getPixels(), _overlayBackup.pitch);
+	_system->grabOverlay(_overlayBackup);
 
 	setupCursor();
 
@@ -270,7 +278,7 @@ void VirtualKeyboardGUI::screenChanged() {
 		_screenH = newScreenH;
 
 		_overlayBackup.create(_screenW, _screenH, _system->getOverlayFormat());
-		_system->grabOverlay(_overlayBackup.getPixels(), _overlayBackup.pitch);
+		_system->grabOverlay(_overlayBackup);
 
 		if (!_kbd->checkModeResolutions()) {
 			_displaying = false;
@@ -432,7 +440,7 @@ void VirtualKeyboardGUI::updateDisplay() {
 
 	// draw to display surface
 	_dispSurface.fillRect(Rect(_dispSurface.w, _dispSurface.h), _dispBackColor);
-	_dispFont->drawString(&_dispSurface, dispText, 0, 0, _dispSurface.w, _dispForeColor);
+	_dispFont->drawString(&_dispSurface, dispText, 0, 0, _dispSurface.w, _dispForeColor, Graphics::kTextAlignLeft, 0, true);
 
 	String beforeCaret(wholeText.c_str() + _dispI, wholeText.c_str() + cursorPos);
 	_caretX = _dispFont->getStringWidth(beforeCaret);

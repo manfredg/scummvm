@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,8 +25,17 @@
 #include "common/scummsys.h"
 
 /**
- * The precision of the fractional (fixed point) type we define below.
- * Normally you should never have to modify this value.
+ * @defgroup common_frac Fixed-point fractions
+ * @ingroup common
+ *
+ * @brief  API for fixed-point fractions.
+ *
+ * @{
+ */
+
+/**
+ * The precision of the fractional (fixed-point) type that is defined below.
+ * Normally, you should never need to modify this value.
  */
 enum {
 	FRAC_BITS = 16,
@@ -48,5 +56,7 @@ inline double fracToDouble(frac_t value) { return ((double)value) / FRAC_ONE; }
 
 inline frac_t intToFrac(int16 value) { return value * (1 << FRAC_BITS); }
 inline int16 fracToInt(frac_t value) { return value / (1 << FRAC_BITS); }
+
+/** @} */
 
 #endif

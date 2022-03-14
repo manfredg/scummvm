@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "config.h"
 #include "xcode.h"
+
+#include <limits.h>
+#include <stdlib.h>
 
 #include <fstream>
 #include <algorithm>
@@ -29,7 +31,7 @@
 #ifdef MACOSX
 #include <sstream>
 #include <iomanip>
-#include <CommonCrypto/CommonCrypto.h>
+#include <CommonCrypto/CommonDigest.h>
 #endif
 
 namespace CreateProjectTool {
@@ -122,9 +124,11 @@ bool shouldSkipFileForTarget(const std::string &fileID, const std::string &targe
 		// We don't need SDL for the iOS target
 		static const std::string sdl_directory = "/sdl/";
 		static const std::string surfacesdl_directory = "/surfacesdl/";
+		static const std::string openglsdl_directory = "/openglsdl/";
 		static const std::string doublebufferdl_directory = "/doublebuffersdl/";
 		if (fileID.find(sdl_directory) != std::string::npos
 		 || fileID.find(surfacesdl_directory) != std::string::npos
+		 || fileID.find(openglsdl_directory) != std::string::npos
 		 || fileID.find(doublebufferdl_directory) != std::string::npos) {
 			return true;
 		 }
@@ -217,7 +221,7 @@ XcodeProvider::Group *XcodeProvider::Group::getChildGroup(const std::string &nam
 }
 
 XcodeProvider::Group *XcodeProvider::touchGroupsForPath(const std::string &path) {
-	if (_rootSourceGroup == NULL) {
+	if (_rootSourceGroup == nullptr) {
 		assert(path == _projectRoot);
 		_rootSourceGroup = new Group(this, "Sources", path, path);
 		_groups.add(_rootSourceGroup);
@@ -269,13 +273,13 @@ void XcodeProvider::addBuildFile(const std::string &id, const std::string &name,
 
 XcodeProvider::XcodeProvider(StringList &global_warnings, std::map<std::string, StringList> &project_warnings, const int version)
 	: ProjectProvider(global_warnings, project_warnings, version) {
-	_rootSourceGroup = NULL;
+	_rootSourceGroup = nullptr;
 }
 
 void XcodeProvider::addResourceFiles(const BuildSetup &setup, StringList &includeList, StringList &excludeList) {
 	includeList.push_back(setup.srcDir + "/dists/ios7/Info.plist");
 
-	ValueList &resources = getResourceFiles();
+	ValueList &resources = getResourceFiles(setup);
 	for (ValueList::iterator it = resources.begin(); it != resources.end(); ++it) {
 		includeList.push_back(setup.srcDir + "/" + *it);
 	}
@@ -299,7 +303,7 @@ void XcodeProvider::createWorkspace(const BuildSetup &setup) {
 	setupFrameworksBuildPhase(setup);
 	setupNativeTarget();
 	setupProject();
-	setupResourcesBuildPhase();
+	setupResourcesBuildPhase(setup);
 	setupBuildConfiguration(setup);
 	setupImageAssetCatalog(setup);
 }
@@ -315,7 +319,7 @@ void XcodeProvider::createOtherBuildFiles(const BuildSetup &setup) {
 
 // Store information about a project here, for use at the end
 void XcodeProvider::createProjectFile(const std::string &, const std::string &, const BuildSetup &setup, const std::string &moduleDir,
-                                      const StringList &includeList, const StringList &excludeList) {
+									  const StringList &includeList, const StringList &excludeList) {
 	std::string modulePath;
 	if (!moduleDir.compare(0, setup.srcDir.size(), setup.srcDir)) {
 		modulePath = moduleDir.substr(setup.srcDir.size());
@@ -324,7 +328,7 @@ void XcodeProvider::createProjectFile(const std::string &, const std::string &, 
 	}
 
 	std::ofstream project;
-	if (modulePath.size())
+	if (!modulePath.empty())
 		addFilesToProject(moduleDir, project, includeList, excludeList, setup.filePrefix + '/' + modulePath);
 	else
 		addFilesToProject(moduleDir, project, includeList, excludeList, setup.filePrefix);
@@ -373,8 +377,8 @@ void XcodeProvider::outputMainProjectFile(const BuildSetup &setup) {
 //////////////////////////////////////////////////////////////////////////
 // Files
 //////////////////////////////////////////////////////////////////////////
-void XcodeProvider::writeFileListToProject(const FileNode &dir, std::ofstream &projectFile, const int indentation,
-                                           const StringList &duplicate, const std::string &objPrefix, const std::string &filePrefix) {
+void XcodeProvider::writeFileListToProject(const FileNode &dir, std::ostream &projectFile, const int indentation,
+										   const std::string &objPrefix, const std::string &filePrefix) {
 
 	// Ensure that top-level groups are generated for i.e. engines/
 	Group *group = touchGroupsForPath(filePrefix);
@@ -388,7 +392,7 @@ void XcodeProvider::writeFileListToProject(const FileNode &dir, std::ofstream &p
 		}
 		// Process child nodes
 		if (!node->children.empty())
-			writeFileListToProject(*node, projectFile, indentation + 1, duplicate, objPrefix + node->name + '_', filePrefix + node->name + '/');
+			writeFileListToProject(*node, projectFile, indentation + 1, objPrefix + node->name + '_', filePrefix + node->name + '/');
 	}
 }
 
@@ -399,16 +403,16 @@ void XcodeProvider::setupCopyFilesBuildPhase() {
 	// Nothing to do here
 }
 
-#define DEF_SYSFRAMEWORK(framework) properties[framework".framework"] = FileProperty("wrapper.framework", framework".framework", "System/Library/Frameworks/" framework ".framework", "SDKROOT"); \
-	ADD_SETTING_ORDER_NOVALUE(children, getHash(framework".framework"), framework".framework", fwOrder++);
+#define DEF_SYSFRAMEWORK(framework) { properties[framework".framework"] = FileProperty("wrapper.framework", framework".framework", "System/Library/Frameworks/" framework ".framework", "SDKROOT"); \
+	ADD_SETTING_ORDER_NOVALUE(children, getHash(framework".framework"), framework".framework", fwOrder++); }
 
-#define DEF_SYSTBD(lib) properties[lib".tbd"] = FileProperty("sourcecode.text-based-dylib-definition", lib".tbd", "usr/lib/" lib ".tbd", "SDKROOT"); \
-	ADD_SETTING_ORDER_NOVALUE(children, getHash(lib".tbd"), lib".tbd", fwOrder++);
+#define DEF_SYSTBD(lib) { properties[lib".tbd"] = FileProperty("sourcecode.text-based-dylib-definition", lib".tbd", "usr/lib/" lib ".tbd", "SDKROOT"); \
+	ADD_SETTING_ORDER_NOVALUE(children, getHash(lib".tbd"), lib".tbd", fwOrder++); }
 
-#define DEF_LOCALLIB_STATIC_PATH(path,lib,absolute) properties[lib".a"] = FileProperty("archive.ar", lib ".a", path, (absolute ? "\"<absolute>\"" : "\"<group>\"")); \
-	ADD_SETTING_ORDER_NOVALUE(children, getHash(lib".a"), lib".a", fwOrder++);
+#define DEF_LOCALLIB_STATIC_PATH(path,lib,absolute) { properties[lib".a"] = FileProperty("archive.ar", lib ".a", path, (absolute ? "\"<absolute>\"" : "\"<group>\"")); \
+	ADD_SETTING_ORDER_NOVALUE(children, getHash(lib".a"), lib".a", fwOrder++); }
 
-#define DEF_LOCALLIB_STATIC(lib) DEF_LOCALLIB_STATIC_PATH("/usr/local/lib/" lib ".a", lib, true)
+#define DEF_LOCALLIB_STATIC(lib) DEF_LOCALLIB_STATIC_PATH(lib ".a", lib, false)
 
 
 /**
@@ -441,6 +445,7 @@ void XcodeProvider::setupFrameworksBuildPhase(const BuildSetup &setup) {
 	DEF_SYSFRAMEWORK("CoreFoundation");
 	DEF_SYSFRAMEWORK("Foundation");
 	DEF_SYSFRAMEWORK("IOKit");
+	DEF_SYSFRAMEWORK("OpenGL");
 	DEF_SYSFRAMEWORK("OpenGLES");
 	DEF_SYSFRAMEWORK("QuartzCore");
 	DEF_SYSFRAMEWORK("UIKit");
@@ -449,10 +454,15 @@ void XcodeProvider::setupFrameworksBuildPhase(const BuildSetup &setup) {
 	DEF_SYSTBD("libiconv");
 
 	// Local libraries
+	if (CONTAINS_DEFINE(setup.defines, "USE_FAAD")) {
+		DEF_LOCALLIB_STATIC("libfaad");
+	}
 	if (CONTAINS_DEFINE(setup.defines, "USE_FLAC")) {
 		DEF_LOCALLIB_STATIC("libFLAC");
 	}
-	if (CONTAINS_DEFINE(setup.defines, "USE_FLUIDSYNTH")) {
+	if (CONTAINS_DEFINE(setup.defines, "USE_FLUIDLITE")) {
+		DEF_LOCALLIB_STATIC("libfluidlite");
+	} else if (CONTAINS_DEFINE(setup.defines, "USE_FLUIDSYNTH")) {
 		DEF_LOCALLIB_STATIC("libfluidsynth");
 		DEF_LOCALLIB_STATIC("libffi");
 		DEF_LOCALLIB_STATIC("libglib-2.0");
@@ -470,8 +480,17 @@ void XcodeProvider::setupFrameworksBuildPhase(const BuildSetup &setup) {
 	if (CONTAINS_DEFINE(setup.defines, "USE_MAD")) {
 		DEF_LOCALLIB_STATIC("libmad");
 	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_MPEG2")) {
+		DEF_LOCALLIB_STATIC("libmpeg2");
+	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_FRIBIDI")) {
+		DEF_LOCALLIB_STATIC("libfribidi");
+	}
 	if (CONTAINS_DEFINE(setup.defines, "USE_PNG")) {
 		DEF_LOCALLIB_STATIC("libpng");
+	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_GIF")) {
+		DEF_LOCALLIB_STATIC("libgif");
 	}
 	if (CONTAINS_DEFINE(setup.defines, "USE_OGG")) {
 		DEF_LOCALLIB_STATIC("libogg");
@@ -486,20 +505,28 @@ void XcodeProvider::setupFrameworksBuildPhase(const BuildSetup &setup) {
 	if (CONTAINS_DEFINE(setup.defines, "USE_THEORADEC")) {
 		DEF_LOCALLIB_STATIC("libtheoradec");
 	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_RETROWAVE")) {
+		DEF_LOCALLIB_STATIC("libretrowave");
+	}
 	if (CONTAINS_DEFINE(setup.defines, "USE_ZLIB")) {
 		DEF_SYSTBD("libz");
+	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_DISCORD")) {
+		DEF_LOCALLIB_STATIC("libdiscord-rpc");
 	}
 
 	if (setup.useSDL2) {
 		DEF_LOCALLIB_STATIC("libSDL2main");
 		DEF_LOCALLIB_STATIC("libSDL2");
-		if (CONTAINS_DEFINE(setup.defines, "USE_SDL_NET"))
+		if (CONTAINS_DEFINE(setup.defines, "USE_SDL_NET")) {
 			DEF_LOCALLIB_STATIC("libSDL2_net");
+		}
 	} else {
 		DEF_LOCALLIB_STATIC("libSDLmain");
 		DEF_LOCALLIB_STATIC("libSDL");
-		if (CONTAINS_DEFINE(setup.defines, "USE_SDL_NET"))
+		if (CONTAINS_DEFINE(setup.defines, "USE_SDL_NET")) {
 			DEF_LOCALLIB_STATIC("libSDL_net");
+		}
 	}
 
 	frameworksGroup->_properties["children"] = children;
@@ -534,6 +561,9 @@ void XcodeProvider::setupFrameworksBuildPhase(const BuildSetup &setup) {
 	frameworks_iOS.push_back("QuartzCore.framework");
 	frameworks_iOS.push_back("OpenGLES.framework");
 
+	if (CONTAINS_DEFINE(setup.defines, "USE_FAAD")) {
+		frameworks_iOS.push_back("libfaad.a");
+	}
 	if (CONTAINS_DEFINE(setup.defines, "USE_FLAC")) {
 		frameworks_iOS.push_back("libFLAC.a");
 	}
@@ -545,6 +575,9 @@ void XcodeProvider::setupFrameworksBuildPhase(const BuildSetup &setup) {
 	}
 	if (CONTAINS_DEFINE(setup.defines, "USE_PNG")) {
 		frameworks_iOS.push_back("libpng.a");
+	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_GIF")) {
+		frameworks_iOS.push_back("libgif.a");
 	}
 	if (CONTAINS_DEFINE(setup.defines, "USE_OGG")) {
 		frameworks_iOS.push_back("libogg.a");
@@ -562,7 +595,14 @@ void XcodeProvider::setupFrameworksBuildPhase(const BuildSetup &setup) {
 	if (CONTAINS_DEFINE(setup.defines, "USE_MAD")) {
 		frameworks_iOS.push_back("libmad.a");
 	}
-	if (CONTAINS_DEFINE(setup.defines, "USE_FLUIDSYNTH")) {
+	if (CONTAINS_DEFINE(setup.defines, "USE_MPEG2")) {
+		frameworks_iOS.push_back("libmpeg2.a");
+	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_FRIBIDI")) {
+		frameworks_iOS.push_back("libfribidi.a");
+	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_FLUIDSYNTH") &&
+		!CONTAINS_DEFINE(setup.defines, "USE_FLUIDLITE")) {
 		frameworks_iOS.push_back("libfluidsynth.a");
 		frameworks_iOS.push_back("libglib-2.0.a");
 		frameworks_iOS.push_back("libffi.a");
@@ -619,12 +659,17 @@ void XcodeProvider::setupFrameworksBuildPhase(const BuildSetup &setup) {
 	frameworks_osx.push_back("ApplicationServices.framework");
 	frameworks_osx.push_back("IOKit.framework");
 	frameworks_osx.push_back("Cocoa.framework");
+	frameworks_osx.push_back("OpenGL.framework");
 	frameworks_osx.push_back("AudioUnit.framework");
 
+	if (CONTAINS_DEFINE(setup.defines, "USE_FAAD")) {
+		frameworks_osx.push_back("libfaad.a");
+	}
 	if (CONTAINS_DEFINE(setup.defines, "USE_FLAC")) {
 		frameworks_osx.push_back("libFLAC.a");
 	}
-	if (CONTAINS_DEFINE(setup.defines, "USE_FLUIDSYNTH")) {
+	if (CONTAINS_DEFINE(setup.defines, "USE_FLUIDSYNTH") &&
+		!CONTAINS_DEFINE(setup.defines, "USE_FLUIDLITE")) {
 		frameworks_osx.push_back("libfluidsynth.a");
 		frameworks_osx.push_back("libglib-2.0.a");
 		frameworks_osx.push_back("libffi.tbd");
@@ -641,8 +686,17 @@ void XcodeProvider::setupFrameworksBuildPhase(const BuildSetup &setup) {
 	if (CONTAINS_DEFINE(setup.defines, "USE_MAD")) {
 		frameworks_osx.push_back("libmad.a");
 	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_MPEG2")) {
+		frameworks_osx.push_back("libmpeg2.a");
+	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_FRIBIDI")) {
+		frameworks_osx.push_back("libfribidi.a");
+	}
 	if (CONTAINS_DEFINE(setup.defines, "USE_PNG")) {
 		frameworks_osx.push_back("libpng.a");
+	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_GIF")) {
+		frameworks_osx.push_back("libgif.a");
 	}
 	if (CONTAINS_DEFINE(setup.defines, "USE_OGG")) {
 		frameworks_osx.push_back("libogg.a");
@@ -657,20 +711,26 @@ void XcodeProvider::setupFrameworksBuildPhase(const BuildSetup &setup) {
 	if (CONTAINS_DEFINE(setup.defines, "USE_THEORADEC")) {
 		frameworks_osx.push_back("libtheoradec.a");
 	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_RETROWAVE")) {
+		frameworks_osx.push_back("libretrowave.a");
+	}
 	if (CONTAINS_DEFINE(setup.defines, "USE_ZLIB")) {
 		frameworks_osx.push_back("libz.tbd");
+	}
+	if (CONTAINS_DEFINE(setup.defines, "USE_DISCORD")) {
+		frameworks_osx.push_back("libdiscord-rpc.a");
 	}
 
 	if (setup.useSDL2) {
 		frameworks_osx.push_back("libSDL2main.a");
 		frameworks_osx.push_back("libSDL2.a");
 		if (CONTAINS_DEFINE(setup.defines, "USE_SDL_NET"))
-			frameworks_iOS.push_back("libSDL2_net.a");
+			frameworks_osx.push_back("libSDL2_net.a");
 	} else {
 		frameworks_osx.push_back("libSDLmain.a");
 		frameworks_osx.push_back("libSDL.a");
 		if (CONTAINS_DEFINE(setup.defines, "USE_SDL_NET"))
-			frameworks_iOS.push_back("libSDL_net.a");
+			frameworks_osx.push_back("libSDL_net.a");
 	}
 
 	order = 0;
@@ -729,7 +789,7 @@ void XcodeProvider::setupProject() {
 
 	Object *project = new Object(this, "PBXProject", "PBXProject", "PBXProject", "", "Project object");
 
-	project->addProperty("buildConfigurationList", getHash("XCConfigurationList_scummvm"), "Build configuration list for PBXProject \"" PROJECT_NAME "\"", kSettingsNoValue);
+	project->addProperty("buildConfigurationList", getHash("XCConfigurationList_" PROJECT_NAME), "Build configuration list for PBXProject \"" PROJECT_NAME "\"", kSettingsNoValue);
 	project->addProperty("compatibilityVersion", "Xcode 3.2", "", kSettingsNoValue | kSettingsQuoteVariable);
 	project->addProperty("developmentRegion", "English", "", kSettingsNoValue);
 	project->addProperty("hasScannedForEncodings", "1", "", kSettingsNoValue);
@@ -762,21 +822,31 @@ void XcodeProvider::setupProject() {
 	_project.add(project);
 }
 
-XcodeProvider::ValueList& XcodeProvider::getResourceFiles() const {
+XcodeProvider::ValueList& XcodeProvider::getResourceFiles(const BuildSetup &setup) const {
 	static ValueList files;
 	if (files.empty()) {
 		files.push_back("gui/themes/scummclassic.zip");
 		files.push_back("gui/themes/scummmodern.zip");
 		files.push_back("gui/themes/scummremastered.zip");
+		files.push_back("gui/themes/residualvm.zip");
+		files.push_back("gui/themes/gui-icons.dat");
 		files.push_back("gui/themes/translations.dat");
 		files.push_back("dists/engine-data/access.dat");
+		files.push_back("dists/engine-data/achievements.dat");
 		files.push_back("dists/engine-data/cryo.dat");
 		files.push_back("dists/engine-data/cryomni3d.dat");
 		files.push_back("dists/engine-data/drascula.dat");
+		files.push_back("dists/engine-data/encoding.dat");
 		files.push_back("dists/engine-data/fonts.dat");
+		files.push_back("dists/engine-data/hadesch_translations.dat");
 		files.push_back("dists/engine-data/hugo.dat");
 		files.push_back("dists/engine-data/kyra.dat");
 		files.push_back("dists/engine-data/lure.dat");
+		files.push_back("dists/engine-data/macgui.dat");
+		files.push_back("dists/engine-data/myst3.dat");
+		files.push_back("dists/engine-data/monkey4-patch.m4b");
+		files.push_back("dists/engine-data/grim-patch.lab");
+		files.push_back("dists/engine-data/macventure.dat");
 		files.push_back("dists/engine-data/mort.dat");
 		files.push_back("dists/engine-data/neverhood.dat");
 		files.push_back("dists/engine-data/queen.tbl");
@@ -788,27 +858,110 @@ XcodeProvider::ValueList& XcodeProvider::getResourceFiles() const {
 		files.push_back("dists/engine-data/toon.dat");
 		files.push_back("dists/engine-data/ultima.dat");
 		files.push_back("dists/engine-data/wintermute.zip");
-		files.push_back("dists/engine-data/macventure.dat");
 		files.push_back("dists/engine-data/xeen.ccs");
+		files.push_back("dists/ios7/LaunchScreen_ios.storyboard");
 		files.push_back("dists/pred.dic");
 		files.push_back("dists/networking/wwwroot.zip");
+		if (CONTAINS_DEFINE(setup.defines, "ENABLE_GRIME")) {
+			files.push_back("engines/grim/shaders/grim_dim.fragment");
+			files.push_back("engines/grim/shaders/grim_dim.vertex");
+			files.push_back("engines/grim/shaders/grim_emerg.fragment");
+			files.push_back("engines/grim/shaders/grim_emerg.vertex");
+			files.push_back("engines/grim/shaders/emi_actor.fragment");
+			files.push_back("engines/grim/shaders/emi_actor.vertex");
+			files.push_back("engines/grim/shaders/emi_actorlights.fragment");
+			files.push_back("engines/grim/shaders/emi_actorlights.vertex");
+			files.push_back("engines/grim/shaders/emi_background.fragment");
+			files.push_back("engines/grim/shaders/emi_background.vertex");
+			files.push_back("engines/grim/shaders/emi_dimplane.fragment");
+			files.push_back("engines/grim/shaders/emi_dimplane.vertex");
+			files.push_back("engines/grim/shaders/emi_sprite.fragment");
+			files.push_back("engines/grim/shaders/emi_sprite.vertex");
+			files.push_back("engines/grim/shaders/grim_actor.fragment");
+			files.push_back("engines/grim/shaders/grim_actor.vertex");
+			files.push_back("engines/grim/shaders/grim_actorlights.fragment");
+			files.push_back("engines/grim/shaders/grim_actorlights.vertex");
+			files.push_back("engines/grim/shaders/grim_background.fragment");
+			files.push_back("engines/grim/shaders/grim_background.vertex");
+			files.push_back("engines/grim/shaders/grim_primitive.fragment");
+			files.push_back("engines/grim/shaders/grim_primitive.vertex");
+			files.push_back("engines/grim/shaders/grim_shadowplane.fragment");
+			files.push_back("engines/grim/shaders/grim_shadowplane.vertex");
+			files.push_back("engines/grim/shaders/grim_smush.fragment");
+			files.push_back("engines/grim/shaders/grim_smush.vertex");
+			files.push_back("engines/grim/shaders/grim_text.fragment");
+			files.push_back("engines/grim/shaders/grim_text.vertex");
+		}
+		if (CONTAINS_DEFINE(setup.defines, "ENABLE_MYST3")) {
+			files.push_back("engines/myst3/shaders/myst3_box.fragment");
+			files.push_back("engines/myst3/shaders/myst3_box.vertex");
+			files.push_back("engines/myst3/shaders/myst3_cube.fragment");
+			files.push_back("engines/myst3/shaders/myst3_cube.vertex");
+			files.push_back("engines/myst3/shaders/myst3_text.fragment");
+			files.push_back("engines/myst3/shaders/myst3_text.vertex");
+		}
+		if (CONTAINS_DEFINE(setup.defines, "ENABLE_PLAYGROUND3D")) {
+			files.push_back("engines/playground3d/shaders/playground3d_bitmap.fragment");
+			files.push_back("engines/playground3d/shaders/playground3d_bitmap.vertex");
+			files.push_back("engines/playground3d/shaders/playground3d_cube.fragment");
+			files.push_back("engines/playground3d/shaders/playground3d_cube.vertex");
+			files.push_back("engines/playground3d/shaders/playground3d_fade.fragment");
+			files.push_back("engines/playground3d/shaders/playground3d_fade.vertex");
+		}
+		if (CONTAINS_DEFINE(setup.defines, "ENABLE_STARK")) {
+			files.push_back("engines/stark/shaders/stark_actor.fragment");
+			files.push_back("engines/stark/shaders/stark_actor.vertex");
+			files.push_back("engines/stark/shaders/stark_prop.fragment");
+			files.push_back("engines/stark/shaders/stark_prop.vertex");
+			files.push_back("engines/stark/shaders/stark_surface.fragment");
+			files.push_back("engines/stark/shaders/stark_surface.vertex");
+			files.push_back("engines/stark/shaders/stark_fade.fragment");
+			files.push_back("engines/stark/shaders/stark_fade.vertex");
+			files.push_back("engines/stark/shaders/stark_shadow.fragment");
+			files.push_back("engines/stark/shaders/stark_shadow.vertex");
+		}
+		if (CONTAINS_DEFINE(setup.defines, "ENABLE_WINTERMUTE")) {
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_fade.fragment");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_fade.vertex");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_flat_shadow_mask.fragment");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_flat_shadow_mask.vertex");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_flat_shadow_modelx.fragment");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_flat_shadow_modelx.vertex");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_geometry.fragment");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_geometry.vertex");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_line.fragment");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_line.vertex");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_modelx.fragment");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_modelx.vertex");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_shadow_mask.fragment");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_shadow_mask.vertex");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_shadow_volume.fragment");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_shadow_volume.vertex");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_sprite.fragment");
+			files.push_back("engines/wintermute/base/gfx/opengl/shaders/wme_sprite.vertex");
+		}
 		files.push_back("icons/scummvm.icns");
 		files.push_back("AUTHORS");
 		files.push_back("COPYING");
-		files.push_back("COPYING.LGPL");
-		files.push_back("COPYING.BSD");
-		files.push_back("COPYING.FREEFONT");
-		files.push_back("COPYING.OFL");
-		files.push_back("NEWS");
-		files.push_back("README");
+		files.push_back("LICENSES/COPYING.BSD");
+		files.push_back("LICENSES/COPYING.LGPL");
+		files.push_back("LICENSES/COPYING.FREEFONT");
+		files.push_back("LICENSES/COPYING.OFL");
+		files.push_back("LICENSES/COPYING.ISC");
+		files.push_back("LICENSES/COPYING.LUA");
+		files.push_back("LICENSES/COPYING.MIT");
+		files.push_back("LICENSES/COPYING.TINYGL");
+		files.push_back("LICENSES/COPYING.GLAD");
+		files.push_back("NEWS.md");
+		files.push_back("README.md");
 	}
 	return files;
 }
 
-void XcodeProvider::setupResourcesBuildPhase() {
+void XcodeProvider::setupResourcesBuildPhase(const BuildSetup &setup) {
 	_resourcesBuildPhase._comment = "PBXResourcesBuildPhase";
 
-	ValueList &files_list = getResourceFiles();
+	ValueList &files_list = getResourceFiles(setup);
 
 	// Same as for containers: a rule for each native target
 	for (unsigned int i = 0; i < _targets.size(); i++) {
@@ -887,9 +1040,9 @@ void XcodeProvider::setupBuildConfiguration(const BuildSetup &setup) {
 
 	std::string projectOutputDirectory;
 #ifdef POSIX
-	char *rp = realpath(setup.outputDir.c_str(), NULL);
+	char tmpbuf[PATH_MAX];
+	char *rp = realpath(setup.outputDir.c_str(), tmpbuf);
 	projectOutputDirectory = rp;
-	free(rp);
 #endif
 
 	/****************************************
@@ -902,6 +1055,7 @@ void XcodeProvider::setupBuildConfiguration(const BuildSetup &setup) {
 	ADD_SETTING(scummvm_Debug, "ALWAYS_SEARCH_USER_PATHS", "NO");
 	ADD_SETTING_QUOTE(scummvm_Debug, "USER_HEADER_SEARCH_PATHS", "$(SRCROOT) $(SRCROOT)/engines");
 	ADD_SETTING(scummvm_Debug, "CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED", "YES");
+	ADD_SETTING(scummvm_Debug, "CLANG_CXX_LANGUAGE_STANDARD", "\"c++11\"");
 	ADD_SETTING(scummvm_Debug, "CLANG_WARN_BOOL_CONVERSION", "YES");
 	ADD_SETTING(scummvm_Debug, "CLANG_WARN_CONSTANT_CONVERSION", "YES");
 	ADD_SETTING(scummvm_Debug, "CLANG_WARN_EMPTY_BODY", "YES");
@@ -928,6 +1082,8 @@ void XcodeProvider::setupBuildConfiguration(const BuildSetup &setup) {
 	ValueList scummvm_WarningCFlags;
 	scummvm_WarningCFlags.push_back("-Wno-multichar");
 	scummvm_WarningCFlags.push_back("-Wno-undefined-var-template");
+	scummvm_WarningCFlags.push_back("-Wno-pragma-pack");
+	scummvm_WarningCFlags.push_back("-Wc++11-extensions");
 	ADD_SETTING_LIST(scummvm_Debug, "WARNING_CFLAGS", scummvm_WarningCFlags, kSettingsQuoteVariable | kSettingsAsList, 5);
 	ValueList scummvm_defines(_defines);
 	REMOVE_DEFINE(scummvm_defines, "MACOSX");
@@ -948,6 +1104,7 @@ void XcodeProvider::setupBuildConfiguration(const BuildSetup &setup) {
 	ADD_SETTING_QUOTE(scummvm_Debug, "OTHER_CFLAGS", "");
 	ADD_SETTING_QUOTE(scummvm_Debug, "OTHER_LDFLAGS", "");
 	ADD_SETTING(scummvm_Debug, "ENABLE_TESTABILITY", "YES");
+	ADD_SETTING_QUOTE(scummvm_Debug, "VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS", "OpenGL OpenGLES");
 
 	scummvm_Debug_Object->addProperty("name", "Debug", "", kSettingsNoValue);
 	scummvm_Debug_Object->_properties["buildSettings"] = scummvm_Debug;
@@ -960,6 +1117,10 @@ void XcodeProvider::setupBuildConfiguration(const BuildSetup &setup) {
 	REMOVE_SETTING(scummvm_Release, "GCC_WARN_UNUSED_VARIABLE");
 	REMOVE_SETTING(scummvm_Release, "ONLY_ACTIVE_ARCH");
 	REMOVE_SETTING(scummvm_Release, "ENABLE_TESTABILITY");
+	REMOVE_SETTING(scummvm_Release, "GCC_PREPROCESSOR_DEFINITIONS");
+	ValueList scummvm_Release_defines(scummvm_defines);
+	ADD_DEFINE(scummvm_Release_defines, "RELEASE_BUILD");
+	ADD_SETTING_LIST(scummvm_Release, "GCC_PREPROCESSOR_DEFINITIONS", scummvm_Release_defines, kSettingsNoQuote | kSettingsAsList, 5);
 
 	scummvm_Release_Object->addProperty("name", "Release", "", kSettingsNoValue);
 	scummvm_Release_Object->_properties["buildSettings"] = scummvm_Release;
@@ -992,6 +1153,8 @@ void XcodeProvider::setupBuildConfiguration(const BuildSetup &setup) {
 	ValueList iPhone_HeaderSearchPaths;
 	iPhone_HeaderSearchPaths.push_back("$(SRCROOT)/engines/");
 	iPhone_HeaderSearchPaths.push_back("$(SRCROOT)");
+	for (StringList::const_iterator i = setup.includeDirs.begin(); i != setup.includeDirs.end(); ++i)
+		iPhone_HeaderSearchPaths.push_back("\"" + *i + "\"");
 	iPhone_HeaderSearchPaths.push_back("\"" + projectOutputDirectory + "\"");
 	iPhone_HeaderSearchPaths.push_back("\"" + projectOutputDirectory + "/include\"");
 	if (CONTAINS_DEFINE(setup.defines, "USE_SDL_NET")) {
@@ -1003,13 +1166,15 @@ void XcodeProvider::setupBuildConfiguration(const BuildSetup &setup) {
 	ADD_SETTING_LIST(iPhone_Debug, "HEADER_SEARCH_PATHS", iPhone_HeaderSearchPaths, kSettingsAsList | kSettingsQuoteVariable, 5);
 	ADD_SETTING_QUOTE(iPhone_Debug, "INFOPLIST_FILE", "$(SRCROOT)/dists/ios7/Info.plist");
 	ValueList iPhone_LibPaths;
+	for (StringList::const_iterator i = setup.libraryDirs.begin(); i != setup.libraryDirs.end(); ++i)
+		iPhone_LibPaths.push_back("\"" + *i + "\"");
 	iPhone_LibPaths.push_back("$(inherited)");
 	iPhone_LibPaths.push_back("\"" + projectOutputDirectory + "/lib\"");
 	ADD_SETTING_LIST(iPhone_Debug, "LIBRARY_SEARCH_PATHS", iPhone_LibPaths, kSettingsAsList, 5);
 	ADD_SETTING(iPhone_Debug, "ONLY_ACTIVE_ARCH", "YES");
 	ADD_SETTING(iPhone_Debug, "PRODUCT_NAME", PROJECT_NAME);
 	ADD_SETTING(iPhone_Debug, "PRODUCT_BUNDLE_IDENTIFIER", "\"org.scummvm.${PRODUCT_NAME}\"");
-	ADD_SETTING(iPhone_Debug, "IPHONEOS_DEPLOYMENT_TARGET", "8.0");
+	ADD_SETTING(iPhone_Debug, "IPHONEOS_DEPLOYMENT_TARGET", "9.0");
 	ADD_SETTING_QUOTE_VAR(iPhone_Debug, "PROVISIONING_PROFILE[sdk=iphoneos*]", "");
 	ADD_SETTING(iPhone_Debug, "SDKROOT", "iphoneos");
 	ADD_SETTING_QUOTE(iPhone_Debug, "TARGETED_DEVICE_FAMILY", "1,2");
@@ -1055,6 +1220,7 @@ void XcodeProvider::setupBuildConfiguration(const BuildSetup &setup) {
 	ADD_SETTING(scummvmOSX_Debug, "COPY_PHASE_STRIP", "NO");
 	ADD_SETTING_QUOTE(scummvmOSX_Debug, "DEBUG_INFORMATION_FORMAT", "dwarf");
 	ADD_SETTING_QUOTE(scummvmOSX_Debug, "FRAMEWORK_SEARCH_PATHS", "");
+	ADD_SETTING(scummvmOSX_Debug, "CLANG_CXX_LANGUAGE_STANDARD", "\"c++11\"");
 	ADD_SETTING(scummvmOSX_Debug, "GCC_C_LANGUAGE_STANDARD", "c99");
 	ADD_SETTING(scummvmOSX_Debug, "GCC_ENABLE_CPP_EXCEPTIONS", "NO");
 	ADD_SETTING(scummvmOSX_Debug, "GCC_ENABLE_CPP_RTTI", "YES");
@@ -1069,20 +1235,29 @@ void XcodeProvider::setupBuildConfiguration(const BuildSetup &setup) {
 	ADD_SETTING_LIST(scummvmOSX_Debug, "GCC_PREPROCESSOR_DEFINITIONS", scummvmOSX_defines, kSettingsNoQuote | kSettingsAsList, 5);
 	ADD_SETTING_QUOTE(scummvmOSX_Debug, "GCC_VERSION", "");
 	ValueList scummvmOSX_HeaderPaths;
+	for (StringList::const_iterator i = setup.includeDirs.begin(); i != setup.includeDirs.end(); ++i)
+		scummvmOSX_HeaderPaths.push_back("\"" + *i + "\"");
 	if (setup.useSDL2) {
 		scummvmOSX_HeaderPaths.push_back("/usr/local/include/SDL2");
+		scummvmOSX_HeaderPaths.push_back("/opt/local/include/SDL2");
 	} else {
 		scummvmOSX_HeaderPaths.push_back("/usr/local/include/SDL");
+		scummvmOSX_HeaderPaths.push_back("/opt/local/include/SDL");
 	}
 	scummvmOSX_HeaderPaths.push_back("/usr/local/include");
+	scummvmOSX_HeaderPaths.push_back("/opt/local/include");
 	scummvmOSX_HeaderPaths.push_back("/usr/local/include/freetype2");
+	scummvmOSX_HeaderPaths.push_back("/opt/local/include/freetype2");
 	scummvmOSX_HeaderPaths.push_back("include/");
 	scummvmOSX_HeaderPaths.push_back("$(SRCROOT)/engines/");
 	scummvmOSX_HeaderPaths.push_back("$(SRCROOT)");
 	ADD_SETTING_LIST(scummvmOSX_Debug, "HEADER_SEARCH_PATHS", scummvmOSX_HeaderPaths, kSettingsQuoteVariable | kSettingsAsList, 5);
 	ADD_SETTING_QUOTE(scummvmOSX_Debug, "INFOPLIST_FILE", "$(SRCROOT)/dists/macosx/Info.plist");
 	ValueList scummvmOSX_LibPaths;
+	for (StringList::const_iterator i = setup.libraryDirs.begin(); i != setup.libraryDirs.end(); ++i)
+		scummvmOSX_LibPaths.push_back("\"" + *i + "\"");
 	scummvmOSX_LibPaths.push_back("/usr/local/lib");
+	scummvmOSX_LibPaths.push_back("/opt/local/lib");
 	scummvmOSX_LibPaths.push_back("\"$(inherited)\"");
 	scummvmOSX_LibPaths.push_back("\"\\\"$(SRCROOT)/lib\\\"\"");
 	ADD_SETTING_LIST(scummvmOSX_Debug, "LIBRARY_SEARCH_PATHS", scummvmOSX_LibPaths, kSettingsNoQuote | kSettingsAsList, 5);
@@ -1098,6 +1273,7 @@ void XcodeProvider::setupBuildConfiguration(const BuildSetup &setup) {
 	ADD_SETTING(scummvmOSX_Release, "COPY_PHASE_STRIP", "YES");
 	REMOVE_SETTING(scummvmOSX_Release, "GCC_DYNAMIC_NO_PIC");
 	REMOVE_SETTING(scummvmOSX_Release, "GCC_OPTIMIZATION_LEVEL");
+	ADD_SETTING(scummvmOSX_Release, "GCC_OPTIMIZATION_LEVEL", "3");
 	ADD_SETTING(scummvmOSX_Release, "WRAPPER_EXTENSION", "app");
 	REMOVE_SETTING(scummvmOSX_Release, "DEBUG_INFORMATION_FORMAT");
 	ADD_SETTING_QUOTE(scummvmOSX_Release, "DEBUG_INFORMATION_FORMAT", "dwarf-with-dsym");
@@ -1214,13 +1390,12 @@ std::string XcodeProvider::md5(std::string key) {
 #endif
 
 std::string XcodeProvider::newHash() const {
-	std::string hash = createUUID();
+	std::string hash = toUpper(createUUID());
 
 	// Remove { and - from UUID and resize to 96-bits uppercase hex string
 	hash.erase(remove_if(hash.begin(), hash.end(), isSeparator), hash.end());
 
 	hash.resize(24);
-	std::transform(hash.begin(), hash.end(), hash.begin(), toupper);
 
 	return hash;
 }

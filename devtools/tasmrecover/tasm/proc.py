@@ -4,10 +4,10 @@
 # are too numerous to list here. Please refer to the COPYRIGHT
 # file distributed with this source distribution.
 #
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
 import re
@@ -24,7 +23,7 @@ import op
 
 class proc:
 	last_addr = 0xc000
-	
+
 	def __init__(self, name):
 		self.name = name
 		self.calls = []
@@ -48,7 +47,7 @@ class proc:
 			if isinstance(self.stmts[i], op.label) and self.stmts[i].name == label:
 				self.stmts[i] = op._nop(None)
 				return
-	
+
 	def optimize_sequence(self, cls):
 		i = 0
 		stmts = self.stmts
@@ -88,7 +87,7 @@ class proc:
 				stmts[i] = op._nop(None)
 			i += 1
 		return
-	
+
 	def optimize(self, keep_labels=[]):
 		print "optimizing..."
 		#trivial simplifications
@@ -126,7 +125,7 @@ class proc:
 					self.stmts.pop(i)
 			else:
 				i += 1
-		
+
 		#eliminating unused labels
 		for s in list(self.stmts):
 			if not isinstance(s, op.label):
@@ -156,7 +155,7 @@ class proc:
 		self.optimize_sequence(op._stosw);
 		self.optimize_sequence(op._movsb);
 		self.optimize_sequence(op._movsw);
-	
+
 	def add(self, stmt):
 		#print stmt
 		comment = stmt.rfind(';')
@@ -173,14 +172,14 @@ class proc:
 
 		if len(stmt) == 0:
 			return
-		
+
 		s = stmt.split(None)
 		cmd = s[0]
 		cl = getattr(op, '_' + cmd)
 		arg = " ".join(s[1:]) if len(s) > 1 else str()
 		o = cl(arg)
 		self.stmts.append(o)
-	
+
 	def __str__(self):
 		r = []
 		for i in self.stmts:

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ void DrasculaEngine::checkForOldSaveGames() {
 	      "Press OK to convert them now, otherwise you will be asked again the next time you start the game.\n"), _("OK"), _("Cancel"));
 
 	int choice = dialog0.runModal();
-	if (choice == GUI::kMessageCancel)
+	if (choice != GUI::kMessageOK)
 		return;
 
 	// Convert every save slot we find in the index file to the new format
@@ -105,7 +104,7 @@ SaveStateDescriptor loadMetaData(Common::ReadStream *s, int slot, bool setPlayTi
 	uint32 sig = s->readUint32BE();
 	byte version = s->readByte();
 
-	SaveStateDescriptor desc(-1, "");	// init to an invalid save slot
+	SaveStateDescriptor desc;	// init to an invalid save slot
 
 	if (sig != MAGIC_HEADER || version > SAVEGAME_VERSION)
 		return desc;

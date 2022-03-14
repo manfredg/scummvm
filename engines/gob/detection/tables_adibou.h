@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -175,7 +174,7 @@
 {
 	{
 		"adibou2",
-		"ADIB\xD9 2",
+		"ADIBù 2",
 		AD_ENTRY1s("intro.stk", "092707829555f27706920e4cacf1fada", 8737958),
 		IT_ITA,
 		kPlatformDOS,
@@ -193,11 +192,8 @@
 	{
 		"adibou2",
 		"Non-Interactive Demo",
-		{
-			{"demogb.scn", 0, "9291455a908ac0e6aaaca686e532609b", 105},
-			{"demogb.vmd", 0, "bc9c1db97db7bec8f566332444fa0090", 14320840},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("demogb.scn", "9291455a908ac0e6aaaca686e532609b", 105,
+				   "demogb.vmd", "bc9c1db97db7bec8f566332444fa0090", 14320840),
 		EN_GRB,
 		kPlatformDOS,
 		ADGF_DEMO,
@@ -211,11 +207,8 @@
 	{
 		"adibou2",
 		"Non-Interactive Demo",
-		{
-			{"demoall.scn", 0, "c8fd308c037b829800006332b2c32674", 106},
-			{"demoall.vmd", 0, "4672b2deacc6fca97484840424b1921b", 14263433},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("demoall.scn", "c8fd308c037b829800006332b2c32674", 106,
+				   "demoall.vmd", "4672b2deacc6fca97484840424b1921b", 14263433),
 		DE_DEU,
 		kPlatformDOS,
 		ADGF_DEMO,
@@ -229,11 +222,8 @@
 	{
 		"adibou2",
 		"Non-Interactive Demo",
-		{
-			{"demofra.scn", 0, "d1b2b1618af384ea1120def8b986c02b", 106},
-			{"demofra.vmd", 0, "b494cdec1aac7e54c3f2480512d2880e", 14297100},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("demofra.scn", "d1b2b1618af384ea1120def8b986c02b", 106,
+				   "demofra.vmd", "b494cdec1aac7e54c3f2480512d2880e", 14297100),
 		FR_FRA,
 		kPlatformDOS,
 		ADGF_DEMO,

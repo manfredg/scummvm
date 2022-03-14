@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,27 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-#include "common/debug.h"
-#include "common/file.h"
-#include "common/list.h"
-#include "common/memstream.h"
 
 #include "audio/audiostream.h"
 #include "audio/decoders/wave.h"
 #include "audio/decoders/vorbis.h"
 #include "audio/mods/mod_xm_s3m.h"
 
-#include "sludge/allfiles.h"
+#include "sludge/errors.h"
 #include "sludge/fileset.h"
-#include "sludge/moreio.h"
 #include "sludge/newfatal.h"
 #include "sludge/sludge.h"
 #include "sludge/sound.h"
+#include "sludge/variable.h"
 
 namespace Sludge {
 
@@ -220,28 +214,24 @@ bool SoundManager::playMOD(int f, int a, int fromTrack) {
 		return false;
 	}
 
+	g_sludge->_resMan->dumpFile(f, "music%04d.xm");
+
 	// make audio stream
 	Common::SeekableReadStream *readStream = g_sludge->_resMan->getData();
 	Common::SeekableReadStream *memImage = readStream->readStream(length);
 
-// debug output
-#if 0
-	Common::DumpFile *dump = new Common::DumpFile();
-	Common::String name = Common::String::format("mod_sound_%i", f);
-	dump->open(name);
-	byte *soundData = new byte[length];
-	memImage->read(soundData, length);
-	dump->write(soundData, length);
-	dump->finalize();
-	delete []soundData;
-	delete dump;
-	memImage->seek(0, SEEK_SET);
-#endif
-
 	if (memImage->size() != (int)length || readStream->err()) {
 		return fatal("Sound reading failed");
 	}
-	Audio::AudioStream *stream = Audio::makeModXmS3mStream(memImage, DisposeAfterUse::NO);
+	Audio::RewindableAudioStream *mod = Audio::makeModXmS3mStream(memImage, DisposeAfterUse::NO, fromTrack);
+
+	if (!mod) {
+		warning("Could not load MOD file");
+		g_sludge->_resMan->finishAccess();
+		return false;
+	}
+
+	Audio::LoopingAudioStream *stream = new Audio::LoopingAudioStream(mod, 0, DisposeAfterUse::YES, false);
 
 	if (stream) {
 		// play sound
@@ -320,6 +310,8 @@ int SoundManager::makeSoundAudioStream(int f, Audio::AudioStream *&audiostream, 
 	uint32 length = g_sludge->_resMan->openFileFromNum(f);
 	if (!length)
 		return -1;
+
+	g_sludge->_resMan->dumpFile(f, "sound%04d.ogg");
 
 	Common::SeekableReadStream *readStream = g_sludge->_resMan->getData();
 	uint curr_ptr = readStream->pos();

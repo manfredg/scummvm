@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,8 +29,11 @@
 #include "common/savefile.h"
 #include "common/serializer.h"
 #include "common/util.h"
+
 #include "engines/engine.h"
+
 #include "graphics/surface.h"
+
 #include "access/animation.h"
 #include "access/bubble_box.h"
 #include "access/char.h"
@@ -47,6 +49,7 @@
 #include "access/scripts.h"
 #include "access/sound.h"
 #include "access/video.h"
+#include "access/detection.h"
 
 /**
  * This is the namespace of the Access engine.
@@ -58,20 +61,12 @@
  */
 namespace Access {
 
-enum {
-	GType_Amazon = 1,
-	GType_MartianMemorandum = 2,
-	GType_Noctropolis = 3
-};
-
 enum AccessDebugChannels {
 	kDebugPath      = 1 << 0,
 	kDebugScripts	= 1 << 1,
 	kDebugGraphics	= 1 << 2,
 	kDebugSound     = 1 << 3
 };
-
-struct AccessGameDescription;
 
 extern const char *const _estTable[];
 

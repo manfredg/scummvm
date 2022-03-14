@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,6 +55,7 @@ BaseLocation::~BaseLocation() {
 	for (uint idx = 0; idx < _townSprites.size(); ++idx)
 		_townSprites[idx].clear();
 	intf.mainIconsPrint();
+	intf.unhighlightChar();
 }
 
 int BaseLocation::show() {
@@ -302,8 +302,8 @@ int BaseLocation::wait() {
 BankLocation::BankLocation() : BaseLocation(BANK) {
 	_icons1.load("bank.icn");
 	_icons2.load("bank2.icn");
-	addButton(Common::Rect(234, 108, 259, 128), Common::KEYCODE_d, &_icons1);
-	addButton(Common::Rect(261, 108, 285, 128), Common::KEYCODE_w, &_icons1);
+	addButton(Common::Rect(234, 108, 259, 128), Res.KeyConstants.Locations.KEY_DEP, &_icons1);
+	addButton(Common::Rect(261, 108, 285, 128), Res.KeyConstants.Locations.KEY_WITH, &_icons1);
 	addButton(Common::Rect(288, 108, 312, 128), Common::KEYCODE_ESCAPE, &_icons1);
 	_animFrame = 1;
 
@@ -327,9 +327,9 @@ void BankLocation::drawBackground() {
 }
 
 Character *BankLocation::doOptions(Character *c) {
-	if (_buttonValue == Common::KEYCODE_d)
+	if (_buttonValue == Res.KeyConstants.Locations.KEY_DEP)
 		_buttonValue = (int)WHERE_PARTY;
-	else if (_buttonValue == Common::KEYCODE_w)
+	else if (_buttonValue == Res.KeyConstants.Locations.KEY_WITH)
 		_buttonValue = (int)WHERE_BANK;
 	else
 		return c;
@@ -352,11 +352,17 @@ void BankLocation::depositWithdrawl(PartyBank whereId) {
 		gold = party._gold;
 		gems = party._gems;
 	}
-
 	for (uint idx = 0; idx < _buttons.size(); ++idx)
 		_buttons[idx]._sprites = &_icons2;
-	_buttons[0]._value = Common::KEYCODE_o;
-	_buttons[1]._value = Common::KEYCODE_e;
+
+	if (g_vm->getLanguage() == Common::RU_RUS) {
+		// In RU version sprites in wrong order
+		_buttons[1]._value = Res.KeyConstants.Locations.KEY_GOLD;
+		_buttons[0]._value = Res.KeyConstants.Locations.KEY_GEMS;
+	} else {
+		_buttons[0]._value = Res.KeyConstants.Locations.KEY_GOLD;
+		_buttons[1]._value = Res.KeyConstants.Locations.KEY_GEMS;
+	}
 	_buttons[2]._value = Common::KEYCODE_ESCAPE;
 
 	Common::String msg = Common::String::format(Res.GOLD_GEMS,
@@ -375,9 +381,9 @@ void BankLocation::depositWithdrawl(PartyBank whereId) {
 
 	do {
 		wait();
-		if (_buttonValue == Common::KEYCODE_o) {
+		if (_buttonValue == Res.KeyConstants.Locations.KEY_GOLD) {
 			consType = CONS_GOLD;
-		} else if (_buttonValue == Common::KEYCODE_e) {
+		} else if (_buttonValue == Res.KeyConstants.Locations.KEY_GEMS) {
 			consType = CONS_GEMS;
 		} else if (_buttonValue == Common::KEYCODE_ESCAPE) {
 			break;
@@ -432,8 +438,8 @@ void BankLocation::depositWithdrawl(PartyBank whereId) {
 
 	for (uint idx = 0; idx < _buttons.size(); ++idx)
 		_buttons[idx]._sprites = &_icons1;
-	_buttons[0]._value = Common::KEYCODE_d;
-	_buttons[1]._value = Common::KEYCODE_w;
+	_buttons[0]._value = Res.KeyConstants.Locations.KEY_DEP;
+	_buttons[1]._value = Res.KeyConstants.Locations.KEY_WITH;
 	_buttons[2]._value = Common::KEYCODE_ESCAPE;
 
 	w.close();
@@ -446,7 +452,7 @@ BlacksmithLocation::BlacksmithLocation() : BaseLocation(BLACKSMITH) {
 	_icons1.load("esc.icn");
 	addButton(Common::Rect(261, 108, 285, 128), Common::KEYCODE_ESCAPE, &_icons1);
 	addButton(Common::Rect(234, 54, 308, 62), 0);
-	addButton(Common::Rect(234, 64, 308, 72), Common::KEYCODE_b);
+	addButton(Common::Rect(234, 64, 308, 72), Res.KeyConstants.Locations.KEY_BROWSE);
 	addButton(Common::Rect(234, 74, 308, 82), 0);
 	addButton(Common::Rect(234, 84, 308, 92), 0);
 
@@ -470,7 +476,7 @@ Character *BlacksmithLocation::doOptions(Character *c) {
 			c = &party._activeParty[_buttonValue];
 			intf.highlightChar(_buttonValue);
 		}
-	} else if (_buttonValue == Common::KEYCODE_b) {
+	} else if (_buttonValue == Res.KeyConstants.Locations.KEY_BROWSE) {
 		c = ItemsDialog::show(_vm, c, ITEMMODE_BUY);
 		_buttonValue = 0;
 	}
@@ -494,8 +500,8 @@ GuildLocation::GuildLocation() : BaseLocation(GUILD) {
 	_icons1.load("esc.icn");
 	addButton(Common::Rect(261, 108, 285, 128), Common::KEYCODE_ESCAPE, &_icons1);
 	addButton(Common::Rect(234, 54, 308, 62), 0);
-	addButton(Common::Rect(234, 64, 308, 72), Common::KEYCODE_b);
-	addButton(Common::Rect(234, 74, 308, 82), Common::KEYCODE_s);
+	addButton(Common::Rect(234, 64, 308, 72), Res.KeyConstants.Locations.KEY_BUY_SPELLS);
+	addButton(Common::Rect(234, 74, 308, 82), Res.KeyConstants.Locations.KEY_SPELL_INFO);
 	addButton(Common::Rect(234, 84, 308, 92), 0);
 	g_vm->_mode = MODE_INTERACTIVE7;
 
@@ -529,11 +535,11 @@ Character *GuildLocation::doOptions(Character *c) {
 				sound.playSound(_ccNum ? "skull1.voc" : "guild11.voc", 1);
 			}
 		}
-	} else if (_buttonValue == Common::KEYCODE_s) {
+	} else if (_buttonValue == Res.KeyConstants.Locations.KEY_SPELL_INFO) {
 		if (c->guildMember())
 			c = SpellsDialog::show(_vm, this, c, SPELLS_DIALOG_INFO);
 		_buttonValue = 0;
-	} else if (_buttonValue == Common::KEYCODE_b) {
+	} else if (_buttonValue == Res.KeyConstants.Locations.KEY_BUY_SPELLS) {
 		if (!c->noActions()) {
 			if (c->guildMember())
 				c = SpellsDialog::show(_vm, this, c, SPELLS_DIALOG_BUY);
@@ -555,11 +561,11 @@ TavernLocation::TavernLocation() : BaseLocation(TAVERN) {
 	loadStrings("tavern.bin");
 	_icons1.load("tavern.icn");
 	addButton(Common::Rect(281, 108, 305, 128), Common::KEYCODE_ESCAPE, &_icons1);
-	addButton(Common::Rect(242, 108, 266, 128), Common::KEYCODE_s, &_icons1);
-	addButton(Common::Rect(234, 54, 308, 62), Common::KEYCODE_d);
-	addButton(Common::Rect(234, 64, 308, 72), Common::KEYCODE_f);
-	addButton(Common::Rect(234, 74, 308, 82), Common::KEYCODE_t);
-	addButton(Common::Rect(234, 84, 308, 92), Common::KEYCODE_r);
+	addButton(Common::Rect(242, 108, 266, 128), Res.KeyConstants.Locations.KEY_SIGN_IN, &_icons1);
+	addButton(Common::Rect(234, 54, 308, 62), Res.KeyConstants.Locations.KEY_DRINK);
+	addButton(Common::Rect(234, 64, 308, 72), Res.KeyConstants.Locations.KEY_FOOD);
+	addButton(Common::Rect(234, 74, 308, 82), Res.KeyConstants.Locations.KEY_TIP);
+	addButton(Common::Rect(234, 84, 308, 92), Res.KeyConstants.Locations.KEY_RUMORS);
 	g_vm->_mode = MODE_INTERACTIVE7;
 
 	_vocName = _ccNum ? "hello1.voc" : "hello.voc";
@@ -580,13 +586,13 @@ Character *TavernLocation::doOptions(Character *c) {
 	Windows &windows = *g_vm->_windows;
 	int idx = 0;
 
-	switch (_buttonValue) {
-	case Common::KEYCODE_F1:
-	case Common::KEYCODE_F2:
-	case Common::KEYCODE_F3:
-	case Common::KEYCODE_F4:
-	case Common::KEYCODE_F5:
-	case Common::KEYCODE_F6:
+	if (
+		Common::KEYCODE_F1 == _buttonValue ||
+		Common::KEYCODE_F2 == _buttonValue ||
+		Common::KEYCODE_F3 == _buttonValue ||
+		Common::KEYCODE_F4 == _buttonValue ||
+		Common::KEYCODE_F5 == _buttonValue ||
+		Common::KEYCODE_F6 == _buttonValue) {
 		// Switch character
 		_buttonValue -= Common::KEYCODE_F1;
 		if (_buttonValue < (int)party._activeParty.size()) {
@@ -594,9 +600,7 @@ Character *TavernLocation::doOptions(Character *c) {
 			intf.highlightChar(_buttonValue);
 			_v21 = 0;
 		}
-		break;
-
-	case Common::KEYCODE_d:
+	} else if (Res.KeyConstants.Locations.KEY_DRINK == _buttonValue) {
 		// Drink
 		if (!c->noActions()) {
 			if (party.subtract(CONS_GOLD, 1, WHERE_PARTY, WT_LOC_WAIT)) {
@@ -619,9 +623,7 @@ Character *TavernLocation::doOptions(Character *c) {
 				wait();
 			}
 		}
-		break;
-
-	case Common::KEYCODE_f: {
+	} else if (Res.KeyConstants.Locations.KEY_FOOD == _buttonValue) {
 		// Food
 		if (party._mazeId == (_ccNum ? 29 : 28)) {
 			_v22 = party._activeParty.size() * 15;
@@ -668,10 +670,7 @@ Character *TavernLocation::doOptions(Character *c) {
 		windows[12].close();
 		windows[10].open();
 		_buttonValue = 0;
-		break;
-	}
-
-	case Common::KEYCODE_r: {
+	} else if (Res.KeyConstants.Locations.KEY_RUMORS == _buttonValue) {
 		// Rumors
 		if (party._mazeId == (_ccNum ? 29 : 28)) {
 			idx = 0;
@@ -690,10 +689,7 @@ Character *TavernLocation::doOptions(Character *c) {
 
 		wait();
 		w.close();
-		break;
-	}
-
-	case Common::KEYCODE_s: {
+	} else if (Res.KeyConstants.Locations.KEY_SIGN_IN == _buttonValue) {
 		// Sign In
 		// Set location and position for afterwards
 		if (g_vm->getGameID() == GType_Swords) {
@@ -756,10 +752,7 @@ Character *TavernLocation::doOptions(Character *c) {
 		if (party._mazeId != 0)
 			map.load(party._mazeId);
 		_exitToUi = true;
-		break;
-	}
-
-	case Common::KEYCODE_t:
+	} else if (Res.KeyConstants.Locations.KEY_TIP == _buttonValue) {
 		if (!c->noActions()) {
 			if (!_v21) {
 				windows[10].writeString(Common::String::format(Res.TAVERN_TEXT,
@@ -806,10 +799,6 @@ Character *TavernLocation::doOptions(Character *c) {
 				}
 			}
 		}
-		break;
-
-	default:
-		break;
 	}
 
 	return c;
@@ -842,9 +831,9 @@ TempleLocation::TempleLocation() : BaseLocation(TEMPLE) {
 
 	_icons1.load("esc.icn");
 	addButton(Common::Rect(261, 108, 285, 128), Common::KEYCODE_ESCAPE, &_icons1);
-	addButton(Common::Rect(234, 54, 308, 62), Common::KEYCODE_h);
-	addButton(Common::Rect(234, 64, 308, 72), Common::KEYCODE_d);
-	addButton(Common::Rect(234, 74, 308, 82), Common::KEYCODE_u);
+	addButton(Common::Rect(234, 54, 308, 62), Res.KeyConstants.Locations.KEY_HEAL);
+	addButton(Common::Rect(234, 64, 308, 72), Res.KeyConstants.Locations.KEY_DONATION);
+	addButton(Common::Rect(234, 74, 308, 82), Res.KeyConstants.Locations.KEY_UNCURSE);
 	addButton(Common::Rect(234, 84, 308, 92), 0);
 
 	_vocName = _ccNum ? "help2.voc" : "maywe2.voc";
@@ -918,13 +907,12 @@ Character *TempleLocation::doOptions(Character *c) {
 	Party &party = *g_vm->_party;
 	Sound &sound = *g_vm->_sound;
 
-	switch (_buttonValue) {
-	case Common::KEYCODE_F1:
-	case Common::KEYCODE_F2:
-	case Common::KEYCODE_F3:
-	case Common::KEYCODE_F4:
-	case Common::KEYCODE_F5:
-	case Common::KEYCODE_F6:
+	if (Common::KEYCODE_F1 == _buttonValue ||
+		Common::KEYCODE_F2 == _buttonValue ||
+		Common::KEYCODE_F3 == _buttonValue ||
+		Common::KEYCODE_F4 == _buttonValue ||
+		Common::KEYCODE_F5 == _buttonValue ||
+		Common::KEYCODE_F6 == _buttonValue) {
 		// Switch character
 		_buttonValue -= Common::KEYCODE_F1;
 		if (_buttonValue < (int)party._activeParty.size()) {
@@ -932,9 +920,7 @@ Character *TempleLocation::doOptions(Character *c) {
 			intf.highlightChar(_buttonValue);
 			_dayOfWeek = 0;
 		}
-		break;
-
-	case Common::KEYCODE_d:
+	} else if (Res.KeyConstants.Locations.KEY_DONATION == _buttonValue) {
 		if (_donation && party.subtract(CONS_GOLD, _donation, WHERE_PARTY, WT_LOC_WAIT)) {
 			sound.stopSound();
 			sound.playSound("coina.voc", 1);
@@ -957,9 +943,7 @@ Character *TempleLocation::doOptions(Character *c) {
 				_donation = 0;
 			}
 		}
-		break;
-
-	case Common::KEYCODE_h:
+	} else if (Res.KeyConstants.Locations.KEY_HEAL == _buttonValue) {
 		if (_healCost && party.subtract(CONS_GOLD, _healCost, WHERE_PARTY, WT_LOC_WAIT)) {
 			c->_magicResistence._temporary = 0;
 			c->_energyResistence._temporary = 0;
@@ -984,9 +968,7 @@ Character *TempleLocation::doOptions(Character *c) {
 			sound.stopSound();
 			sound.playSound("ahh.voc", 1);
 		}
-		break;
-
-	case Common::KEYCODE_u:
+	} else if (Res.KeyConstants.Locations.KEY_UNCURSE == _buttonValue) {
 		if (_uncurseCost && party.subtract(CONS_GOLD, _uncurseCost, WHERE_PARTY, WT_LOC_WAIT)) {
 			c->_items.curseUncurse(false);
 			c->_conditions[CURSED] = 0;
@@ -995,10 +977,6 @@ Character *TempleLocation::doOptions(Character *c) {
 			sound.stopSound();
 			sound.playSound("ahh.voc", 1);
 		}
-		break;
-
-	default:
-		break;
 	}
 
 	return c;
@@ -1008,64 +986,60 @@ Character *TempleLocation::doOptions(Character *c) {
 
 TrainingLocation::TrainingLocation() : BaseLocation(TRAINING) {
 	Common::fill(&_charsTrained[0], &_charsTrained[6], 0);
-	_maxLevel = 0;
 	_experienceToNextLevel = 0;
 	_charIndex = 0;
 
 	_icons1.load("train.icn");
 	addButton(Common::Rect(281, 108, 305, 128), Common::KEYCODE_ESCAPE, &_icons1);
-	addButton(Common::Rect(242, 108, 266, 128), Common::KEYCODE_t, &_icons1);
+	addButton(Common::Rect(242, 108, 266, 128), Res.KeyConstants.Locations.KEY_TRAIN, &_icons1);
 
 	_vocName = _ccNum ? "youtrn1.voc" : "training.voc";
 }
 
-Common::String TrainingLocation::createLocationText(Character &ch) {
+int TrainingLocation::maxLevel() const {
 	Party &party = *g_vm->_party;
 	if (_ccNum) {
 		switch (party._mazeId) {
 		case 29:
 			// Castleview
-			_maxLevel = 30;
-			break;
+			return 30;
 		case 31:
 			// Sandcaster
-			_maxLevel = 50;
-			break;
+			return 50;
 		case 37:
 			// Olympus
-			_maxLevel = 200;
-			break;
+			return 200;
 		default:
 			// Kalindra's Castle
-			_maxLevel = 100;
-			break;
+			return 100;
 		}
 	} else {
 		switch (party._mazeId) {
 		case 28:
 			// Vertigo
-			_maxLevel = 10;
-			break;
+			return 10;
 		case 30:
 			// Rivercity
-			_maxLevel = 15;
-			break;
+			return 15;
 		default:
 			// Newcastle
-			_maxLevel = 20;
-			break;
+			return 20;
 		}
 	}
+}
 
+Common::String TrainingLocation::createLocationText(Character &ch) {
+	Party &party = *g_vm->_party;
+	int maxLevelAtLocation = maxLevel();
 	_experienceToNextLevel = ch.experienceToNextLevel();
 
 	Common::String msg;
-	if (_experienceToNextLevel && ch._level._permanent < _maxLevel) {
+	if (_experienceToNextLevel && ch._level._permanent < maxLevelAtLocation) {
 		// Need more experience
 		int nextLevel = ch._level._permanent + 1;
 		msg = Common::String::format(Res.EXPERIENCE_FOR_LEVEL,
 			ch._name.c_str(), _experienceToNextLevel, nextLevel);
-	} else if (ch._level._permanent >= _maxLevel) {
+	} else if (ch._level._permanent >= maxLevelAtLocation) {
 		// At maximum level
 		_experienceToNextLevel = 1;
 		msg = Common::String::format(Res.TRAINING_LEARNED_ALL, ch._name.c_str());
@@ -1085,13 +1059,12 @@ Character *TrainingLocation::doOptions(Character *c) {
 	Party &party = *g_vm->_party;
 	Sound &sound = *g_vm->_sound;
 
-	switch (_buttonValue) {
-	case Common::KEYCODE_F1:
-	case Common::KEYCODE_F2:
-	case Common::KEYCODE_F3:
-	case Common::KEYCODE_F4:
-	case Common::KEYCODE_F5:
-	case Common::KEYCODE_F6:
+	if (Common::KEYCODE_F1 == _buttonValue ||
+		Common::KEYCODE_F2 == _buttonValue ||
+		Common::KEYCODE_F3 == _buttonValue ||
+		Common::KEYCODE_F4 == _buttonValue ||
+		Common::KEYCODE_F5 == _buttonValue ||
+		Common::KEYCODE_F6 == _buttonValue) {
 		// Switch character
 		_buttonValue -= Common::KEYCODE_F1;
 		if (_buttonValue < (int)party._activeParty.size()) {
@@ -1099,15 +1072,13 @@ Character *TrainingLocation::doOptions(Character *c) {
 			c = &party._activeParty[_buttonValue];
 			intf.highlightChar(_buttonValue);
 		}
-		break;
-
-	case Common::KEYCODE_t:
+	} else if (Res.KeyConstants.Locations.KEY_TRAIN == _buttonValue) {
 		if (_experienceToNextLevel) {
 			sound.stopSound();
 			_drawFrameIndex = 0;
 
 			Common::String name;
-			if (c->_level._permanent >= _maxLevel) {
+			if (c->_level._permanent >= maxLevel()) {
 				name = _ccNum ? "gtlost.voc" : "trainin1.voc";
 			} else {
 				name = _ccNum ? "gtlost.voc" : "trainin0.voc";
@@ -1136,10 +1107,6 @@ Character *TrainingLocation::doOptions(Character *c) {
 				intf.drawParty(true);
 			}
 		}
-		break;
-
-	default:
-		break;
 	}
 
 	return c;
@@ -1281,18 +1248,18 @@ void CutsceneLocation::setNewLocation() {
 
 /*------------------------------------------------------------------------*/
 
-const int16 REAPER_X1[2][14] = {
+static const int16 REAPER_X1[2][14] = {
 	{ 0, -10, -20, -30, -40, -49, -49, -49, -49, -49, -49, -49, -49, -49 },
 	{ 0, 2, 6, 8, 11, 14, 17, 21, 27, 35, 43, 51, 60, 67 }
 };
-const int16 REAPER_Y1[2][14] = {
+static const int16 REAPER_Y1[2][14] = {
 	{ 0, 12, 25, 37, 45, 50, 56, 61, 67, 72, 78, 83, 89, 94 },
 	{ 0, 6, 12, 17, 23, 29, 36, 42, 49, 54, 61, 68, 73, 77 }
 };
-const int16 REAPER_X2[14] = {
+static const int16 REAPER_X2[14] = {
 	160, 152, 146, 138, 131, 124, 117, 111, 107, 105, 103, 101, 100, 97
 };
-const int16 REAPER_X3[14] = {
+static const int16 REAPER_X3[14] = {
 	0, -3, -4, -7, -9, -11, -13, -14, -13, -10, -7, -4, 0, -1
 };
 
@@ -1567,15 +1534,15 @@ void ReaperCutscene::getNewLocation() {
 
 /*------------------------------------------------------------------------*/
 
-const int16 GOLEM_X1[2][12] = {
+static const int16 GOLEM_X1[2][12] = {
 	{ 0, -5, 0, 6, 10, 13, 17, 20, 23, 26, 29, 31 },
 	{ 0, 0, 1, 1, 1, 0, -9, -20, -21, 0, 0, 0 }
 };
-const int GOLEM_Y1[2][12] = {
+static const int GOLEM_Y1[2][12] = {
 	{ 0, 0, 0, 0, 0, 5, 10, 15, 20, 25, 30, 35 },
 	{ 0, 6, 12, 18, 24, 30, 29, 23, 25, 0, 0, 0 }
 };
-const int GOLEM_X2[2][12] = {
+static const int GOLEM_X2[2][12] = {
 	{ 160, 145, 140, 136, 130, 123, 117, 110, 103, 96, 89, 81 },
 	{ 160, 150, 141, 131, 121, 110, 91, 70, 57, 0, 0, 0 }
 };
@@ -1851,26 +1818,26 @@ void GolemCutscene::getNewLocation() {
 
 /*------------------------------------------------------------------------*/
 
-const int16 DWARF_X0[2][13] = {
+static const int16 DWARF_X0[2][13] = {
 	{  0, -5, -7, -8, -11, -9, -3, 1, 6, 10, 15, 18, 23 },
 	{ 0, 4, 6, 8, 11, 12, 15, 17, 19, 22, 25, 0, 0 }
 };
-const int DWARF_X1[2][13] = {
+static const int DWARF_X1[2][13] = {
 	{ 160, 145, 133, 122, 109, 101, 97, 91, 86, 80, 75, 68, 63 },
 	{ 160, 154, 146, 138, 131, 122, 115, 107, 99, 92, 85, 0, 0 }
 };
-const int DWARF_X2[13] = {
+static const int DWARF_X2[13] = {
 	0, -1, -4, -7, -9, -13, -15, -18, -21, -23, -25, 0, 0
 };
-const int16 DWARF_Y[2][13] = {
+static const int16 DWARF_Y[2][13] = {
 	{ 0, 0, 4, 9, 13, 15, 20, 24, 30, 37, 45, 51, 58 },
 	{ 0, 12, 25, 36, 38, 40, 41, 42, 44, 45, 50, 0, 0 }
 };
-const int16 DWARF2_X[2][16] = {
+static const int16 DWARF2_X[2][16] = {
 	{ 0, -2, -4, -6, -8, -10, -12, -14, -16, -18, -20, -20, -20, -20, -20, -20 },
 	{ 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150 }
 };
-const int16 DWARF2_Y[2][16] = {
+static const int16 DWARF2_Y[2][16] = {
 	{ 0, 12, 25, 37, 50, 62, 75, 87, 100, 112, 125, 137, 150, 162, 175, 187 },
 	{ 0, 12, 25, 37, 50, 62, 75, 87, 100, 112, 125, 137, 150, 162, 175, 186 }
 };

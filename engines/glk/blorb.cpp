@@ -4,19 +4,18 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software{} you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation{} either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY{} without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program{} if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,8 @@ Blorb::Blorb(const Common::FSNode &fileNode, InterpreterType interpType) :
 		error("Could not parse blorb file");
 }
 
-bool Blorb::hasFile(const Common::String &name) const {
+bool Blorb::hasFile(const Common::Path &path) const {
+	Common::String name = path.toString();
 	for (uint idx = 0; idx < _chunks.size(); ++idx) {
 		if (_chunks[idx]._filename.equalsIgnoreCase(name))
 			return true;
@@ -56,14 +56,16 @@ int Blorb::listMembers(Common::ArchiveMemberList &list) const {
 	return (int)_chunks.size();
 }
 
-const Common::ArchiveMemberPtr Blorb::getMember(const Common::String &name) const {
+const Common::ArchiveMemberPtr Blorb::getMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	if (!hasFile(name))
 		return Common::ArchiveMemberPtr();
 
 	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
 }
 
-Common::SeekableReadStream *Blorb::createReadStreamForMember(const Common::String &name) const {
+Common::SeekableReadStream *Blorb::createReadStreamForMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	for (uint idx = 0; idx < _chunks.size(); ++idx) {
 		const ChunkEntry &ce = _chunks[idx];
 
@@ -75,7 +77,7 @@ Common::SeekableReadStream *Blorb::createReadStreamForMember(const Common::Strin
 
 			f.seek(ce._offset);
 			Common::SeekableReadStream *result;
-			
+
 			if (ce._id == ID_FORM) {
 				// AIFF chunks need to be wrapped in a FORM chunk for ScummVM decoder
 				byte *sound = (byte *)malloc(ce._size + 8);
@@ -134,7 +136,7 @@ Common::ErrorCode Blorb::load() {
 			else if (ce._id == ID_AIFF || ce._id == ID_FORM)
 				ce._filename += ".aiff";
 			else if (ce._id == ID_OGG)
-				ce._filename += ".ogg"; 
+				ce._filename += ".ogg";
 			else if (ce._id == ID_MOD)
 				ce._filename += ".mod";
 
@@ -144,12 +146,12 @@ Common::ErrorCode Blorb::load() {
 		} else if (ce._type == ID_Exec) {
 			if (
 				(_interpType == INTERPRETER_ADRIFT && ce._id == ID_ADRI) ||
-				(_interpType == INTERPRETER_FROTZ && ce._id == ID_ZCOD) ||
-				(_interpType == INTERPRETER_GLULXE && ce._id == ID_GLUL) ||
+				(_interpType == INTERPRETER_GLULX && ce._id == ID_GLUL) ||
+				(_interpType == INTERPRETER_HUGO && ce._id == ID_HUGO) ||
+				(_interpType == INTERPRETER_SCOTT && ce._id == ID_SAAI) ||
 				(_interpType == INTERPRETER_TADS2 && ce._id == ID_TAD2) ||
 				(_interpType == INTERPRETER_TADS3 && ce._id == ID_TAD3) ||
-				(_interpType == INTERPRETER_HUGO && ce._id == ID_HUGO) ||
-				(_interpType == INTERPRETER_SCOTT && ce._id == ID_SAAI)
+				(_interpType == INTERPRETER_ZCODE && ce._id == ID_ZCOD)
 			) {
 				// Game executable
 				ce._filename = "game";
@@ -260,7 +262,7 @@ bool Blorb::isBlorb(const Common::String &filename, uint32 type) {
 bool Blorb::hasBlorbExt(const Common::String &filename) {
 	return filename.hasSuffixIgnoreCase(".blorb") || filename.hasSuffixIgnoreCase(".zblorb")
 		|| filename.hasSuffixIgnoreCase(".gblorb") || filename.hasSuffixIgnoreCase(".blb")
-		|| filename.hasSuffixIgnoreCase(".a3r");
+		|| filename.hasSuffixIgnoreCase(".zlb") || filename.hasSuffixIgnoreCase(".a3r");
 }
 
 void Blorb::getBlorbFilenames(const Common::String &srcFilename, Common::StringArray &filenames,
@@ -283,12 +285,12 @@ void Blorb::getBlorbFilenames(const Common::String &srcFilename, Common::StringA
 	case INTERPRETER_ALAN3:
 		filenames.push_back(filename + "a3r");
 		break;
-	case INTERPRETER_FROTZ:
+	case INTERPRETER_GLULX:
+		filenames.push_back(filename + "gblorb");
+		break;
+	case INTERPRETER_ZCODE:
 		filenames.push_back(filename + "zblorb");
 		getInfocomBlorbFilenames(filenames, gameId);
-		break;
-	case INTERPRETER_GLULXE:
-		filenames.push_back(filename + "gblorb");
 		break;
 	default:
 		break;

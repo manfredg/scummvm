@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "audio/decoders/raw.h"
 #include "audio/decoders/wave.h"
+#include "audio/decoders/wave_types.h"
 #include "common/memstream.h"
 #include "titanic/sound/wave_file.h"
 #include "titanic/sound/sound_manager.h"
@@ -176,14 +176,12 @@ Audio::SeekableAudioStream *CWaveFile::createAudioStream() {
 
 
 const int16 *CWaveFile::lock() {
-	enum { kWaveFormatPCM = 1 };
-
 	switch (_loadMode) {
 	case LOADMODE_SCUMMVM:
 		// Sanity checking that only raw 16-bit LE 22Khz waves can be locked
 		assert(_waveData && _rate == AUDIO_SAMPLING_RATE);
 		assert(_flags == (Audio::FLAG_LITTLE_ENDIAN | Audio::FLAG_16BITS));
-		assert(_wavType == kWaveFormatPCM);
+		assert(_wavType == Audio::kWaveFormatPCM);
 
 		// Return a pointer to the data section of the wave file
 		return (const int16 *)(_waveData + _headerSize);

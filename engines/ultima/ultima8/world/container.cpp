@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,32 +15,25 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 
 #include "ultima/ultima8/world/container.h"
 
 #include "ultima/ultima8/kernel/object_manager.h"
 #include "ultima/ultima8/usecode/uc_machine.h"
 #include "ultima/ultima8/usecode/uc_list.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
-#include "ultima/ultima8/world/item_factory.h"
 #include "ultima/ultima8/world/actors/main_actor.h"
 #include "ultima/ultima8/world/get_object.h"
-#include "ultima/ultima8/kernel/core_app.h"
+#include "ultima/ultima8/ultima8.h"
 
-#include "ultima/ultima8/graphics/shape_info.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-// p_dynamic_cast stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE(Container, Item)
+DEFINE_RUNTIME_CLASSTYPE_CODE(Container)
 
 Container::Container() {
 }
@@ -93,14 +86,14 @@ bool Container::CanAddItem(Item *item, bool checkwghtvol) {
 
 	if (item->getObjId() < 256) return false; // actors don't fit in containers
 
-	Container *c = p_dynamic_cast<Container *>(item);
+	Container *c = dynamic_cast<Container *>(item);
 	if (c) {
 		// To quote Exult: "Watch for snake eating itself."
 		Container *p = this;
 		do {
 			if (p == c)
 				return false;
-		} while ((p = p->getParentAsContainer()) != 0);
+		} while ((p = p->getParentAsContainer()) != nullptr);
 	}
 
 	if (checkwghtvol) {
@@ -114,8 +107,7 @@ bool Container::CanAddItem(Item *item, bool checkwghtvol) {
 		uint32 shapeid = item->getShape();
 		if (GAME_IS_U8 && (shapeid == 115 /*Barrel*/
 		                   || shapeid == 78 || shapeid == 117 /*Chests*/)) {
-			// TODO: make this off by default, but can enable it through
-			// pentagram.ini
+			// TODO: make this off by default, but can enable it through config
 			MainActor *avatar = getMainActor();
 			ObjId bp = avatar->getEquip(7); // !! constant
 			Container *avatarbackpack = getContainer(bp);
@@ -206,7 +198,8 @@ void Container::removeContents() {
 void Container::destroyContents() {
 	while (_contents.begin() != _contents.end()) {
 		Item *item = *(_contents.begin());
-		Container *cont = p_dynamic_cast<Container *>(item);
+		assert(item);
+		Container *cont = dynamic_cast<Container *>(item);
 		if (cont) cont->destroyContents();
 		item->destroy(true); // we destroy the item immediately
 	}
@@ -218,7 +211,7 @@ void Container::setFlagRecursively(uint32 mask) {
 	Std::list<Item *>::iterator iter;
 	for (iter = _contents.begin(); iter != _contents.end(); ++iter) {
 		(*iter)->setFlag(mask);
-		Container *cont = p_dynamic_cast<Container *>(*iter);
+		Container *cont = dynamic_cast<Container *>(*iter);
 		if (cont) cont->setFlagRecursively(mask);
 	}
 }
@@ -275,21 +268,19 @@ uint32 Container::getContentVolume() const {
 }
 
 void Container::containerSearch(UCList *itemlist, const uint8 *loopscript,
-                                uint32 scriptsize, bool recurse) {
-	Std::list<Item *>::iterator iter;
+								uint32 scriptsize, bool recurse) const {
+	Std::list<Item *>::const_iterator iter;
 	for (iter = _contents.begin(); iter != _contents.end(); ++iter) {
 		// check item against loopscript
 		if ((*iter)->checkLoopScript(loopscript, scriptsize)) {
+			assert(itemlist->getElementSize() == 2);
 			uint16 oId = (*iter)->getObjId();
-			uint8 buf[2];
-			buf[0] = static_cast<uint8>(oId);
-			buf[1] = static_cast<uint8>(oId >> 8);
-			itemlist->append(buf);
+			itemlist->appenduint16(oId);
 		}
 
 		if (recurse) {
 			// recurse into child-containers
-			Container *container = p_dynamic_cast<Container *>(*iter);
+			Container *container = dynamic_cast<Container *>(*iter);
 			if (container)
 				container->containerSearch(itemlist, loopscript,
 				                           scriptsize, recurse);
@@ -297,31 +288,69 @@ void Container::containerSearch(UCList *itemlist, const uint8 *loopscript,
 	}
 }
 
+Item *Container::getFirstItemWithShape(uint16 shapeno, bool recurse) {
+	Std::list<Item *>::iterator iter;
+	for (iter = _contents.begin(); iter != _contents.end(); ++iter) {
+		if ((*iter)->getShape() == shapeno)
+			return *iter;
+
+		if (recurse) {
+			// recurse into child-containers
+			Container *container = dynamic_cast<Container *>(*iter);
+			if (container) {
+				Item *result = container->getFirstItemWithShape(shapeno, recurse);
+				if (result)
+					return result;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+void Container::getItemsWithShapeFamily(Std::vector<Item *> &itemlist, uint16 family, bool recurse) {
+	Std::list<Item *>::iterator iter;
+	for (iter = _contents.begin(); iter != _contents.end(); ++iter) {
+		if ((*iter)->getShapeInfo()->_family == family)
+			itemlist.push_back(*iter);
+
+		if (recurse) {
+			// recurse into child-containers
+			Container *container = dynamic_cast<Container *>(*iter);
+			if (container) {
+				container->getItemsWithShapeFamily(itemlist, family, recurse);
+			}
+		}
+	}
+
+}
+
 void Container::dumpInfo() const {
 	Item::dumpInfo();
 
-	pout << "Volume: " << getContentVolume() << "/" << getCapacity()
-	     << ", total weight: " << getTotalWeight() << Std::endl;
+	pout << "  Container vol: " << getContentVolume() << "/" << getCapacity()
+	     << ", total weight: " << getTotalWeight()
+		 << ", items: " << _contents.size() << Std::endl;
 }
 
-void Container::saveData(ODataSource *ods) {
-	Item::saveData(ods);
-	ods->write4(static_cast<uint32>(_contents.size()));
+void Container::saveData(Common::WriteStream *ws) {
+	Item::saveData(ws);
+	ws->writeUint32LE(static_cast<uint32>(_contents.size()));
 	Std::list<Item *>::iterator iter;
 	for (iter = _contents.begin(); iter != _contents.end(); ++iter) {
-		(*iter)->save(ods);
+		ObjectManager::get_instance()->saveObject(ws, *iter);
 	}
 }
 
-bool Container::loadData(IDataSource *ids, uint32 version) {
-	if (!Item::loadData(ids, version)) return false;
+bool Container::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Item::loadData(rs, version)) return false;
 
-	uint32 contentcount = ids->read4();
+	uint32 contentcount = rs->readUint32LE();
 
-	// read _contents
+	// read contents
 	for (unsigned int i = 0; i < contentcount; ++i) {
-		Object *obj = ObjectManager::get_instance()->loadObject(ids, version);
-		Item *item = p_dynamic_cast<Item *>(obj);
+		Object *obj = ObjectManager::get_instance()->loadObject(rs, version);
+		Item *item = dynamic_cast<Item *>(obj);
 		if (!item) return false;
 
 		addItem(item);

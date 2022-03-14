@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,8 +33,8 @@ const char * const kFontBig = "Big.fon";
 Font::Font(const Common::String &filename) {
 	_fontHeight = 0;
 	_maxCharWidth = 0;
-	_charWidths = NULL;
-	_charData = NULL;
+	_charWidths = nullptr;
+	_charData = nullptr;
 
 	loadFont(filename);
 }
@@ -123,7 +122,7 @@ uint8 Font::getCharWidth(uint8 chr) const {
  */
 
 void Font::drawChar(Surface *dst, uint8 chr, int tx, int ty, int with_color) const {
-	assert(dst != NULL);
+	assert(dst != nullptr);
 	assert(tx >= 0);
 	assert(ty >= 0);
 
@@ -214,7 +213,7 @@ void Font::drawString(Surface *dst, const byte *str, uint len,
 
 void Font::drawString(Surface *dst, const Common::String &str,
 	                  int x, int y, int with_color, int spacing, bool markDirty) const {
-	assert(dst != NULL);
+	assert(dst != nullptr);
 	assert(x >= 0);
 	assert(y >= 0);
 

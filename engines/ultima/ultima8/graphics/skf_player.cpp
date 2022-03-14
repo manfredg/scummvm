@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,12 +29,11 @@
 #include "ultima/ultima8/graphics/palette_manager.h"
 #include "ultima/ultima8/audio/music_process.h"
 #include "ultima/ultima8/audio/audio_process.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/audio/audio_mixer.h"
 #include "ultima/ultima8/audio/raw_audio_sample.h"
 #include "ultima/ultima8/graphics/fonts/font.h"
 #include "ultima/ultima8/graphics/fonts/font_manager.h"
 #include "ultima/ultima8/graphics/fonts/rendered_text.h"
+#include "common/config-manager.h"
 #include "common/system.h"
 
 namespace Ultima {
@@ -65,12 +63,13 @@ struct SKFEvent {
 static const int FADESTEPS = 16; // HACK: half speed
 
 
-SKFPlayer::SKFPlayer(RawArchive *movie, int width, int height, bool introMusicHack)
-	: _width(width), _height(height), _skf(movie),
-	  _curFrame(0), _curObject(0), _curAction(0), _curEvent(0), _playing(false),
-	  _timer(0), _frameRate(15), _fadeColour(0), _fadeLevel(0), _buffer(0), _subs(0),
-	  _introMusicHack(introMusicHack), _lastUpdate(0), _subtitleY(0) {
-	IDataSource *eventlist = _skf->get_datasource(0);
+SKFPlayer::SKFPlayer(Common::SeekableReadStream *rs, int width, int height, bool introMusicHack)
+	: _width(width), _height(height), _curFrame(0), _curObject(0), _curAction(0),
+	  _curEvent(0), _playing(false), _timer(0), _frameRate(15), _fadeColour(0),
+	  _fadeLevel(0), _buffer(nullptr), _subs(nullptr), _introMusicHack(introMusicHack),
+	  _lastUpdate(0), _subtitleY(0) {
+	_skf = new RawArchive(rs);
+	Common::ReadStream *eventlist = _skf->get_datasource(0);
 	if (!eventlist) {
 		perr << "No eventlist found in SKF" << Std::endl;
 		return;
@@ -79,7 +78,11 @@ SKFPlayer::SKFPlayer(RawArchive *movie, int width, int height, bool introMusicHa
 	parseEventList(eventlist);
 	delete eventlist;
 
-	_buffer = RenderSurface::CreateSecondaryRenderSurface(_width, _height);
+	// TODO: Slight hack.. clean me up.
+	if (RenderSurface::getPixelFormat().bpp() == 16)
+		_buffer = new SoftRenderSurface<uint16>(new Graphics::ManagedSurface(_width, _height, RenderSurface::getPixelFormat()));
+	else
+		_buffer = new SoftRenderSurface<uint32>(new Graphics::ManagedSurface(_width, _height, RenderSurface::getPixelFormat()));
 }
 
 SKFPlayer::~SKFPlayer() {
@@ -91,23 +94,21 @@ SKFPlayer::~SKFPlayer() {
 	delete _subs;
 }
 
-void SKFPlayer::parseEventList(IDataSource *eventlist) {
-	uint16 frame = eventlist->read2();
+void SKFPlayer::parseEventList(Common::ReadStream *eventlist) {
+	uint16 frame = eventlist->readUint16LE();
 	while (frame != 0xFFFF) {
 		SKFEvent *ev = new SKFEvent;
 		ev->_frame = frame;
-		ev->_action = static_cast<SKFAction>(eventlist->read2());
-		ev->_data = eventlist->read2();
+		ev->_action = static_cast<SKFAction>(eventlist->readUint16LE());
+		ev->_data = eventlist->readUint16LE();
 		_events.push_back(ev);
 
-		frame = eventlist->read2();
+		frame = eventlist->readUint16LE();
 	}
 }
 
 void SKFPlayer::start() {
-	_buffer->BeginPainting();
 	_buffer->Fill32(0, 0, 0, _width, _height);
-	_buffer->EndPainting();
 	MusicProcess *musicproc = MusicProcess::get_instance();
 	if (musicproc) musicproc->playMusic(0);
 	_playing = true;
@@ -123,16 +124,14 @@ void SKFPlayer::stop() {
 void SKFPlayer::paint(RenderSurface *surf, int /*lerp*/) {
 	if (!_buffer) return;
 
-	Texture *tex = _buffer->GetSurfaceAsTexture();
-
 	if (!_fadeLevel) {
-		surf->Blit(tex, 0, 0, _width, _height, 0, 0);
+		surf->Blit(_buffer->getRawSurface(), 0, 0, _width, _height, 0, 0);
 		if (_subs)
 			_subs->draw(surf, 60, _subtitleY);
 	} else {
 		uint32 fade = TEX32_PACK_RGBA(_fadeColour, _fadeColour, _fadeColour,
 		                              (_fadeLevel * 255) / FADESTEPS);
-		surf->FadedBlit(tex, 0, 0, _width, _height, 0, 0, fade);
+		surf->FadedBlit(_buffer->getRawSurface(), 0, 0, _width, _height, 0, 0, fade);
 		if (_subs)
 			_subs->drawBlended(surf, 60, _subtitleY, fade);
 	}
@@ -140,6 +139,8 @@ void SKFPlayer::paint(RenderSurface *surf, int /*lerp*/) {
 
 void SKFPlayer::run() {
 	if (!_playing || !_buffer) return;
+
+	MusicProcess *musicproc = MusicProcess::get_instance();
 
 	// if doing something, continue
 	if (_curAction) {
@@ -149,6 +150,15 @@ void SKFPlayer::run() {
 		} else if (_curAction == SKF_FadeIn) {
 			_fadeLevel--;
 			if (_fadeLevel == 0) _curAction = 0; // done
+		} else if (_curAction == SKF_SlowStopMusic) {
+			if (!musicproc || !musicproc->isFading()) {
+				if (musicproc)
+					musicproc->playMusic(0); // stop playback
+				_curAction = 0; // done
+			} else {
+				// continue to wait for fade to finish
+				return;
+			}
 		} else {
 			pout << "Unknown fade action: " << _curAction << Std::endl;
 		}
@@ -169,8 +179,10 @@ void SKFPlayer::run() {
 	Font *redfont;
 	redfont = FontManager::get_instance()->getGameFont(6, true);
 
-	MusicProcess *musicproc = MusicProcess::get_instance();
 	AudioProcess *audioproc = AudioProcess::get_instance();
+
+	bool subtitles = ConfMan.getBool("subtitles");
+	bool speechMute = ConfMan.getBool("speech_mute");
 
 	// handle _events for the current frame
 	while (_curEvent < _events.size() && _events[_curEvent]->_frame <= _curFrame) {
@@ -203,8 +215,10 @@ void SKFPlayer::run() {
 			if (musicproc) musicproc->playMusic(_events[_curEvent]->_data);
 			break;
 		case SKF_SlowStopMusic:
-			POUT("SlowStopMusic");
-			if (musicproc && !_introMusicHack) musicproc->playMusic(0);
+//			pout << "SlowStopMusic" << Std::endl;
+			if (musicproc)
+				musicproc->fadeMusic(1500);
+			_curAction = SKF_SlowStopMusic;
 			break;
 		case SKF_PlaySFX:
 //			pout << "PlaySFX " << _events[_curEvent]->_data << Std::endl;
@@ -215,13 +229,13 @@ void SKFPlayer::run() {
 			if (audioproc) audioproc->stopSFX(_events[_curEvent]->_data, 0);
 			break;
 		case SKF_SetSpeed:
-			POUT("SetSpeed " << _events[_curEvent]->_data);
+//			pout << "SetSpeed " << _events[_curEvent]->_data << Std::endl;
 //			_frameRate = _events[_curEvent]->_data;
 			break;
 		case SKF_PlaySound: {
 //			pout << "PlaySound " << _events[_curEvent]->_data << Std::endl;
 
-			if (audioproc) {
+			if (!speechMute && audioproc) {
 				uint8 *buf = _skf->get_object(_events[_curEvent]->_data);
 				uint32 bufsize = _skf->get_size(_events[_curEvent]->_data);
 				AudioSample *s;
@@ -229,7 +243,7 @@ void SKFPlayer::run() {
 				bool stereo = (buf[8] == 2);
 				s = new RawAudioSample(buf + 34, bufsize - 34,
 				                                  rate, true, stereo);
-				audioproc->playSample(s, 0x60, 0);
+				audioproc->playSample(s, 0x60, 0, true);
 				// FIXME: memory leak! (sample is never deleted)
 			}
 
@@ -237,7 +251,7 @@ void SKFPlayer::run() {
 			char *textbuf = reinterpret_cast<char *>(
 			                    _skf->get_object(_events[_curEvent]->_data - 1));
 			uint32 textsize = _skf->get_size(_events[_curEvent]->_data - 1);
-			if (textsize > 7) {
+			if (subtitles && textsize > 7) {
 				Std::string subtitle = (textbuf + 6);
 				delete _subs;
 				_subtitleY = textbuf[4] + (textbuf[5] << 8);
@@ -253,7 +267,7 @@ void SKFPlayer::run() {
 		case SKF_ClearSubs:
 //			pout << "ClearSubs" << Std::endl;
 			delete _subs;
-			_subs = 0;
+			_subs = nullptr;
 			break;
 		default:
 			pout << "Unknown action" << Std::endl;
@@ -266,7 +280,7 @@ void SKFPlayer::run() {
 	_curFrame++;
 
 	PaletteManager *palman = PaletteManager::get_instance();
-	IDataSource *object;
+	Common::SeekableReadStream *object;
 
 	uint16 objecttype = 0;
 	do {
@@ -278,10 +292,10 @@ void SKFPlayer::run() {
 
 		// read object
 		object = _skf->get_datasource(_curObject);
-		if (!object || object->getSize() < 2)
+		if (!object || object->size() < 2)
 			continue;
 
-		objecttype = object->read2();
+		objecttype = object->readUint16LE();
 
 //		pout << "Object " << _curObject << "/" << _skf->getCount()
 //			 << ", type = " << objecttype << Std::endl;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "dreamweb/sound.h"
 #include "dreamweb/dreamweb.h"
+
+#include "common/text-to-speech.h"
+#include "common/config-manager.h"
 
 namespace DreamWeb {
 
@@ -80,7 +82,7 @@ void DreamWebEngine::selectLocation() {
 			{ 104,216,138,192,&DreamWebEngine::destSelect },
 			{ 273,320,157,198,&DreamWebEngine::getBack1 },
 			{ 0,320,0,200,&DreamWebEngine::blank },
-			{ 0xFFFF,0,0,0,0 }
+			{ 0xFFFF,0,0,0,nullptr }
 		};
 		checkCoords(destList);
 	}
@@ -121,6 +123,10 @@ void DreamWebEngine::lookAtPlace() {
 
 	const uint8 *string = (const uint8 *)_travelText.getString(_destPos);
 	findNextColon(&string);
+
+	if (_ttsMan != nullptr && ConfMan.getBool("tts_enabled_objects"))
+		_ttsMan->say((const char *)string, _textEncoding);
+
 	uint16 y = (_foreignRelease) ? 84 + 4 : 84;
 	printDirect(&string, 63, &y, 191, 191 & 1);
 	workToScreenM();
@@ -153,6 +159,8 @@ void DreamWebEngine::locationPic() {
 
 	const uint8 *string = (const uint8 *)_travelText.getString(_destPos);
 	printDirect(string, 50, 20, 241, 241 & 1);
+
+	speakObject((const char *)string);
 }
 
 void DreamWebEngine::showArrows() {

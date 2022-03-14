@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,47 +15,38 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef CHEWY_CURSOR_H
 #define CHEWY_CURSOR_H
 
-#include "chewy/chewy.h"
+#include "chewy/mcga_graphics.h"
+#include "chewy/ngstypes.h"
+#include "chewy/mouse.h"
 
 namespace Chewy {
-
-class SpriteResource;
-class Font;
-
-enum CurrentCursor {
-	kWalk,
-	kLook,
-	kUse,
-	kTalk,
-	kOther
-};
 
 class Cursor {
 public:
 	Cursor();
-	virtual ~Cursor();
+	Cursor(CurBlk *curblk);
+	~Cursor();
 
-	void setCursor(uint num, bool newCursor = true);
-	void showCursor();
-	void hideCursor();
-	void animateCursor();
-	void nextCursor();
-	CurrentCursor getCurrentCursor() const;
+	void plot_cur();
+	void show_cur();
+	void hide_cur();
+	void set_cur_ani(CurAni *ani);
+	void move(int16 x, int16 y);
 
-private:
-	uint _curCursor;
-	uint _curCursorFrame;
-	SpriteResource *_cursorSprites;
+	CurBlk *_curblk = nullptr;
+	CurAni *_ani = nullptr;
+	int _scrWidth = 0;
+	int16 _curAniCountdown = 0;
+	int16 _aniCount = 0;
 };
 
-} // End of namespace Chewy
+} // namespace Chewy
 
 #endif

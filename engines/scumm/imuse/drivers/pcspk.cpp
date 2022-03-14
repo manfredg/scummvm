@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,14 +41,14 @@ int PcSpkDriver::open() {
 
 	for (uint i = 0; i < 6; ++i)
 		_channels[i].init(this, i);
-	_activeChannel = 0;
+	_activeChannel = nullptr;
 	_effectTimer = 0;
 	_randBase = 1;
 
 	// We need to take care we only send note frequencies, when the internal
 	// settings actually changed, thus we need some extra state to keep track
 	// of that.
-	_lastActiveChannel = 0;
+	_lastActiveChannel = nullptr;
 	_lastActiveOut = 0;
 
 	// We set the output sound type to music here to allow sound volume
@@ -85,7 +84,7 @@ MidiChannel *PcSpkDriver::allocateChannel() {
 			return &_channels[i];
 	}
 
-	return 0;
+	return nullptr;
 }
 
 void PcSpkDriver::generateSamples(int16 *buf, int len) {
@@ -129,14 +128,14 @@ void PcSpkDriver::onTimer() {
 		output((_activeChannel->_out.note << 7) + _activeChannel->_pitchBend + _activeChannel->_out.unk60 + _activeChannel->_out.unkE);
 	} else {
 		_pcSpk.stop();
-		_lastActiveChannel = 0;
+		_lastActiveChannel = nullptr;
 		_lastActiveOut = 0;
 	}
 }
 
 void PcSpkDriver::updateNote() {
 	uint8 priority = 0;
-	_activeChannel = 0;
+	_activeChannel = nullptr;
 	for (uint i = 0; i < 6; ++i) {
 		if (_channels[i]._allocated && _channels[i]._out.active && _channels[i]._priority >= priority) {
 			priority = _channels[i]._priority;
@@ -144,9 +143,9 @@ void PcSpkDriver::updateNote() {
 		}
 	}
 
-	if (_activeChannel == 0 || _activeChannel->_tl == 0) {
+	if (_activeChannel == nullptr || _activeChannel->_tl == 0) {
 		_pcSpk.stop();
-		_lastActiveChannel = 0;
+		_lastActiveChannel = nullptr;
 		_lastActiveOut = 0;
 	} else {
 		output(_activeChannel->_pitchBend + (_activeChannel->_out.note << 7));
@@ -261,7 +260,7 @@ void PcSpkDriver::MidiChannel_PcSpk::noteOn(byte note, byte velocity) {
 	if (_instrument[4] * 256 < ARRAYSIZE(PcSpkDriver::_outInstrumentData))
 		_out.instrument = _owner->_outInstrumentData + _instrument[4] * 256;
 	else
-		_out.instrument = 0;
+		_out.instrument = nullptr;
 
 	_out.unkA = 0;
 	_out.unkB = _instrument[1];
@@ -274,7 +273,7 @@ void PcSpkDriver::MidiChannel_PcSpk::noteOn(byte note, byte velocity) {
 	// last active channel, thus we assure the frequency is correctly set, even
 	// when the same note was sent.
 	if (_owner->_lastActiveChannel == this) {
-		_owner->_lastActiveChannel = 0;
+		_owner->_lastActiveChannel = nullptr;
 		_owner->_lastActiveOut = 0;
 	}
 	_owner->updateNote();
@@ -312,7 +311,7 @@ void PcSpkDriver::MidiChannel_PcSpk::controlChange(byte control, byte value) {
 		_tl = value;
 		if (_owner->_activeChannel == this) {
 			if (_tl == 0) {
-				_owner->_lastActiveChannel = 0;
+				_owner->_lastActiveChannel = nullptr;
 				_owner->_lastActiveOut = 0;
 				_owner->_pcSpk.stop();
 			} else {
@@ -521,7 +520,7 @@ void PcSpkDriver::updateEffectGenerator(MidiChannel_PcSpk &chan, EffectEnvelope 
 			if ((chan._instrument[4] + (def.phase & 0xFF)) * 256 < ARRAYSIZE(_outInstrumentData))
 				chan._out.instrument = _outInstrumentData + (chan._instrument[4] + (def.phase & 0xFF)) * 256;
 			else
-				chan._out.instrument = 0;
+				chan._out.instrument = nullptr;
 			break;
 
 		case 5:

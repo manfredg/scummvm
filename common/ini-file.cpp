@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@ bool INIFile::isValidName(const String &name) const {
 	if (_allowNonEnglishCharacters)
 		return true;
 	const char *p = name.c_str();
-	while (*p && (isAlnum(*p) || *p == '-' || *p == '_' || *p == '.' || *p == ' '))
+	while (*p && (isAlnum(*p) || *p == '-' || *p == '_' || *p == '.' || *p == ' ' || *p == ':'))
 		p++;
 	return *p == 0;
 }
@@ -72,6 +71,7 @@ bool INIFile::loadFromStream(SeekableReadStream &stream) {
 	KeyValue kv;
 	String comment;
 	int lineno = 0;
+	section.name = _defaultSectionName;
 
 	// TODO: Detect if a section occurs multiple times (or likewise, if
 	// a key occurs multiple times inside one section).
@@ -108,7 +108,8 @@ bool INIFile::loadFromStream(SeekableReadStream &stream) {
 			// is, verify that it only consists of alphanumerics,
 			// periods, dashes and underscores). Mohawk Living Books games
 			// can have periods in their section names.
-			while (*p && ((_allowNonEnglishCharacters && *p != ']') || isAlnum(*p) || *p == '-' || *p == '_' || *p == '.' || *p == ' '))
+			// WinAGI games can have colons in their section names.
+			while (*p && ((_allowNonEnglishCharacters && *p != ']') || isAlnum(*p) || *p == '-' || *p == '_' || *p == '.' || *p == ' ' || *p == ':'))
 				p++;
 
 			if (*p == '\0')
@@ -297,6 +298,9 @@ void INIFile::renameSection(const String &oldName, const String &newName) {
 	// - merge the two sections "oldName" and "newName"
 }
 
+void INIFile::setDefaultSectionName(const String &name) {
+	_defaultSectionName = name;
+}
 
 bool INIFile::hasKey(const String &key, const String &section) const {
 	if (!isValidName(key)) {

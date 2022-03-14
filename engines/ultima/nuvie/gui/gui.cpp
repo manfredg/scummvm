@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -238,17 +237,6 @@ GUI_status GUI:: HandleEvent(Common::Event *event) {
 			event->mouse.y /= screen_scale_factor;
 		}
 	}
-
-#if SDL_VERSION_ATLEAST(2, 0, 0)
-	if (event->type == SDL_MOUSEBUTTONDOWN || event->type == SDL_MOUSEBUTTONUP) {
-		SDL_GetMouseState(&event->mouse.x, &event->mouse.y);
-		screen->scale_sdl_window_coords(&event->mouse.x, &event->mouse.y);
-	}
-	if (event->type == SDL_MOUSEMOTION) {
-		SDL_GetMouseState(&event->motion.x, &event->motion.y);
-		screen->scale_sdl_window_coords(&event->motion.x, &event->motion.y);
-	}
-#endif
 
 	if (dragging) { //&& !block_input)
 		if (Shared::isMouseUpEvent(event->type)) { //FIX for button up that doesn't hit a widget.

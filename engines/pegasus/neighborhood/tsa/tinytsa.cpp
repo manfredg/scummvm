@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
 #include "pegasus/pegasus.h"
 #include "pegasus/ai/ai_area.h"
 #include "pegasus/items/biochips/aichip.h"
+#include "pegasus/items/biochips/arthurchip.h"
 #include "pegasus/items/biochips/opticalchip.h"
 #include "pegasus/neighborhood/mars/constants.h"
 #include "pegasus/neighborhood/norad/constants.h"
@@ -189,7 +189,10 @@ Common::String TinyTSA::getEnvScanMovie() {
 }
 
 void TinyTSA::loadAmbientLoops() {
-	loadLoopSound1("Sounds/TSA/T01NAE.NEW.22K.AIFF");
+	if (_vm->isDVD()) // Updated sound in the DVD version
+		loadLoopSound1("Sounds/TSA/T01NAE.NEW.32K.AIFF");
+	else
+		loadLoopSound1("Sounds/TSA/T01NAE.NEW.22K.AIFF");
 }
 
 int16 TinyTSA::getStaticCompassAngle(const RoomID room, const DirectionConstant dir) {
@@ -404,6 +407,11 @@ void TinyTSA::receiveNotification(Notification *notification, const Notification
 					break;
 				}
 			}
+			if (((GameState.getNoradFinished() && !(GameState.getMarsFinished() || GameState.getWSCFinished())) ||
+				(GameState.getMarsFinished() && !(GameState.getNoradFinished() || GameState.getWSCFinished())) ||
+				(GameState.getWSCFinished() && !(GameState.getNoradFinished() || GameState.getMarsFinished()))) &&
+				g_arthurChip)
+				g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBB43", kArthurTSASawFirstOpMemMovie);
 
 			requestExtraSequence(kTinyTSA37OpMemReviewToMainMenu, kExtraCompletedFlag, kFilterNoInput);
 			break;
@@ -412,6 +420,8 @@ void TinyTSA::receiveNotification(Notification *notification, const Notification
 			GameState.setTSAState(kPlayerLockedInPegasus);
 			showMainJumpMenu();
 			makeContinuePoint();
+			if (g_arthurChip)
+				g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA22", kArthurTSAInPegasusNoVideo);
 			break;
 		case kTinyTSA37JumpToNoradMenu:
 			setCurrentActivation(kActivationTinyTSAJumpToNorad);

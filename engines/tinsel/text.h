@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Text utility defines
  */
@@ -45,8 +44,6 @@ enum {
 #define C16_MAP		0xC000
 #define C16_FLAG_MASK	(C16_240 | C16_224 | C16_MAP)
 
-#include "common/pack-start.h"	// START STRUCT PACKING
-
 /**
  * Text font data structure.
  * @note only the pointer is used so the size of fontDef[] is not important.
@@ -58,11 +55,10 @@ struct FONT {
 	int xShadow;			///< x shadow offset
 	int yShadow;			///< y shadow offset
 	int spaceSize;			///< x spacing to use for a space character
+	int baseColor;			///< base color which can be replaced, specific to Tinsel 3
 	OBJ_INIT fontInit;		///< structure used to init text objects
 	SCNHANDLE fontDef[300];	///< image handle array for all characters in the font
-} PACKED_STRUCT;
-
-#include "common/pack-end.h"	// END STRUCT PACKING
+};
 
 
 /** structure for passing the correct parameters to ObjectTextOut */
@@ -98,12 +94,11 @@ struct TEXTOUT {
 OBJECT *ObjectTextOut(OBJECT **pList, char *szStr, int color,
 					int xPos, int yPos, SCNHANDLE hFont, int mode, int sleepTime = 0);
 
-OBJECT *ObjectTextOutIndirect(	// output a string of text
-	TEXTOUT *pText);	// pointer to TextOut struct with all parameters
-
 bool IsCharImage(		// Is there an image for this character in this font?
 	SCNHANDLE hFont,	// which font to use
 	char c);		// character to test
+
+uint32 t3GetBaseColor();
 
 } // End of namespace Tinsel
 

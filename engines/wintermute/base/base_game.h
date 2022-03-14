@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #define WINTERMUTE_BASE_GAME_H
 
 #include "engines/wintermute/base/base_object.h"
+#include "engines/wintermute/base/base_game_custom_actions.h"
 #include "engines/wintermute/base/timer.h"
 #include "engines/wintermute/persistent.h"
 #include "engines/wintermute/coll_templ.h"
@@ -66,6 +66,11 @@ class UIWindow;
 class VideoPlayer;
 class VideoTheoraPlayer;
 class SaveThumbHelper;
+
+#ifdef ENABLE_WME3D
+class BaseRenderer3D;
+struct FogParameters;
+#endif
 
 class BaseGame: public BaseObject {
 public:
@@ -153,6 +158,20 @@ public:
 	void LOG(bool res, const char *fmt, ...);
 
 	BaseRenderer *_renderer;
+#ifdef ENABLE_WME3D
+	BaseRenderer3D *_renderer3D;
+	bool _playing3DGame;
+
+	bool _supportsRealTimeShadows;
+	TShadowType _maxShadowType;
+
+	bool setMaxShadowType(TShadowType maxShadowType);
+	virtual TShadowType getMaxShadowType(BaseObject *object);
+
+	virtual uint32 getAmbientLightColor();
+
+	virtual bool getFogParams(FogParameters &fogParameters);
+#endif
 	BaseSoundMgr *_soundMgr;
 #if EXTENDED_DEBUGGER_ENABLED
 	DebuggableScEngine *_scEngine;
@@ -202,6 +221,8 @@ public:
 
 	bool handleKeypress(Common::Event *event, bool printable = false) override;
 	virtual void handleKeyRelease(Common::Event *event);
+	virtual bool handleCustomActionStart(BaseGameCustomAction action);
+	virtual bool handleCustomActionEnd(BaseGameCustomAction action);
 
 	bool unfreeze();
 	bool freeze(bool includingMusic = true);
@@ -259,6 +280,8 @@ public:
 	bool setActiveObject(BaseObject *Obj);
 	BaseSprite *_lastCursor;
 	bool drawCursor(BaseSprite *Cursor);
+	bool storeSaveThumbnail();
+	void deleteSaveThumbnail();
 
 	SaveThumbHelper *_cachedThumbnail;
 	void addMem(int32 bytes);
@@ -377,7 +400,7 @@ private:
 	Common::RandomSource *_rndHc;
 
 	// HeroCraft games specific checksum function, used in Papa's Daughters 2 selfcheck
-	uint8 getFilePartChecksumHc(const char *filename, uint32 begin, uint32 end);	
+	uint8 getFilePartChecksumHc(const char *filename, uint32 begin, uint32 end);
 #endif
 
 };

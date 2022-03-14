@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,31 +15,61 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/debug.h"
-#include "common/stream.h"
+
 #include "image/png.h"
 #include "graphics/surface.h"
 
-#include "sludge/allfiles.h"
+#include "sludge/fileset.h"
 #include "sludge/hsi.h"
 #include "sludge/imgloader.h"
 #include "sludge/sludge.h"
 
 namespace Sludge {
 
-bool ImgLoader::loadImage(Common::SeekableReadStream *stream, Graphics::Surface *dest, int reserve) {
-	debugC(3, kSludgeDebugGraphics, "Loading image at position: %i", stream->pos());
+bool ImgLoader::loadImage(int num, const char *fname, Common::SeekableReadStream *stream, Graphics::Surface *dest, int reserve) {
+	debugC(3, kSludgeDebugGraphics, "Loading image at position: %d", (int)stream->pos());
+
+	bool dumpPng = false;
+
 	int32 start_ptr = stream->pos();
 	if (!loadPNGImage(stream, dest)) {
 		stream->seek(start_ptr);
 		if (!loadHSIImage(stream, dest, reserve)) {
 			return false;
+		} else {
+			if (num != -1) {
+				g_sludge->_resMan->dumpFile(num, Common::String::format("%s%%04d.slx", fname).c_str());
+				dumpPng = true;
+			}
 		}
+	} else {
+		if (num != -1)
+			g_sludge->_resMan->dumpFile(num, Common::String::format("%s%%04d.png", fname).c_str());
+	}
+
+	if (!g_sludge->_dumpScripts)
+		return true;
+
+	if (dumpPng || (fname && num == -1)) {
+		// Debug code to output light map image
+		Common::DumpFile *outFile = new Common::DumpFile();
+		Common::String outName;
+
+		if (dumpPng)
+			outName = Common::String::format("dumps/%s%04d.png", fname, num);
+		else
+			outName = Common::String::format("dumps/%s.png", fname);
+
+		outFile->open(outName);
+		Image::writePNG(*outFile, *dest);
+		outFile->finalize();
+		outFile->close();
+		delete outFile;
 	}
 	return true;
 }

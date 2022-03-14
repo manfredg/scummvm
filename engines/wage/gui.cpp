@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * MIT License:
  *
@@ -93,9 +92,10 @@ Gui::Gui(WageEngine *engine) {
 	_sceneDirty = true;
 	_screen.create(g_system->getWidth(), g_system->getHeight(), Graphics::PixelFormat::createFormatCLUT8());
 
-	_wm.setScreen(&_screen);
+	_wm = new Graphics::MacWindowManager(Graphics::kWMNoScummVMWallpaper);
+	_wm->setScreen(&_screen);
 
-	_menu = _wm.addMenu();
+	_menu = _wm->addMenu();
 
 	_menu->setCommandsCallback(menuCommandsCallback, this);
 
@@ -120,7 +120,7 @@ Gui::Gui(WageEngine *engine) {
 		_menu->enableCommand(kMenuEdit, kMenuActionPaste, true);
 	}
 
-	_sceneWindow = _wm.addWindow(false, false, false);
+	_sceneWindow = _wm->addWindow(false, false, false);
 	_sceneWindow->setCallback(sceneWindowCallback, this);
 
 	//TODO: Make the font we use here work
@@ -130,7 +130,7 @@ Gui::Gui(WageEngine *engine) {
 
 	uint maxWidth = _screen.w;
 
-	_consoleWindow = _wm.addTextWindow(font, kColorBlack, kColorWhite, maxWidth, Graphics::kTextAlignLeft, _menu);
+	_consoleWindow = _wm->addTextWindow(font, kColorBlack, kColorWhite, maxWidth, Graphics::kTextAlignLeft, _menu);
 
 	loadBorders();
 }
@@ -138,11 +138,12 @@ Gui::Gui(WageEngine *engine) {
 Gui::~Gui() {
 	_screen.free();
 	_console.free();
+	delete _wm;
 }
 
 void Gui::draw() {
 	if (_engine->_isGameOver) {
-		_wm.draw();
+		_wm->draw();
 
 		return;
 	}
@@ -159,12 +160,12 @@ void Gui::draw() {
 		_sceneWindow->setTitle(_scene->_name);
 		_consoleWindow->setDimensions(*_scene->_textBounds);
 
-		_wm.setFullRefresh(true);
+		_wm->setFullRefresh(true);
 	}
 
 	drawScene();
 
-	_wm.draw();
+	_wm->draw();
 
 	_sceneDirty = false;
 }
@@ -173,7 +174,7 @@ void Gui::drawScene() {
 	if (!_sceneDirty)
 		return;
 
-	_scene->paint(_sceneWindow->getSurface(), 0, 0);
+	_scene->paint(_sceneWindow->getWindowSurface(), 0, 0);
 	_sceneWindow->setDirty(true);
 
 	_sceneDirty = true;
@@ -188,8 +189,7 @@ static bool sceneWindowCallback(WindowClick click, Common::Event &event, void *g
 
 bool Gui::processSceneEvents(WindowClick click, Common::Event &event) {
 	if (click == kBorderInner && event.type == Common::EVENT_LBUTTONUP) {
-		Designed *obj = _scene->lookUpEntity(event.mouse.x - _sceneWindow->getDimensions().left,
-												  event.mouse.y - _sceneWindow->getDimensions().top);
+		Designed *obj = _scene->lookUpEntity(event.mouse.x, event.mouse.y);
 
 		if (obj != nullptr)
 			_engine->processTurn(NULL, obj);
@@ -251,7 +251,7 @@ bool Gui::processEvent(Common::Event &event) {
 		_menu->enableCommand(kMenuEdit, kMenuActionPaste, true);
 	}
 
-	return _wm.processEvent(event);
+	return _wm->processEvent(event);
 }
 
 void menuCommandsCallback(int action, Common::String &text, void *data) {
@@ -312,33 +312,6 @@ void Gui::executeMenuCommand(int action, Common::String &text) {
 	}
 }
 
-void Gui::loadBorders() {
-	loadBorder(_sceneWindow, "wage_border_inact.bmp", false);
-	loadBorder(_sceneWindow, "wage_border_act-noscrollbar.bmp", true);
-	loadBorder(_consoleWindow, "wage_border_inact.bmp", false);
-	loadBorder(_consoleWindow, "wage_border_act.bmp", true);
-}
-
-void Gui::loadBorder(Graphics::MacWindow *target, Common::String filename, bool active) {
-	Common::File borderfile;
-
-	if (!borderfile.open(filename)) {
-		debug(1, "Cannot open border file");
-		return;
-	}
-
-	Image::BitmapDecoder bmpDecoder;
-	Common::SeekableReadStream *stream = borderfile.readStream(borderfile.size());
-	if (stream) {
-
-		target->loadBorder(*stream, active);
-
-		borderfile.close();
-
-		delete stream;
-	}
-}
-
 //////////////////
 // Console stuff
 //////////////////
@@ -349,7 +322,7 @@ const Graphics::MacFont *Gui::getConsoleMacFont() {
 }
 
 const Graphics::Font *Gui::getConsoleFont() {
-	return _wm._fontMan->getFont(*getConsoleMacFont());
+	return _wm->_fontMan->getFont(*getConsoleMacFont());
 }
 
 void Gui::appendText(const char *s) {
@@ -402,7 +375,7 @@ void Gui::actionCut() {
 
 	Common::String input = Common::convertFromU32String(_consoleWindow->getInput());
 
-	g_system->setTextInClipboard(Common::convertFromU32String(_consoleWindow->cutSelection()));
+	g_system->setTextInClipboard(_consoleWindow->cutSelection());
 
 	_undobuffer = input;
 

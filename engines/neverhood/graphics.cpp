@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@ namespace Neverhood {
 
 BaseSurface::BaseSurface(NeverhoodEngine *vm, int priority, int16 width, int16 height, Common::String name)
 	: _vm(vm), _priority(priority), _visible(true), _transparent(true),
-	_clipRects(NULL), _clipRectsCount(0), _version(0), _name(name) {
+	_clipRects(nullptr), _clipRectsCount(0), _version(0), _name(name) {
 
 	_drawRect.x = 0;
 	_drawRect.y = 0;
@@ -153,7 +152,7 @@ void ShadowSurface::draw() {
 
 FontSurface::FontSurface(NeverhoodEngine *vm, NPointArray *tracking, uint charsPerRow, uint16 numRows, byte firstChar, uint16 charWidth, uint16 charHeight)
 	: BaseSurface(vm, 0, charWidth * charsPerRow, charHeight * numRows, "font"), _charsPerRow(charsPerRow), _numRows(numRows),
-	_firstChar(firstChar), _charWidth(charWidth), _charHeight(charHeight), _tracking(NULL) {
+	_firstChar(firstChar), _charWidth(charWidth), _charHeight(charHeight), _tracking(nullptr) {
 
 	_tracking = new NPointArray();
 	*_tracking = *tracking;
@@ -162,7 +161,7 @@ FontSurface::FontSurface(NeverhoodEngine *vm, NPointArray *tracking, uint charsP
 
 FontSurface::FontSurface(NeverhoodEngine *vm, uint32 fileHash, uint charsPerRow, uint16 numRows, byte firstChar, uint16 charWidth, uint16 charHeight)
 	: BaseSurface(vm, 0, charWidth * charsPerRow, charHeight * numRows, "font"), _charsPerRow(charsPerRow), _numRows(numRows),
-	_firstChar(firstChar), _charWidth(charWidth), _charHeight(charHeight), _tracking(NULL) {
+	_firstChar(firstChar), _charWidth(charWidth), _charHeight(charHeight), _tracking(nullptr) {
 
 	SpriteResource fontSpriteResource(_vm);
 	fontSpriteResource.load(fileHash, true);
@@ -262,13 +261,13 @@ void parseBitmapResource(const byte *sprite, bool *rle, NDimensions *dimensions,
 			*palette = sprite;
 		sprite += 1024;
 	} else if (palette)
-		*palette = NULL;
+		*palette = nullptr;
 
 	if (flags & BF_HAS_IMAGE) {
 		if (pixels)
 			*pixels = sprite;
 	} else if (pixels)
-		*pixels = NULL;
+		*pixels = nullptr;
 
 }
 

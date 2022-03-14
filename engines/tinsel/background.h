@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Data structures used for handling backgrounds
  */
@@ -24,12 +23,13 @@
 #ifndef TINSEL_BACKGND_H     // prevent multiple includes
 #define TINSEL_BACKGND_H
 
+#include "common/array.h"
 #include "common/coroutines.h"
 #include "common/frac.h"
 #include "common/rect.h"
 #include "tinsel/anim.h"	// for ANIM
 #include "tinsel/dw.h"	// for SCNHANDLE
-#include "tinsel/object.h"	// for POBJECT
+#include "tinsel/object.h"	// for OBJECT *
 #include "tinsel/palette.h"	// palette definitions
 
 namespace Tinsel {
@@ -65,8 +65,7 @@ struct BACKGND {
 	int refreshRate;		///< background update process refresh rate
 	frac_t *pXscrollTable;	///< pointer to x direction scroll table for this background
 	frac_t *pYscrollTable;	///< pointer to y direction scroll table for this background
-	int numPlayfields;		///< number of playfields for this background
-	PLAYFIELD *fieldArray;	///< pointer to array of all playfields for this background
+	Common::Array<PLAYFIELD> fieldArray;	///< list of all playfields for this background
 	bool bAutoErase;		///< when set - screen is cleared before anything is plotted (unused)
 };
 
@@ -93,6 +92,7 @@ public:
 	void DropBackground();
 
 	void ResetBackground() {
+		_pCurBgnd->fieldArray.clear();
 		delete _pCurBgnd;
 		_pCurBgnd = nullptr;
 	}
@@ -100,20 +100,20 @@ public:
 	void StartupBackground(CORO_PARAM, SCNHANDLE hFilm);
 
 	void PlayfieldSetPos(		// Sets the xy position of the specified playfield in the current background
-		int which,		// which playfield
+		unsigned int which,		// which playfield
 		int newXpos,		// new x position
 		int newYpos);		// new y position
 
 	void PlayfieldGetPos(		// Returns the xy position of the specified playfield in the current background
-		int which,		// which playfield
+		unsigned int which,		// which playfield
 		int* pXpos,		// returns current x position
 		int* pYpos);		// returns current y position
 
 	int PlayfieldGetCenterX(	// Returns the xy position of the specified playfield in the current background
-		int which);		// which playfield
+		unsigned int which);		// which playfield
 
 	OBJECT** GetPlayfieldList(	// Returns the display list for the specified playfield
-		int which);		// which playfield
+		unsigned int which);		// which playfield
 
 	OBJECT* GetBgObject() { return _pBG[0]; }
 
@@ -144,6 +144,8 @@ public:
 
 	int getBgSpeed() { return _BGspeed; }
 
+	void WaitForBG(CORO_PARAM);
+
 private:
 	Font *_font;
 
@@ -156,9 +158,9 @@ private:
 	bool _bDoFadeIn;
 
 public:
-	int _bgReels;
-	POBJECT _pBG[MAX_BG];
-	ANIM	_thisAnim[MAX_BG];	// used by BGmainProcess()
+	int     _bgReels;
+	OBJECT  *_pBG[MAX_BG];
+	ANIM    _thisAnim[MAX_BG];	// used by BGmainProcess()
 };
 
 } // End of namespace Tinsel

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,17 +26,29 @@
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 
 #if (__GNUC__ && __cplusplus)
 #pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wparentheses"
+#endif
+#include <stdlib.h>
+#if (__GNUC__ && __cplusplus)
+#pragma GCC diagnostic pop
+#endif
+
+#if (__GNUC__ && __cplusplus)
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-local-addr"
+#pragma GCC diagnostic ignored "-Wnarrowing"
 #endif
 #include <e32def.h>
-#include <e32std.h>
+#if !defined(__IGNORE__E32STD_H__) // TKey type from system header
+#include <e32std.h> // doesn't meets with lua ones.
+#endif
 #if (__GNUC__ && __cplusplus)
+#pragma GCC diagnostic pop
 #pragma GCC diagnostic pop
 #endif
 
@@ -84,10 +95,19 @@ namespace std
 #undef remove
 #endif
 
-#define GUI_ENABLE_KEYSDIALOG
+#if __cplusplus >= 201103L
+#define USE_CXX11
+#define NO_CXX11_INITIALIZER_LIST
+#define NO_CXX11_NULLPTR_T
+#endif //USE_CXX11
 
 #define DISABLE_COMMAND_LINE
 #define USE_RGB_COLOR
+#define USE_TINYGL
+
+#ifndef SYMBIAN_DYNAMIC_PLUGIN
+#define DETECTION_STATIC
+#endif //DETECTION_STATIC
 
 // hack in some tricks to work around not having these fcns for Symbian
 // and we _really_ don't wanna link with any other windows LIBC library!
@@ -165,11 +185,47 @@ namespace std
 	#define vsnprintf(buf,len,format,valist) symbian_vsnprintf(buf,len,format,valist)
 #endif
 
+
+#ifndef signbit
+#define signbit(x)     \
+	((sizeof (x) == sizeof (float)) ? __signbitf(x) \
+	: (sizeof (x) == sizeof (double)) ? __signbit(x) \
+	: __signbitl(x))
+#endif
+
+// Functions from openlibm not declared in Symbian math.h
+extern "C"{
+	float  roundf (float x);
+	double nearbyint(double x);
+	double round(double x);
+	long   lround(double);
+	int  __signbit(double);
+	int  __signbitf(float);
+	int  __signbitl(long double);
+	float  truncf(float);
+	float  fminf(float x, float y);
+	float  fmaxf(float x, float y);
+	double fmax (double x, double y);
+	long long int strtoll(const char* start, char** end, int radix);
+}
+
+
 #ifndef __WINS__
+// yuv2rgb functions from theorarm
+extern "C"{
+#ifdef COMMON_INTTYPES_H // That header has own inttypes declaration.
+#define HAVE_INTTYPES_H  // So we switch off it to avoid conflict declarations.
+#endif
+#include <theora/yuv2rgb.h>
+
+#ifndef COMMON_INTTYPES_H // No conflict.
+#define COMMON_INTTYPES_H
+#endif
+}
+#define USE_ARM_YUV2RGB_ASM
 #define USE_ARM_GFX_ASM
 #define USE_ARM_SMUSH_ASM
 #define USE_ARM_COSTUME_ASM
-#define USE_ARM_SOUND_ASM
 #endif
 
 // Symbian bsearch implementation is flawed
@@ -182,6 +238,10 @@ void *scumm_bsearch(const void *key, const void *base, size_t nmemb, size_t size
 #define FORBIDDEN_SYMBOL_EXCEPTION_getcwd
 #define FORBIDDEN_SYMBOL_EXCEPTION_stdout
 #define FORBIDDEN_SYMBOL_EXCEPTION_stderr
+
+#if defined(__GNUC__)
+# define va_copy(dst, src) __builtin_va_copy(dst, src)
+#endif
 
 // we cannot include SymbianOS.h everywhere, but this works too (functions code is in SymbianOS.cpp)
 namespace Symbian {

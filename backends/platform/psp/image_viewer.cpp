@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -76,19 +75,19 @@ bool ImageViewer::load(int imageNum) {
 	char error[100];
 	if (status == PngLoader::BAD_FILE) {
 		sprintf(error, "Cannot display %s. Not a proper PNG file", specificImageName.c_str());
-		GUI::TimedMessageDialog dialog(error, 4000);
+		GUI::TimedMessageDialog dialog(Common::U32String(error), 4000);
 		dialog.runModal();
 		return false;
 	} else if (status == PngLoader::OUT_OF_MEMORY) {
 		sprintf(error, "Out of memory loading %s. Try making the image smaller", specificImageName.c_str());
-		GUI::TimedMessageDialog dialog(error, 4000);
+		GUI::TimedMessageDialog dialog(Common::U32String(error), 4000);
 		dialog.runModal();
 		return false;
 	}
 	// try to load the image file
 	if (!image.load()) {
 		sprintf(error, "Cannot display %s. Not a proper PNG file", specificImageName.c_str());
-		GUI::TimedMessageDialog dialog(error, 4000);
+		GUI::TimedMessageDialog dialog(Common::U32String(error), 4000);
 		dialog.runModal();
 		return false;
 	}
@@ -136,7 +135,7 @@ void ImageViewer::setVisible(bool visible) {
 
 	// from here on, we're making the loader visible
 	if (visible && g_engine) {	// we can only run the image viewer when there's an engine
-		g_engine->pauseEngine(true);
+		_pauseToken = g_engine->pauseEngine();
 
 		load(_imageNum ? _imageNum : 1); 	// load the 1st image or the current
 	}
@@ -146,7 +145,7 @@ void ImageViewer::setVisible(bool visible) {
 		setViewerButtons(true);
 
 		{ // so dialog goes out of scope, destroying all allocations
-			GUI::TimedMessageDialog dialog("Image Viewer", 1000);
+			GUI::TimedMessageDialog dialog(Common::U32String("Image Viewer"), 1000);
 			dialog.runModal();
 		}
 
@@ -157,7 +156,7 @@ void ImageViewer::setVisible(bool visible) {
 		setViewerButtons(false);
 
 		if (g_engine && g_engine->isPaused())
-			g_engine->pauseEngine(false);
+			_pauseToken.clear();
 	}
 	setDirty();
 }

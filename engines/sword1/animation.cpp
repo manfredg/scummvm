@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -182,7 +181,7 @@ bool MoviePlayer::load(uint32 id) {
 		filename = Common::String::format("%s.smk", sequenceList[id]);
 		break;
 	case kVideoDecoderPSX:
-		filename = Common::String::format("%s.str", (_vm->_systemVars.isDemo) ? sequenceList[id] : sequenceListPSX[id]);
+		filename = Common::String::format("%s.str", (_vm->_systemVars.isDemo && id == 4) ? "intro" : sequenceListPSX[id]);
 		break;
 	case kVideoDecoderMP2:
 		filename = Common::String::format("%s.mp2", sequenceList[id]);
@@ -520,8 +519,8 @@ MoviePlayer *makeMoviePlayer(uint32 id, SwordEngine *vm, Text *textMan, ResMan *
 
 	// For the PSX version, we'll try the PlayStation stream files
 	if (vm->isPsx()) {
-		// The demo uses the normal file names
-		filename = ((vm->_systemVars.isDemo) ? Common::String(sequenceList[id]) : Common::String(sequenceListPSX[id])) + ".str";
+		// The demo uses the normal file names for the intro cutscene
+		filename = ((vm->_systemVars.isDemo && id == 4) ? "intro" : Common::String(sequenceListPSX[id])) + ".str";
 
 		if (Common::File::exists(filename)) {
 #ifdef USE_RGB_COLOR
@@ -529,7 +528,7 @@ MoviePlayer *makeMoviePlayer(uint32 id, SwordEngine *vm, Text *textMan, ResMan *
 			Video::VideoDecoder *psxDecoder = new Video::PSXStreamDecoder(Video::PSXStreamDecoder::kCD2x);
 			return new MoviePlayer(vm, textMan, resMan, system, psxDecoder, kVideoDecoderPSX);
 #else
-			GUI::MessageDialog dialog(Common::String::format(_("PSX stream cutscene '%s' cannot be played in paletted mode"), filename.c_str()), _("OK"));
+			GUI::MessageDialog dialog(Common::U32String::format(_("PSX stream cutscene '%s' cannot be played in paletted mode"), filename.c_str()), _("OK"));
 			dialog.runModal();
 			return 0;
 #endif
@@ -573,7 +572,7 @@ MoviePlayer *makeMoviePlayer(uint32 id, SwordEngine *vm, Text *textMan, ResMan *
 	}
 
 	if (!vm->isPsx() || scumm_stricmp(sequenceList[id], "enddemo") != 0) {
-		Common::String buf = Common::String::format(_("Cutscene '%s' not found"), sequenceList[id]);
+		Common::U32String buf = Common::U32String::format(_("Cutscene '%s' not found"), sequenceList[id]);
 		GUI::MessageDialog dialog(buf, _("OK"));
 		dialog.runModal();
 	}

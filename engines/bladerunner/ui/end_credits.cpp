@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,10 +49,10 @@ void EndCredits::show() {
 	_vm->_mouse->disable();
 	_vm->_mixer->stopAll();
 	_vm->_ambientSounds->removeAllNonLoopingSounds(true);
-	_vm->_ambientSounds->removeAllLoopingSounds(4);
+	_vm->_ambientSounds->removeAllLoopingSounds(4u);
 	_vm->_audioSpeech->stopSpeech();
 
-	_vm->_music->play(_vm->_gameInfo->getMusicTrack(kMusicCredits), 100, 0, 2, -1, 0, 3);
+	_vm->_music->play(_vm->_gameInfo->getMusicTrack(kMusicCredits), 100, 0, 2, -1, kMusicLoopPlayOnce, 3);
 
 	Font *fontBig = Font::load(_vm, "TAHOMA24.FON", 1, true);
 	Font *fontSmall = Font::load(_vm, "TAHOMA18.FON", 1, true);
@@ -157,7 +156,7 @@ void EndCredits::show() {
 	delete fontSmall;
 	delete fontBig;
 
-	_vm->_music->stop(0);
+	_vm->_music->stop(0u);
 	_vm->_mouse->enable();
 }
 

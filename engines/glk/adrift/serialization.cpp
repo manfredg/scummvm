@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -188,10 +187,6 @@ void SaveSerializer::flush(sc_bool is_final) {
 }
 
 void SaveSerializer::writeChar(sc_char character) {
-	// Validate the buffer hasn't exceeded the maximum allowable size
-	if (_buffer.size() == BUFFER_SIZE)
-		sc_error("Ran out of serialization buffer");
-
 	// Add to the buffer
 	_buffer.writeByte(character);
 }
@@ -255,7 +250,7 @@ bool LoadSerializer::load() {
 	// Read the _game name, and compare with the one in the _game.  Fail if they don't match exactly.
 	// A tighter check than this would perhaps be preferable, say, something based on the TAF file
 	// header, but this isn't in the save file format.
-	
+
 	vt_key[0].string = "Globals";
 	vt_key[1].string = "GameName";
 	gamename = prop_get_string(bundle, "S<-ss", vt_key);
@@ -361,8 +356,9 @@ bool LoadSerializer::load() {
 
 		gs_set_npc_location(new_game, index_, readInt(context)); CHECK;
 		gs_set_npc_seen(new_game, index_, readBool(context)); CHECK;
-		for (walk = 0; walk < gs_npc_walkstep_count(new_game, index_); walk++)
+		for (walk = 0; walk < gs_npc_walkstep_count(new_game, index_); walk++) {
 			gs_set_npc_walkstep(new_game, index_, walk, readInt(context)); CHECK;
+		}
 	}
 
 	// Restore each variable.

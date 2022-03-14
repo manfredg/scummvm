@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  *              Originally written by Syn9 in FreeBASIC with SDL
@@ -54,8 +53,18 @@ namespace Griffon {
 
 void GriffonEngine::initialize() {
 	// init char *_floatstri[kMaxFloat]
-	for (int i = 0; i < kMaxFloat; i++)
+	for (int i = 0; i < kMaxFloat; i++) {
 		_floatText[i].text = (char *)malloc(64); // 64 bytes each string (should be enough)
+		_floatText[i].framesLeft = 0;
+		_floatText[i].x = 0;
+		_floatText[i].y = 0;
+		_floatText[i].col = 0;
+
+		_floatIcon[i].framesLeft = 0;
+		_floatIcon[i].x = 0;
+		_floatIcon[i].y = 0;
+		_floatIcon[i].ico = 0;
+	}
 
 	_video = new Graphics::TransparentSurface;
 	_video->create(320, 240, g_system->getScreenFormat());
@@ -293,12 +302,13 @@ void GriffonEngine::loadMap(int mapnum) {
 					rcDest.setWidth(16);
 					rcDest.setHeight(16);
 
+					int alpha = 255;
 					if (l == 2 && curtilel == 1) {
 						for (int ff = 0; ff <= 5; ff++) {
 							int ffa = 20 * 5 - 1 + ff * 20;
 							int ffb = 20 * 5 + 4 + ff * 20;
 							if (curtile > ffa && curtile < ffb) {
-								_tiles[curtilel]->setAlpha(128, true);
+								alpha = 128;
 							}
 						}
 					}
@@ -306,13 +316,12 @@ void GriffonEngine::loadMap(int mapnum) {
 						for (int ff = 0; ff <= 4; ff++) {
 							int ffa = 20 * (5 + ff) + 3;
 							if (curtile == ffa) {
-								_tiles[curtilel]->setAlpha(192, true);
+								alpha = 192;
 							}
 						}
 					}
 
-					_tiles[curtilel]->blit(*_mapBg, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
-					_tiles[curtilel]->setAlpha(255, true);
+					_tiles[curtilel]->blit(*_mapBg, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(alpha, 255, 255, 255));
 
 					rcDest.left = x * 8;
 					rcDest.top = y * 8;
@@ -396,8 +405,8 @@ void GriffonEngine::loadMap(int mapnum) {
 	for (int i = 0; i < kMaxNPC; i++)
 		_npcInfo[i].onMap = false;
 
-	for (int x = 0; x <= 19; x++) {
-		for (int y = 0; y <= 19; y++) {
+	for (int x = 0; x <= 20; x++) {
+		for (int y = 0; y <= 14; y++) {
 			int d = tempmap[3 * 40 + x][y];
 
 			int npc = 0;
@@ -491,8 +500,11 @@ void GriffonEngine::loadMap(int mapnum) {
 		INPUT("%i", &_npcInfo[i].item3);
 		INPUT("%i", &_npcInfo[i].script);
 
+		_npcInfo[i].cframe = 0;
+		_npcInfo[i].frame = 0;
 		_npcInfo[i].frame2 = 0;
 		_npcInfo[i].attackattempt = 0;
+		_npcInfo[i].ticks = 0;
 
 		// baby dragon
 		if (_npcInfo[i].spriteset == kMonsterBabyDragon) {

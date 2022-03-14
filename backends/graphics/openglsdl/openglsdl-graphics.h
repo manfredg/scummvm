@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,39 +31,35 @@
 
 class OpenGLSdlGraphicsManager : public OpenGL::OpenGLGraphicsManager, public SdlGraphicsManager {
 public:
-	OpenGLSdlGraphicsManager(uint desktopWidth, uint desktopHeight, SdlEventSource *eventSource, SdlWindow *window);
+	OpenGLSdlGraphicsManager(SdlEventSource *eventSource, SdlWindow *window);
 	virtual ~OpenGLSdlGraphicsManager();
 
-	// GraphicsManager API
-	virtual void activateManager() override;
-	virtual void deactivateManager() override;
+	bool hasFeature(OSystem::Feature f) const override;
+	void setFeatureState(OSystem::Feature f, bool enable) override;
+	bool getFeatureState(OSystem::Feature f) const override;
 
-	virtual bool hasFeature(OSystem::Feature f) const override;
-	virtual void setFeatureState(OSystem::Feature f, bool enable) override;
-	virtual bool getFeatureState(OSystem::Feature f) const override;
+	void initSize(uint w, uint h, const Graphics::PixelFormat *format) override;
+	void updateScreen() override;
 
-	virtual void initSize(uint w, uint h, const Graphics::PixelFormat *format) override;
-	virtual void updateScreen() override;
+	float getHiDPIScreenFactor() const override;
 
 	// EventObserver API
-	virtual bool notifyEvent(const Common::Event &event) override;
+	bool notifyEvent(const Common::Event &event) override;
 
 	// SdlGraphicsManager API
-	virtual void notifyVideoExpose() override;
-	virtual void notifyResize(const int width, const int height) override;
+	void notifyVideoExpose() override;
+	void notifyResize(const int width, const int height) override;
 
 protected:
-	virtual bool loadVideoMode(uint requestedWidth, uint requestedHeight, const Graphics::PixelFormat &format) override;
+	bool loadVideoMode(uint requestedWidth, uint requestedHeight, const Graphics::PixelFormat &format) override;
 
-	virtual void refreshScreen() override;
+	void refreshScreen() override;
 
-	virtual void *getProcAddress(const char *name) const override;
+	void *getProcAddress(const char *name) const override;
 
-	virtual void handleResizeImpl(const int width, const int height, const int xdpi, const int ydpi) override;
+	void handleResizeImpl(const int width, const int height) override;
 
-	virtual bool saveScreenshot(const Common::String &filename) const override;
-
-	virtual int getGraphicsModeScale(int mode) const override { return 1; }
+	bool saveScreenshot(const Common::String &filename) const override;
 
 private:
 	bool setupMode(uint width, uint height);
@@ -82,6 +77,9 @@ private:
 	bool _ignoreLoadVideoMode;
 	bool _gotResize;
 
+#if SDL_VERSION_ATLEAST(2, 0, 0)
+	bool _vsync;
+#endif
 	bool _wantsFullScreen;
 	uint _ignoreResizeEvents;
 

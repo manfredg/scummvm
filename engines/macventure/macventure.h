@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,9 +64,6 @@ class ScriptEngine;
 class SoundManager;
 
 typedef uint32 ObjID;
-
-// HACK, until I find a way to translate correctly
-extern void toASCII(Common::String &str);
 
 enum {
 	kScreenWidth = 512,
@@ -205,7 +201,6 @@ public:
 	void setInitialFlags();
 	void setNewGameState();
 
-	void initDebugChannels();
 	void reset();
 	void resetInternals();
 	void resetGui();
@@ -243,7 +238,7 @@ public:
 	void updateWindow(WindowReference winID);
 
 	bool showTextEntry(ObjID text, ObjID srcObj, ObjID destObj);
-	void setTextInput(Common::String content);
+	void setTextInput(const Common::String &content);
 	Common::String getUserInput();
 
 	// Data retrieval

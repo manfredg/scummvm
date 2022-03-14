@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,13 +23,9 @@
 #define ULTIMA8_USECODE_UCSTACK_H
 
 #include "common/scummsys.h"
-#include "ultima/shared/std/misc.h"
 
 namespace Ultima {
 namespace Ultima8 {
-
-class IDataSource;
-class ODataSource;
 
 // A little-endian stack for use with usecode
 class BaseUCStack {
@@ -90,12 +85,12 @@ public:
 	// Push an arbitrary number of bytes of 0
 	inline void push0(const uint32 count) {
 		_bufPtr -= count;
-		Std::memset(_bufPtr, 0, count);
+		memset(_bufPtr, 0, count);
 	}
 	// Push an arbitrary number of bytes
 	inline void push(const uint8 *in, const uint32 count) {
 		_bufPtr -= count;
-		Std::memcpy(_bufPtr, in, count);
+		memcpy(_bufPtr, in, count);
 	}
 
 	//
@@ -117,12 +112,12 @@ public:
 		return (b0 | (b1 << 8) | (b2 << 16) | (b3 << 24));
 	}
 	inline void pop(uint8 *out, const uint32 count) {
-		Std::memcpy(out, _bufPtr, count);
+		memcpy(out, _bufPtr, count);
 		_bufPtr += count;
 	}
 
 	//
-	// Access a value from a location in the stacck
+	// Access a value from a location in the stack
 	//
 
 	inline uint8 access1(const uint32 offset) const {
@@ -160,7 +155,7 @@ public:
 		const_cast<uint8 *>(_buf)[offset + 3] = static_cast<uint8>((val >> 24) & 0xFF);
 	}
 	inline void assign(const uint32 offset, const uint8 *in, const uint32 len) {
-		Std::memcpy(const_cast<uint8 *>(_buf) + offset, in, len);
+		memcpy(const_cast<uint8 *>(_buf) + offset, in, len);
 	}
 };
 
@@ -173,8 +168,8 @@ public:
 
 #ifdef USE_DYNAMIC_UCSTACK
 #define UCStack DynamicUCStack
-	void save(ODataSource *ods);
-	bool load(IDataSource *ids, uint32 version);
+	void save(Common::WriteStream *ws);
+	bool load(Common::ReadStream *rs, uint32 version);
 #endif
 };
 
@@ -185,8 +180,8 @@ public:
 	UCStack() : BaseUCStack(0x1000, _bufArray) { }
 	~UCStack() override { }
 
-	void save(ODataSource *ods);
-	bool load(IDataSource *ids, uint32 version);
+	void save(Common::WriteStream *ws);
+	bool load(Common::ReadStream *rs, uint32 version);
 };
 #endif
 

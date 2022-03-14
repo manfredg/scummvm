@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -77,7 +76,7 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 		stopCycle(0);
 
 	if (_game.id == GID_SAMNMAX) {
-		// WORKAROUND bug #85373 SAM: Overlapping music at Bigfoot convention
+		// WORKAROUND bug #1132 SAM: Overlapping music at Bigfoot convention
 		// Added sound queue processing between execution of exit
 		// script and entry script. In the case of this bug, the
 		// entry script required that the iMuse state be fully up
@@ -99,7 +98,7 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 
 	if (_game.version >= 7) {
 		// Set the shadow palette(s) to all black. This fixes
-		// bug #795940, and actually makes some sense (after all,
+		// bug #1196, and actually makes some sense (after all,
 		// shadows tend to be rather black, don't they? ;-)
 		memset(_shadowPalette, 0, NUM_SHADOW_PALETTE * 256);
 	} else {
@@ -198,7 +197,7 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 
 	runEntryScript();
 	if (_game.version >= 1 && _game.version <= 2) {
-		runScript(5, 0, 0, 0);
+		runScript(5, 0, 0, nullptr);
 	} else if (_game.version >= 5 && _game.version <= 6) {
 		if (a && !_egoPositioned) {
 			int x, y;
@@ -217,11 +216,24 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 
 	// Hint the backend about the virtual keyboard during copy protection screens
 	if (_game.id == GID_MONKEY2) {
-		if (_system->getFeatureState(OSystem::kFeatureVirtualKeyboard)) {
-			if (room != 108)
-				_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
-		} else if (room == 108)
-			_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, true);
+		bool hasCopyProtectionScreen = true;
+
+		// The Macintosh version skips the copy protection screen with
+		// a boot param, unless you ask it not to.
+		if (_game.platform == Common::kPlatformMacintosh && _bootParam == -7873)
+			hasCopyProtectionScreen = false;
+
+		// The unofficial talkie never shows any copy protection screen.
+		if (strcmp(_game.variant, "SE Talkie") == 0)
+			hasCopyProtectionScreen = false;
+
+		if (hasCopyProtectionScreen) {
+			if (_system->getFeatureState(OSystem::kFeatureVirtualKeyboard)) {
+				if (room != 108)
+					_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, false);
+			} else if (room == 108)
+				_system->setFeatureState(OSystem::kFeatureVirtualKeyboard, true);
+		}
 	} else if (_game.id == GID_MONKEY_EGA) {	// this is my estimation that the room code is 90 (untested)
 		if (_system->getFeatureState(OSystem::kFeatureVirtualKeyboard)) {
 			if (room != 90)
@@ -242,7 +254,7 @@ void ScummEngine::startScene(int room, Actor *a, int objectNr) {
 void ScummEngine::setupRoomSubBlocks() {
 	int i;
 	const byte *ptr;
-	byte *roomptr, *searchptr, *roomResPtr = 0;
+	byte *roomptr, *searchptr, *roomResPtr = nullptr;
 	const RoomHeader *rmhd;
 
 	_ENCD_offs = 0;
@@ -323,7 +335,7 @@ void ScummEngine::setupRoomSubBlocks() {
 
 	if (_game.features & GF_SMALL_HEADER) {
 		ResourceIterator localScriptIterator(searchptr, true);
-		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != NULL) {
+		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != nullptr) {
 			int id = 0;
 			ptr += _resourceHeaderSize;	/* skip tag & size */
 			id = ptr[0];
@@ -338,7 +350,7 @@ void ScummEngine::setupRoomSubBlocks() {
 		}
 	} else if (_game.heversion >= 90) {
 		ResourceIterator localScriptIterator2(searchptr, false);
-		while ((ptr = localScriptIterator2.findNext(MKTAG('L','S','C','2'))) != NULL) {
+		while ((ptr = localScriptIterator2.findNext(MKTAG('L','S','C','2'))) != nullptr) {
 			int id = 0;
 
 			ptr += _resourceHeaderSize;	/* skip tag & size */
@@ -356,7 +368,7 @@ void ScummEngine::setupRoomSubBlocks() {
 		}
 
 		ResourceIterator localScriptIterator(searchptr, false);
-		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != NULL) {
+		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != nullptr) {
 			int id = 0;
 
 			ptr += _resourceHeaderSize;	/* skip tag & size */
@@ -373,7 +385,7 @@ void ScummEngine::setupRoomSubBlocks() {
 
 	} else {
 		ResourceIterator localScriptIterator(searchptr, false);
-		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != NULL) {
+		while ((ptr = localScriptIterator.findNext(MKTAG('L','S','C','R'))) != nullptr) {
 			int id = 0;
 
 			ptr += _resourceHeaderSize;	/* skip tag & size */
@@ -442,7 +454,7 @@ void ScummEngine::setupRoomSubBlocks() {
 	}
 
 
-	// WORKAROUND bug #1074444: The dreaded DOTT "Can't get teeth" bug
+	// WORKAROUND bug #1831: The dreaded DOTT "Can't get teeth" bug
 	// makes it impossible to go on playing w/o cheating in some way.
 	// It's not quite clear what causes it, but the effect is that object
 	// 182, the teeth, are still in class 32 (kObjectClassUntouchable),

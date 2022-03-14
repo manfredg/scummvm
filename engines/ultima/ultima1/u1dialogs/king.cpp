@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,7 +39,7 @@ King::King(Ultima1Game *game, uint kingIndex) : Dialog(game), _kingIndex(kingInd
 	_bounds = Rect(31, 23, 287, 127);
 }
 
-bool King::ShowMsg(CShowMsg &msg) {
+bool King::ShowMsg(CShowMsg *msg) {
 	addInfoMsg(_game->_res->KING_TEXT[0], false);
 	getKeypress();
 	return true;
@@ -139,12 +138,12 @@ void King::setMode(KingMode mode) {
 	setDirty();
 }
 
-bool King::CharacterInputMsg(CCharacterInputMsg &msg) {
+bool King::CharacterInputMsg(CCharacterInputMsg *msg) {
 	switch (_mode) {
 	case SELECT:
-		if (msg._keyState.keycode == Common::KEYCODE_p)
+		if (msg->_keyState.keycode == Common::KEYCODE_p)
 			setMode(PENCE);
-		else if (msg._keyState.keycode == Common::KEYCODE_s)
+		else if (msg->_keyState.keycode == Common::KEYCODE_s)
 			setMode(SERVICE);
 		else
 			neither();
@@ -163,12 +162,12 @@ bool King::CharacterInputMsg(CCharacterInputMsg &msg) {
 	return true;
 }
 
-bool King::TextInputMsg(CTextInputMsg &msg) {
+bool King::TextInputMsg(CTextInputMsg *msg) {
 	assert(_mode == PENCE);
 	const Shared::Character &c = *_game->_party;
-	uint amount = atoi(msg._text.c_str());
+	uint amount = atoi(msg->_text.c_str());
 
-	if (msg._escaped || !amount) {
+	if (msg->_escaped || !amount) {
 		none();
 	} else if (amount > c._coins) {
 		notThatMuch();

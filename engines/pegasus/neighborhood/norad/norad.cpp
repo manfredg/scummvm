@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,6 +26,7 @@
 #include "pegasus/gamestate.h"
 #include "pegasus/pegasus.h"
 #include "pegasus/ai/ai_area.h"
+#include "pegasus/items/biochips/arthurchip.h"
 #include "pegasus/items/inventory/airmask.h"
 #include "pegasus/neighborhood/norad/constants.h"
 #include "pegasus/neighborhood/norad/norad.h"
@@ -110,7 +110,7 @@ GameInteraction *Norad::makeInteraction(const InteractionID interactionID) {
 	case kNoradSubPlatformInteractionID:
 		return new SubPlatform(this);
 	default:
-		return 0;
+		return nullptr;
 	}
 }
 
@@ -162,10 +162,14 @@ void Norad::arriveAtNoradElevator() {
 
 void Norad::arriveAtUpperPressureDoorRoom() {
 	newInteraction(kNoradPressureDoorInteractionID);
+	if (g_arthurChip)
+		g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA69", kArthurNoradReachedPressureDoor);
 }
 
 void Norad::arriveAtLowerPressureDoorRoom() {
 	newInteraction(kNoradPressureDoorInteractionID);
+	if (g_arthurChip)
+		g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA69", kArthurNoradReachedPressureDoor);
 }
 
 void Norad::arriveAtSubPlatformRoom() {
@@ -199,10 +203,18 @@ CanOpenDoorReason Norad::canOpenDoor(DoorTable::Entry &entry) {
 }
 
 void Norad::cantOpenDoor(CanOpenDoorReason reason) {
+	bool firstLockedDoor;
+
 	if (reason == kCantOpenBadPressure)
 		playSpotSoundSync(_pressureSoundIn, _pressureSoundOut);
 	else
 		playSpotSoundSync(_accessDeniedIn, _accessDeniedOut);
+	if (g_arthurChip) {
+		firstLockedDoor = g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA65", kArthurNoradAttemptedLockedDoor);
+
+		if (!firstLockedDoor)
+			g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA68", kArthurNoradAttemptedLockedDoorAgain);
+	}
 }
 
 void Norad::startExitMovie(const ExitTable::Entry &exitEntry) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -188,7 +187,7 @@ void SceneScriptUG05::ActorChangedGoal(int actorId, int newGoal, int oldGoal, bo
 void SceneScriptUG05::PlayerWalkedIn() {
 	if (Game_Flag_Query(kFlagHF05PoliceArrived)) {
 		if (Game_Flag_Query(kFlagHF07Hole)) {
-			Music_Stop(2);
+			Music_Stop(2u);
 
 			Actor_Put_In_Set(kActorOfficerGrayford, kSetUG05);
 			Actor_Set_At_XYZ(kActorOfficerGrayford, 4.22f, -1.37f, -925.0f, 750);
@@ -238,7 +237,7 @@ void SceneScriptUG05::PlayerWalkedIn() {
 
 void SceneScriptUG05::PlayerWalkedOut() {
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 }
 
 void SceneScriptUG05::DialogueQueueFlushed(int a1) {
@@ -272,7 +271,7 @@ void SceneScriptUG05::endGame() {
 	}
 
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 
 	if (affectionTowardsActor == kActorLucy) {
 		if (!Game_Flag_Query(kFlagLucyIsReplicant)) {

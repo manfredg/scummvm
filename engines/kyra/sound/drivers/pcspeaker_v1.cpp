@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -100,7 +99,7 @@ private:
 
 PCSpeakerDriver::PCSpeakerDriver(Audio::Mixer *mixer, bool pcJRMode) : PCSoundDriver(), _mixer(mixer), _samplesUpdateIntv(0), _samplesUpdateIntvRem(0),
 	_outputRate(0), _samplesUpdateTmr(0), _samplesUpdateTmrRem(0), _newTrackData(0), _trackData(0), _pcJR(pcJRMode), _numChannels(pcJRMode ? 3 : 1), _channels(0),
-		_clock(pcJRMode ? 111860 : 1193180), _updateRate(292), _masterVolume(63), _periodsTable(pcJRMode ? _periodsPCjr : _periodsPCSpk), _periodDiv(pcJRMode ? 2 : 2),
+		_clock(pcJRMode ? 111860 : 1193180), _updateRate(292), _masterVolume(63), _periodsTable(pcJRMode ? _periodsPCjr : _periodsPCSpk), _periodDiv(2),
 	_levelAdjust(pcJRMode ? 1 : 0), _ready(false) {
 	_outputRate = _mixer->getOutputRate();
 	_samplesUpdateIntv = _outputRate / _updateRate;
@@ -136,11 +135,6 @@ void PCSpeakerDriver::setSoundData(uint8 *data, uint32 size) {
 	Common::StackLock lock(_mutex);
 	if (!_ready)
 		return;
-
-	if (_soundData) {
-		delete[] _soundData;
-		_soundData = 0;
-	}
 
 	_soundData = data;
 	_soundDataSize = size;
@@ -215,12 +209,12 @@ void PCSpeakerDriver::update() {
 					uint16 ts = _channels[i]->timerScale + *pos++;
 					_channels[i]->timerScale = (uint8)MIN<uint16>(ts, 0xFF);
 				} break;
-				
+
 				case -24: {
 					int16 ts = _channels[i]->timerScale - *pos++;
 					_channels[i]->timerScale = (uint8)MAX<int16>(ts, 1);
 				} break;
-				
+
 				case -26: {
 					uint16 prd = _clock / READ_LE_UINT16(pos);
 					if (_pcJR && prd >= 0x400)
@@ -230,7 +224,7 @@ void PCSpeakerDriver::update() {
 					uint8 nextTimer = 1 + *pos++;
 					_channels[i]->timer = _channels[i]->timerScale * nextTimer;
 				} break;
-				
+
 				case -30: {
 					_channels[i]->timerScale = *pos++;
 					if (!_channels[i]->timerScale)
@@ -300,7 +294,7 @@ int PCSpeakerDriver::readBuffer(int16 *buffer, const int numSamples) {
 		generateSamples(buffer, render);
 		buffer += render;
 	}
-	
+
 	return numSamples;
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -115,12 +114,22 @@ struct Surface : Graphics::Surface {
 			fillRect(rect, color);
 		}
 	}
+
+	void clearRect2x(Common::Rect r) {
+	// This clears a 2x scaled rect (used for Japanese font removal).
+	// The pixels buffer only gets allocated for game versions that actually require it.
+		if (!pixels)
+			return;
+		fillRect(Common::Rect(r.left << 1, r.top << 1, r.right << 1, r.bottom << 1), 0);
+	}
 };
 
 #define PAL_ENTRIES 256
 
 #define CURSOR_W 7
 #define CURSOR_H 7
+#define CURSOR_PC98_W 16
+#define CURSOR_PC98_H 16
 
 #define CURSOR_ORIGIN_X 4
 #define CURSOR_ORIGIN_Y 4
@@ -174,6 +183,8 @@ public:
 	// to add the corresponding dirty rectangle itself
 	void hLine(int x, int y, int x2, uint32 color) {
 		_backBuffer.hLine(x, y, x2, color);
+		// Clear corresponding area of the sjis text layer (if the pixels buffer was actually created)
+		_sjisBackBuffer.clearRect2x(Common::Rect(x, y, x2, y + 1));
 	}
 
 	// WARNING: This method does not add a dirty rectangle automatically.
@@ -181,6 +192,8 @@ public:
 	// to add the corresponding dirty rectangle itself
 	void vLine(int x, int y, int y2, uint32 color) {
 		_backBuffer.vLine(x, y, y2, color);
+		// Clear corresponding area of the sjis text layer (if the pixels buffer was actually created)
+		_sjisBackBuffer.clearRect2x(Common::Rect(x, y, x + 1, y2));
 	}
 
 	// WARNING: This method does not add a dirty rectangle automatically.
@@ -188,6 +201,11 @@ public:
 	// to add the corresponding dirty rectangle itself
 	void setPixelColor(int x, int y, byte color) {
 		((byte *)_backBuffer.getBasePtr(x, y))[0] = color;
+		// Clear corresponding area of the sjis text layer (if the pixels buffer was actually created)
+		if (_sjisBackBuffer.getPixels()) {
+			*((uint16 *)_sjisBackBuffer.getBasePtr(x << 1, y << 1)) = 0;
+			*((uint16 *)_sjisBackBuffer.getBasePtr(x << 1, (y << 1) + 1)) = 0;
+		}
 	}
 
 	// WARNING: This method does not add a dirty rectangle automatically.
@@ -204,16 +222,40 @@ public:
 		return (byte *)_backBuffer.getPixels();
 	}
 
+	// Same as getBackBufferPixels(), but for the hires sjis buffer
+	byte *getSJISBackBufferPixels() {
+		return (byte *)_sjisBackBuffer.getPixels();
+	}
+
+	// Expose the sjis buffer directly. One of the two implementations of Graphics::FontSJIS::drawChar()
+	// allows a Common::Surface as a parameter which makes the rendering a bit nicer compared to using
+	// the raw pixel buffer.
+	Surface &getSJISBackBuffer() {
+		return _sjisBackBuffer;
+	}
+
 	uint16 getBackBufferWidth() {
 		return _backBuffer.w;
+	}
+
+	uint16 getSJISBackBufferWidth() {
+		return _sjisBackBuffer.w;
 	}
 
 	uint16 getBackBufferHeight() {
 		return _backBuffer.h;
 	}
 
+	uint16 getSJISBackBufferHeight() {
+		return _sjisBackBuffer.h;
+	}
+
 	uint16 getBackBufferPitch() {
 		return _backBuffer.pitch;
+	}
+
+	uint16 getSJISBackBufferPitch() {
+		return _sjisBackBuffer.pitch;
 	}
 
 	void getBackBufferRect(Common::Rect &rect) {
@@ -222,6 +264,7 @@ public:
 
 private:
 	Surface _backBuffer;
+	Surface _sjisBackBuffer;
 	byte _currentPal[PAL_ENTRIES * 3];
 	OSystem *_system;
 	SagaEngine *_vm;

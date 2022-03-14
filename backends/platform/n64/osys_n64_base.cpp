@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,8 +29,10 @@
 #include "pakfs_save_manager.h"
 #include "framfs_save_manager.h"
 #include "backends/fs/n64/n64-fs-factory.h"
+#include "backends/mutex/null/null-mutex.h"
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
+#include "graphics/conversion.h"
 
 typedef unsigned long long uint64;
 
@@ -220,12 +221,11 @@ const OSystem::GraphicsMode* OSystem_N64::getSupportedGraphicsModes() const {
 	return s_supportedGraphicsModes;
 }
 
-
 int OSystem_N64::getDefaultGraphicsMode() const {
 	return OVERS_NTSC_340X240;
 }
 
-bool OSystem_N64::setGraphicsMode(int mode) {
+bool OSystem_N64::setGraphicsMode(int mode, uint /*flags*/) {
 	_graphicMode = mode;
 	switchGraphicModeId(_graphicMode);
 
@@ -666,16 +666,15 @@ void OSystem_N64::clearOverlay() {
 	_dirtyOffscreen = true;
 }
 
-void OSystem_N64::grabOverlay(void *buf, int pitch) {
-	int h = _overlayHeight;
-	uint16 *src = _overlayBuffer;
-	byte *dst = (byte *)buf;
+void OSystem_N64::grabOverlay(Graphics::Surface &surface) {
+	assert(surface.w >= _overlayWidth);
+	assert(surface.h >= _overlayHeight);
+	assert(surface.format.bytesPerPixel == sizeof(uint16));
 
-	do {
-		memcpy(dst, src, _overlayWidth * sizeof(uint16));
-		src += _overlayWidth;
-		dst += pitch;
-	} while (--h);
+	byte *src = (byte *)_overlayBuffer;
+	byte *dst = (byte *)surface.getPixels();
+	Graphics::copyBlit(dst, src, surface.pitch, _overlayWidth * sizeof(uint16),
+		_overlayWidth, _overlayHeight, sizeof(uint16));
 }
 
 void OSystem_N64::copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h) {
@@ -813,20 +812,8 @@ void OSystem_N64::delayMillis(uint msecs) {
 }
 
 // As we don't have multi-threading, no need for mutexes
-OSystem::MutexRef OSystem_N64::createMutex(void) {
-	return NULL;
-}
-
-void OSystem_N64::lockMutex(MutexRef mutex) {
-	return;
-}
-
-void OSystem_N64::unlockMutex(MutexRef mutex) {
-	return;
-}
-
-void OSystem_N64::deleteMutex(MutexRef mutex) {
-	return;
+Common::MutexInternal *OSystem_N64::createMutex(void) {
+	return new NullMutexInternal();
 }
 
 void OSystem_N64::quit() {
@@ -839,7 +826,7 @@ Audio::Mixer *OSystem_N64::getMixer() {
 	return _mixer;
 }
 
-void OSystem_N64::getTimeAndDate(TimeDate &t) const {
+void OSystem_N64::getTimeAndDate(TimeDate &t, bool skipRecord) const {
 	// No RTC inside the N64, read mips timer to simulate
 	// passing of time, not a perfect solution, but can't think
 	// of anything better.

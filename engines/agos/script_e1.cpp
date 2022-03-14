@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -418,7 +417,7 @@ void AGOSEngine_Elvira1::oe1_worn() {
 	Item *item = getNextItemPtr();
 	SubObject *subObject = (SubObject *)findChildOfType(item, kObjectType);
 
-	if (item->parent != getItem1ID() || subObject == NULL)
+	if (item->parent != getItem1ID() || subObject == nullptr)
 		setScriptCondition(false);
 	else
 		setScriptCondition((subObject->objectFlags & kOFWorn) != 0);
@@ -429,7 +428,7 @@ void AGOSEngine_Elvira1::oe1_notWorn() {
 	Item *item = getNextItemPtr();
 	SubObject *subObject = (SubObject *)findChildOfType(item, kObjectType);
 
-	if (item->parent != getItem1ID() || subObject == NULL)
+	if (item->parent != getItem1ID() || subObject == nullptr)
 		setScriptCondition(false);
 	else
 		setScriptCondition((subObject->objectFlags & kOFWorn) == 0);
@@ -536,13 +535,13 @@ void AGOSEngine_Elvira1::oe1_score() {
 void AGOSEngine_Elvira1::oe1_look() {
 	// 96: look
 	Item *i = derefItem(me()->parent);
-	if (i == NULL)
+	if (i == nullptr)
 		return;
 
 	SubRoom *r = (SubRoom *)findChildOfType(i, kRoomType);
 	SubObject *o = (SubObject *)findChildOfType(i, kObjectType);
 	SubPlayer *p = (SubPlayer *)findChildOfType(i, kPlayerType);
-	if (p == NULL)
+	if (p == nullptr)
 		return;
 
 	if ((o) && (!r)) {
@@ -591,7 +590,7 @@ void AGOSEngine_Elvira1::oe1_pObj() {
 	SubObject *subObject = (SubObject *)findChildOfType(getNextItemPtr(), kObjectType);
 	getVarOrWord();
 
-	if (subObject != NULL)
+	if (subObject != nullptr)
 		showMessageFormat("%s", (const char *)getStringPtrByID(subObject->objectName));
 }
 
@@ -619,7 +618,7 @@ void AGOSEngine_Elvira1::oe1_cFlag() {
 	SubContainer *c = (SubContainer *)findChildOfType(getNextItemPtr(), kContainerType);
 	uint bit = getVarOrWord();
 
-	if (c == NULL)
+	if (c == nullptr)
 		setScriptCondition(false);
 	else
 		setScriptCondition((c->flags & (1 << bit)) != 0);
@@ -819,16 +818,16 @@ void AGOSEngine_Elvira1::oe1_enableInput() {
 		disableBox(i);
 
 	_verbHitArea = 0;
-	_hitAreaSubjectItem = 0;
-	_hitAreaObjectItem = 0;
+	_hitAreaSubjectItem = nullptr;
+	_hitAreaObjectItem = nullptr;
 
 	_dragFlag = false;
 	_dragAccept = false;
 	_dragCount = 0;
 	_dragMode = false;
 
-	_lastHitArea3 = 0;
-	_lastHitArea = 0;
+	_lastHitArea3 = nullptr;
+	_lastHitArea = nullptr;
 
 	_clickOnly = true;
 }
@@ -927,6 +926,10 @@ restart:
 		message1 = "   Juego en Pausa\r\r\r";
 		message2 = "Continuar      Salir";
 		break;
+	case Common::JA_JPN:
+		message1 = "             ""\x83""Q""\x81""[""\x83\x80\x92\x86\x92""f\r\r\r";
+		message2 = "        ""\x91\xb1\x82\xaf\x82\xe9""         ""\x82\xe2\x82\xdf\x82\xe9";
+		break;
 	default:
 		message1 = "     Game Paused\r\r\r";
 		message2 = " Continue      Quit";
@@ -958,6 +961,10 @@ restart:
 			message1 = "    Estas seguro ?\r\r\r";
 			message2 = "    Si          No";
 			break;
+		case Common::JA_JPN:
+			message1 = "           ""\x82\xe6\x82\xeb\x82\xb5\x82\xa2\x82\xc5\x82\xb7\x82\xa9\x81""H\r\r\r";
+			message2 = "         ""\x82\xcd\x82\xa2""          ""\x82\xa2\x82\xa2\x82\xa6";
+			break;
 		default:
 			message1 = "    Are you sure ?\r\r\r";
 			message2 = "     Yes       No";
@@ -978,6 +985,7 @@ restart:
 		}
 	}
 
+	clearHiResTextLayer();
 	restartAnimation();
 	_gameStoppedClock = getTime() - pauseTime + _gameStoppedClock;
 }
@@ -1061,7 +1069,7 @@ uint AGOSEngine::confirmYesOrNo(uint16 x, uint16 y) {
 	ha->flags = kBFBoxInUse;
 	ha->id = 0x7FFF;
 	ha->priority = 999;
-	ha->window = 0;
+	ha->window = nullptr;
 
 	ha = findEmptyHitArea();
 	ha->x = x + 60;
@@ -1071,21 +1079,21 @@ uint AGOSEngine::confirmYesOrNo(uint16 x, uint16 y) {
 	ha->flags = kBFBoxInUse;
 	ha->id = 0x7FFE;
 	ha->priority = 999;
-	ha->window = 0;
+	ha->window = nullptr;
 
 	while (!shouldQuit()) {
-		_lastHitArea = NULL;
-		_lastHitArea3 = NULL;
+		_lastHitArea = nullptr;
+		_lastHitArea3 = nullptr;
 
 		while (!shouldQuit()) {
-			if (_lastHitArea3 != 0)
+			if (_lastHitArea3 != nullptr)
 				break;
 			delay(1);
 		}
 
 		ha = _lastHitArea;
 
-		if (ha == NULL) {
+		if (ha == nullptr) {
 		} else if (ha->id == 0x7FFE) {
 			break;
 		} else if (ha->id == 0x7FFF) {
@@ -1110,7 +1118,7 @@ uint AGOSEngine::continueOrQuit() {
 	ha->flags = kBFBoxInUse;
 	ha->id = 0x7FFF;
 	ha->priority = 999;
-	ha->window = 0;
+	ha->window = nullptr;
 
 	ha = findEmptyHitArea();
 	ha->x = 180;
@@ -1120,21 +1128,21 @@ uint AGOSEngine::continueOrQuit() {
 	ha->flags = kBFBoxInUse;
 	ha->id = 0x7FFE;
 	ha->priority = 999;
-	ha->window = 0;
+	ha->window = nullptr;
 
 	while (!shouldQuit()) {
-		_lastHitArea = NULL;
-		_lastHitArea3 = NULL;
+		_lastHitArea = nullptr;
+		_lastHitArea3 = nullptr;
 
 		while (!shouldQuit()) {
-			if (_lastHitArea3 != 0)
+			if (_lastHitArea3 != nullptr)
 				break;
 			delay(1);
 		}
 
 		ha = _lastHitArea;
 
-		if (ha == NULL) {
+		if (ha == nullptr) {
 		} else if (ha->id == 0x7FFE) {
 			break;
 		} else if (ha->id == 0x7FFF) {
@@ -1154,6 +1162,7 @@ void AGOSEngine::printScroll() {
 
 	_windowNum = 3;
 	_curVgaFile2 = vpe->vgaFile2;
+	clearHiResTextLayer();
 	drawImage_init(9, 0, 10, 32, 0);
 
 	_curVgaFile2 = curVgaFile2Orig;

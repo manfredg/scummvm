@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef ULTIMA8_WORLD_WEAPONINFO_H
 #define ULTIMA8_WORLD_WEAPONINFO_H
 
+#include "ultima/shared/std/string.h"
+
+namespace Ultima {
+namespace Ultima8 {
 
 struct WeaponInfo {
+	Std::string _name;
 	uint32 _shape;
 	uint8 _overlayType;
 	uint32 _overlayShape;
@@ -35,6 +39,19 @@ struct WeaponInfo {
 	uint8 _armourBonus;
 	uint16 _damageType;
 	int _treasureChance;
+
+	// Crusader-specific fields:
+	uint16 _sound;		//!< The sound this weapon makes when fired
+	uint16 _reloadSound; //!< The sound made when reloaded
+	uint16 _ammoType;	//!< The inventory frame for the ammo used
+	uint16 _ammoShape;	//!< The shape number for the ammo used
+	uint16 _displayGumpShape; //! The gump shape to use for inventory display (3,4,5)
+	uint16 _displayGumpFrame; //!< The frame to use in the inventory gump
+	uint8 _small;	//! A flag whether or not the weapon is "small" (changes the animations used)
+	uint16 _clipSize; //! Count of ammo the weapon starts with and gets from a reload
+	uint16 _energyUse; //! Energy used by each shot
+	uint8 _field8;	//! Not totally sure, used like "cycle time" in Attack Process
+	uint16 _shotDelay; //! Delay between shots
 
 	enum DmgType {
 		DMG_NORMAL = 0x0001,
@@ -49,5 +66,7 @@ struct WeaponInfo {
 	};
 };
 
+} // End of namespace Ultima8
+} // End of namespace Ultima
 
 #endif

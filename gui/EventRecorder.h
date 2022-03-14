@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,14 +35,14 @@
 #include "common/mutex.h"
 #include "common/array.h"
 #include "common/memstream.h"
-#include "backends/mixer/sdl/sdl-mixer.h"
+#include "backends/mixer/mixer.h"
 #include "common/hashmap.h"
 #include "common/hash-str.h"
 #include "backends/timer/sdl/sdl-timer.h"
 #include "common/config-manager.h"
 #include "common/recorderfile.h"
 #include "backends/saves/recorder/recorder-saves.h"
-#include "backends/mixer/nullmixer/nullsdl-mixer.h"
+#include "backends/mixer/null/null-mixer.h"
 #include "backends/saves/default/default-saves.h"
 
 
@@ -74,16 +73,19 @@ public:
 		kPassthrough = 0,		/**< kPassthrough, do nothing */
 		kRecorderRecord = 1,		/**< kRecorderRecord, do the recording */
 		kRecorderPlayback = 2,		/**< kRecorderPlayback, playback existing recording */
-		kRecorderPlaybackPause = 3	/**< kRecordetPlaybackPause, interal state when user pauses the playback */
+		kRecorderPlaybackPause = 3,	/**< kRecorderPlaybackPause, internal state when user pauses the playback */
+		kRecorderUpdate = 4			/**< kRecorderUpdate, playback existing recording and update all hashes */
 	};
 
-	void init(Common::String recordFileName, RecordMode mode);
+	void init(const Common::String &recordFileName, RecordMode mode);
 	void deinit();
 	bool processDelayMillis();
 	uint32 getRandomSeed(const Common::String &name);
+	void processTimeAndDate(TimeDate &td, bool skipRecord);
 	void processMillis(uint32 &millis, bool skipRecord);
-	bool processAudio(uint32 &samples, bool paused);
+	void processScreenUpdate();
 	void processGameDescription(const ADGameDescription *desc);
+	bool processAutosave();
 	Common::SeekableReadStream *processSaveStream(const Common::String & fileName);
 
 	/** Hooks for intercepting into GUI processing, so required events could be shoot
@@ -142,22 +144,33 @@ public:
 		_needRedraw = redraw;
 	}
 
-	void registerMixerManager(SdlMixerManager *mixerManager);
+	void registerMixerManager(MixerManager *mixerManager);
 	void registerTimerManager(DefaultTimerManager *timerManager);
 
-	SdlMixerManager *getMixerManager();
+	MixerManager *getMixerManager();
 	DefaultTimerManager *getTimerManager();
 
 	void deleteRecord(const Common::String& fileName);
 	bool checkForContinueGame();
 
-	void suspendRecording() {
-		_savedState = _initialized;
-		_initialized = false;
+	void acquireRecording() {
+		assert(_acquireCount >= 0);
+		if (_acquireCount == 0) {
+			_savedState = _initialized;
+			_initialized = false;
+		}
+		_acquireCount += 1;
 	}
 
-	void resumeRecording() {
-		_initialized = _savedState;
+	void releaseRecording() {
+		assert(_acquireCount > 0);
+		_acquireCount -= 1;
+		if (_acquireCount == 0)
+			_initialized = _savedState;
+	}
+
+	RecordMode getRecordMode() const {
+		return _recordMode;
 	}
 
 	Common::StringArray listSaveFiles(const Common::String &pattern);
@@ -179,7 +192,9 @@ private:
 	bool notifyEvent(const Common::Event &event) override;
 	bool _initialized;
 	volatile uint32 _fakeTimer;
+	TimeDate _lastTimeDate;
 	bool _savedState;
+	int _acquireCount;
 	bool _needcontinueGame;
 	int _temporarySlot;
 	Common::String _author;
@@ -187,10 +202,10 @@ private:
 	Common::String _name;
 
 	Common::SaveFileManager *_realSaveManager;
-	SdlMixerManager *_realMixerManager;
+	MixerManager *_realMixerManager;
 	DefaultTimerManager *_timerManager;
 	RecorderSaveFileManager _fakeSaveManager;
-	NullSdlMixerManager *_fakeMixerManager;
+	NullMixerManager *_fakeMixerManager;
 	GUI::OnScreenDialog *_controlPanel;
 	Common::RecorderEvent _nextEvent;
 
@@ -213,20 +228,27 @@ private:
 	bool checkGameHash(const ADGameDescription *desc);
 
 	void checkForKeyCode(const Common::Event &event);
+	/**
+	 * @return false because we don't want to remap the given event again. This already happened on
+	 * recording the event. We record the custom events already, not the raw backend events.
+	 */
 	bool allowMapping() const override { return false; }
 
 	volatile uint32 _lastMillis;
 	uint32 _lastScreenshotTime;
 	uint32 _screenshotPeriod;
 	Common::PlaybackFile *_playbackFile;
+	Common::PlaybackFile *_recordFile;
 
 	void saveScreenShot();
 	void checkRecordedMD5();
 	void deleteTemporarySave();
+	void updateFakeTimer(uint32 millis);
 	volatile RecordMode _recordMode;
 	Common::String _recordFileName;
 	bool _fastPlayback;
 	bool _needRedraw;
+	bool _processingMillis;
 };
 
 } // End of namespace GUI

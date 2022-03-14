@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -94,7 +93,7 @@ void KIASectionSave::open() {
 
 	_scrollBox->show();
 
-	_saveList = SaveFileManager::list(_vm->getTargetName());
+	_saveList = SaveFileManager::list(_vm->getMetaEngine(), _vm->getTargetName());
 
 	bool ableToSaveGame = true;
 
@@ -102,7 +101,7 @@ void KIASectionSave::open() {
 
 	if (!_saveList.empty() || ableToSaveGame) {
 
-		_buttons->activate(nullptr, nullptr, nullptr, onButtonPressed, this);
+		_buttons->activate(onButtonHovered, nullptr, nullptr, onButtonPressed, this);
 		_inputBox->show();
 
 		_scrollBox->clearLines();
@@ -112,7 +111,7 @@ void KIASectionSave::open() {
 		}
 
 		for (uint i = 0; i < _saveList.size(); ++i) {
-			_scrollBox->addLine(_saveList[i].getDescription(), i, 0);
+			_scrollBox->addLine(_saveList[i].getDescription().encode(Common::kDos850), i, 0);
 		}
 
 		if (ableToSaveGame) {
@@ -186,7 +185,7 @@ void KIASectionSave::draw(Graphics::Surface &surface) {
 	if (selectedLineId != _hoveredLineId) {
 		if (selectedLineId >= 0 && selectedLineId < (int)_saveList.size() && _displayingLineId != selectedLineId) {
 			if (_timeLeft == 0u) {
-				SaveStateDescriptor desc = SaveFileManager::queryMetaInfos(_vm->getTargetName(), selectedLineId);
+				SaveStateDescriptor desc = SaveFileManager::queryMetaInfos(_vm->getMetaEngine(), _vm->getTargetName(), selectedLineId);
 				const Graphics::Surface *thumbnail = desc.getThumbnail();
 				if (thumbnail != nullptr) {
 					_vm->_kia->playImage(*thumbnail);
@@ -206,7 +205,7 @@ void KIASectionSave::draw(Graphics::Surface &surface) {
 		if (_timeLeft) {
 			uint32 timeDiff = now - _timeLast; // unsigned difference is intentional
 			if (timeDiff >= _timeLeft) {
-				SaveStateDescriptor desc = SaveFileManager::queryMetaInfos(_vm->getTargetName(), _saveList[selectedLineId].getSaveSlot());
+				SaveStateDescriptor desc = SaveFileManager::queryMetaInfos(_vm->getMetaEngine(), _vm->getTargetName(), _saveList[selectedLineId].getSaveSlot());
 				const Graphics::Surface *thumbnail = desc.getThumbnail();
 				if (thumbnail != nullptr) {
 					_vm->_kia->playImage(*thumbnail);
@@ -230,17 +229,20 @@ void KIASectionSave::handleKeyUp(const Common::KeyState &kbd) {
 
 void KIASectionSave::handleKeyDown(const Common::KeyState &kbd) {
 	if (_state == kStateNormal) {
-		if (kbd.keycode == Common::KEYCODE_DELETE && _selectedLineId != _newSaveLineId) {
+		// Delete a saved game entry either with Delete key or numpad's (keypad's) Del key (when Num Lock Off)
+		if (_selectedLineId != _newSaveLineId
+		     && (    kbd.keycode == Common::KEYCODE_DELETE
+		         || (kbd.keycode == Common::KEYCODE_KP_PERIOD && !(kbd.flags & Common::KBD_NUM)))) {
 			changeState(kStateDelete);
 		}
 		_uiContainer->handleKeyDown(kbd);
 	} else if (_state == kStateOverwrite) {
-		if (kbd.keycode == Common::KEYCODE_RETURN) {
+		if (kbd.keycode == Common::KEYCODE_RETURN || kbd.keycode == Common::KEYCODE_KP_ENTER) {
 			save();
 			changeState(kStateNormal);
 		}
 	} else if (_state == kStateDelete) {
-		if (kbd.keycode == Common::KEYCODE_RETURN) {
+		if (kbd.keycode == Common::KEYCODE_RETURN || kbd.keycode == Common::KEYCODE_KP_ENTER) {
 			deleteSave();
 			changeState(kStateNormal);
 		}
@@ -296,7 +298,7 @@ void KIASectionSave::scrollBoxCallback(void *callbackData, void *source, int lin
 		if (self->_selectedLineId == self->_newSaveLineId) {
 			self->_inputBox->setText("");
 		} else {
-			self->_inputBox->setText(self->_saveList[self->_selectedLineId].getDescription());
+			self->_inputBox->setText(self->_saveList[self->_selectedLineId].getDescription().encode(Common::kDos850));
 		}
 
 		self->_vm->_audioPlayer->playAud(self->_vm->_gameInfo->getSfxTrack(kSfxSPNBEEP3), 40, 0, 0, 50, 0);
@@ -315,34 +317,37 @@ void  KIASectionSave::inputBoxCallback(void *callbackData, void *source) {
 	}
 }
 
+void KIASectionSave::onButtonHovered(int buttonId, void *callbackData) {
+	KIASectionSave *self = (KIASectionSave *)callbackData;
+	self->_vm->_audioPlayer->playAud(self->_vm->_gameInfo->getSfxTrack(kSfxTEXT3), 100, 0, 0, 50, 0);
+}
+
 void KIASectionSave::onButtonPressed(int buttonId, void *callbackData) {
 	KIASectionSave *self = (KIASectionSave *)callbackData;
 
 	if (buttonId == 0) {
-		if (self->_selectedLineId == self->_newSaveLineId)
-		{
+		if (self->_selectedLineId == self->_newSaveLineId) {
 			self->save();
-		}
-		else
-		{
+		} else {
 			self->changeState(kStateOverwrite);
 		}
 	} else if (buttonId == 1) {
 		self->changeState(kStateNormal);
 		self->_vm->_audioPlayer->playAud(self->_vm->_gameInfo->getSfxTrack(kSfxSPNBEEP6), 90, -50, -50, 50, 0);
 	} else if (buttonId == 2) {
-		if (self->_state == kStateOverwrite)
-		{
+		if (self->_state == kStateOverwrite) {
 			self->save();
-		}
-		else if (self->_state == kStateDelete)
-		{
+			self->changeState(kStateNormal);
+		} else if (self->_state == kStateDelete) {
 			self->deleteSave();
 		}
 	}
 }
 
 void KIASectionSave::changeState(State state) {
+	if (_state == state)
+		return;
+
 	_state = state;
 	if (state == kStateNormal) {
 		_buttons->resetImages();
@@ -378,6 +383,13 @@ void KIASectionSave::changeState(State state) {
 
 void KIASectionSave::save() {
 	int slot = -1;
+	// Do not allow empty string for saved game name
+	// Note: We do allow a series of blank spaces for name, though
+	//       (this is the behavior in the original game).
+	Common::String inpBoxTextStr = _inputBox->getText();
+	if (inpBoxTextStr.empty()) {
+		return;
+	}
 
 	if (_selectedLineId < (int)_saveList.size()) {
 		slot = _saveList[_selectedLineId].getSaveSlot();
@@ -405,12 +417,12 @@ void KIASectionSave::save() {
 	}
 
 	BladeRunner::SaveFileHeader header;
-	header._name = _inputBox->getText();
+	header._name = Common::U32String(inpBoxTextStr).encode(Common::kUtf8);
 	header._playTime = _vm->getTotalPlayTime();
 
 	BladeRunner::SaveFileManager::writeHeader(*saveFile, header);
 
-	_vm->saveGame(*saveFile, _vm->_kia->_thumbnail);
+	_vm->saveGame(*saveFile, &_vm->_kia->_thumbnail);
 
 	saveFile->finalize();
 

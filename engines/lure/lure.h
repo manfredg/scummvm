@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,8 @@
 #define LURE_LURE_H
 
 #include "engines/engine.h"
+#include "engines/advancedDetector.h"
+
 #include "common/rect.h"
 #include "common/file.h"
 #include "common/savefile.h"
@@ -38,6 +39,7 @@
 #include "lure/strings.h"
 #include "lure/room.h"
 #include "lure/fights.h"
+#include "lure/detection.h"
 
 /**
  * This is the namespace of the Lure engine.
@@ -58,6 +60,7 @@ enum LureLanguage {
 	LANG_ES_ESP = 17,
 	LANG_EN_ANY = 3,
 	LANG_RU_RUS = 3,	// English data has been overridden
+	LANG_EN_KONAMI = 4,
 	LANG_UNKNOWN = -1
 };
 
@@ -117,6 +120,7 @@ public:
 	Common::Language getLanguage() const;
 	Common::Platform getPlatform() const;
 	bool isEGA() const { return (getFeatures() & GF_EGA) != 0; }
+	bool isKonami() const { return (getFeatures() & GF_KONAMI) != 0; }
 
 	Common::Error loadGameState(int slot) override {
 		return loadGame(slot) ? Common::kNoError : Common::kReadingFailed;
@@ -132,7 +136,9 @@ public:
 		return _saveLoadAllowed && !Fights.isFighting();
 	}
 };
-	Common::String getSaveName(Common::InSaveFile *in);
+
+Common::String getSaveName(Common::InSaveFile *in);
+
 } // End of namespace Lure
 
 #endif

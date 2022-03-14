@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -134,7 +133,7 @@ bool SceneScriptNR05::ClickedOnExit(int exitId) {
 	if (exitId == 0) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -444.0f, 0.0f, -451.0f, 0, true, false, false)) {
 			Player_Loses_Control();
-			Music_Stop(2);
+			Music_Stop(2u);
 			Player_Set_Combat_Mode(false);
 			Actor_Face_Heading(kActorMcCoy, 1021, false);
 			Actor_Change_Animation_Mode(kActorMcCoy, kAnimationModeSit);
@@ -180,6 +179,9 @@ void SceneScriptNR05::SceneFrameAdvanced(int frame) {
 	}
 
 	rotateActorOnGround(kActorHysteriaPatron2);
+	if (_vm->_cutContent) {
+		rotateActorOnGround(kActorHysteriaPatron3);
+	}
 	rotateActorOnGround(kActorMcCoy);
 
 	if (Actor_Query_Goal_Number(kActorEarlyQ) == kGoalEarlyQNR05UnlockNR08) {
@@ -189,13 +191,9 @@ void SceneScriptNR05::SceneFrameAdvanced(int frame) {
 		}
 	}
 
-	if (frame > 77
-	 && frame <= 134
-	) {
+	if (frame > 77 && frame <= 134) {
 		rotateActorOnTable(frame - 13);
-		if ( frame == 134
-		 && !Game_Flag_Query(kFlagNR05toNR03)
-		) {
+		if ( frame == 134 && !Game_Flag_Query(kFlagNR05toNR03)) {
 			Actor_Set_Goal_Number(kActorMcCoy, kGoalMcCoyNRxxSitAtTable);
 		}
 		//return true;
@@ -208,7 +206,7 @@ void SceneScriptNR05::ActorChangedGoal(int actorId, int newGoal, int oldGoal, bo
 
 void SceneScriptNR05::PlayerWalkedIn() {
 	if (Game_Flag_Query(kFlagNR08toNR05)) {
-		Music_Stop(2);
+		Music_Stop(2u);
 		Loop_Actor_Walk_To_XYZ(kActorMcCoy, -697.56f, 0.0f, -174.86f, 0, true, false, false);
 		Game_Flag_Reset(kFlagNR08toNR05);
 	}
@@ -217,10 +215,10 @@ void SceneScriptNR05::PlayerWalkedIn() {
 
 void SceneScriptNR05::PlayerWalkedOut() {
 	if (Game_Flag_Query(kFlagNR05toNR03)) {
-		Music_Stop(2);
+		Music_Stop(2u);
 	}
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 }
 
 void SceneScriptNR05::DialogueQueueFlushed(int a1) {
@@ -306,6 +304,15 @@ void SceneScriptNR05::talkToEarlyQ() {
 			DM_Add_To_List_Never_Repeat_Once_Selected(900, 5, 6, 5); // LUCY
 		}
 		if (Actor_Clue_Query(kActorMcCoy, kClueDektorasDressingRoom)) {
+			// TODO A bug? kClueDektorasDressingRoom is acquired from EarlyQ
+			// at his office (nr04) while being threatened by McCoy.
+			// At which point EarlyQ already tells McCoy who the people on the photograph are.
+			// It makes no sense that McCoy will next find EarlyQ at the VIP area (this area, nr05)
+			// and casually ask him about who the woman is in this photo.
+			// (McCoy won't be able to even find EarlyQ there again).
+			// Maybe it's another photo of Dektora needed here
+			// --- Animoid Row? Why would McCoy suspect that woman?
+			// --- Hawker's Bar? Can we find a Dektora pic in SHP resources?
 			DM_Add_To_List_Never_Repeat_Once_Selected(910, 5, 5, 5); // BLOND WOMAN
 		}
 	}
@@ -357,6 +364,19 @@ void SceneScriptNR05::talkToEarlyQ() {
 		Actor_Says(kActorMcCoy, 3515, 14);
 		Actor_Modify_Friendliness_To_Other(kActorEarlyQ, kActorMcCoy, -1);
 		if (Actor_Clue_Query(kActorMcCoy, kClueGrigoriansNote)) { // cut content? this clue is unobtanium
+			// A BUG?
+			// TODO why is Grigorian's Note needed here, for EarlyQ to reveal who Hecuba is?
+			// TODO could CrazysInvolvement also do here?
+			//      maybe another clue should be required in its place or some additional ones?
+			// Early Q acknowledges he knows Dektora, and also reveals Hecuba is her stage name
+			// (Early Q also mentions Hecuba in the JEWELRY question but does not connect her with Dektora)
+			// This dialogue thread assumes:
+			// - Early Q has told McCoy about JEWELRY (weak, not necessarily)
+			// --- If McCoy has not discussed the JEWELRY topic with EarlyQ yet, 
+			// --- then he should NOT be able to do this AFTER this conversation IF McCoy has the clue condition
+			// --- for this specific bit of dialogue which reveals Hecuba's identity.
+			// --- Otherwiase it would create inconsistency to what is known about Hecuba
+			// - Dektora/Hecuba has *not* performed her act yet
 			Actor_Says(kActorEarlyQ, 580, 12);
 			Actor_Says(kActorMcCoy, 3560, 13);
 			Actor_Says(kActorEarlyQ, 590, 16);
@@ -366,6 +386,7 @@ void SceneScriptNR05::talkToEarlyQ() {
 			Actor_Says(kActorEarlyQ, 620, 15);
 			Actor_Says(kActorMcCoy, 3575, 13);
 		} else {
+			// Early Q denies recongnizing Dektora
 			Actor_Says(kActorEarlyQ, 640, 13);
 			Actor_Says(kActorMcCoy, 3580, 15);
 			Actor_Says(kActorEarlyQ, 660, 12);
@@ -401,15 +422,19 @@ void SceneScriptNR05::rotateActorOnGround(int actorId) {
 
 void SceneScriptNR05::playNextMusic() {
 	if (Music_Is_Playing()) {
-		Music_Adjust(51, 0, 2);
+		Music_Adjust(51, 0, 2u);
 	} else {
 		int track = Global_Variable_Query(kVariableEarlyQBackMusic);
+		int loop = kMusicLoopPlayOnce;
+		if (_vm->_cutContent && Random_Query(0, 2) == 1) {
+			loop = kMusicLoopPlayOnceRandomStart;
+		}
 		if (track == 0) {
-			Music_Play(kMusicDkoDnce1, 61, -80, 2, -1, 0, 0);
+			Music_Play(kMusicDkoDnce1, 61, -80, 2, -1, loop, 0);
 		} else if (track == 1) {
-			Music_Play(kMusicStrip1, 41, -80, 2, -1, 0, 0);
+			Music_Play(kMusicStrip1, 41, -80, 2, -1, loop, 0);
 		} else if (track == 2) {
-			Music_Play(kMusicArkDnce1, 41, -80, 2, -1, 0, 0);
+			Music_Play(kMusicArkDnce1, 41, -80, 2, -1, loop, 0);
 		}
 		++track;
 		if (track > 2) {

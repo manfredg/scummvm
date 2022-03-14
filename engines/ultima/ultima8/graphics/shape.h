@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,16 +23,15 @@
 #define ULTIMA8_GRAPHICS_SHAPE_H
 
 #include "ultima/shared/std/containers.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
 class ShapeFrame;
+class RawShapeFrame;
 struct Palette;
 struct Rect;
 struct ConvertShapeFormat;
-class IDataSource;
 
 class Shape {
 public:
@@ -42,7 +40,7 @@ public:
 	// If format is not specified it will be autodetected
 	Shape(const uint8 *data, uint32 size, const ConvertShapeFormat *format,
 	      const uint16 flexId, const uint32 shapenum);
-	Shape(IDataSource *src, const ConvertShapeFormat *format);
+	Shape(Common::SeekableReadStream *src, const ConvertShapeFormat *format);
 	virtual ~Shape();
 	void setPalette(const Palette *pal) {
 		_palette = pal;
@@ -60,39 +58,31 @@ public:
 	//! (x,y) = coordinates of origin relative to top-left point of rectangle
 	void getTotalDimensions(int32 &w, int32 &h, int32 &x, int32 &y) const;
 
-	ShapeFrame *getFrame(unsigned int frame) {
-		if (frame < _frames.size()) return _frames[frame];
-		else return 0;
-	}
+	const ShapeFrame *getFrame(unsigned int frame) const;
 
-	void getShapeId(uint16 &flexId, uint32 &shapenum);
+	void getShapeId(uint16 &flexId, uint32 &shapenum) const;
 
 	// This will detect the format of a shape
 	static const ConvertShapeFormat *DetectShapeFormat(const uint8 *data, uint32 size);
-	static const ConvertShapeFormat *DetectShapeFormat(IDataSource *ds, uint32 size);
+	static const ConvertShapeFormat *DetectShapeFormat(Common::SeekableReadStream &ds, uint32 size);
 
-	ENABLE_RUNTIME_CLASSTYPE_BASE()
-
-	ENABLE_CUSTOM_MEMORY_ALLOCATION()
-
-protected:
+private:
+	void loadFrames(const uint8 *data, uint32 size, const ConvertShapeFormat *format);
 
 	// This will load a u8 style shape 'optimized'.
-	void LoadU8Format(const uint8 *data, uint32 size, const ConvertShapeFormat *format);
+	static Common::Array<RawShapeFrame *> loadU8Format(const uint8 *data, uint32 size, const ConvertShapeFormat *format);
 
 	// This will load a pentagram style shape 'optimized'.
-	void LoadPentagramFormat(const uint8 *data, uint32 size, const ConvertShapeFormat *format);
+	static Common::Array<RawShapeFrame *> loadPentagramFormat(const uint8 *data, uint32 size, const ConvertShapeFormat *format);
 
 	// This will load any sort of shape via a ConvertShapeFormat struct
 	// Crusader shapes must be loaded this way
-	void LoadGenericFormat(const uint8 *data, uint32 size, const ConvertShapeFormat *format);
+	static Common::Array<RawShapeFrame *> loadGenericFormat(const uint8 *data, uint32 size, const ConvertShapeFormat *format);
 
-	Std::vector<ShapeFrame *> _frames;
+	Common::Array<ShapeFrame *> _frames;
 
 	const Palette *_palette;
 
-	const uint8 *_data;
-	uint32 _size;
 	const uint16 _flexId;
 	const uint32 _shapeNum;
 };

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -240,7 +239,7 @@ Intrinsic U8Intrinsics[] = {
 	Actor::I_setHp,
 	Actor::I_setMana,
 	Actor::I_createActor,
-	Actor::I_cSetActivity,
+	Actor::I_setActivity,
 	Actor::I_setAirWalkEnabled,
 	// 0x0B0
 	Actor::I_getAirWalkEnabled,
@@ -258,7 +257,7 @@ Intrinsic U8Intrinsics[] = {
 	UCMachine::I_getName, //temp
 	Item::I_igniteChaos,
 	CameraProcess::I_setCenterOn,
-	CameraProcess::I_move_to,
+	CameraProcess::I_moveTo,
 	// 0x0C0
 	0, //U
 	0, //U
@@ -319,7 +318,7 @@ Intrinsic U8Intrinsics[] = {
 	AudioProcess::I_stopSFX,        // int16 ObjID
 	0, //U
 	0, //U
-	MusicProcess::I_musicStop,
+	MusicProcess::I_stopMusic,
 	0, //U
 	0, //U
 	FireballProcess::I_TonysBalls,

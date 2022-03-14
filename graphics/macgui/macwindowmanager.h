@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,11 +24,18 @@
 
 #include "common/hashmap.h"
 #include "common/list.h"
+#include "common/stack.h"
 #include "common/events.h"
 
 #include "graphics/font.h"
 #include "graphics/fontman.h"
 #include "graphics/macgui/macwindow.h"
+
+#include "engines/engine.h"
+
+namespace Common {
+class Archive;
+}
 
 namespace Graphics {
 
@@ -40,10 +46,12 @@ enum {
 
 enum {
 	kColorBlack = 0,
-	kColorGray = 1,
-	kColorWhite = 2,
-	kColorGreen = 3,
-	kColorGreen2 = 4,
+	kColorGray80 = 1,
+	kColorGray88 = 2,
+	kColorGrayEE = 3,
+	kColorWhite = 4,
+	kColorGreen = 5,
+	kColorGreen2 = 6,
 	kColorCount
 };
 
@@ -56,22 +64,42 @@ enum {
 	kPatternDarkGray = 6
 };
 
+enum MacCursorType {
+	kMacCursorArrow,
+	kMacCursorBeam,
+	kMacCursorCrossHair,
+	kMacCursorCrossBar,
+	kMacCursorWatch,
+	kMacCursorCustom,
+	kMacCursorOff
+};
+
 enum {
 	kWMModeNone         	= 0,
 	kWMModeNoDesktop    	= (1 << 0),
 	kWMModeAutohideMenu 	= (1 << 1),
 	kWMModalMenuMode 		= (1 << 2),
 	kWMModeForceBuiltinFonts= (1 << 3),
-	kWMModeUnicode			= (1 << 4)
+	kWMModeUnicode			= (1 << 4),
+	kWMModeManualDrawWidgets= (1 << 5),
+	kWMModeFullscreen       = (1 << 6),
+	kWMModeButtonDialogStyle= (1 << 7),
+	kWMMode32bpp			= (1 << 8),
+	kWMNoScummVMWallpaper   = (1 << 9),
+	kWMModeWin95            = (1 << 10)
 };
 
 }
 using namespace MacGUIConstants;
 
+class Cursor;
+
 class ManagedSurface;
 
+class MacCursor;
 class MacMenu;
 class MacTextWindow;
+class MacWidget;
 
 class MacFont;
 
@@ -81,19 +109,31 @@ typedef Common::Array<byte *> MacPatterns;
 
 struct MacPlotData {
 	Graphics::ManagedSurface *surface;
+	Graphics::ManagedSurface *mask;
 	MacPatterns *patterns;
 	uint fillType;
 	int fillOriginX;
 	int fillOriginY;
 	int thickness;
 	uint bgColor;
+	bool invert;
 
-	MacPlotData(Graphics::ManagedSurface *s, MacPatterns *p, uint f, int fx, int fy, int t, uint bg) :
-		surface(s), patterns(p), fillType(f), fillOriginX(fx), fillOriginY(fy), thickness(t), bgColor(bg) {
+	MacPlotData(Graphics::ManagedSurface *s, Graphics::ManagedSurface *m, MacPatterns *p, uint f, int fx, int fy, int t, uint bg, bool inv = false) :
+		surface(s), mask(m), patterns(p), fillType(f), fillOriginX(fx), fillOriginY(fy), thickness(t), bgColor(bg), invert(inv) {
 	}
 };
 
-void macDrawPixel(int x, int y, int color, void *data);
+struct ZoomBox {
+	Common::Rect start;
+	Common::Rect end;
+	Common::Array<Common::Rect> last;
+	int delay;
+	int step;
+	uint32 startTime;
+	uint32 nextTime;
+};
+
+typedef void (* MacDrawPixPtr)(int, int, int, void *);
 
 /**
  * A manager class to handle window creation, destruction,
@@ -101,15 +141,26 @@ void macDrawPixel(int x, int y, int color, void *data);
  */
 class MacWindowManager {
 public:
-	MacWindowManager(uint32 mode = 0);
+	MacWindowManager(uint32 mode = 0, MacPatterns *patterns = nullptr, Common::Language language = Common::UNK_LANG);
 	~MacWindowManager();
+
+	MacDrawPixPtr getDrawPixel();
+	MacDrawPixPtr getDrawInvertPixel();
 
 	/**
 	 * Mutator to indicate the surface onto which the desktop will be drawn.
 	 * Note that this method should be called as soon as the WM is created.
 	 * @param screen Surface on which the desktop will be drawn.
 	 */
-	void setScreen(ManagedSurface *screen) { _screen = screen; delete _screenCopy; _screenCopy = nullptr; }
+	void setScreen(ManagedSurface *screen);
+
+	/**
+	 * Mutator to indicate the dimensions of the desktop, when a backing surface is not used.
+	 * Note that this method should be called as soon as the WM is created.
+	 * @param screen Surface on which the desktop will be drawn.
+	 */
+	void setScreen(int w, int h);
+
 	/**
 	 * Create a window with the given parameters.
 	 * Note that this method allocates the necessary memory for the window.
@@ -120,6 +171,8 @@ public:
 	 */
 	MacWindow *addWindow(bool scrollable, bool resizable, bool editable);
 	MacTextWindow *addTextWindow(const MacFont *font, int fgcolor, int bgcolor, int maxWidth, TextAlign textAlignment, MacMenu *menu, bool cursorHandler = true);
+	MacTextWindow *addTextWindow(const Font *font, int fgcolor, int bgcolor, int maxWidth, TextAlign textAlignment, MacMenu *menu, bool cursorHandler = true);
+	void resizeScreen(int w, int h);
 
 	/**
 	 * Adds a window that has already been initialized to the registry.
@@ -145,7 +198,11 @@ public:
 	 */
 	MacMenu *addMenu();
 
+	void removeMenu();
 	void activateMenu();
+
+	void activateScreenCopy();
+	void disableScreenCopy();
 
 	bool isMenuActive();
 
@@ -158,11 +215,25 @@ public:
 	 * Set delay in milliseconds when menu appears (works only with autohide menu)
 	 */
 	void setMenuDelay(int delay) { _menuDelay = delay; }
+
 	/**
 	 * Set the desired window state to active.
 	 * @param id ID of the window that has to be set to active.
 	 */
-	void setActive(int id);
+	void setActiveWindow(int id);
+
+	/**
+	 * Return Top Window containing a point
+	 * @param x x coordinate of point
+	 * @param y y coordiante of point
+	 */ 
+	MacWindow *findWindowAtPoint(int16 x, int16 y);
+	/**
+	 * Return Top Window containing a point
+	 * @param point Point
+	 */ 
+	MacWindow *findWindowAtPoint(Common::Point point);
+
 	/**
 	 * Mark a window for removal.
 	 * Note that the window data will be destroyed.
@@ -206,45 +277,136 @@ public:
 	 */
 	MacPatterns &getPatterns() { return _patterns; }
 
-	void pushArrowCursor();
-	void pushBeamCursor();
-	void pushCrossHairCursor();
-	void pushCrossBarCursor();
-	void pushWatchCursor();
-	void pushCustomCursor(byte *data, int w, int h, int transcolor);
+	/**
+	 * Sets an active widget, typically the one which steals the input
+	 * It also sends deactivation message to the previous one
+	 * @param widget Pointer to the widget to activate, nullptr for no widget
+	 */
+	void setActiveWidget(MacWidget *widget);
+
+	MacPatterns  &getBuiltinPatterns() { return _builtinPatterns; }
+
+	MacWidget *getActiveWidget() { return _activeWidget; }
+
+	Common::Rect getScreenBounds() { return _screen ? _screen->getBounds() : _screenDims; }
+
+	void clearWidgetRefs(MacWidget *widget);
+
+private:
+	void replaceCursorType(MacCursorType type);
+
+public:
+	MacCursorType getCursorType() const;
+
+	void pushCursor(MacCursorType type, Cursor *cursor = nullptr);
+	void replaceCursor(MacCursorType type, Cursor *cursor = nullptr);
+
+	void pushCustomCursor(const byte *data, int w, int h, int hx, int hy, int transcolor);
+	void replaceCustomCursor(const byte *data, int w, int h, int hx, int hy, int transcolor);
+	void pushCustomCursor(const Graphics::Cursor *cursor);
 	void popCursor();
 
-	void pauseEngine(bool pause);
+	PauseToken pauseEngine();
 
 	void setMode(uint32 mode);
 
-	void setEnginePauseCallback(void *engine, void (*pauseCallback)(void *engine, bool pause));
+	void setEngine(Engine *engine);
 	void setEngineRedrawCallback(void *engine, void (*redrawCallback)(void *engine));
 
 	void passPalette(const byte *palette, uint size);
 	uint findBestColor(byte cr, byte cg, byte cb);
+	uint findBestColor(uint32 color);
+	void decomposeColor(uint32 color, byte &r, byte &g, byte &b);
+
+	uint inverter(uint src);
+
+	const byte *getPalette() { return _palette; }
+	uint getPaletteSize() { return _paletteSize; }
+
+	void renderZoomBox(bool redraw = false);
+	void addZoomBox(ZoomBox *box);
+
+	void removeMarked();
+
+	void loadDataBundle();
+	void cleanupDataBundle();
+	BorderOffsets getBorderOffsets(byte windowType);
+	Common::SeekableReadStream *getBorderFile(byte windowType, uint32 flags);
+	Common::SeekableReadStream *getFile(const Common::String &filename);
+
+	void setTextInClipboard(const Common::U32String &str);
+	/**
+	 * get text from WM clipboard or the global clipboard
+	 * @param size will change to the length of real text in clipboard
+	 * @return the text in clipboard, which may contained the format
+	 */
+	Common::U32String getTextFromClipboard(const Common::U32String &format = Common::U32String(), int *size = nullptr);
+
+	/**
+	 * reset events for current widgets. i.e. we reset those variables which are used for handling events for macwidgets.
+	 * e.g. we clear the active widget, set mouse down false, clear the hoveredWidget
+	 * this function should be called when we are going to other level to handling events. thus wm may not handle events correctly.
+	 */
+	void clearHandlingWidgets();
+
+	void setMenuItemCheckMark(const Common::String &menuId, const Common::String &itemId, bool checkMark);
+	void setMenuItemCheckMark(int menuId, int itemId, bool checkMark);
+	void setMenuItemEnabled(const Common::String &menuId, const Common::String &itemId, bool enabled);
+	void setMenuItemEnabled(int menuId, int itemId, bool enabled);
+	void setMenuItemName(const Common::String &menuId, const Common::String &itemId, const Common::String &name);
+	void setMenuItemName(int menuId, int itemId, const Common::String &name);
+	void setMenuItemAction(const Common::String &menuId, const Common::String &itemId, int actionId);
+	void setMenuItemAction(int menuId, int itemId, int actionId);
+
+	bool getMenuItemCheckMark(const Common::String &menuId, const Common::String &itemId);
+	bool getMenuItemCheckMark(int menuId, int itemId);
+	bool getMenuItemEnabled(const Common::String &menuId, const Common::String &itemId);
+	bool getMenuItemEnabled(int menuId, int itemId);
+	Common::String getMenuItemName(const Common::String &menuId, const Common::String &itemId);
+	Common::String getMenuItemName(int menuId, int itemId);
+	int getMenuItemAction(const Common::String &menuId, const Common::String &itemId);
+	int getMenuItemAction(int menuId, int itemId);
 
 public:
 	MacFontManager *_fontMan;
 	uint32 _mode;
+	Common::Language _language;
 
+	Common::Point _lastClickPos;
 	Common::Point _lastMousePos;
 	Common::Rect _menuHotzone;
 
 	bool _menuTimerActive;
+	bool _mouseDown;
 
-	int _colorBlack, _colorWhite;
+	uint32 _colorBlack, _colorGray80, _colorGray88, _colorGrayEE, _colorWhite, _colorGreen, _colorGreen2;
+
+	MacWidget *_hoveredWidget;
+
+	// we use it to indicate whether we are clicking the hilite-able widget.
+	// In list style button mode, we will highlight the subsequent buttons only when we've clicked the hilite-able button initially
+	bool _hilitingWidget;
 
 private:
+	void loadDesktop();
 	void drawDesktop();
 
-	void removeMarked();
 	void removeFromStack(BaseMacWindow *target);
 	void removeFromWindowList(BaseMacWindow *target);
 
+	void zoomBoxInner(Common::Rect &r, Graphics::MacPlotData &pd);
+	bool haveZoomBox() { return !_zoomBoxes.empty(); }
+
+	void adjustDimensions(const Common::Rect &clip, const Common::Rect &dims, int &adjWidth, int &adjHeight);
+
 public:
+	TransparentSurface *_desktopBmp;
+	ManagedSurface *_desktop;
+	PixelFormat _pixelformat;
+
 	ManagedSurface *_screen;
 	ManagedSurface *_screenCopy;
+	Common::Rect _screenDims;
 
 private:
 	Common::List<BaseMacWindow *> _windowStack;
@@ -258,19 +420,35 @@ private:
 
 	bool _fullRefresh;
 
+	bool _inEditableArea;
+
 	MacPatterns _patterns;
+	MacPatterns _builtinPatterns;
 	byte *_palette;
 	uint _paletteSize;
 
 	MacMenu *_menu;
 	uint32 _menuDelay;
 
-	void *_engineP;
+	Engine *_engineP;
 	void *_engineR;
-	void (*_pauseEngineCallback)(void *engine, bool pause);
 	void (*_redrawEngineCallback)(void *engine);
 
-	bool _cursorIsArrow;
+	MacCursorType _tempType;
+	Common::Stack<MacCursorType> _cursorTypeStack;
+	Cursor *_cursor;
+
+	MacWidget *_activeWidget;
+
+	PauseToken *_screenCopyPauseToken;
+
+	Common::Array<ZoomBox *> _zoomBoxes;
+	Common::HashMap<uint, uint> _colorHash;
+	Common::HashMap<uint, uint> _invertColorHash;
+
+	Common::Archive *_dataBundle;
+
+	Common::U32String _clipboard;
 };
 
 } // End of namespace Graphics

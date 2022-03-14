@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -92,7 +91,7 @@ Animation::Animation(InputPersistenceBlock &reader, RenderObjectPtr<RenderObject
 }
 
 void Animation::initializeAnimationResource(const Common::String &fileName) {
-	// Die Resource wird für die gesamte Lebensdauer des Animations-Objektes gelockt.
+	// Die Resource wird fÃ¼r die gesamte Lebensdauer des Animations-Objektes gelockt.
 	Resource *resourcePtr = Kernel::getInstance()->getResourceManager()->requestResource(fileName);
 	if (resourcePtr && resourcePtr->getType() == Resource::TYPE_ANIMATION)
 		_animationResourcePtr = static_cast<AnimationResource *>(resourcePtr);
@@ -101,7 +100,7 @@ void Animation::initializeAnimationResource(const Common::String &fileName) {
 		return;
 	}
 
-	// Größe und Position der Animation anhand des aktuellen Frames bestimmen.
+	// GrÃ¶ÃŸe und Position der Animation anhand des aktuellen Frames bestimmen.
 	computeCurrentCharacteristics();
 }
 
@@ -115,7 +114,7 @@ void Animation::initMembers() {
 	_relY = 0;
 	_scaleFactorX = 1.0f;
 	_scaleFactorY = 1.0f;
-	_modulationColor = 0xffffffff;
+	_modulationColor = BS_ARGBMASK;
 	_animationResourcePtr = 0;
 	_animationTemplateHandle = 0;
 	_framesLocked = false;
@@ -216,12 +215,12 @@ void Animation::frameNotification(int timeElapsed) {
 	assert(animationDescriptionPtr);
 	assert(timeElapsed >= 0);
 
-	// Nur wenn die Animation läuft wird sie auch weiterbewegt
+	// Nur wenn die Animation lÃ¤uft wird sie auch weiterbewegt
 	if (_running) {
 		// Gesamte vergangene Zeit bestimmen (inkl. Restzeit des aktuellen Frames)
 		_currentFrameTime += timeElapsed;
 
-		// Anzahl an zu überpringenden Frames bestimmen
+		// Anzahl an zu Ã¼berpringenden Frames bestimmen
 		int skipFrames = animationDescriptionPtr->getMillisPerFrame() == 0 ? 0 : _currentFrameTime / animationDescriptionPtr->getMillisPerFrame();
 
 		// Neue Frame-Restzeit bestimmen
@@ -291,7 +290,7 @@ void Animation::frameNotification(int timeElapsed) {
 		_currentFrame = static_cast<uint>(tmpCurFrame);
 	}
 
-	// Größe und Position der Animation anhand des aktuellen Frames bestimmen
+	// GrÃ¶ÃŸe und Position der Animation anhand des aktuellen Frames bestimmen
 	computeCurrentCharacteristics();
 
 	assert(_currentFrame < animationDescriptionPtr->getFrameCount());
@@ -308,7 +307,7 @@ void Animation::computeCurrentCharacteristics() {
 	assert(pResource->getType() == Resource::TYPE_BITMAP);
 	BitmapResource *pBitmap = static_cast<BitmapResource *>(pResource);
 
-	// Größe des Bitmaps auf die Animation übertragen
+	// GrÃ¶ÃŸe des Bitmaps auf die Animation Ã¼bertragen
 	_width = static_cast<int>(pBitmap->getWidth() * _scaleFactorX);
 	_height = static_cast<int>(pBitmap->getHeight() * _scaleFactorY);
 
@@ -424,7 +423,7 @@ void Animation::setAlpha(int alpha) {
 		return;
 	}
 
-	uint newModulationColor = (_modulationColor & 0x00ffffff) | alpha << 24;
+	uint newModulationColor = (_modulationColor & BS_RGBMASK) | alpha << BS_ASHIFT;
 	if (newModulationColor != _modulationColor) {
 		_modulationColor = newModulationColor;
 		forceRefresh();
@@ -439,7 +438,7 @@ void Animation::setModulationColor(uint modulationColor) {
 		return;
 	}
 
-	uint newModulationColor = (modulationColor & 0x00ffffff) | (_modulationColor & 0xff000000);
+	uint newModulationColor = (modulationColor & BS_RGBMASK) | (_modulationColor & BS_AMASK);
 	if (newModulationColor != _modulationColor) {
 		_modulationColor = newModulationColor;
 		forceRefresh();

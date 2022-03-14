@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,37 +15,29 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 
 #include "ultima/ultima8/world/actors/ambush_process.h"
 #include "ultima/ultima8/world/actors/main_actor.h"
 #include "ultima/ultima8/world/actors/combat_process.h"
 #include "ultima/ultima8/world/get_object.h"
 
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
-
 namespace Ultima {
 namespace Ultima8 {
 
-// p_dynamic_cast stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE(AmbushProcess, Process)
+DEFINE_RUNTIME_CLASSTYPE_CODE(AmbushProcess)
 
-AmbushProcess::AmbushProcess() : Process() {
+AmbushProcess::AmbushProcess() : Process(), _delayCount(0) {
 
 }
 
-AmbushProcess::AmbushProcess(Actor *actor_) {
-	assert(actor_);
-	_itemNum = actor_->getObjId();
+AmbushProcess::AmbushProcess(Actor *actor) : _delayCount(0) {
+	assert(actor);
+	_itemNum = actor->getObjId();
 	_type = 0x21E; // CONSTANT !
-
-	_delayCount = 0;
 }
 
 void AmbushProcess::run() {
@@ -56,6 +48,12 @@ void AmbushProcess::run() {
 	_delayCount = 10;
 
 	Actor *a = getActor(_itemNum);
+	if (!a) {
+	   // this shouldn't happen
+	   terminate();
+	   return;
+	}
+
 	CombatProcess *cp = a->getCombatProcess();
 	if (!cp) {
 		// this shouldn't have happened
@@ -74,16 +72,16 @@ void AmbushProcess::run() {
 	terminate();
 }
 
-void AmbushProcess::saveData(ODataSource *ods) {
-	Process::saveData(ods);
+void AmbushProcess::saveData(Common::WriteStream *ws) {
+	Process::saveData(ws);
 
-	ods->write4(_delayCount);
+	ws->writeUint32LE(_delayCount);
 }
 
-bool AmbushProcess::loadData(IDataSource *ids, uint32 version) {
-	if (!Process::loadData(ids, version)) return false;
+bool AmbushProcess::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Process::loadData(rs, version)) return false;
 
-	_delayCount = ids->read4();
+	_delayCount = rs->readUint32LE();
 
 	return true;
 }

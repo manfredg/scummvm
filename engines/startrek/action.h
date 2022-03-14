@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,11 +49,13 @@ enum ActionTypes {
 	ACTION_FINISHED_ANIMATION = 10,
 	ACTION_FINISHED_WALKING = 12,
 
-	ACTION_OPTIONS = 13 // Not really an action, but selectable from action menu
+	ACTION_OPTIONS = 13, // Not really an action, but selectable from action menu
+
+	ACTION_LIST_END = -1
 };
 
 struct Action {
-	byte type;
+	int8 type;
 	byte b1;
 	byte b2;
 	byte b3;
@@ -73,7 +74,7 @@ struct Action {
 
 	uint32 getBitmask() const {
 		uint32 ret = 0;
-		if (type != 0xff)
+		if (type != -1)
 			ret |= (0xff << 24);
 		if (b1 != 0xff)
 			ret |= (0xff << 16);

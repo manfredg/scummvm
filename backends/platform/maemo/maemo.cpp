@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "backends/platform/maemo/maemo.h"
 #include "backends/events/maemosdl/maemosdl-events.h"
 #include "backends/graphics/maemosdl/maemosdl-graphics.h"
+#include "backends/keymapper/action.h"
 #include "backends/keymapper/keymapper.h"
 #include "backends/keymapper/keymapper-defaults.h"
 #include "common/textconsole.h"
@@ -51,6 +51,7 @@ void OSystem_SDL_Maemo::init() {
 	// Use an iconless window for Maemo
 	// also N900 is hit by SDL_WM_SetIcon bug (window cannot receive input)
 	// http://bugzilla.libsdl.org/show_bug.cgi?id=586
+	initSDL();
 	_window = new SdlIconlessWindow();
 
 	OSystem_POSIX::init();
@@ -97,21 +98,8 @@ void OSystem_SDL_Maemo::setXWindowName(const char *caption) {
 	}
 }
 
-void OSystem_SDL_Maemo::setWindowCaption(const char *caption) {
-	Common::String cap;
-	byte c;
-
-	// The string caption is supposed to be in LATIN-1 encoding.
-	// SDL expects UTF-8. So we perform the conversion here.
-	while ((c = *(const byte *)caption++)) {
-		if (c < 0x80)
-			cap += c;
-		else {
-			cap += 0xC0 | (c >> 6);
-			cap += 0x80 | (c & 0x3F);
-		}
-	}
-
+void OSystem_SDL_Maemo::setWindowCaption(const Common::U32String &caption) {
+	Common::String cap = caption.encode();
 	_window->setWindowCaption(cap);
 
 	Common::String cap2("ScummVM - "); // 2 lines in OS2008 task switcher, set first line
@@ -170,15 +158,15 @@ Common::KeymapArray OSystem_SDL_Maemo::getGlobalKeymaps() {
 	act->setCustomBackendActionEvent(Maemo::kEventClickMode);
 	globalMap->addAction(act);
 
-	act = new Action("LCLK", _("Left Click"));
+	act = new Action(kStandardActionLeftClick, _("Left Click"));
 	act->setLeftClickEvent();
 	globalMap->addAction(act);
 
-	act = new Action("MCLK", _("Middle Click"));
+	act = new Action(kStandardActionMiddleClick, _("Middle Click"));
 	act->setMiddleClickEvent();
 	globalMap->addAction(act);
 
-	act = new Action("RCLK", _("Right Click"));
+	act = new Action(kStandardActionRightClick, _("Right Click"));
 	act->setRightClickEvent();
 	globalMap->addAction(act);
 
@@ -213,7 +201,7 @@ Common::KeymapperDefaultBindings *OSystem_SDL_Maemo::getKeymapperDefaultBindings
 
 	keymapperDefaultBindings->setDefaultBinding("gui", "CLOS", "ESCAPE");
 
-	keymapperDefaultBindings->setDefaultBinding("maemo", "RCLK", "ZOOMPLUS");
+	keymapperDefaultBindings->setDefaultBinding("maemo", kStandardActionRightClick, "ZOOMPLUS");
 	keymapperDefaultBindings->setDefaultBinding("maemo", "CLKM", "ZOOMMINUS");
 
 	return keymapperDefaultBindings;

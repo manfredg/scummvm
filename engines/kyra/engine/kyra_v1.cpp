@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,12 +33,12 @@ namespace Kyra {
 
 KyraEngine_v1::KyraEngine_v1(OSystem *system, const GameFlags &flags)
 	: Engine(system), _flags(flags), _rnd("kyra") {
-	_res = 0;
-	_sound = 0;
-	_text = 0;
-	_staticres = 0;
-	_timer = 0;
-	_emc = 0;
+	_res = nullptr;
+	_sound = nullptr;
+	_text = nullptr;
+	_staticres = nullptr;
+	_timer = nullptr;
+	_emc = nullptr;
 
 	_configRenderMode = Common::kRenderDefault;
 	_configNullSound = false;
@@ -50,7 +49,7 @@ KyraEngine_v1::KyraEngine_v1(OSystem *system, const GameFlags &flags)
 		_gameSpeed = 60;
 	_tickLength = (uint8)(1000.0 / _gameSpeed);
 
-	_trackMap = 0;
+	_trackMap = nullptr;
 	_trackMapSize = 0;
 	_lastMusicCommand = -1;
 	_curSfxFile = _curMusicTheme = -1;
@@ -66,20 +65,8 @@ KyraEngine_v1::KyraEngine_v1(OSystem *system, const GameFlags &flags)
 	_isSaveAllowed = false;
 
 	_mouseX = _mouseY = 0;
+	_transOffsY = 0;
 	_asciiCodeEvents = _kbEventSkip = false;
-
-	// sets up all engine specific debug levels
-	DebugMan.addDebugChannel(kDebugLevelScriptFuncs, "ScriptFuncs", "Script function debug level");
-	DebugMan.addDebugChannel(kDebugLevelScript, "Script", "Script interpreter debug level");
-	DebugMan.addDebugChannel(kDebugLevelSprites, "Sprites", "Sprite debug level");
-	DebugMan.addDebugChannel(kDebugLevelScreen, "Screen", "Screen debug level");
-	DebugMan.addDebugChannel(kDebugLevelSound, "Sound", "Sound debug level");
-	DebugMan.addDebugChannel(kDebugLevelAnimator, "Animator", "Animator debug level");
-	DebugMan.addDebugChannel(kDebugLevelMain, "Main", "Generic debug level");
-	DebugMan.addDebugChannel(kDebugLevelGUI, "GUI", "GUI debug level");
-	DebugMan.addDebugChannel(kDebugLevelSequence, "Sequence", "Sequence debug level");
-	DebugMan.addDebugChannel(kDebugLevelMovie, "Movie", "Movie debug level");
-	DebugMan.addDebugChannel(kDebugLevelTimer, "Timer", "Timer debug level");
 }
 
 void KyraEngine_v1::pauseEngineIntern(bool pause) {
@@ -107,6 +94,8 @@ Common::Error KyraEngine_v1::init() {
 				_sound = new SoundTownsPC98_v2(this, _mixer);
 		} else if (_flags.platform == Common::kPlatformAmiga) {
 			_sound = new SoundAmiga_LoK(this, _mixer);
+		} else if (_flags.platform == Common::kPlatformMacintosh && _flags.gameID == GI_KYRA1) {
+			_sound = new SoundMac(this, _mixer);
 		} else {
 			// In Kyra 1 users who have specified a default MT-32 device in the launcher settings
 			// will get MT-32 music, otherwise AdLib. In Kyra 2 and LoL users who have specified a
@@ -116,22 +105,22 @@ Common::Error KyraEngine_v1::init() {
 			// Users who want PC speaker sound always have to select this individually for all
 			// Kyra games.
 			MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_PCSPK | MDT_MIDI | MDT_ADLIB | ((_flags.gameID == GI_KYRA2 || _flags.gameID == GI_LOL) ? MDT_PREFER_GM : MDT_PREFER_MT32));
-			if (MidiDriver::getMusicType(dev) == MT_ADLIB) {
+			const MusicType musicType = MidiDriver::getMusicType(dev);
+			if (musicType == MT_ADLIB) {
 				_sound = new SoundPC_v1(this, _mixer, Sound::kAdLib);
 			} else {
 				Sound::kType type;
-				const MusicType midiType = MidiDriver::getMusicType(dev);
 
-				if (midiType == MT_PCSPK || midiType == MT_NULL)
+				if (musicType == MT_PCSPK || musicType == MT_NULL)
 					type = Sound::kPCSpkr;
-				else if (midiType == MT_MT32 || ConfMan.getBool("native_mt32"))
+				else if (musicType == MT_MT32 || ConfMan.getBool("native_mt32"))
 					type = Sound::kMidiMT32;
 				else
 					type = Sound::kMidiGM;
 
-				MidiDriver *driver = 0;
+				MidiDriver *driver = nullptr;
 
-				if (MidiDriver::getMusicType(dev) == MT_PCSPK) {
+				if (musicType == MT_PCSPK) {
 					driver = new MidiDriver_PCSpeaker(_mixer);
 				} else {
 					driver = MidiDriver::createMidi(dev);
@@ -213,6 +202,7 @@ KyraEngine_v1::~KyraEngine_v1() {
 
 Common::Point KyraEngine_v1::getMousePos() {
 	Common::Point mouse = _eventMan->getMousePos();
+	mouse.y -= -_transOffsY;
 
 	if (_flags.useHiRes) {
 		mouse.x >>= 1;
@@ -269,7 +259,7 @@ int KyraEngine_v1::checkInput(Button *buttonList, bool mainLoop, int eventFlag) 
 				} else {
 					char savegameName[14];
 					sprintf(savegameName, "Quicksave %d", event.kbd.keycode - Common::KEYCODE_0);
-					saveGameStateIntern(saveLoadSlot, savegameName, 0);
+					saveGameStateIntern(saveLoadSlot, savegameName, nullptr);
 				}
 			} else if (event.kbd.hasFlags(Common::KBD_CTRL)) {
 				if (event.kbd.keycode == Common::KEYCODE_q) {
@@ -285,7 +275,7 @@ int KyraEngine_v1::checkInput(Button *buttonList, bool mainLoop, int eventFlag) 
 						keys |= 0x100;
 				} else {
 					keys = 0;
-				}				
+				}
 
 				// When we got an keypress, which we might need to handle,
 				// break the event loop and pass it to GUI code.
@@ -297,7 +287,7 @@ int KyraEngine_v1::checkInput(Button *buttonList, bool mainLoop, int eventFlag) 
 		case Common::EVENT_LBUTTONDOWN:
 		case Common::EVENT_LBUTTONUP: {
 			_mouseX = event.mouse.x;
-			_mouseY = event.mouse.y;
+			_mouseY = event.mouse.y - _transOffsY;
 			if (_flags.useHiRes) {
 				_mouseX >>= 1;
 				_mouseY >>= 1;
@@ -309,7 +299,7 @@ int KyraEngine_v1::checkInput(Button *buttonList, bool mainLoop, int eventFlag) 
 		case Common::EVENT_RBUTTONDOWN:
 		case Common::EVENT_RBUTTONUP: {
 			_mouseX = event.mouse.x;
-			_mouseY = event.mouse.y;
+			_mouseY = event.mouse.y - _transOffsY;
 			if (_flags.useHiRes) {
 				_mouseX >>= 1;
 				_mouseY >>= 1;
@@ -435,7 +425,7 @@ void KyraEngine_v1::setupKeyMap() {
 	// If we have an engine that wants ASCII codes instead of key codes, we can skip the setup of the key map.
 	// In that case we simply return the ASCII codes from the event manager. At least until I know better I
 	// trust that the ASCII codes we get from our event manager are the same identical codes. If that assumption
-	// turns out to be wrong I can still implement the original conversion method... 
+	// turns out to be wrong I can still implement the original conversion method...
 	if (_asciiCodeEvents)
 		return;
 
@@ -484,13 +474,17 @@ void KyraEngine_v1::updateInput() {
 		}
 	}
 
-	if (updateScreen)
-		_system->updateScreen();
+	screen()->updateBackendScreen(updateScreen);
 }
 
 void KyraEngine_v1::removeInputTop() {
 	if (!_eventList.empty())
 		_eventList.erase(_eventList.begin());
+}
+
+void KyraEngine_v1::transposeScreenOutputY(int yAdd) {
+	_transOffsY = yAdd;
+	screen()->transposeScreenOutputY(yAdd);
 }
 
 bool KyraEngine_v1::skipFlag() const {
@@ -554,12 +548,14 @@ void KyraEngine_v1::delayWithTicks(int ticks) {
 void KyraEngine_v1::registerDefaultSettings() {
 	if (_flags.platform == Common::kPlatformFMTowns)
 		ConfMan.registerDefault("cdaudio", true);
+	else if (_flags.platform == Common::kPlatformMacintosh)
+		ConfMan.registerDefault("hqmusic", true);
 	if (_flags.fanLang != Common::UNK_LANG) {
 		// HACK/WORKAROUND: Since we can't use registerDefault here to overwrite
 		// the global subtitles settings, we're using this hack to enable subtitles
 		// for fan translations
 		const Common::ConfigManager::Domain *cur = ConfMan.getActiveDomain();
-		if (!cur || (cur && cur->getVal("subtitles").empty()))
+		if (!cur || (cur && !cur->contains("subtitles")))
 			ConfMan.setBool("subtitles", true);
 	}
 }
@@ -571,6 +567,8 @@ void KyraEngine_v1::readSettings() {
 	if (!ConfMan.getBool("music_mute")) {
 		if (_flags.platform == Common::kPlatformFMTowns)
 			_configMusic = ConfMan.getBool("cdaudio") ? 2 : 1;
+		else if (_flags.platform == Common::kPlatformMacintosh)
+			_configMusic = ConfMan.getBool("hqmusic") ? 1 : 2;
 		else
 			_configMusic = 1;
 	}
@@ -601,6 +599,8 @@ void KyraEngine_v1::writeSettings() {
 	ConfMan.setBool("music_mute", _configMusic == 0);
 	if (_flags.platform == Common::kPlatformFMTowns)
 		ConfMan.setBool("cdaudio", _configMusic == 2);
+	else if (_flags.platform == Common::kPlatformMacintosh)
+		ConfMan.setBool("hqmusic", _configMusic == 1);
 	ConfMan.setBool("sfx_mute", _configSounds == 0);
 
 	switch (_configVoice) {

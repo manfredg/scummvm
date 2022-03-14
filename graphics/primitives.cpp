@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -125,7 +124,7 @@ void drawThickLine2(int x1, int y1, int x2, int y2, int thick, int color, void (
 		/* 2.0.12: Michael Schwartz: divide rather than multiply;
 			  TBB: but watch out for /0! */
 		if (dx != 0 && thick != 0) {
-			double ac_recip = 1/dx * sqrt((double)(dx * dx + dy * dy)); // 1 / cos(atan2((double)dy, (double)dx));
+			double ac_recip = 1.0/dx * sqrt((double)(dx * dx + dy * dy)); // 1 / cos(atan2((double)dy, (double)dx));
 			wid = thick * ac_recip;
 		} else {
 			wid = 1;
@@ -183,7 +182,7 @@ void drawThickLine2(int x1, int y1, int x2, int y2, int thick, int color, void (
 		/* 2.0.12: Michael Schwartz: divide rather than multiply;
 		   TBB: but watch out for /0! */
 		if (dy != 0 && thick != 0) {
-			double as_recip = 1/dy * sqrt((double)(dx * dx + dy * dy)); // 1 / sin(atan2((double)dy, (double)dx));
+			double as_recip = 1.0/dy * sqrt((double)(dx * dx + dy * dy)); // 1 / sin(atan2((double)dy, (double)dx));
 			wid = thick * as_recip;
 		} else {
 			wid = 1;
@@ -290,7 +289,7 @@ void drawRoundRect(Common::Rect &rect, int arc, int color, bool filled, void (*p
 			drawHLine(rect.left + x + r, rect.right - x - r, rect.bottom + y - r + stop, color, plotProc, data);
 		}
 
-		for (int i = 0; i < dy; i++) {
+		for (int i = 1; i < dy; i++) {
 			if (filled) {
 				drawHLine(rect.left, rect.right, rect.top + r + i, color, plotProc, data);
 			} else {
@@ -335,7 +334,7 @@ void drawRoundRect(Common::Rect &rect, int arc, int color, bool filled, void (*p
 			drawVLine(rect.right + x - r + stop, rect.top + y + r, rect.bottom - y - r, color, plotProc, data);
 		}
 
-		for (int i = 0; i < dx; i++) {
+		for (int i = 1; i < dx; i++) {
 			if (filled) {
 				drawVLine(rect.left + r + i, rect.top, rect.bottom, color, plotProc, data);
 			} else {

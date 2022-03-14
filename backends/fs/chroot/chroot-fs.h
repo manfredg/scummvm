@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 
 #include "backends/fs/posix/posix-fs.h"
 
-class ChRootFilesystemNode : public AbstractFSNode {
+class ChRootFilesystemNode final : public AbstractFSNode {
 	Common::String _root;
 	POSIXFilesystemNode *_realNode;
 
@@ -33,23 +32,23 @@ class ChRootFilesystemNode : public AbstractFSNode {
 
 public:
 	ChRootFilesystemNode(const Common::String &root, const Common::String &path);
-	virtual ~ChRootFilesystemNode();
+	~ChRootFilesystemNode() override;
 
-	virtual bool exists() const;
-	virtual Common::String getDisplayName() const;
-	virtual Common::String getName() const;
-	virtual Common::String getPath() const;
-	virtual bool isDirectory() const;
-	virtual bool isReadable() const;
-	virtual bool isWritable() const;
+	bool exists() const override;
+	Common::U32String getDisplayName() const override;
+	Common::String getName() const override;
+	Common::String getPath() const override;
+	bool isDirectory() const override;
+	bool isReadable() const override;
+	bool isWritable() const override;
 
-	virtual AbstractFSNode *getChild(const Common::String &n) const;
-	virtual bool getChildren(AbstractFSList &list, ListMode mode, bool hidden) const;
-	virtual AbstractFSNode *getParent() const;
+	AbstractFSNode *getChild(const Common::String &n) const override;
+	bool getChildren(AbstractFSList &list, ListMode mode, bool hidden) const override;
+	AbstractFSNode *getParent() const override;
 
-	virtual Common::SeekableReadStream *createReadStream();
-	virtual Common::WriteStream *createWriteStream();
-	virtual bool createDirectory();
+	Common::SeekableReadStream *createReadStream() override;
+	Common::SeekableWriteStream *createWriteStream() override;
+	bool createDirectory() override;
 
 private:
 	static Common::String addPathComponent(const Common::String &path, const Common::String &component);

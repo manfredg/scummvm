@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,17 +35,6 @@ PreAgiEngine::PreAgiEngine(OSystem *syst, const AGIGameDescription *gameDesc) : 
 
 	// Setup mixer
 	syncSoundSettings();
-
-	DebugMan.addDebugChannel(kDebugLevelMain, "Main", "Generic debug level");
-	DebugMan.addDebugChannel(kDebugLevelResources, "Resources", "Resources debugging");
-	DebugMan.addDebugChannel(kDebugLevelSprites, "Sprites", "Sprites debugging");
-	DebugMan.addDebugChannel(kDebugLevelInventory, "Inventory", "Inventory debugging");
-	DebugMan.addDebugChannel(kDebugLevelInput, "Input", "Input events debugging");
-	DebugMan.addDebugChannel(kDebugLevelMenu, "Menu", "Menu debugging");
-	DebugMan.addDebugChannel(kDebugLevelScripts, "Scripts", "Scripts debugging");
-	DebugMan.addDebugChannel(kDebugLevelSound, "Sound", "Sound debugging");
-	DebugMan.addDebugChannel(kDebugLevelText, "Text", "Text output debugging");
-	DebugMan.addDebugChannel(kDebugLevelSavegame, "Savegame", "Saving & restoring game debugging");
 
 	memset(&_debug, 0, sizeof(struct AgiDebug));
 
@@ -193,7 +181,7 @@ int PreAgiEngine::getSelection(SelectionTypes type) {
 	while (!shouldQuit()) {
 		while (_eventMan->pollEvent(event)) {
 			switch (event.type) {
-			case Common::EVENT_RTL:
+			case Common::EVENT_RETURN_TO_LAUNCHER:
 			case Common::EVENT_QUIT:
 				return 0;
 			case Common::EVENT_RBUTTONUP:

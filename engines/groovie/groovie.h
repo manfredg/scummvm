@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
 
 #include "engines/engine.h"
 #include "graphics/pixelformat.h"
+#include "groovie/detection.h"
 
 namespace Common {
 class MacResManager;
@@ -66,8 +66,9 @@ enum DebugLevels {
 	kDebugCursor = 1 << 5,
 	kDebugMIDI = 1 << 6,
 	kDebugScriptvars = 1 << 7,
-	kDebugCell = 1 << 8,
+	kDebugLogic = 1 << 8,
 	kDebugFast = 1 << 9
+	//kDebugTlcGame = 1 << 10
 	// the current limitation is 32 debug levels (1 << 31 is the last one)
 	// but some are used by system, so avoid high values.
 };
@@ -88,17 +89,46 @@ enum GameSpeed {
 
 struct GroovieGameDescription;
 
+struct SoundQueueEntry {
+	Common::SeekableReadStream *_file;
+	uint32 _loops;
+};
+
+class SoundEffectQueue {
+public:
+	SoundEffectQueue();
+	void setVM(GroovieEngine *vm);
+	void queue(Common::SeekableReadStream *soundfile, uint32 loops);
+	void tick();
+	void stopAll();
+
+protected:
+	void deleteFile();
+	VideoPlayer *_player;
+	GroovieEngine *_vm;
+	Common::Queue<SoundQueueEntry> _queue;
+	Common::SeekableReadStream *_file;
+};
+
 class GroovieEngine : public Engine {
 public:
+	static const int AUTOSAVE_SLOT;
+
 	GroovieEngine(OSystem *syst, const GroovieGameDescription *gd);
 	~GroovieEngine() override;
 
 	Common::Platform getPlatform() const;
+	EngineVersion getEngineVersion() const;
+
+	int getAutosaveSlot() const override;
+	bool canLaunchLoad() const;
+	bool isDemo() const;
 
 protected:
 
 	// Engine APIs
 	Common::Error run() override;
+	void pauseEngineIntern(bool pause) override;
 
 	bool hasFeature(EngineFeature f) const override;
 
@@ -110,6 +140,7 @@ protected:
 
 public:
 	void waitForInput();
+	bool isWaitingForInput() { return _waitingForInput; }
 
 	Graphics::PixelFormat _pixelFormat;
 	bool _spookyMode;
@@ -117,6 +148,7 @@ public:
 	ResMan *_resMan;
 	GrvCursorMan *_grvCursorMan;
 	VideoPlayer *_videoPlayer;
+	SoundEffectQueue _soundQueue;
 	MusicPlayer *_musicPlayer;
 	GraphicsMan *_graphicsMan;
 	const Graphics::Font *_font;

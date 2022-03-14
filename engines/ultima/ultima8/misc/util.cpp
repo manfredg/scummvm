@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,26 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/misc/util.h"
 #include "ultima/ultima8/misc/istring.h"
-#include "ultima/shared/std/string.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-template<class T> T to_uppercase(const T s) {
-	T str = s;
-	str.toUppercase();
-	return str;
-}
-
-template<class T> void StringToArgv(const T &args, Std::vector<T> &argv) {
+template<class T> void StringToArgv(const T &args, Common::Array<T> &argv) {
 	// Clear the vector
 	argv.clear();
 
@@ -95,47 +86,7 @@ template<class T> void StringToArgv(const T &args, Std::vector<T> &argv) {
 	if (!arg.empty()) argv.push_back(arg);
 }
 
-template void StringToArgv<Std::string>(const Std::string &args, Std::vector<Std::string> &argv);
-template void StringToArgv<istring>(const istring &args, Std::vector<istring> &argv);
-template void StringToArgv<Common::String>(const Common::String &args, Std::vector<Common::String> &argv);
-
-template<class T> void ArgvToString(const Std::vector<T> &argv, T &args) {
-	// Clear the string
-	args.clear();
-
-	typename Std::vector<T>::const_iterator i;
-	typename T::const_iterator j;
-	int ch;
-
-	for (i = argv.begin(); i != argv.end(); ++i) {
-		for (j = i->begin(); j != i->end(); ++j) {
-			ch = *j;
-
-			// No quoting, only escaping
-
-			// Handle \, ", ', \n, \r, \t., ' '
-			if (ch == '\\' || ch == '\"' || ch == '\'' || ch == ' ') {
-				args += '\\';
-			} else if (ch == '\n') {
-				args += '\\';
-				ch = 'n';
-			} else if (ch == '\r') {
-				args += '\\';
-				ch = 'r';
-			} else if (ch == '\t') {
-				args += '\\';
-				ch = 't';
-			}
-
-			args += ch;
-		}
-		args += ' ';
-	}
-}
-
-template void ArgvToString<Std::string>(const Std::vector<Std::string> &argv, Std::string &args);
-template void ArgvToString<istring>(const Std::vector<istring> &argv, istring &args);
-template void ArgvToString<Common::String>(const Std::vector<Common::String> &argv, Common::String &args);
+template void StringToArgv<Common::String>(const Common::String &args, Common::Array<Common::String> &argv);
 
 template<class T> void TrimSpaces(T &str) {
 	if (str.empty()) return;
@@ -166,7 +117,7 @@ template void TabsToSpaces<istring>(istring &str, unsigned int n);
 
 
 template<class T> void SplitString(const T &args, char sep,
-                                   Std::vector<T> &argv) {
+								   Std::vector<T> &argv) {
 	// Clear the vector
 	argv.clear();
 
@@ -194,7 +145,7 @@ template void SplitString<istring>(const istring &args, char sep, Std::vector<is
 
 
 template<class T> void SplitStringKV(const T &args, char sep,
-                                     Std::vector<Std::pair<T, T> > &argv) {
+									 Std::vector<Std::pair<T, T> > &argv) {
 	// Clear the vector
 	argv.clear();
 

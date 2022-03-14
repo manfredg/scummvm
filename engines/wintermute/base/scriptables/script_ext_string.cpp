@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,8 +54,7 @@ SXString::SXString(BaseGame *inGame, ScStack *stack) : BaseScriptable(inGame) {
 	if (val->isInt()) {
 		_capacity = MAX(0, val->getInt());
 		if (_capacity > 0) {
-			_string = new char[_capacity];
-			memset(_string, 0, _capacity);
+			_string = new char[_capacity]();
 		}
 	} else {
 		setStringVal(val->getString());
@@ -83,8 +81,7 @@ void SXString::setStringVal(const char *val) {
 		_capacity = len + 1;
 		delete[] _string;
 		_string = nullptr;
-		_string = new char[_capacity];
-		memset(_string, 0, _capacity);
+		_string = new char[_capacity]();
 	}
 	strcpy(_string, val);
 }
@@ -128,8 +125,7 @@ bool SXString::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisStack
 			str = StringUtil::ansiToWide(_string);
 		}
 
-		//WideString subStr = str.substr(start, end - start + 1);
-		WideString subStr(str.c_str() + start, end - start + 1);
+		WideString subStr = str.substr(start, end - start + 1);
 
 		if (_gameRef->_textEncoding == TEXT_UTF8) {
 			stack->pushString(StringUtil::wideToUtf8(subStr).c_str());
@@ -170,8 +166,7 @@ bool SXString::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisStack
 			str = StringUtil::ansiToWide(_string);
 		}
 
-//			WideString subStr = str.substr(start, len);
-		WideString subStr(str.c_str() + start, len);
+		WideString subStr = str.substr(start, len);
 
 		if (_gameRef->_textEncoding == TEXT_UTF8) {
 			stack->pushString(StringUtil::wideToUtf8(subStr).c_str());
@@ -277,7 +272,7 @@ bool SXString::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisStack
 			result = _string[index];
 		}
 		stack->pushInt(result);
-		
+
 		return STATUS_OK;
 	}
 #endif
@@ -323,7 +318,7 @@ bool SXString::scCallMethod(ScScript *script, ScStack *stack, ScStack *thisStack
 			uint32 ch = (i == str.size()) ? '\0' : str[i];
 			if (ch =='\0' || delims.contains(ch)) {
 				if (i != start) {
-					parts.push_back(WideString(str.c_str() + start, i - start));
+					parts.push_back(str.substr(start, i - start));
 				} else {
 					parts.push_back(WideString());
 				}
@@ -399,9 +394,8 @@ bool SXString::scSetProperty(const char *name, ScValue *value) {
 		if (newCap < (int32)(strlen(_string) + 1)) {
 			_gameRef->LOG(0, "Warning: cannot lower string capacity");
 		} else if (newCap != _capacity) {
-			char *newStr = new char[newCap];
+			char *newStr = new char[newCap]();
 			if (newStr) {
-				memset(newStr, 0, newCap);
 				strcpy(newStr, _string);
 				delete[] _string;
 				_string = newStr;

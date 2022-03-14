@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "common/translation.h"
 namespace Tinsel {
 
 static const TinselGameDescription gameDescriptions[] = {
@@ -59,11 +59,8 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw",
 			"CD Demo",
-			{
-				{"dw.gra", 0, "ef5a2518c9e205f786f5a4526396e661", 781676},
-				{"english.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw.gra", "ef5a2518c9e205f786f5a4526396e661", 781676,
+					   "english.smp", NULL, -1),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_DEMO | ADGF_CD,
@@ -75,7 +72,7 @@ static const TinselGameDescription gameDescriptions[] = {
 		TINSEL_V1,
 	},
 
-	{	// Macintosh CD Demo V1 version, with *.scn files, see tracker #3110936
+	{	// Macintosh CD Demo V1 version, with *.scn files, see tracker #5517
 		{
 			"dw",
 			"CD Demo",
@@ -209,11 +206,8 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw",
 			"CD",
-			{
-				{"dw.gra", 0, "c8808ccd988d603dd35dff42013ae7fd", 781656},
-				{"english.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw.gra", "c8808ccd988d603dd35dff42013ae7fd", 781656,
+					   "english.smp", NULL, -1),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_CD,
@@ -229,11 +223,8 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw",
 			"CD",
-			{
-				{"dw.gra", 0, "ef05bbd2a754bd11a2e87bcd84ab5ccf", 781864},
-				{"english.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw.gra", "ef05bbd2a754bd11a2e87bcd84ab5ccf", 781864,
+					   "english.smp", NULL, -1),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_CD,
@@ -382,11 +373,8 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw",
 			"CD",
-			{
-				{"dw.scn", 0, "70955425870c7720d6eebed903b2ef41", 776188},
-				{"english.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw.scn", "70955425870c7720d6eebed903b2ef41", 776188,
+					   "english.smp", NULL, -1),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_CD,
@@ -402,11 +390,8 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw",
 			"CD",
-			{
-				{"dw.scn", 0, "759d1374b4f02af6d52fc07c96679936", 770780},
-				{"english.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw.scn", "759d1374b4f02af6d52fc07c96679936", 770780,
+					   "english.smp", NULL, -1),
 			Common::HE_ISR,
 			Common::kPlatformDOS,
 			ADGF_CD,
@@ -422,11 +407,24 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw",
 			"CD",
-			{
-				{"english.txt", 0, "7526cfc3a64e00f223795de476b4e2c9", 230326},
-				AD_LISTEND
-			},
+			AD_ENTRY1s("english.txt", "7526cfc3a64e00f223795de476b4e2c9", 230326),
 			Common::EN_ANY,
+			Common::kPlatformPSX,
+			ADGF_CD,
+			GUIO0()
+		},
+		GID_DW1,
+		0,
+		GF_SCNFILES | GF_ENHANCED_AUDIO_SUPPORT,
+		TINSEL_V1,
+	},
+
+	{	// Discworld PSX German CD
+		{
+			"dw",
+			"CD",
+			AD_ENTRY1s("dw.scn", "0b34bb57cd3961e4528e4bce48cc0ab9", 339764),
+			Common::DE_DEU,
 			Common::kPlatformPSX,
 			ADGF_CD,
 			GUIO0()
@@ -441,10 +439,7 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw",
 			"CD",
-			{
-				{"dw.scn", 0, "3cbe25971651631fdc33fece642c9c78", 328048},
-				AD_LISTEND
-			},
+			AD_ENTRY1s("dw.scn", "bd2e47010565998641ec45a9c9285be0", 328048),
 			Common::JA_JPN,
 			Common::kPlatformPSX,
 			ADGF_CD | ADGF_UNSTABLE,
@@ -480,37 +475,29 @@ static const TinselGameDescription gameDescriptions[] = {
 		TINSEL_V1,
 	},
 
-#if 0
 	{	// English Saturn CD
 		{
 			"dw",
-			"CD",
-			{
-				{"dw.scn", 0, "6803f293c88758057cc685b9437f7637", 382248},
-				{"english.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			_s("Saturn CD version is not yet supported"),
+			AD_ENTRY2s("dw.scn", "6803f293c88758057cc685b9437f7637", 382248,
+					   "english.smp", NULL, -1),
 			Common::EN_ANY,
-			Common::kPlatformDOS,
+			Common::kPlatformSaturn,
 			ADGF_CD,
 			GUIO0()
 		},
 		GID_DW1,
 		0,
-		GF_SCNFILES | GF_ENHANCED_AUDIO_SUPPORT,
+		GF_SCNFILES | GF_ENHANCED_AUDIO_SUPPORT | ADGF_UNSUPPORTED,
 		TINSEL_V1,
 	},
-#endif
 
-	{	// Mac English CD, see tracker #3614864
+	{	// Mac English CD, see tracker #6384
 		{
 			"dw",
 			"CD",
-			{
-				{"dw.scn", 0, "114643df0d1f1530a0a9c5d4e38917bc", 1268553},
-				{"english.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw.scn", "114643df0d1f1530a0a9c5d4e38917bc", 1268553,
+					   "english.smp", NULL, -1),
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_CD,
@@ -526,11 +513,8 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw",
 			"CD",
-			{
-				{"dw.scn", 0, "cfc40a8d5d476a1c9d3abf826fa46f8c", 1265532},
-				{"english.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw.scn", "cfc40a8d5d476a1c9d3abf826fa46f8c", 1265532,
+					   "english.smp", NULL, -1),
 			Common::EN_ANY,
 			Common::kPlatformMacintosh,
 			ADGF_CD,
@@ -584,14 +568,11 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw",
 			"CD",
-			{
-				{"dw.scn", 0, "36795d539e290838fa1d4c11789cb142", 776188},
-				{"english.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw.scn", "36795d539e290838fa1d4c11789cb142", 776188,
+					   "english.smp", NULL, -1),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
-			ADGF_CD | ADGF_TESTING,
+			ADGF_CD,
 			GUIO0()
 		},
 		GID_DW1,
@@ -649,11 +630,8 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw2",
 			"Demo",
-			{
-				{"dw2.scn", 0, "853ab998f5136b69bc586991175d6eeb", 4231121},
-				{"english.smp", 0, "b5660a0e031cb4710bcb0ef5629ea61d", 28562357},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw2.scn",		"853ab998f5136b69bc586991175d6eeb", 4231121,
+					   "english.smp",	"b5660a0e031cb4710bcb0ef5629ea61d", 28562357),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_DEMO,
@@ -669,11 +647,8 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw2",
 			"CD",
-			{
-				{"dw2.scn", 0, "c6d15ce9720a9d8fef06e6582dcf3f34", 103593},
-				{"english1.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw2.scn", "c6d15ce9720a9d8fef06e6582dcf3f34", 103593,
+					   "english1.smp", NULL, -1),
 			Common::EN_GRB,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
@@ -689,11 +664,8 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw2",
 			"CD",
-			{
-				{"dw2.scn", 0, "c6d15ce9720a9d8fef06e6582dcf3f34", 103593},
-				{"us1.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw2.scn", "c6d15ce9720a9d8fef06e6582dcf3f34", 103593,
+					   "us1.smp", NULL, -1),
 			Common::EN_USA,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
@@ -709,11 +681,8 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw2",
 			"CD",
-			{
-				{"dw2.scn", 0, "c6d15ce9720a9d8fef06e6582dcf3f34", 103593},
-				{"french1.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw2.scn", "c6d15ce9720a9d8fef06e6582dcf3f34", 103593,
+					   "french1.smp", NULL, -1),
 			Common::FR_FRA,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
@@ -729,11 +698,8 @@ static const TinselGameDescription gameDescriptions[] = {
 		{
 			"dw2",
 			"CD",
-			{
-				{"dw2.scn", 0, "c6d15ce9720a9d8fef06e6582dcf3f34", 103593},
-				{"german1.smp", 0, NULL, -1},
-				AD_LISTEND
-			},
+			AD_ENTRY2s("dw2.scn", "c6d15ce9720a9d8fef06e6582dcf3f34", 103593,
+					   "german1.smp", NULL, -1),
 			Common::DE_DEU,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
@@ -805,6 +771,44 @@ static const TinselGameDescription gameDescriptions[] = {
 		0,
 		GF_SCNFILES,
 		TINSEL_V2,
+	},
+
+	// ==== Discworld Noir entries ===============================================
+	// Note: All Discworld Noir versions are CD only, therefore we don't add the ADGF_CD flag
+
+	{ // Discworld Noir, Windows 3CD version
+		{
+			"noir",
+			"CD",
+			AD_ENTRY2s("dw3.scn",		"16104acdc66cda903f860acac02a96bd", -1,
+					   "english.smp",	"94e510fd33c5c4a67b274bf5c068a87a", -1),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_UNSTABLE,
+			GUIO0()
+
+		},
+		GID_NOIR,
+		0,
+		GF_SCNFILES,
+		TINSEL_V3,
+	},
+
+	{ // Discworld Noir, Interactive Windows Demo
+		{
+			"noir",
+			"Demo",
+			AD_ENTRY2s("english.smp",	"ecca3ec84ad6460bf289e6171ac32048", 73494004,
+					   "dw3.scn",		"f8e50c19b44a2c6eaee5f78654647878", 803781),
+			Common::EN_ANY,
+			Common::kPlatformWindows,
+			ADGF_UNSTABLE | ADGF_DEMO,
+			GUIO0()
+		},
+		GID_NOIR,
+		0,
+		GF_SCNFILES,
+		TINSEL_V3,
 	},
 
 	{ AD_TABLE_END_MARKER, 0, 0, 0, 0 }

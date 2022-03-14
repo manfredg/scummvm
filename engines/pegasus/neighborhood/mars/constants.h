@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,12 @@
 namespace Pegasus {
 
 // Element Coordinates
+
+static const CoordType kPodScreenLeft = kNavAreaLeft + 88;
+static const CoordType kPodScreenTop = kNavAreaTop + 204;
+
+static const CoordType kPodSteerLeft = kNavAreaLeft + 212;
+static const CoordType kPodSteerTop = kNavAreaTop + 232;
 
 static const CoordType kUndoHiliteLeft = kNavAreaLeft + 140;
 static const CoordType kUndoHiliteTop = kNavAreaTop + 36;
@@ -99,6 +104,9 @@ static const CoordType kShuttleEnergyTop = 60;
 static const CoordType kShuttleEnergyWidth = 252;
 static const CoordType kShuttleEnergyHeight = 22;
 
+static const CoordType kShuttleSteerLeft = kShuttleWindowLeft + 136;
+static const CoordType kShuttleSteerTop = kShuttleWindowTop + 196;
+
 static const CoordType kPlanetStartLeft = kShuttleWindowLeft;
 static const CoordType kPlanetStartTop = kShuttleWindowTop + kShuttleWindowHeight;
 
@@ -130,11 +138,21 @@ static const TimeValue kShuttleSwingStart = 0;
 static const TimeValue kShuttleSwingStop = 5 * 600;
 
 static const TimeValue kCanyonChaseStart = kShuttleSwingStop;
-static const TimeValue kCanyonChaseStop = 60 * 600 + 43 * 600 + 14 * 40;
+static const TimeValue kCanyonChaseCDStop = 60 * 600 + 43 * 600 + 14 * 40;
+static const TimeValue kCanyonChaseDVDStop = 60 * 600 + 50 * 600 + 12 * 40;
 
-static const TimeValue kLaunchTubeReachedTime = 60 * 600 + 38 * 600 - kCanyonChaseStart;
-static const TimeValue kCanyonChaseFinishedTime = kCanyonChaseStop - kCanyonChaseStart -
-											kLaunchTubeReachedTime;
+static const TimeValue kCanyonChaseExitedTime = 60 * 600 + 40 * 600 + 13 * 40 - kCanyonChaseStart;
+static const TimeValue kCanyonChaseFadedTime = 60 * 600 + 43 * 600 + 6 * 40 - kCanyonChaseStart -
+											kCanyonChaseExitedTime;
+
+static const TimeValue kLaunchTubeCDReachedTime = 60 * 600 + 38 * 600 - kCanyonChaseStart;
+static const TimeValue kLaunchTubeDVDReachedTime = 60 * 600 + 45 * 600 - kCanyonChaseStart -
+											kCanyonChaseExitedTime - kCanyonChaseFadedTime;
+static const TimeValue kCanyonChaseCDFinishedTime = kCanyonChaseCDStop - kCanyonChaseStart -
+											kLaunchTubeCDReachedTime;
+static const TimeValue kCanyonChaseDVDFinishedTime = kCanyonChaseDVDStop - kCanyonChaseStart -
+											kCanyonChaseExitedTime - kCanyonChaseFadedTime -
+											kLaunchTubeDVDReachedTime;
 
 // Left shuttle.
 
@@ -182,6 +200,8 @@ static const TimeValue kShuttleLowerLeftCollisionTime = 0;
 static const TimeValue kShuttleLowerLeftTubeTime = 40;
 
 static const TimeValue kShuttleLowerLeftAutopilotTime = 80;
+
+static const TimeValue kShuttleLowerLeftKeypadHintTime = 120;
 
 // Lower Right shuttle.
 
@@ -928,6 +948,11 @@ static const ExtraID kMarsMaze136NorthDeath = 108;
 static const ExtraID kMarsMaze184WestLoop = 109;
 static const ExtraID kMarsMaze184WestDeath = 110;
 static const ExtraID kMars200DeathInBucket = 111;
+
+// Mars interactions.
+
+static const InteractionID kMarsTunnelPodInteractionID = 0;
+static const InteractionID kMarsCanyonChaseInteractionID = 1;
 
 static const ResIDType kReactorUndoHilitePICTID = 900;
 

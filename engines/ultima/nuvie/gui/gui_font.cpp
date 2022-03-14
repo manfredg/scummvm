@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -98,7 +97,7 @@ GUI_Font::~GUI_Font() {
 /* determine drawing style */
 void GUI_Font::setTransparency(bool on) {
 	_transparent = on;
-	
+
 	if (_transparent)
 		_fontStore->setTransparentColor(0);
 	else
@@ -107,7 +106,7 @@ void GUI_Font::setTransparency(bool on) {
 
 /* determine foreground and background color values RGB*/
 void GUI_Font::setColoring(uint8 fr, uint8 fg, uint8 fb, uint8 br, uint8 bg, uint8 bb) {
-	const SDL_Color colors[2] = { MAKE_COLOR(br, bg, bb), MAKE_COLOR(fr, fg, fb) };	
+	const SDL_Color colors[2] = { MAKE_COLOR(br, bg, bb), MAKE_COLOR(fr, fg, fb) };
 	SDL_SetColors(_fontStore, colors, 0, 2);
 }
 

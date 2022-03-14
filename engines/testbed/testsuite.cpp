@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "common/achievements.h"
 #include "common/config-manager.h"
 #include "common/events.h"
 #include "common/stream.h"
@@ -111,12 +111,12 @@ void Testsuite::genReport() const {
 }
 
 bool Testsuite::handleInteractiveInput(const Common::String &textToDisplay, const char *opt1, const char *opt2, OptionSelected result) {
-	GUI::MessageDialog prompt(textToDisplay, opt1, opt2);
+	GUI::MessageDialog prompt(textToDisplay.c_str(), opt1, opt2);
 	return prompt.runModal() == result ? true : false;
 }
 
 void Testsuite::displayMessage(const Common::String &textToDisplay, const char *defaultButton) {
-	GUI::MessageDialog prompt(textToDisplay, defaultButton);
+	GUI::MessageDialog prompt(textToDisplay.c_str(), defaultButton);
 	prompt.runModal();
 }
 
@@ -162,8 +162,7 @@ void Testsuite::clearScreen() {
 
 	// Don't clear test info display region
 	int size =  height * numBytesPerLine;
-	byte *buffer = new byte[size];
-	memset(buffer, 0, size);
+	byte *buffer = new byte[size]();
 	g_system->copyRectToScreen(buffer, numBytesPerLine, 0, 0, g_system->getWidth(), height);
 	g_system->updateScreen();
 	delete[] buffer;
@@ -218,7 +217,7 @@ uint Testsuite::parseEvents() {
 				break;
 
 			case Common::EVENT_QUIT:
-			case Common::EVENT_RTL:
+			case Common::EVENT_RETURN_TO_LAUNCHER:
 				return kEngineQuit;
 
 			default:
@@ -242,8 +241,7 @@ void Testsuite::updateStats(const char *prefix, const char *info, uint testNum, 
 	int wRect = 200;
 	int lRect = 7;
 	pt.x = g_system->getWidth() / 2 - 100;
-	byte *buffer = new byte[lRect * wRect];
-	memset(buffer, 0, sizeof(byte) * lRect * wRect);
+	byte *buffer = new byte[lRect * wRect]();
 
 	int wShaded = (int)(wRect * (((float)testNum) / numTests));
 
@@ -287,6 +285,8 @@ void Testsuite::execute() {
 	if (!numEnabledTests)
 		return;
 
+	prepare();
+
 	for (Common::Array<Test *>::iterator i = _testsToExecute.begin(); i != _testsToExecute.end(); ++i) {
 		if (!(*i)->enabled) {
 			logPrintf("Info! Skipping Test: %s, Skipped by configuration.\n", ((*i)->featureName).c_str());
@@ -316,10 +316,11 @@ void Testsuite::execute() {
 			_numTestsExecuted++;
 			logPrintf("Result: Failed\n");
 		}
+		AchMan.setStatInt("NUM_TESTS", AchMan.getStatInt("NUM_TESTS") + 1);
 
 		updateStats("Test", ((*i)->featureName).c_str(), count, numEnabledTests, pt);
-		// TODO: Display a screen here to user with details of upcoming test, he can skip it or Quit or RTL
-		// Check if user wants to quit/RTL/Skip next test by parsing events.
+		// TODO: Display a screen here to user with details of upcoming test, he can skip it or Quit or return to launcher
+		// Check if user wants to quit/return to launcher/skip next test by parsing events.
 		// Quit directly if explicitly requested
 
 		if (Engine::shouldQuit()) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,6 @@
 #include "base/main.h"
 
 #include "graphics/surface.h"
-#include "graphics/colormasks.h"
 #include "graphics/palette.h"
 #include "graphics/pixelformat.h"
 
@@ -147,7 +145,7 @@ public:
 	virtual bool getFeatureState(Feature f);
 	virtual const GraphicsMode *getSupportedGraphicsModes() const;
 	virtual int getDefaultGraphicsMode() const;
-	virtual bool setGraphicsMode(int mode);
+	virtual bool setGraphicsMode(int mode, uint flags = OSystem::kGfxModeNoFlags);
 	virtual int getGraphicsMode() const;
 	virtual void initSize(uint width, uint height, const Graphics::PixelFormat *format);
 	virtual int16 getHeight();
@@ -168,13 +166,14 @@ public:
 
 	virtual void showOverlay();
 	virtual void hideOverlay();
+	virtual bool isOverlayVisible() const { return _overlayVisible; }
 	virtual void clearOverlay();
-	virtual void grabOverlay(void *buf, int pitch);
+	virtual void grabOverlay(Graphics::Surface &surface);
 	virtual void copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h);
 	virtual int16 getOverlayHeight();
 	virtual int16 getOverlayWidth();
 	virtual Graphics::PixelFormat getOverlayFormat() const {
-		return Graphics::createPixelFormat<555>();
+		return Graphics::PixelFormat(2, 5, 5, 5, 0, 11, 6, 1, 0);
 	}
 
 	virtual bool showMouse(bool visible);
@@ -187,15 +186,12 @@ public:
 	virtual uint32 getMillis(bool skipRecord = false);
 	virtual void delayMillis(uint msecs);
 
-	virtual MutexRef createMutex(void);
-	virtual void lockMutex(MutexRef mutex);
-	virtual void unlockMutex(MutexRef mutex);
-	virtual void deleteMutex(MutexRef mutex);
+	virtual Common::MutexInternal *createMutex(void);
 
 	virtual void quit();
 
 	virtual Audio::Mixer *getMixer();
-	virtual void getTimeAndDate(TimeDate &t) const;
+	virtual void getTimeAndDate(TimeDate &t, bool skipRecord = false) const;
 	virtual void setTimerCallback(TimerProc callback, int interval);
 	virtual void logMessage(LogMessageType::Type type, const char *message);
 

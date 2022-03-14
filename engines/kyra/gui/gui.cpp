@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@ namespace Kyra {
 GUI::GUI(KyraEngine_v1 *kyra) : _vm(kyra), _screen(kyra->screen()) {
 	_saveSlotsListUpdateNeeded = true;
 	_savegameListSize = 0;
-	_savegameList = 0;
+	_savegameList = nullptr;
 }
 
 GUI::~GUI() {
@@ -42,7 +41,7 @@ GUI::~GUI() {
 		for (int i = 0; i < _savegameListSize; i++)
 			delete[] _savegameList[i];
 		delete[] _savegameList;
-		_savegameList = 0;
+		_savegameList = nullptr;
 	}
 }
 
@@ -109,25 +108,28 @@ void GUI::updateSaveSlotsList(Common::String targetName, bool force) {
 		KyraEngine_v1::SaveHeader header;
 		Common::InSaveFile *in;
 
-		_savegameList = new char*[_savegameListSize];
-		memset(_savegameList, 0, _savegameListSize * sizeof(char *));
+		_savegameList = new char*[_savegameListSize]();
 
 		for (int i = 0; i < numSaves; i++) {
 			in = _vm->openSaveForReading(_vm->getSavegameFilename(targetName, _saveSlots[i]).c_str(), header, targetName == _vm->_targetName);
 			char **listEntry = &_savegameList[allowEmptySlots ? _saveSlots[i] : i];
 			if (in) {
-				*listEntry = new char[header.description.size() + 1];
-				Common::strlcpy(*listEntry, header.description.c_str(), header.description.size() + 1);
-				Util::convertISOToDOS(*listEntry);
+				uint buffSize = header.description.size() + 1;
+				*listEntry = new char[buffSize];
+				Common::strlcpy(*listEntry, header.description.c_str(), buffSize);
+				// Ingame auto-generated Japanese EOB SegaCD savegame descriptions have a special 1-byte encoding that
+				// does not survive this conversion. And the rest of the characters in these descriptions do not require it.
+				if (!(_vm->gameFlags().platform == Common::kPlatformSegaCD && _vm->gameFlags().lang == Common::JA_JPN && Common::String(*listEntry).contains('\r')))
+					Util::convertUTF8ToDOS(*listEntry, buffSize);
 				delete in;
 			} else {
-				*listEntry = 0;
+				*listEntry = nullptr;
 				error("GUI::updateSavegameList(): Unexpected missing save file for slot: %d.", _saveSlots[i]);
 			}
 		}
 
 	} else {
-		_savegameList = 0;
+		_savegameList = nullptr;
 	}
 }
 

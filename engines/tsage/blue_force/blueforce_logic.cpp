@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -296,7 +295,15 @@ void BlueForceGame::processEvent(Event &event) {
 		switch (event.kbd.keycode) {
 		case Common::KEYCODE_F1:
 			// F1 - Help
-			MessageDialog::show(HELP_MSG, OK_BTN_STRING);
+			int tmp;
+			tmp = BF_GLOBALS._dialogCenter.y;
+			BF_GLOBALS._dialogCenter.y = 100;
+			if (g_vm->getLanguage() == Common::ES_ESP) {
+				MessageDialog::show(ESP_HELP_MSG, ESP_OK_BTN_STRING);
+			} else {
+				MessageDialog::show(HELP_MSG, OK_BTN_STRING);
+			}
+			BF_GLOBALS._dialogCenter.y = tmp;
 			break;
 
 		case Common::KEYCODE_F2:
@@ -325,7 +332,11 @@ void BlueForceGame::processEvent(Event &event) {
 		case Common::KEYCODE_F10:
 			// F10 - Pause
 			GfxDialog::setPalette();
-			MessageDialog::show(GAME_PAUSED_MSG, OK_BTN_STRING);
+			if (g_vm->getLanguage() == Common::ES_ESP) {
+				MessageDialog::show(ESP_GAME_PAUSED_MSG, ESP_OK_BTN_STRING);
+			} else {
+				MessageDialog::show(GAME_PAUSED_MSG, OK_BTN_STRING);
+			}
 			g_globals->_events.setCursorFromFlag();
 			break;
 
@@ -968,7 +979,13 @@ void SceneHandlerExt::process(Event &event) {
 		BF_GLOBALS._player.enableControl();
 		BF_GLOBALS._events.setCursor(CURSOR_WALK);
 
-		if (MessageDialog::show2(WATCH_INTRO_MSG, START_PLAY_BTN_STRING, INTRODUCTION_BTN_STRING) == 0) {
+		int rc;
+		if (g_vm->getLanguage() == Common::ES_ESP) {
+			rc = MessageDialog::show2(ESP_WATCH_INTRO_MSG, ESP_START_PLAY_BTN_STRING, ESP_INTRODUCTION_BTN_STRING);
+		} else {
+			rc = MessageDialog::show2(WATCH_INTRO_MSG, START_PLAY_BTN_STRING, INTRODUCTION_BTN_STRING);
+		}
+		if (rc == 0) {
 			// Start the game
 			BF_GLOBALS._dayNumber = 1;
 			BF_GLOBALS._sceneManager.changeScene(190);

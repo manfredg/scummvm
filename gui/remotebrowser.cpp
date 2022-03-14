@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@
 #include "backends/networking/curl/request.h"
 #include "backends/cloud/storage.h"
 #include "backends/cloud/cloudmanager.h"
-#include "message.h"
+#include "gui/message.h"
 
 namespace GUI {
 
@@ -41,13 +40,13 @@ enum {
 	kGoUpCmd = 'GoUp'
 };
 
-RemoteBrowserDialog::RemoteBrowserDialog(const char *title):
+RemoteBrowserDialog::RemoteBrowserDialog(const Common::U32String &title):
 	Dialog("Browser"), _navigationLocked(false), _updateList(false), _showError(false),
 	_workingRequest(nullptr), _ignoreCallback(false) {
 	_backgroundType = GUI::ThemeEngine::kDialogBackgroundPlain;
 
 	new StaticTextWidget(this, "Browser.Headline", title);
-	_currentPath = new StaticTextWidget(this, "Browser.Path", "DUMMY");
+	_currentPath = new StaticTextWidget(this, "Browser.Path", Common::U32String("DUMMY"));
 
 	_fileList = new ListWidget(this, "Browser.List");
 	_fileList->setNumberingMode(kListNumberingOff);
@@ -57,8 +56,8 @@ RemoteBrowserDialog::RemoteBrowserDialog(const char *title):
 		new ButtonWidget(this, "Browser.Up", _("Go up"), _("Go to previous directory level"), kGoUpCmd);
 	else
 		new ButtonWidget(this, "Browser.Up", _c("Go up", "lowres"), _("Go to previous directory level"), kGoUpCmd);
-	new ButtonWidget(this, "Browser.Cancel", _("Cancel"), nullptr, kCloseCmd);
-	new ButtonWidget(this, "Browser.Choose", _("Choose"), nullptr, kChooseCmd);
+	new ButtonWidget(this, "Browser.Cancel", _("Cancel"), Common::U32String(), kCloseCmd);
+	new ButtonWidget(this, "Browser.Choose", _("Choose"), Common::U32String(), kChooseCmd);
 }
 
 RemoteBrowserDialog::~RemoteBrowserDialog() {
@@ -144,7 +143,7 @@ void RemoteBrowserDialog::updateListing() {
 
 	if (!_navigationLocked) {
 		// Populate the ListWidget
-		ListWidget::StringArray list;
+		Common::U32StringArray list;
 		ListWidget::ColorList colors;
 		for (Common::Array<Cloud::StorageFile>::iterator i = _nodeContent.begin(); i != _nodeContent.end(); ++i) {
 			if (i->isDirectory()) {
@@ -186,7 +185,7 @@ void RemoteBrowserDialog::goUp() {
 	listDirectory(Cloud::StorageFile(path, 0, 0, true));
 }
 
-void RemoteBrowserDialog::listDirectory(Cloud::StorageFile node) {
+void RemoteBrowserDialog::listDirectory(const Cloud::StorageFile &node) {
 	if (_navigationLocked || _workingRequest)
 		return;
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * This is a utility for create the translations.dat file from all the po files.
  * The generated files is used by ScummVM to propose translation of its GUI.
@@ -29,7 +28,7 @@
 
 #include "po_parser.h"
 
-PoMessageList::PoMessageList() : _messages(NULL), _size(0), _allocated(0) {
+PoMessageList::PoMessageList() : _messages(nullptr), _size(0), _allocated(0) {
 }
 
 PoMessageList::~PoMessageList() {
@@ -39,7 +38,7 @@ PoMessageList::~PoMessageList() {
 }
 
 void PoMessageList::insert(const char *msg) {
-	if (msg == NULL || *msg == '\0')
+	if (msg == nullptr || *msg == '\0')
 		return;
 
 	// binary-search for the insertion index
@@ -76,7 +75,7 @@ void PoMessageList::insert(const char *msg) {
 }
 
 int PoMessageList::findIndex(const char *msg) {
-	if (msg == NULL || *msg == '\0')
+	if (msg == nullptr || *msg == '\0')
 		return -1;
 
 	// binary-search for the message
@@ -103,19 +102,16 @@ int PoMessageList::size() const {
 
 const char *PoMessageList::operator[](int index) const {
 	if (index < 0 || index >= _size)
-		return NULL;
+		return nullptr;
 	return _messages[index];
 }
 
 PoMessageEntryList::PoMessageEntryList(const char *lang) :
-	_lang(NULL), _charset(NULL), _langName(NULL), _langNameAlt(NULL),
-	_list(NULL), _size(0), _allocated(0)
+	_lang(nullptr), _langName(nullptr), _langNameAlt(nullptr), _useUTF8(true),
+	_list(nullptr), _size(0), _allocated(0)
 {
 	_lang = new char[1 + strlen(lang)];
 	strcpy(_lang, lang);
-	// Set default charset to empty string
-	_charset = new char[1];
-	_charset[0] = '\0';
 	// Set default langName to lang
 	_langNameAlt = new char[1 + strlen(lang)];
 	strcpy(_langNameAlt, lang);
@@ -123,7 +119,6 @@ PoMessageEntryList::PoMessageEntryList(const char *lang) :
 
 PoMessageEntryList::~PoMessageEntryList() {
 	delete[] _lang;
-	delete[] _charset;
 	delete[] _langName;
 	delete[] _langNameAlt;
 	for (int i = 0; i < _size; ++i)
@@ -136,19 +131,18 @@ void PoMessageEntryList::addMessageEntry(const char *translation, const char *me
 		// This is the header.
 		// We get the charset and the language name from the translation string
 		char *str = parseLine(translation, "X-Language-name:");
-		if (str != NULL) {
+		if (str != nullptr) {
 			delete[] _langName;
 			_langName = str;
 		}
 		str = parseLine(translation, "Language:");
-		if (str != NULL) {
+		if (str != nullptr) {
 			delete[] _langNameAlt;
 			_langNameAlt = str;
 		}
 		str = parseLine(translation, "charset=");
-		if (str != NULL) {
-			delete[] _charset;
-			_charset = str;
+		if (strcmp(str, "utf-8") != 0 && strcmp(str, "UTF-8") != 0) {
+			_useUTF8 = false;
 		}
 		return;
 	}
@@ -160,12 +154,12 @@ void PoMessageEntryList::addMessageEntry(const char *translation, const char *me
 		int midIndex = (leftIndex + rightIndex) / 2;
 		int compareResult = strcmp(message, _list[midIndex]->msgid);
 		if (compareResult == 0) {
-			if (context == NULL) {
-				if (_list[midIndex]->msgctxt == NULL)
+			if (context == nullptr) {
+				if (_list[midIndex]->msgctxt == nullptr)
 					return;
 				compareResult = -1;
 			} else {
-				if (_list[midIndex]->msgctxt == NULL)
+				if (_list[midIndex]->msgctxt == nullptr)
 					compareResult = 1;
 				else {
 					compareResult = strcmp(context, _list[midIndex]->msgctxt);
@@ -185,14 +179,14 @@ void PoMessageEntryList::addMessageEntry(const char *translation, const char *me
 	// context if it is not present for a specific context, we can optimize the file
 	// size, memory used at run-time and performances (less strings to read from the file
 	// and less strings to look for) by avoiding duplicate.
-	if (context != NULL && *context != '\0') {
+	if (context != nullptr && *context != '\0') {
 		// Check if we have the same translation for no context
 		int contextIndex = leftIndex - 1;
 		while (contextIndex >= 0 && strcmp (message, _list[contextIndex]->msgid) == 0) {
 			--contextIndex;
 		}
 		++contextIndex;
-		if (contextIndex < leftIndex && _list[contextIndex]->msgctxt == NULL && strcmp(translation, _list[contextIndex]->msgstr) == 0)
+		if (contextIndex < leftIndex && _list[contextIndex]->msgctxt == nullptr && strcmp(translation, _list[contextIndex]->msgstr) == 0)
 			return;
 	}
 
@@ -213,7 +207,7 @@ void PoMessageEntryList::addMessageEntry(const char *translation, const char *me
 	_list[leftIndex] = new PoMessageEntry(translation, message, context);
 	++_size;
 
-	if (context == NULL || *context == '\0') {
+	if (context == nullptr || *context == '\0') {
 		// Remove identical translations for a specific context (see comment above)
 		int contextIndex = leftIndex + 1;
 		int removed = 0;
@@ -245,8 +239,8 @@ const char *PoMessageEntryList::languageName() const {
 	return _langName ? _langName : _langNameAlt;
 }
 
-const char *PoMessageEntryList::charset() const {
-	return _charset;
+bool PoMessageEntryList::useUTF8() const {
+	return _useUTF8;
 }
 
 int PoMessageEntryList::size() const {
@@ -255,7 +249,7 @@ int PoMessageEntryList::size() const {
 
 const PoMessageEntry *PoMessageEntryList::entry(int index) const {
 	if (index < 0 || index >= _size)
-		return NULL;
+		return nullptr;
 	return _list[index];
 }
 
@@ -263,10 +257,10 @@ const PoMessageEntry *PoMessageEntryList::entry(int index) const {
 PoMessageEntryList *parsePoFile(const char *file, PoMessageList& messages) {
 	FILE *inFile = fopen(file, "r");
 	if (!inFile)
-		return NULL;
+		return nullptr;
 
-	char msgidBuf[1024], msgctxtBuf[1024], msgstrBuf[1024];
-	char line[1024], *currentBuf = msgstrBuf;
+	char msgidBuf[2048], msgctxtBuf[2048], msgstrBuf[2048];
+	char line[2048], *currentBuf = msgstrBuf;
 
 	// Get language from file name and create PoMessageEntryList
 	int index = 0, start_index = strlen(file) - 1;
@@ -387,8 +381,8 @@ char *parseLine(const char *line, const char *field) {
 	// It is used to parse the header of the po files to find the language name
 	// and the charset.
 	const char *str = strstr(line, field);
-	if (str == NULL)
-		return NULL;
+	if (str == nullptr)
+		return nullptr;
 	str += strlen(field);
 	// Skip spaces
 	while (*str != '\0' && isspace(*str)) {
@@ -400,7 +394,7 @@ char *parseLine(const char *line, const char *field) {
 		++len;
 	}
 	if (len == 0)
-		return NULL;
+		return nullptr;
 	// Create result string
 	char *result = new char[len + 1];
 	strncpy(result, str, len);

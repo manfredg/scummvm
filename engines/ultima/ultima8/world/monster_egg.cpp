@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,31 +15,23 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 
 #include "ultima/ultima8/world/monster_egg.h"
 #include "ultima/ultima8/usecode/uc_machine.h"
 #include "ultima/ultima8/world/actors/actor.h"
 #include "ultima/ultima8/world/item_factory.h"
 #include "ultima/ultima8/world/current_map.h"
-#include "ultima/ultima8/graphics/shape_info.h"
-#include "ultima/ultima8/world/actors/monster_info.h"
 #include "ultima/ultima8/world/world.h"
-#include "ultima/ultima8/world/get_object.h"
-
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 #include "ultima/ultima8/world/get_object.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(MonsterEgg, Item)
+DEFINE_RUNTIME_CLASSTYPE_CODE(MonsterEgg)
 
 MonsterEgg::MonsterEgg() {
 }
@@ -84,25 +76,24 @@ uint16 MonsterEgg::hatch() {
 	newactor->setMapNum(World::get_instance()->getCurrentMap()->getNum());
 	newactor->setNpcNum(objID);
 	newactor->move(_x, _y, _z);
-
-	newactor->cSetActivity(getActivity());
+	newactor->setActivity(getActivity());
 
 	return objID;
 }
 
-void MonsterEgg::saveData(ODataSource *ods) {
-	Item::saveData(ods);
+void MonsterEgg::saveData(Common::WriteStream *ws) {
+	Item::saveData(ws);
 }
 
-bool MonsterEgg::loadData(IDataSource *ids, uint32 version) {
-	if (!Item::loadData(ids, version)) return false;
+bool MonsterEgg::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Item::loadData(rs, version)) return false;
 
 	return true;
 }
 
 uint32 MonsterEgg::I_monsterEggHatch(const uint8 *args, unsigned int /*argsize*/) {
 	ARG_ITEM_FROM_PTR(item);
-	MonsterEgg *megg = p_dynamic_cast<MonsterEgg *>(item);
+	MonsterEgg *megg = dynamic_cast<MonsterEgg *>(item);
 	if (!megg) return 0;
 
 	return megg->hatch();
@@ -110,7 +101,7 @@ uint32 MonsterEgg::I_monsterEggHatch(const uint8 *args, unsigned int /*argsize*/
 
 uint32 MonsterEgg::I_getMonId(const uint8 *args, unsigned int /*argsize*/) {
 	ARG_ITEM_FROM_PTR(item);
-	MonsterEgg *megg = p_dynamic_cast<MonsterEgg *>(item);
+	MonsterEgg *megg = dynamic_cast<MonsterEgg *>(item);
 	if (!megg) return 0;
 
 	return megg->getMapNum() >> 3;

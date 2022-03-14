@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/audio/sonarc_audio_sample.h"
-#include "ultima/ultima8/filesys/idata_source.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -31,7 +29,7 @@ bool SonarcAudioSample::_generatedOneTable = false;
 int SonarcAudioSample::_oneTable[256];
 
 SonarcAudioSample::SonarcAudioSample(uint8 const *buffer, uint32 size) :
-	AudioSample(buffer, size), _srcOffset(0x20) {
+	AudioSample(buffer, size, 8, false, true), _srcOffset(0x20) {
 	if (!_generatedOneTable) GenerateOneTable();
 
 	_length = *_buffer;
@@ -41,8 +39,6 @@ SonarcAudioSample::SonarcAudioSample(uint8 const *buffer, uint32 size) :
 
 	_sampleRate  = *(_buffer + 4);
 	_sampleRate |= *(_buffer + 5) << 8;
-	_bits = 8;
-	_stereo = false;
 
 	// Get frame bytes... we need to compensate for 'large' files
 	uint32 frame_bytes = *(_buffer + _srcOffset);
@@ -82,8 +78,8 @@ void SonarcAudioSample::GenerateOneTable() {
 }
 
 void SonarcAudioSample::decode_EC(int mode, int samplecount,
-                                  const uint8 *source, int sourcesize,
-                                  uint8 *dest) {
+								  const uint8 *source, int sourcesize,
+								  uint8 *dest) {
 	bool zerospecial = false;
 	uint32 data = 0;
 	int inputbits = 0; // current 'fill rate' of data window
@@ -152,7 +148,7 @@ void SonarcAudioSample::decode_EC(int mode, int samplecount,
 }
 
 void SonarcAudioSample::decode_LPC(int order, int nsamples,
-                                   uint8 *dest, const uint8 *factors) {
+								   uint8 *dest, const uint8 *factors) {
 	uint8 *startdest = dest;
 	dest -= order;
 

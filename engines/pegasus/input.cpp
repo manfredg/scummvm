@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,6 +45,7 @@ InputDeviceManager::InputDeviceManager() {
 
 	g_system->getEventManager()->getEventDispatcher()->registerObserver(this, 2, false);
 	_lastRawBits = kAllUpBits;
+	_AKeyWasDown = false;
 }
 
 InputDeviceManager::~InputDeviceManager() {
@@ -53,17 +53,19 @@ InputDeviceManager::~InputDeviceManager() {
 }
 
 void InputDeviceManager::getInput(Input &input, const InputBits filter) {
-	// Poll for events, but ignore them!
-	// We'll pick them up in notifyEvent()
+	// Poll for events, but ignore most of them!
+	// We'll pick the rest up in notifyEvent()
 	// We do that so that any pollEvent() call can update the variables
 	// (ie. if one uses enter to access the restore menu, we never receive
 	// the key up event, which leads to bad things)
 	// This is to closely emulate what the GetKeys() function did on Mac OS
-	pumpEvents();
-
-	// Now create the bitfield
 	InputBits currentBits = 0;
 
+	Common::Event event;
+	while (g_system->getEventManager()->pollEvent(event))
+		;
+
+	// Now fill in the rest of the bitfield
 	if (_keysDown[kPegasusActionUp])
 		currentBits |= (kRawButtonDown << kUpButtonShift);
 
@@ -93,6 +95,21 @@ void InputDeviceManager::getInput(Input &input, const InputBits filter) {
 
 	if (_keysDown[kPegasusActionShowBiochip])
 		currentBits |= (kRawButtonDown << kRightFireButtonShift);
+
+	if (((PegasusEngine *)g_engine)->isDVD()) {
+		if (_keysDown[kPegasusActionToggleChattyAI] && !_AKeyWasDown) {
+			((PegasusEngine *)g_engine)->requestToggle();
+			_AKeyWasDown = true;
+		} else if (!_keysDown[kPegasusActionToggleChattyAI])
+			_AKeyWasDown = false;
+	}
+
+	// Update mouse button state
+	// Note that we don't use EVENT_LBUTTONUP/EVENT_LBUTTONDOWN because
+	// they do not show if the button is being held down. We're treating
+	// both mouse buttons as the same for ease of use.
+	if (g_system->getEventManager()->getButtonState() != 0)
+		currentBits |= (kRawButtonDown << kTwoButtonShift);
 
 	// Update the mouse position too
 	input.setInputLocation(g_system->getEventManager()->getMousePos());
@@ -185,12 +202,12 @@ int operator!=(const Input &arg1, const Input &arg2) {
 	return !operator==(arg1, arg2);
 }
 
-InputHandler *InputHandler::_inputHandler = 0;
+InputHandler *InputHandler::_inputHandler = nullptr;
 bool InputHandler::_invalHotspots = false;
 InputBits InputHandler::_lastFilter = kFilterNoInput;
 
 InputHandler *InputHandler::setInputHandler(InputHandler *currentHandler) {
-	InputHandler *result = 0;
+	InputHandler *result = nullptr;
 
 	if (_inputHandler != currentHandler && (!_inputHandler || _inputHandler->releaseInputFocus())) {
 		result = _inputHandler;
@@ -205,7 +222,7 @@ InputHandler *InputHandler::setInputHandler(InputHandler *currentHandler) {
 void InputHandler::pollForInput() {
 	if (_inputHandler) {
 		Input input;
-		Hotspot *cursorSpot = 0;
+		Hotspot *cursorSpot = nullptr;
 
 		InputHandler::getInput(input, cursorSpot);
 		if (_inputHandler->isClickInput(input, cursorSpot))
@@ -314,7 +331,7 @@ bool InputHandler::wantsCursor() {
 	return false;
 }
 
-Tracker *Tracker::_currentTracker = 0;
+Tracker *Tracker::_currentTracker = nullptr;
 
 void Tracker::handleInput(const Input &input, const Hotspot *) {
 	if (stopTrackingInput(input))
@@ -332,7 +349,7 @@ void Tracker::startTracking(const Input &) {
 
 void Tracker::stopTracking(const Input &) {
 	if (isTracking()) {
-		_currentTracker = NULL;
+		_currentTracker = nullptr;
 		InputHandler::setInputHandler(_savedHandler);
 	}
 }

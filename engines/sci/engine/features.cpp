@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,6 +44,7 @@ GameFeatures::GameFeatures(SegManager *segMan, Kernel *kernel) : _segMan(segMan)
 	if (!ConfMan.getBool("use_cdaudio"))
 		_usesCdTrack = false;
 	_forceDOSTracks = false;
+	_useWindowsCursors = ConfMan.getBool("windows_cursors");
 	_pseudoMouseAbility = kPseudoMouseAbilityUninitialized;
 }
 
@@ -59,7 +59,7 @@ reg_t GameFeatures::getDetectionAddr(const Common::String &objName, Selector slc
 	}
 
 	if (methodNum == -1) {
-		if (lookupSelector(_segMan, objAddr, slc, NULL, &addr) != kSelectorMethod) {
+		if (lookupSelector(_segMan, objAddr, slc, nullptr, &addr) != kSelectorMethod) {
 			error("getDetectionAddr: target selector is not a method of object %s", objName.c_str());
 			return NULL_REG;
 		}
@@ -215,7 +215,14 @@ SciVersion GameFeatures::detectSetCursorType() {
 			// kSetCursor semantics, otherwise it uses the SCI0 early kSetCursor
 			// semantics.
 			if (number == 0)
-				_setCursorType = SCI_VERSION_1_1;
+				// KQ5 CD's DOS interpreter contained the new kSetCusor API while
+				// the Windows interpreter contained the old. The scripts tested
+				// the platform to see which version to call.
+				if (g_sci->getGameId() == GID_KQ5 && _useWindowsCursors) {
+					_setCursorType = SCI_VERSION_0_EARLY;
+				} else {
+					_setCursorType = SCI_VERSION_1_1;
+				}
 			else
 				_setCursorType = SCI_VERSION_0_EARLY;
 		}
@@ -380,7 +387,7 @@ SciVersion GameFeatures::detectGfxFunctionsType() {
 			if (SELECTOR(overlay) != -1) {
 				// The game has an overlay selector, check how it calls kDrawPic
 				// to determine the graphics functions type used
-				if (lookupSelector(_segMan, rmObjAddr, SELECTOR(overlay), NULL, NULL) == kSelectorMethod) {
+				if (lookupSelector(_segMan, rmObjAddr, SELECTOR(overlay), nullptr, nullptr) == kSelectorMethod) {
 					if (!autoDetectGfxFunctionsType()) {
 						warning("Graphics functions detection failed, taking an educated guess");
 
@@ -575,6 +582,7 @@ bool GameFeatures::audioVolumeSyncUsesGlobals() const {
 	case GID_GK1:
 	case GID_GK2:
 	case GID_HOYLE5:
+	case GID_LSL6:
 	case GID_LSL6HIRES:
 	case GID_LSL7:
 	case GID_PHANTASMAGORIA:
@@ -635,7 +643,7 @@ int GameFeatures::detectPlaneIdBase() {
 	else
 		return 20000;
 }
-	
+
 bool GameFeatures::autoDetectMoveCountType() {
 	// Look up the script address
 	reg_t addr = getDetectionAddr("Motion", SELECTOR(doit));
@@ -711,16 +719,21 @@ bool GameFeatures::generalMidiOnly() {
 #ifdef ENABLE_SCI32
 	switch (g_sci->getGameId()) {
 	case GID_MOTHERGOOSEHIRES:
-		return true;
+		return (g_sci->getPlatform() != Common::kPlatformMacintosh);
+
 	case GID_KQ7: {
 		if (g_sci->isDemo()) {
 			return false;
 		}
 
 		SoundResource sound(13, g_sci->getResMan(), detectDoSoundType());
-		return (sound.getTrackByType(/* AdLib */ 0) == nullptr);
+		return (sound.exists() && sound.getTrackByType(/* AdLib */ 0) == nullptr);
 	}
 	default:
+		 if (g_sci->getPlatform() == Common::kPlatformMacintosh &&
+			 getSciVersion() >= SCI_VERSION_2_1_MIDDLE) {
+			 return true;
+		 }
 		break;
 	}
 #endif
@@ -821,6 +834,54 @@ bool GameFeatures::useEarlyGetLongestTextCalculations() const {
 	// Fixed in all other versions
 	default:
 		return false;
+	}
+}
+
+bool GameFeatures::hasScriptObjectNames() const {
+	switch (g_sci->getGameId()) {
+	case GID_HOYLE4:
+	case GID_LSL6:
+	case GID_QFG1VGA:
+		return (g_sci->getPlatform() != Common::kPlatformMacintosh);
+	
+	default:
+		return true;
+	}
+}
+
+bool GameFeatures::canSaveFromGMM() const {
+	switch (g_sci->getGameId()) {
+	// ==== Demos/mini-games with no saving functionality ====
+	case GID_ASTROCHICKEN:
+	case GID_CHEST:
+	case GID_CHRISTMAS1988:
+	case GID_CHRISTMAS1990:
+	case GID_CHRISTMAS1992:
+	case GID_CNICK_KQ:
+	case GID_CNICK_LAURABOW:
+	case GID_CNICK_LONGBOW:
+	case GID_CNICK_LSL:
+	case GID_CNICK_SQ:
+	case GID_FUNSEEKER:
+	case GID_INNDEMO:
+	case GID_KQUESTIONS:
+	case GID_MSASTROCHICKEN:
+	// ==== Games with a different saving scheme =============
+	case GID_HOYLE1:
+	case GID_HOYLE2:
+	case GID_HOYLE3:
+	case GID_HOYLE4:
+	case GID_HOYLE5:
+	case GID_JONES:
+	case GID_MOTHERGOOSE:
+	case GID_MOTHERGOOSE256:
+	case GID_MOTHERGOOSEHIRES:
+	case GID_PHANTASMAGORIA:
+	case GID_RAMA:
+	case GID_SLATER:
+		return false;
+	default:
+		return true;
 	}
 }
 

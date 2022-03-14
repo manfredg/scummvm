@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,16 +70,18 @@ void ThemeLayout::resetLayout() {
 		_children[i]->resetLayout();
 }
 
-bool ThemeLayout::getWidgetData(const Common::String &name, int16 &x, int16 &y, uint16 &w, uint16 &h) {
+bool ThemeLayout::getWidgetData(const Common::String &name, int16 &x, int16 &y, int16 &w, int16 &h, bool &useRTL) {
 	if (name.empty()) {
 		assert(getLayoutType() == kLayoutMain);
 		x = _x; y = _y;
 		w = _w; h = _h;
+		useRTL = _useRTL;
+
 		return true;
 	}
 
 	for (uint i = 0; i < _children.size(); ++i) {
-		if (_children[i]->getWidgetData(name, x, y, w, h))
+		if (_children[i]->getWidgetData(name, x, y, w, h, useRTL))
 			return true;
 	}
 
@@ -144,7 +145,7 @@ int16 ThemeLayoutStacked::getParentHeight() {
 }
 
 #ifdef LAYOUT_DEBUG_DIALOG
-void ThemeLayout::debugDraw(Graphics::Surface *screen, const Graphics::Font *font) {
+void ThemeLayout::debugDraw(Graphics::ManagedSurface *screen, const Graphics::Font *font) {
 	uint32 color = 0xFFFFFFFF;
 	font->drawString(screen, getName(), _x, _y, _w, color, Graphics::kTextAlignRight, 0, true);
 	screen->hLine(_x, _y, _x + _w, color);
@@ -158,10 +159,12 @@ void ThemeLayout::debugDraw(Graphics::Surface *screen, const Graphics::Font *fon
 #endif
 
 
-bool ThemeLayoutWidget::getWidgetData(const Common::String &name, int16 &x, int16 &y, uint16 &w, uint16 &h) {
+bool ThemeLayoutWidget::getWidgetData(const Common::String &name, int16 &x, int16 &y, int16 &w, int16 &h, bool &useRTL) {
 	if (name == _name) {
 		x = _x; y = _y;
 		w = _w; h = _h;
+		useRTL = _useRTL;
+
 		return true;
 	}
 
@@ -221,31 +224,44 @@ void ThemeLayoutMain::reflowLayout(Widget *widgetChain) {
 	if (_overlays == "screen") {
 		_x = 0;
 		_y = 0;
-		_w = g_system->getOverlayWidth();
-		_h = g_system->getOverlayHeight();
+		_w = g_gui.getGUIWidth() * g_gui.getScaleFactor();
+		_h = g_gui.getGUIHeight() * g_gui.getScaleFactor();
 	} else if (_overlays == "screen_center") {
 		_x = -1;
 		_y = -1;
-		_w = _defaultW > 0 ? MIN(_defaultW, g_system->getOverlayWidth()) : -1;
-		_h = _defaultH > 0 ? MIN(_defaultH, g_system->getOverlayHeight()) : -1;
+		_w = _defaultW > 0 ? MIN(_defaultW, g_gui.getGUIWidth()) * g_gui.getScaleFactor() : -1;
+		_h = _defaultH > 0 ? MIN(_defaultH, g_gui.getGUIHeight()) * g_gui.getScaleFactor() : -1;
 	} else {
-		if (!g_gui.xmlEval()->getWidgetData(_overlays, _x, _y, (uint16 &) _w, (uint16 &) _h)) {
+		if (!g_gui.xmlEval()->getWidgetData(_overlays, _x, _y, _w, _h)) {
 			warning("Unable to retrieve overlayed dialog position %s", _overlays.c_str());
 		}
 
 		if (_w == -1 || _h == -1) {
 			warning("The overlayed dialog %s has not been sized, using a default size for %s", _overlays.c_str(), _name.c_str());
-			_x = g_system->getOverlayWidth()      / 10;
-			_y = g_system->getOverlayHeight()     / 10;
-			_w = g_system->getOverlayWidth()  * 8 / 10;
-			_h = g_system->getOverlayHeight() * 8 / 10;
+			_x = g_gui.getGUIWidth()      / 10 * g_gui.getScaleFactor();
+			_y = g_gui.getGUIHeight()     / 10 * g_gui.getScaleFactor();
+			_w = g_gui.getGUIWidth()  * 8 / 10 * g_gui.getScaleFactor();
+			_h = g_gui.getGUIHeight() * 8 / 10 * g_gui.getScaleFactor();
 		}
 	}
 
-	if (_x >= 0) _x += _inset;
-	if (_y >= 0) _y += _inset;
-	if (_w >= 0) _w -= 2 * _inset;
-	if (_h >= 0) _h -= 2 * _inset;
+	if (g_gui.useRTL()) {
+		if (this->_name == "GameOptions" || this->_name == "GlobalOptions" || this->_name == "Browser") {
+			/** The dialogs named above are the stacked dialogs for which the left+right paddings need to be adjusted for RTL.
+				Whenever a stacked dialog is opened, the below code sets the left and right paddings and enables widgets to be
+				shifted by that amount. If any new stacked and padded dialogs are added in the future,
+				add them here and in Widget::draw() to enable RTL support for that particular dialog
+			*/
+			int oldX = _x;
+			_x = g_gui.getGUIWidth() * g_gui.getScaleFactor() - _w - _x;
+			g_gui.setDialogPaddings(oldX, _x);
+		}
+	}
+
+	if (_x >= 0) _x += _inset * g_gui.getScaleFactor();
+	if (_y >= 0) _y += _inset * g_gui.getScaleFactor();
+	if (_w >= 0) _w -= 2 * _inset * g_gui.getScaleFactor();
+	if (_h >= 0) _h -= 2 * _inset * g_gui.getScaleFactor();
 
 	if (_children.size()) {
 		_children[0]->setWidth(_w);

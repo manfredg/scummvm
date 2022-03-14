@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,11 +36,6 @@ namespace MADS {
 
 MADSEngine::MADSEngine(OSystem *syst, const MADSGameDescription *gameDesc) :
 		_gameDescription(gameDesc), Engine(syst), _randomSource("MADS") {
-
-	// Set up debug channels
-	DebugMan.addDebugChannel(kDebugPath, "Path", "Pathfinding debug level");
-	DebugMan.addDebugChannel(kDebugScripts, "scripts", "Game scripts");
-	DebugMan.addDebugChannel(kDebugGraphics, "graphics", "Graphics handling");
 
 	// Initialize game/engine options
 	_easyMouse = true;
@@ -134,7 +128,7 @@ void MADSEngine::loadOptions() {
 
 	// Note: MADS is weird in that sfx and music are handled by the same driver,
 	// and the game scripts themselves check for music being enabled before playing
-	// a "music" sound. Which means we can independantly mute music in ScummVM, but
+	// a "music" sound. Which means we can independently mute music in ScummVM, but
 	// otherwise all sound, music and sfx, is controlled by the SFX volume slider.
 	int soundVolume = MIN(255, ConfMan.getInt("sfx_volume"));
 	_sound->setVolume(soundVolume);
@@ -176,10 +170,6 @@ int MADSEngine::getRandomNumber(int minNumber, int maxNumber) {
 	int range = maxNumber - minNumber;
 
 	return minNumber + _randomSource.getRandomNumber(range);
-}
-
-int MADSEngine::hypotenuse(int xv, int yv) {
-	return (int)sqrt((double)(xv * xv + yv * yv));
 }
 
 bool MADSEngine::canLoadGameStateCurrently() {

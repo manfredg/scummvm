@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,8 +26,6 @@
 #if defined(MACOSX) && defined(USE_TASKBAR)
 
 #include "backends/taskbar/macosx/macosx-taskbar.h"
-#include "common/config-manager.h"
-#include "common/file.h"
 #include "backends/platform/sdl/macosx/macosx-compat.h"
 #include <AppKit/NSApplication.h>
 #include <AppKit/NSImage.h>
@@ -54,15 +51,24 @@ NSDockTilePtr _dockTile;
 NSImageView *_applicationIconView;
 NSImageView *_overlayIconView;
 
+BOOL hasDockTile() {
+	if (_dockTile != nil)
+		return YES;
+	if ([NSApp respondsToSelector:@selector(dockTile)])
+		_dockTile = [NSApp dockTile];
+	return _dockTile != nil;
+}
+
 // Using a NSProgressIndicator as a sub-view of the NSDockTile view does not work properly.
 // The progress indicator is grayed out and display no progress. So instead the bar is drawn
 // manually, which is a bit more work :(
 
 MacOSXTaskbarManager::MacOSXTaskbarManager() : _progress(-1.0) {
-	if ([NSApp respondsToSelector:@selector(dockTile)])
-		_dockTile = [NSApp dockTile];
+	_dockTile = nil;
 	_applicationIconView = nil;
 	_overlayIconView = nil;
+
+
 }
 
 MacOSXTaskbarManager::~MacOSXTaskbarManager() {
@@ -70,7 +76,7 @@ MacOSXTaskbarManager::~MacOSXTaskbarManager() {
 }
 
 void MacOSXTaskbarManager::initApplicationIconView() {
-	if (_dockTile == nil)
+	if (!hasDockTile())
 		return;
 	if (_applicationIconView == nil) {
 		_applicationIconView = [[NSImageView alloc] init];
@@ -80,7 +86,7 @@ void MacOSXTaskbarManager::initApplicationIconView() {
 }
 
 void MacOSXTaskbarManager::clearApplicationIconView() {
-	if (_dockTile == nil)
+	if (!hasDockTile())
 		return;
 	[_dockTile performSelector:@selector(setContentView:) withObject:nil];
 	[_applicationIconView release];
@@ -88,7 +94,7 @@ void MacOSXTaskbarManager::clearApplicationIconView() {
 }
 
 void MacOSXTaskbarManager::initOverlayIconView() {
-	if (_dockTile == nil)
+	if (!hasDockTile())
 		return;
 	if (_overlayIconView == nil) {
 		const double overlaySize = 0.75;
@@ -110,7 +116,7 @@ void MacOSXTaskbarManager::clearOverlayIconView() {
 }
 
 void MacOSXTaskbarManager::setOverlayIcon(const Common::String &name, const Common::String &description) {
-	if (_dockTile == nil)
+	if (!hasDockTile())
 		return;
 
     if (name.empty()) {
@@ -119,7 +125,7 @@ void MacOSXTaskbarManager::setOverlayIcon(const Common::String &name, const Comm
 		return;
 	}
 
-	Common::String path = getIconPath(name);
+	Common::String path = getIconPath(name, ".png");
 	if (path.empty())
 		return;
 
@@ -135,7 +141,7 @@ void MacOSXTaskbarManager::setOverlayIcon(const Common::String &name, const Comm
 }
 
 void MacOSXTaskbarManager::setProgressValue(int completed, int total) {
-	if (_dockTile == nil)
+	if (!hasDockTile())
 		return;
 
 	if (total > 0)
@@ -161,7 +167,7 @@ void MacOSXTaskbarManager::setProgressValue(int completed, int total) {
 }
 
 void MacOSXTaskbarManager::setProgressState(TaskbarProgressState state) {
-	if (_dockTile == nil)
+	if (!hasDockTile())
 		return;
 
 	// Only support two states: visible and not visible.
@@ -178,7 +184,7 @@ void MacOSXTaskbarManager::setProgressState(TaskbarProgressState state) {
 }
 
 void MacOSXTaskbarManager::setCount(int count) {
-	if (_dockTile == nil)
+	if (!hasDockTile())
 		return;
 
 	if (count > 0)
@@ -188,7 +194,7 @@ void MacOSXTaskbarManager::setCount(int count) {
 }
 
 void MacOSXTaskbarManager::notifyError() {
-	if (_dockTile == nil)
+	if (!hasDockTile())
 		return;
 
 	// NSImageNameCaution was introduced in 10.6.
@@ -200,7 +206,7 @@ void MacOSXTaskbarManager::notifyError() {
 }
 
 void MacOSXTaskbarManager::clearError() {
-	if (_dockTile == nil)
+	if (!hasDockTile())
 		return;
 
     clearOverlayIconView();
@@ -208,42 +214,10 @@ void MacOSXTaskbarManager::clearError() {
 	return;
 }
 
-Common::String MacOSXTaskbarManager::getIconPath(const Common::String& target) {
-	// We first try to look for a iconspath configuration variable then
-	// fallback to the extra path
-	//
-	// Icons can be either in a subfolder named "icons" or directly in the path
-
-	Common::String iconsPath = ConfMan.get("iconspath");
-	Common::String extraPath = ConfMan.get("extrapath");
-
-#define TRY_ICON_PATH(path) { \
-Common::FSNode node((path)); \
-if (node.exists()) \
-return (path); \
-}
-
-	if (!iconsPath.empty()) {
-		TRY_ICON_PATH(iconsPath + "/" + target + ".png");
-		TRY_ICON_PATH(iconsPath + "/" + ConfMan.get("gameid") + ".png");
-		TRY_ICON_PATH(iconsPath + "/icons/" + target + ".png");
-		TRY_ICON_PATH(iconsPath + "/icons/" + ConfMan.get("gameid") + ".png");
-	}
-
-	if (!extraPath.empty()) {
-		TRY_ICON_PATH(extraPath + "/" + target + ".png");
-		TRY_ICON_PATH(extraPath + "/" + ConfMan.get("gameid") + ".png");
-		TRY_ICON_PATH(extraPath + "/icons/" + target + ".png");
-		TRY_ICON_PATH(extraPath + "/icons/" + ConfMan.get("gameid") + ".png");
-	}
-
-	return "";
-}
-
 void MacOSXTaskbarManager::addRecent(const Common::String &name, const Common::String &description) {
 	//warning("[MacOSXTaskbarManager::addRecent] Adding recent list entry: %s (%s)", name.c_str(), description.c_str());
 
-	if (_dockTile == nil)
+	if (!hasDockTile())
 		return;
 
 	// Store the game, description and icon in user preferences.
@@ -258,7 +232,7 @@ void MacOSXTaskbarManager::addRecent(const Common::String &name, const Common::S
 	[dict setObject:(NSString *)desc forKey:@"description"];
 
 	// Icon
-	Common::String iconPath = getIconPath(name);
+	Common::String iconPath = getIconPath(name, ".png");
 	if (!iconPath.empty()) {
 		CFStringRef icon = CFStringCreateWithCString(0, iconPath.c_str(), kCFStringEncodingASCII);
 		[dict setObject:(NSString *)icon forKey:@"icon"];

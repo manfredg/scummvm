@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -203,18 +202,18 @@ enum InstClass {
 	I_UNION,                    /* Add a set from the top of stack to a */
 	/* set valued attribute */
 	I_GETSTR,                   /* Get a string contents from text
-                                   file, create a copy and push it
-                                   on top of stack */
+								   file, create a copy and push it
+								   on top of stack */
 	I_INCR,                     /* Increase an attribute */
 	I_DECR,                     /* Decrease a numeric attribute */
 	I_INCLUDE,                  /* Include a value in the set on stack top */
 	I_EXCLUDE,                  /* Remove a value from the set on stack top */
 	I_SETSIZE,                  /* Push number of members in a set */
 	I_SETMEMB,                  /* Push the member with index <top>-1
-                                   from set <top> */
+								   from set <top> */
 	I_CONTSIZE,                 /* Push number of members in a container */
 	I_CONTMEMB,                 /* Push the member with index <top>-1
-                                   from container <top> */
+								   from container <top> */
 	I_USE,
 	I_STOP,
 	I_AT,
@@ -368,8 +367,8 @@ struct InstanceEntry {  /* INSTANCE TABLE */
 struct AttributeEntry {         /* ATTRIBUTE LIST */
 	Aint code;                  /* Its code */
 	Aptr value;                 /* Its value, a string has a dynamic
-                                   string pointer, a set has a pointer
-                                   to a dynamically allocated set */
+								   string pointer, a set has a pointer
+								   to a dynamically allocated set */
 	Aaddr id;                   /* Address to the name */
 
 	/**
@@ -381,8 +380,8 @@ struct AttributeEntry {         /* ATTRIBUTE LIST */
 struct AttributeHeaderEntry {   /* ATTRIBUTE LIST in header */
 	Aint code;                          /* Its code */
 	Aword value;                /* Its value, a string has a dynamic
-                                   string pointer, a set has a pointer
-                                   to a dynamically allocated set */
+								   string pointer, a set has a pointer
+								   to a dynamically allocated set */
 	Aaddr id;                   /* Address to the name */
 } PACKED_STRUCT;
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,22 +15,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "common/system.h"
+
 #include "engines/util.h"
 
-#include "sludge/backdrop.h"
 #include "sludge/event.h"
-#include "sludge/freeze.h"
 #include "sludge/graphics.h"
+#include "sludge/freeze.h"
 #include "sludge/newfatal.h"
 #include "sludge/sludge.h"
 #include "sludge/sludger.h"
-#include "sludge/sprites.h"
-#include "sludge/sprbanks.h"
 #include "sludge/zbuffer.h"
 
 namespace Sludge {
@@ -53,8 +51,7 @@ void GraphicsManager::init() {
 	_lightMapMode = LIGHTMAPMODE_PIXEL;
 	_lightMapNumber = 0;
 
-	// Parallax
-	_parallaxStuff = new Parallax;
+	_parallaxLayers = nullptr;
 
 	// Camera
 	_cameraZoom = 1.0;
@@ -79,7 +76,7 @@ void GraphicsManager::init() {
 	_zBuffer->sprites = nullptr;
 
 	// Colors
-	_currentBlankColour = _renderSurface.format.ARGBToColor(255, 0, 0, 0);
+	_currentBlankColour = _renderSurface.format.ARGBToColor(0xff, 0, 0, 0);
 	_currentBurnR = 0;
 	_currentBurnG = 0;
 	_currentBurnB = 0;
@@ -92,15 +89,11 @@ void GraphicsManager::init() {
 	resetRandW();
 	_brightnessLevel = 255;
 	_fadeMode = 2;
+	_transitionTexture = nullptr;
 }
 
 void GraphicsManager::kill() {
-	// kill parallax
-	if (_parallaxStuff) {
-		_parallaxStuff->kill();
-		delete _parallaxStuff;
-		_parallaxStuff = nullptr;
-	}
+	killParallax();
 
 	// kill frozen stuff
 	FrozenStuffStruct *killMe = _frozenStuff;
@@ -149,6 +142,12 @@ void GraphicsManager::kill() {
 
 	if (_origBackdropSurface.getPixels())
 		_origBackdropSurface.free();
+
+	if (_transitionTexture) {
+		_transitionTexture->free();
+		delete _transitionTexture;
+		_transitionTexture = nullptr;
+	}
 }
 
 bool GraphicsManager::initGfx() {
@@ -164,37 +163,15 @@ bool GraphicsManager::initGfx() {
 }
 
 void GraphicsManager::display() {
-	g_system->copyRectToScreen((byte *)_renderSurface.getPixels(), _renderSurface.pitch, 0, 0, _renderSurface.w, _renderSurface.h);
-	g_system->updateScreen();
 	if (_brightnessLevel < 255)
 		fixBrightness();
+
+	g_system->copyRectToScreen((byte *)_renderSurface.getPixels(), _renderSurface.pitch, 0, 0, _renderSurface.w, _renderSurface.h);
+	g_system->updateScreen();
 }
 
 void GraphicsManager::clear() {
-	_renderSurface.fillRect(Common::Rect(0, 0, _backdropSurface.w, _backdropSurface.h),
-			_renderSurface.format.RGBToColor(0, 0, 0));
-}
-
-bool GraphicsManager::loadParallax(uint16 v, uint16 fracX, uint16 fracY) {
-	if (!_parallaxStuff)
-		_parallaxStuff = new Parallax;
-	return _parallaxStuff->add(v, fracX, fracY);
-}
-
-void GraphicsManager::killParallax() {
-	if (!_parallaxStuff)
-		return;
-	_parallaxStuff->kill();
-}
-
-void GraphicsManager::saveParallax(Common::WriteStream *fp) {
-	if (_parallaxStuff)
-		_parallaxStuff->save(fp);
-}
-
-void GraphicsManager::drawParallax() {
-	if (_parallaxStuff)
-		_parallaxStuff->draw();
+	_renderSurface.fillRect(Common::Rect(0, 0, _backdropSurface.w, _backdropSurface.h), _renderSurface.format.ARGBToColor(0, 0, 0, 0));
 }
 
 void GraphicsManager::aimCamera(int cameraX, int cameraY) {

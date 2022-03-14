@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,14 +39,15 @@
 // for the Android port
 #define FORBIDDEN_SYMBOL_EXCEPTION_printf
 
+#include <android/bitmap.h>
+
 #include "base/main.h"
 #include "base/version.h"
 #include "common/config-manager.h"
 #include "common/error.h"
 #include "common/textconsole.h"
-#include "common/translation.h"
-#include "common/encoding.h"
 #include "engines/engine.h"
+#include "graphics/surface.h"
 
 #include "backends/platform/android/android.h"
 #include "backends/platform/android/asset-archive.h"
@@ -74,6 +74,7 @@ sem_t JNI::pause_sem = { 0 };
 int JNI::surface_changeid = 0;
 int JNI::egl_surface_width = 0;
 int JNI::egl_surface_height = 0;
+int JNI::egl_bits_per_pixel = 0;
 bool JNI::_ready_for_events = 0;
 
 jmethodID JNI::_MID_getDPI = 0;
@@ -86,10 +87,18 @@ jmethodID JNI::_MID_isConnectionLimited = 0;
 jmethodID JNI::_MID_setWindowCaption = 0;
 jmethodID JNI::_MID_showVirtualKeyboard = 0;
 jmethodID JNI::_MID_showKeyboardControl = 0;
+jmethodID JNI::_MID_getBitmapResource = 0;
+jmethodID JNI::_MID_setTouch3DMode = 0;
+jmethodID JNI::_MID_getTouch3DMode = 0;
+jmethodID JNI::_MID_showSAFRevokePermsControl = 0;
 jmethodID JNI::_MID_getSysArchives = 0;
 jmethodID JNI::_MID_getAllStorageLocations = 0;
 jmethodID JNI::_MID_initSurface = 0;
 jmethodID JNI::_MID_deinitSurface = 0;
+jmethodID JNI::_MID_createDirectoryWithSAF = 0;
+jmethodID JNI::_MID_createFileWithSAF = 0;
+jmethodID JNI::_MID_closeFileWithSAF = 0;
+jmethodID JNI::_MID_isDirectoryWritableWithSAF = 0;
 
 jmethodID JNI::_MID_EGL10_eglSwapBuffers = 0;
 
@@ -99,6 +108,8 @@ jmethodID JNI::_MID_AudioTrack_play = 0;
 jmethodID JNI::_MID_AudioTrack_stop = 0;
 jmethodID JNI::_MID_AudioTrack_write = 0;
 
+PauseToken JNI::_pauseToken;
+
 const JNINativeMethod JNI::_natives[] = {
 	{ "create", "(Landroid/content/res/AssetManager;"
 				"Ljavax/microedition/khronos/egl/EGL10;"
@@ -107,16 +118,18 @@ const JNINativeMethod JNI::_natives[] = {
 		(void *)JNI::create },
 	{ "destroy", "()V",
 		(void *)JNI::destroy },
-	{ "setSurface", "(II)V",
+	{ "setSurface", "(III)V",
 		(void *)JNI::setSurface },
 	{ "main", "([Ljava/lang/String;)I",
 		(void *)JNI::main },
 	{ "pushEvent", "(IIIIIII)V",
 		(void *)JNI::pushEvent },
+	{ "updateTouch", "(IIII)V",
+		(void *)JNI::updateTouch },
 	{ "setPause", "(Z)V",
 		(void *)JNI::setPause },
-	{ "getCurrentCharset", "()Ljava/lang/String;",
-		(void *)JNI::getCurrentCharset }
+	{ "getNativeVersionInfo", "()Ljava/lang/String;",
+		(void *)JNI::getNativeVersionInfo }
 };
 
 JNI::JNI() {
@@ -221,28 +234,20 @@ void JNI::getDPI(float *values) {
 			env->ReleaseFloatArrayElements(array, res, 0);
 		}
 	}
-
+	LOGD("JNI::getDPI() xdpi: %f, ydpi: %f", values[0], values[1]);
 	env->DeleteLocalRef(array);
 }
 
-void JNI::displayMessageOnOSD(const char *msg) {
+void JNI::displayMessageOnOSD(const Common::U32String &msg) {
 	// called from common/osd_message_queue, method: OSDMessageQueue::pollEvent()
 	JNIEnv *env = JNI::getEnv();
-	Common::String fromEncoding = "ISO-8859-1";
-#ifdef USE_TRANSLATION
-	if (TransMan.getCurrentCharset() != "ASCII") {
-		fromEncoding = TransMan.getCurrentCharset();
-	}
-#endif
-	Common::Encoding converter("UTF-8", fromEncoding.c_str());
 
-	const char *utf8Msg = converter.convert(msg, converter.stringLength(msg, fromEncoding) );
-	if (utf8Msg == nullptr) {
+	jstring java_msg = convertToJString(env, msg);
+	if (java_msg == nullptr) {
 		// Show a placeholder indicative of the translation error instead of silent failing
-		utf8Msg = "?";
+		java_msg = env->NewStringUTF("?");
 		LOGE("Failed to convert message to UTF-8 for OSD!");
 	}
-	jstring java_msg = env->NewStringUTF(utf8Msg);
 
 	env->CallVoidMethod(_jobj, _MID_displayMessageOnOSD, java_msg);
 
@@ -256,10 +261,10 @@ void JNI::displayMessageOnOSD(const char *msg) {
 	env->DeleteLocalRef(java_msg);
 }
 
-bool JNI::openUrl(const char *url) {
+bool JNI::openUrl(const Common::String &url) {
 	bool success = true;
 	JNIEnv *env = JNI::getEnv();
-	jstring javaUrl = env->NewStringUTF(url);
+	jstring javaUrl = env->NewStringUTF(url.c_str());
 
 	env->CallVoidMethod(_jobj, _MID_openUrl, javaUrl);
 
@@ -290,10 +295,10 @@ bool JNI::hasTextInClipboard() {
 	return hasText;
 }
 
-Common::String JNI::getTextFromClipboard() {
+Common::U32String JNI::getTextFromClipboard() {
 	JNIEnv *env = JNI::getEnv();
 
-	jbyteArray javaText = (jbyteArray)env->CallObjectMethod(_jobj, _MID_getTextFromClipboard);
+	jstring javaText = (jstring)env->CallObjectMethod(_jobj, _MID_getTextFromClipboard);
 
 	if (env->ExceptionCheck()) {
 		LOGE("Failed to retrieve text from the clipboard");
@@ -301,23 +306,18 @@ Common::String JNI::getTextFromClipboard() {
 		env->ExceptionDescribe();
 		env->ExceptionClear();
 
-		return Common::String();
+		return Common::U32String();
 	}
 
-	int len = env->GetArrayLength(javaText);
-	char* buf = new char[len];
-	env->GetByteArrayRegion(javaText, 0, len, reinterpret_cast<jbyte*>(buf));
-	Common::String text(buf, len);
-	delete[] buf;
+	Common::U32String text = convertFromJString(env, javaText);
+	env->DeleteLocalRef(javaText);
 
 	return text;
 }
 
-bool JNI::setTextInClipboard(const Common::String &text) {
+bool JNI::setTextInClipboard(const Common::U32String &text) {
 	JNIEnv *env = JNI::getEnv();
-
-	jbyteArray javaText = env->NewByteArray(text.size());
-	env->SetByteArrayRegion(javaText, 0, text.size(), reinterpret_cast<const jbyte*>(text.c_str()));
+	jstring javaText = convertToJString(env, text);
 
 	bool success = env->CallBooleanMethod(_jobj, _MID_setTextInClipboard, javaText);
 
@@ -348,9 +348,9 @@ bool JNI::isConnectionLimited() {
 	return limited;
 }
 
-void JNI::setWindowCaption(const char *caption) {
+void JNI::setWindowCaption(const Common::U32String &caption) {
 	JNIEnv *env = JNI::getEnv();
-	jstring java_caption = env->NewStringUTF(caption);
+	jstring java_caption = convertToJString(env, caption);
 
 	env->CallVoidMethod(_jobj, _MID_setWindowCaption, java_caption);
 
@@ -390,11 +390,121 @@ void JNI::showKeyboardControl(bool enable) {
 	}
 }
 
+Graphics::Surface *JNI::getBitmapResource(BitmapResources resource) {
+	JNIEnv *env = JNI::getEnv();
+
+	jobject bitmap = env->CallObjectMethod(_jobj, _MID_getBitmapResource, (int) resource);
+
+	if (env->ExceptionCheck()) {
+		LOGE("Can't get bitmap resource");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+
+		return nullptr;
+	}
+
+	if (bitmap == nullptr) {
+		LOGE("Bitmap resource was not found");
+		return nullptr;
+	}
+
+	AndroidBitmapInfo bitmap_info;
+	if (AndroidBitmap_getInfo(env, bitmap, &bitmap_info) != ANDROID_BITMAP_RESULT_SUCCESS) {
+		LOGE("Error reading bitmap info");
+		env->DeleteLocalRef(bitmap);
+		return nullptr;
+	}
+
+	Graphics::PixelFormat fmt;
+	switch(bitmap_info.format) {
+		case ANDROID_BITMAP_FORMAT_RGBA_8888:
+#ifdef SCUMM_BIG_ENDIAN
+			fmt = Graphics::PixelFormat(4, 8, 8, 8, 8, 24, 16, 8, 0);
+#else
+			fmt = Graphics::PixelFormat(4, 8, 8, 8, 8, 0, 8, 16, 24);
+#endif
+			break;
+		case ANDROID_BITMAP_FORMAT_RGBA_4444:
+			fmt = Graphics::PixelFormat(2, 4, 4, 4, 4, 12, 8, 4, 0);
+			break;
+		case ANDROID_BITMAP_FORMAT_RGB_565:
+			fmt = Graphics::PixelFormat(2, 5, 6, 5, 0, 11, 5, 0, 0);
+			break;
+		default:
+			LOGE("Bitmap has unsupported format");
+			env->DeleteLocalRef(bitmap);
+			return nullptr;
+	}
+
+	void *src_pixels = nullptr;
+	if (AndroidBitmap_lockPixels(env, bitmap, &src_pixels) != ANDROID_BITMAP_RESULT_SUCCESS) {
+		LOGE("Error locking bitmap pixels");
+		env->DeleteLocalRef(bitmap);
+		return nullptr;
+	}
+
+	Graphics::Surface *ret = new Graphics::Surface();
+	ret->create(bitmap_info.width, bitmap_info.height, fmt);
+	ret->copyRectToSurface(src_pixels, bitmap_info.stride,
+			0, 0, bitmap_info.width, bitmap_info.height);
+
+	AndroidBitmap_unlockPixels(env, bitmap);
+	env->DeleteLocalRef(bitmap);
+
+	return ret;
+}
+
+void JNI::setTouch3DMode(bool touch3DMode) {
+	JNIEnv *env = JNI::getEnv();
+
+	env->CallVoidMethod(_jobj, _MID_setTouch3DMode, touch3DMode);
+
+	if (env->ExceptionCheck()) {
+		LOGE("Error trying to set touch controls mode");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+	}
+}
+
+bool JNI::getTouch3DMode() {
+	JNIEnv *env = JNI::getEnv();
+
+	bool enabled = env->CallBooleanMethod(_jobj, _MID_getTouch3DMode);
+
+	if (env->ExceptionCheck()) {
+		LOGE("Error trying to get touch controls status");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+	}
+
+	return enabled;
+}
+
+void JNI::showSAFRevokePermsControl(bool enable) {
+	JNIEnv *env = JNI::getEnv();
+
+	env->CallVoidMethod(_jobj, _MID_showSAFRevokePermsControl, enable);
+
+	if (env->ExceptionCheck()) {
+		LOGE("Error trying to show the revoke SAF permissions button");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+	}
+}
+
+// The following adds assets folder to search set.
+// However searching and retrieving from "assets" on Android this is slow
+// so we also make sure to add the "path" directory, with a higher priority
+// This is done via a call to ScummVMActivity's (java) getSysArchives
 void JNI::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
 	JNIEnv *env = JNI::getEnv();
 
-	s.add("ASSET", _asset_archive, priority, false);
-
+	// get any additional specified paths (from ScummVMActivity code)
+	// Insert them with "priority" priority.
 	jobjectArray array =
 		(jobjectArray)env->CallObjectMethod(_jobj, _MID_getSysArchives);
 
@@ -419,6 +529,15 @@ void JNI::addSysArchivesToSearchSet(Common::SearchSet &s, int priority) {
 
 		env->DeleteLocalRef(path_obj);
 	}
+
+	// add the internal asset (android's structure) with a lower priority,
+	// since:
+	// 1. It is very slow in accessing large files (eg our growing fonts.dat)
+	// 2. we extract the asset contents anyway to the internal app path
+	// 3. we pass the internal app path in the process above (via _MID_getSysArchives)
+	// However, we keep android APK's "assets" as a fall back, in case something went wrong with the extraction process
+	//          and since we had the code anyway
+	s.add("ASSET", _asset_archive, priority - 1, false);
 }
 
 bool JNI::initSurface() {
@@ -542,15 +661,23 @@ void JNI::create(JNIEnv *env, jobject self, jobject asset_manager,
 	FIND_METHOD(, displayMessageOnOSD, "(Ljava/lang/String;)V");
 	FIND_METHOD(, openUrl, "(Ljava/lang/String;)V");
 	FIND_METHOD(, hasTextInClipboard, "()Z");
-	FIND_METHOD(, getTextFromClipboard, "()[B");
-	FIND_METHOD(, setTextInClipboard, "([B)Z");
+	FIND_METHOD(, getTextFromClipboard, "()Ljava/lang/String;");
+	FIND_METHOD(, setTextInClipboard, "(Ljava/lang/String;)Z");
 	FIND_METHOD(, isConnectionLimited, "()Z");
 	FIND_METHOD(, showVirtualKeyboard, "(Z)V");
 	FIND_METHOD(, showKeyboardControl, "(Z)V");
+	FIND_METHOD(, getBitmapResource, "(I)Landroid/graphics/Bitmap;");
+	FIND_METHOD(, setTouch3DMode, "(Z)V");
+	FIND_METHOD(, getTouch3DMode, "()Z");
 	FIND_METHOD(, getSysArchives, "()[Ljava/lang/String;");
 	FIND_METHOD(, getAllStorageLocations, "()[Ljava/lang/String;");
 	FIND_METHOD(, initSurface, "()Ljavax/microedition/khronos/egl/EGLSurface;");
 	FIND_METHOD(, deinitSurface, "()V");
+	FIND_METHOD(, showSAFRevokePermsControl, "(Z)V");
+	FIND_METHOD(, createDirectoryWithSAF, "(Ljava/lang/String;)Z");
+	FIND_METHOD(, createFileWithSAF, "(Ljava/lang/String;)Ljava/lang/String;");
+	FIND_METHOD(, closeFileWithSAF, "(Ljava/lang/String;)V");
+	FIND_METHOD(, isDirectoryWritableWithSAF, "(Ljava/lang/String;)Z");
 
 	_jobj_egl = env->NewGlobalRef(egl);
 	_jobj_egl_display = env->NewGlobalRef(egl_display);
@@ -599,9 +726,10 @@ void JNI::destroy(JNIEnv *env, jobject self) {
 	JNI::getEnv()->DeleteGlobalRef(_jobj);
 }
 
-void JNI::setSurface(JNIEnv *env, jobject self, jint width, jint height) {
+void JNI::setSurface(JNIEnv *env, jobject self, jint width, jint height, jint bpp) {
 	egl_surface_width = width;
 	egl_surface_height = height;
+	egl_bits_per_pixel = bpp;
 	surface_changeid++;
 }
 
@@ -682,6 +810,18 @@ void JNI::pushEvent(JNIEnv *env, jobject self, int type, int arg1, int arg2,
 	_system->pushEvent(type, arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
+void JNI::updateTouch(JNIEnv *env, jobject self, int action, int ptr, int x, int y) {
+	// drop events until we're ready and after we quit
+	if (!_ready_for_events) {
+		LOGW("dropping event");
+		return;
+	}
+
+	assert(_system);
+
+	_system->getTouchControls().update((TouchControls::Action) action, ptr, x, y);
+}
+
 void JNI::setPause(JNIEnv *env, jobject self, jboolean value) {
 	if (!_system)
 		return;
@@ -689,12 +829,10 @@ void JNI::setPause(JNIEnv *env, jobject self, jboolean value) {
 	if (g_engine) {
 		LOGD("pauseEngine: %d", value);
 
-		g_engine->pauseEngine(value);
-
-		/*if (value &&
-				g_engine->hasFeature(Engine::kSupportsSavingDuringRuntime) &&
-				g_engine->canSaveGameStateCurrently())
-			g_engine->saveGameState(0, "Android parachute");*/
+		if (value)
+			JNI::_pauseToken = g_engine->pauseEngine();
+		else
+			JNI::_pauseToken.clear();
 	}
 
 	pause = value;
@@ -706,16 +844,31 @@ void JNI::setPause(JNIEnv *env, jobject self, jboolean value) {
 	}
 }
 
-jstring JNI::getCurrentCharset(JNIEnv *env, jobject self) {
-#ifdef USE_TRANSLATION
-	if (TransMan.getCurrentCharset() != "ASCII") {
-//		LOGD("getCurrentCharset: %s", TransMan.getCurrentCharset().c_str());
-		return env->NewStringUTF(TransMan.getCurrentCharset().c_str());
-	}
-#endif
-	return env->NewStringUTF("ISO-8859-1");
+
+jstring JNI::getNativeVersionInfo(JNIEnv *env, jobject self) {
+	return convertToJString(env, Common::U32String(gScummVMVersion));
 }
 
+jstring JNI::convertToJString(JNIEnv *env, const Common::U32String &str) {
+	uint len = 0;
+	uint16 *u16str = str.encodeUTF16Native(&len);
+	jstring jstr = env->NewString(u16str, len);
+	delete[] u16str;
+	return jstr;
+}
+
+Common::U32String JNI::convertFromJString(JNIEnv *env, const jstring &jstr) {
+	const uint16 *utf16Str = env->GetStringChars(jstr, 0);
+	uint jcount = env->GetStringLength(jstr);
+	if (!utf16Str)
+		return Common::U32String();
+	Common::U32String str = Common::U32String::decodeUTF16Native(utf16Str, jcount);
+	env->ReleaseStringChars(jstr, utf16Str);
+
+	return str;
+}
+
+// TODO should this be a U32String array?
 Common::Array<Common::String> JNI::getAllStorageLocations() {
 	Common::Array<Common::String> *res = new Common::Array<Common::String>();
 
@@ -749,5 +902,75 @@ Common::Array<Common::String> JNI::getAllStorageLocations() {
 	return *res;
 }
 
+bool JNI::createDirectoryWithSAF(const Common::String &dirPath) {
+	JNIEnv *env = JNI::getEnv();
+	jstring javaDirPath = env->NewStringUTF(dirPath.c_str());
+
+	bool created = env->CallBooleanMethod(_jobj, _MID_createDirectoryWithSAF, javaDirPath);
+
+	if (env->ExceptionCheck()) {
+		LOGE("JNI - Failed to create directory with SAF enhanced method");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+		created = false;
+	}
+
+	return created;
+}
+
+Common::U32String JNI::createFileWithSAF(const Common::String &filePath) {
+	JNIEnv *env = JNI::getEnv();
+	jstring javaFilePath = env->NewStringUTF(filePath.c_str());
+
+	jstring hackyFilenameJSTR = (jstring)env->CallObjectMethod(_jobj, _MID_createFileWithSAF, javaFilePath);
+
+
+	if (env->ExceptionCheck()) {
+		LOGE("JNI - Failed to create file with SAF enhanced method");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+		hackyFilenameJSTR = env->NewStringUTF("");
+	}
+
+	Common::U32String hackyFilenameStr = convertFromJString(env, hackyFilenameJSTR);
+
+	env->DeleteLocalRef(hackyFilenameJSTR);
+
+	return hackyFilenameStr;
+}
+
+void JNI::closeFileWithSAF(const Common::String &hackyFilename) {
+	JNIEnv *env = JNI::getEnv();
+	jstring javaHackyFilename = env->NewStringUTF(hackyFilename.c_str());
+
+	env->CallVoidMethod(_jobj, _MID_closeFileWithSAF, javaHackyFilename);
+
+	if (env->ExceptionCheck()) {
+		LOGE("JNI - Failed to close file with SAF enhanced method");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+	}
+}
+
+bool JNI::isDirectoryWritableWithSAF(const Common::String &dirPath) {
+	JNIEnv *env = JNI::getEnv();
+	jstring javaDirPath = env->NewStringUTF(dirPath.c_str());
+
+	bool isWritable = env->CallBooleanMethod(_jobj, _MID_isDirectoryWritableWithSAF, javaDirPath);
+
+	if (env->ExceptionCheck()) {
+		LOGE("JNI - Failed to check if directory is writable SAF enhanced method");
+
+		env->ExceptionDescribe();
+		env->ExceptionClear();
+		isWritable = false;
+	}
+
+	return isWritable;
+}
 
 #endif
+

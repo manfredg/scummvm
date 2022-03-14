@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -132,7 +131,7 @@ SegmentObj *SegManager::allocSegment(SegmentObj *mem, SegmentId *segid) {
 Script *SegManager::allocateScript(int script_nr, SegmentId *segid) {
 	// Check if the script already has an allocated segment. If it
 	// does, return that segment.
-	*segid = _scriptSegMap.getVal(script_nr, 0);
+	*segid = _scriptSegMap.getValOrDefault(script_nr, 0);
 	if (*segid > 0) {
 		return (Script *)_heap[*segid];
 	}
@@ -186,7 +185,7 @@ void SegManager::deallocate(SegmentId seg) {
 
 bool SegManager::isHeapObject(reg_t pos) const {
 	const Object *obj = getObject(pos);
-	if (obj == NULL || (obj && obj->isFreed()))
+	if (obj == nullptr || (obj && obj->isFreed()))
 		return false;
 	Script *scr = getScriptIfLoaded(pos.getSegment());
 	return !(scr && scr->isMarkedAsDeleted());
@@ -213,7 +212,7 @@ Script *SegManager::getScript(const SegmentId seg) {
 Script *SegManager::getScriptIfLoaded(const SegmentId seg) const {
 	SegmentId actualSegment = getActualSegment(seg);
 	if (actualSegment < 1 || (uint)actualSegment >= _heap.size() || !_heap[actualSegment] || _heap[actualSegment]->getType() != SEG_TYPE_SCRIPT)
-		return 0;
+		return nullptr;
 	return (Script *)_heap[actualSegment];
 }
 
@@ -227,7 +226,7 @@ SegmentId SegManager::findSegmentByType(int type) const {
 SegmentObj *SegManager::getSegmentObj(SegmentId seg) const {
 	SegmentId actualSegment = getActualSegment(seg);
 	if (actualSegment < 1 || (uint)actualSegment >= _heap.size() || !_heap[actualSegment])
-		return 0;
+		return nullptr;
 	return _heap[actualSegment];
 }
 
@@ -245,9 +244,9 @@ SegmentObj *SegManager::getSegment(SegmentId seg, SegmentType type) const {
 
 Object *SegManager::getObject(reg_t pos) const {
 	SegmentObj *mobj = getSegmentObj(pos.getSegment());
-	Object *obj = NULL;
+	Object *obj = nullptr;
 
-	if (mobj != NULL) {
+	if (mobj != nullptr) {
 		if (mobj->getType() == SEG_TYPE_CLONES) {
 			CloneTable &ct = *(CloneTable *)mobj;
 			if (ct.isValidEntry(pos.getOffset()))
@@ -342,9 +341,60 @@ reg_t SegManager::findObjectByName(const Common::String &name, int index) {
 	return result[index];
 }
 
+Common::Array<reg_t> SegManager::findObjectsBySuperClass(const Common::String &superClassName) {
+	Common::Array<reg_t> result;
+
+	reg_t superClass = findObjectByName(superClassName);
+	if (superClass.isNull()) {
+		return result;
+	}
+
+	// Now all values are available; iterate over all objects.
+	for (uint i = 0; i < _heap.size(); i++) {
+		const SegmentObj *mobj = _heap[i];
+
+		if (!mobj)
+			continue;
+
+		reg_t objpos = make_reg(i, 0);
+
+		if (mobj->getType() == SEG_TYPE_SCRIPT) {
+			// It's a script, scan all objects in it
+			const Script *scr = (const Script *)mobj;
+			const ObjMap &objects = scr->getObjectMap();
+			for (ObjMap::const_iterator it = objects.begin(); it != objects.end(); ++it) {
+				objpos.setOffset(it->_value.getPos().getOffset());
+				Object *object = getObject(objpos);
+				if (object) {
+					if (superClass == object->getSuperClassSelector()) {
+						result.push_back(objpos);
+					}
+				}
+			}
+		} else if (mobj->getType() == SEG_TYPE_CLONES) {
+			// It's clone table, scan all objects in it
+			const CloneTable *ct = (const CloneTable *)mobj;
+			for (uint idx = 0; idx < ct->size(); ++idx) {
+				if (!ct->isValidEntry(idx))
+					continue;
+
+				objpos.setOffset(idx);
+				Object *object = getObject(objpos);
+				if (object) {
+					if (superClass == object->getSuperClassSelector()) {
+						result.push_back(objpos);
+					}
+				}
+			}
+		}
+	}
+
+	return result;
+}
+
 // return the seg if script_id is valid and in the map, else 0
 SegmentId SegManager::getScriptSegment(int script_id) const {
-	return _scriptSegMap.getVal(script_id, 0);
+	return _scriptSegMap.getValOrDefault(script_id, 0);
 }
 
 SegmentId SegManager::getScriptSegment(int script_nr, ScriptLoadType load, bool applyScriptPatches) {
@@ -422,7 +472,7 @@ byte *SegManager::getHunkPointer(reg_t addr) {
 
 	if (!ht || !ht->isValidEntry(addr.getOffset())) {
 		// Valid SCI behavior, e.g. when loading/quitting
-		return NULL;
+		return nullptr;
 	}
 
 	return (byte *)ht->at(addr.getOffset()).mem;
@@ -484,14 +534,14 @@ reg_t SegManager::newNode(reg_t value, reg_t key) {
 List *SegManager::lookupList(reg_t addr) {
 	if (getSegmentType(addr.getSegment()) != SEG_TYPE_LISTS) {
 		error("Attempt to use non-list %04x:%04x as list", PRINT_REG(addr));
-		return NULL;
+		return nullptr;
 	}
 
 	ListTable &lt = *(ListTable *)_heap[addr.getSegment()];
 
 	if (!lt.isValidEntry(addr.getOffset())) {
 		error("Attempt to use non-list %04x:%04x as list", PRINT_REG(addr));
-		return NULL;
+		return nullptr;
 	}
 
 	return &(lt[addr.getOffset()]);
@@ -499,23 +549,23 @@ List *SegManager::lookupList(reg_t addr) {
 
 Node *SegManager::lookupNode(reg_t addr, bool stopOnDiscarded) {
 	if (addr.isNull())
-		return NULL; // Non-error null
+		return nullptr; // Non-error null
 
 	SegmentType type = getSegmentType(addr.getSegment());
 
 	if (type != SEG_TYPE_NODES) {
 		error("Attempt to use non-node %04x:%04x (type %d) as list node", PRINT_REG(addr), type);
-		return NULL;
+		return nullptr;
 	}
 
 	NodeTable &nt = *(NodeTable *)_heap[addr.getSegment()];
 
 	if (!nt.isValidEntry(addr.getOffset())) {
 		if (!stopOnDiscarded)
-			return NULL;
+			return nullptr;
 
 		error("Attempt to use invalid or discarded reference %04x:%04x as list node", PRINT_REG(addr));
-		return NULL;
+		return nullptr;
 	}
 
 	return &(nt[addr.getOffset()]);
@@ -538,7 +588,7 @@ static void *derefPtr(SegManager *segMan, reg_t pointer, int entries, bool wantR
 	SegmentRef ret = segMan->dereference(pointer);
 
 	if (!ret.isValid())
-		return NULL;
+		return nullptr;
 
 	if (ret.isRaw != wantRaw) {
 		warning("Dereferencing pointer %04x:%04x (type %d) which is %s, but expected %s", PRINT_REG(pointer),
@@ -549,12 +599,12 @@ static void *derefPtr(SegManager *segMan, reg_t pointer, int entries, bool wantR
 
 	if (!wantRaw && ret.skipByte) {
 		warning("Unaligned pointer read: %04x:%04x expected with word alignment", PRINT_REG(pointer));
-		return NULL;
+		return nullptr;
 	}
 
 	if (entries > ret.maxSize) {
 		warning("Trying to dereference pointer %04x:%04x beyond end of segment", PRINT_REG(pointer));
-		return NULL;
+		return nullptr;
 	}
 
 	if (ret.isRaw)
@@ -861,7 +911,7 @@ byte *SegManager::allocDynmem(int size, const char *descr, reg_t *addr) {
 	if (size) {
 		d._buf = (byte *)calloc(size, 1);
 	} else {
-		d._buf = NULL;
+		d._buf = nullptr;
 	}
 
 	d._description = descr;

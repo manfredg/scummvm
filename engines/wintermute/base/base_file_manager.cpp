@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,6 +33,7 @@
 #include "engines/wintermute/base/file/base_package.h"
 #include "engines/wintermute/base/base_engine.h"
 #include "engines/wintermute/wintermute.h"
+#include "common/algorithm.h"
 #include "common/debug.h"
 #include "common/str.h"
 #include "common/tokenizer.h"
@@ -104,7 +104,7 @@ byte *BaseFileManager::readWholeFile(const Common::String &filename, uint32 *siz
 
 	buffer = new byte[file->size() + 1];
 	if (buffer == nullptr) {
-		debugC(kWintermuteDebugFileAccess | kWintermuteDebugLog, "Error allocating buffer for file '%s' (%d bytes)", filename.c_str(), file->size() + 1);
+		debugC(kWintermuteDebugFileAccess | kWintermuteDebugLog, "Error allocating buffer for file '%s' (%d bytes)", filename.c_str(), (int)file->size() + 1);
 		closeFile(file);
 		return nullptr;
 	}
@@ -182,7 +182,7 @@ bool BaseFileManager::registerPackages(const Common::FSList &fslist) {
 	for (Common::FSList::const_iterator it = fslist.begin(); it != fslist.end(); ++it) {
 		debugC(kWintermuteDebugFileAccess, "Adding %s", it->getName().c_str());
 		if (it->getName().contains(".dcp")) {
-			if (registerPackage(*it)) {
+			if (registerPackage(*it, it->getName())) {
 				addPath(PATH_PACKAGE, *it);
 			}
 		}
@@ -203,7 +203,7 @@ bool BaseFileManager::registerPackages() {
 	for (Common::FSList::const_iterator it = _packagePaths.begin(); it != _packagePaths.end(); ++it) {
 		debugC(kWintermuteDebugFileAccess, "Should register folder: %s %s", it->getPath().c_str(), it->getName().c_str());
 		if (!it->getChildren(files, Common::FSNode::kListFilesOnly)) {
-			warning("getChildren() failed for path: %s", it->getDisplayName().c_str());
+			warning("getChildren() failed for path: %s", it->getName().c_str());
 		}
 		for (Common::FSList::const_iterator fileIt = files.begin(); fileIt != files.end(); ++fileIt) {
 			// To prevent any case sensitivity issues we make the filename
@@ -247,7 +247,7 @@ bool BaseFileManager::registerPackages() {
 					}
 				// Simplified Chinese
 				} else if (fileName == "xlanguage_zh_s.dcp") {
-					if (_language != Common::ZH_CNA) {
+					if (_language != Common::ZH_CHN) {
 						continue;
 					}
 				// Traditional Chinese
@@ -257,7 +257,7 @@ bool BaseFileManager::registerPackages() {
 					}
 				// Czech
 				} else if (fileName == "czech.dcp" || fileName == "xlanguage_cz.dcp" || fileName == "czech_language_pack.dcp") {
-					if (_language != Common::CZ_CZE) {
+					if (_language != Common::CS_CZE) {
 						continue;
 					}
 				// French
@@ -277,7 +277,12 @@ bool BaseFileManager::registerPackages() {
 					}
 				// Latvian
 				} else if (fileName == "latvian.dcp" || fileName == "xlanguage_lv.dcp" || fileName == "latvian_language_pack.dcp") {
-					if (_language != Common::LV_LAT) {
+					if (_language != Common::LV_LVA) {
+						continue;
+					}
+				// Persian
+				} else if (fileName == "persian.dcp" || fileName == "xlanguage_fa.dcp" || fileName == "persian_language_pack.dcp") {
+					if (_language != Common::FA_IRN) {
 						continue;
 					}
 				// Polish
@@ -293,6 +298,11 @@ bool BaseFileManager::registerPackages() {
 				// Russian
 				} else if (fileName == "russian.dcp" || fileName == "xlanguage_ru.dcp" || fileName == "russian_language_pack.dcp") {
 					if (_language != Common::RU_RUS) {
+						continue;
+					}
+				// Serbian
+				} else if (fileName == "serbian.dcp" || fileName == "xlanguage_sr.dcp" || fileName == "serbian_language_pack.dcp") {
+					if (_language != Common::SR_SRB) {
 						continue;
 					}
 				// Spanish
@@ -367,6 +377,10 @@ uint32 BaseFileManager::getPackageVersion(const Common::String &filename) {
 
 //////////////////////////////////////////////////////////////////////////
 bool BaseFileManager::hasFile(const Common::String &filename) {
+	Common::String backwardSlashesPath = filename;
+	// correct slashes
+	Common::replace(backwardSlashesPath.begin(), backwardSlashesPath.end(), '/', '\\');
+
 	if (scumm_strnicmp(filename.c_str(), "savegame:", 9) == 0) {
 		BasePersistenceManager pm(BaseEngine::instance().getGameTargetName());
 		if (filename.size() <= 9) {
@@ -381,7 +395,7 @@ bool BaseFileManager::hasFile(const Common::String &filename) {
 	if (diskFileExists(filename)) {
 		return true;
 	}
-	if (_packages.hasFile(filename)) {
+	if (_packages.hasFile(backwardSlashesPath)) {
 		return true;    // We don't bother checking if the file can actually be opened, something bigger is wrong if that is the case.
 	}
 	if (!_detectionMode && _resources->hasFile(filename)) {
@@ -390,8 +404,22 @@ bool BaseFileManager::hasFile(const Common::String &filename) {
 	return false;
 }
 
-int BaseFileManager::listMatchingMembers(Common::ArchiveMemberList &list, const Common::String &pattern) {
+//////////////////////////////////////////////////////////////////////////
+int BaseFileManager::listMatchingPackageMembers(Common::ArchiveMemberList &list, const Common::String &pattern) {
 	return _packages.listMatchingMembers(list, pattern);
+}
+
+//////////////////////////////////////////////////////////////////////////
+int BaseFileManager::listMatchingFiles(Common::StringArray &list, const Common::String &pattern) {
+	list = sfmFileList(pattern);
+
+	Common::ArchiveMemberList files;
+	listMatchingDiskFileMembers(files, pattern);
+	for (Common::ArchiveMemberList::const_iterator it = files.begin(); it != files.end(); ++it) {
+		list.push_back((*it)->getName());
+	}
+
+	return list.size();
 }
 
 //////////////////////////////////////////////////////////////////////////

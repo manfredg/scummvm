@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -1055,7 +1054,7 @@ void Sound::loadSection(uint8 pSection) {
 	free(_soundData);
 	_soundData = _skyDisk->loadFile(pSection * 4 + SOUND_FILE_BASE);
 	uint16 asmOfs;
-	if (SkyEngine::_systemVars.gameVersion == 109) {
+	if (SkyEngine::_systemVars->gameVersion == 109) {
 		if (pSection == 0)
 			asmOfs = 0x78;
 		else
@@ -1075,7 +1074,7 @@ void Sound::loadSection(uint8 pSection) {
 
 	_sfxInfo = _soundData + _sfxBaseOfs;
 	// if we just restored a savegame, the sfxqueue holds the sound we need to restart
-	if (!(SkyEngine::_systemVars.systemFlags & SF_GAME_RESTORED))
+	if (!(SkyEngine::_systemVars->systemFlags & SF_GAME_RESTORED))
 		for (uint8 cnt = 0; cnt < 4; cnt++)
 			_sfxQueue[cnt].count = 0;
 }
@@ -1101,7 +1100,7 @@ void Sound::playSound(uint16 sound, uint16 volume, uint8 channel) {
 
 	// Note: All those tables are big endian. Don't ask me why. *sigh*
 
-	// Use the sample rate from game data, see bug #1507757.
+	// Use the sample rate from game data, see bug #2688.
 	uint16 sampleRate = READ_BE_UINT16(_sampleRates + (sound << 2));
 	if (sampleRate > 11025)
 		sampleRate = 11025;
@@ -1132,7 +1131,7 @@ void Sound::playSound(uint16 sound, uint16 volume, uint8 channel) {
 
 void Sound::fnStartFx(uint32 sound, uint8 channel) {
 	_saveSounds[channel] = 0xFFFF;
-	if (sound < 256 || sound > MAX_FX_NUMBER || (SkyEngine::_systemVars.systemFlags & SF_FX_OFF))
+	if (sound < 256 || sound > MAX_FX_NUMBER || (SkyEngine::_systemVars->systemFlags & SF_FX_OFF))
 		return;
 
 	uint8 screen = (uint8)(Logic::_scriptVariables[SCREEN] & 0xff);
@@ -1156,9 +1155,9 @@ void Sound::fnStartFx(uint32 sound, uint8 channel) {
 
 	uint8 volume = _mainSfxVolume; // start with standard vol
 
-	if (SkyEngine::_systemVars.systemFlags & SF_SBLASTER)
+	if (SkyEngine::_systemVars->systemFlags & SF_SBLASTER)
 		volume = roomList[i].adlibVolume;
-	else if (SkyEngine::_systemVars.systemFlags & SF_ROLAND)
+	else if (SkyEngine::_systemVars->systemFlags & SF_ROLAND)
 		volume = roomList[i].rolandVolume;
 	volume = (volume * _mainSfxVolume) >> 8;
 
@@ -1222,7 +1221,7 @@ void Sound::stopSpeech() {
 }
 
 bool Sound::startSpeech(uint16 textNum) {
-	if (!(SkyEngine::_systemVars.systemFlags & SF_ALLOW_SPEECH))
+	if (!(SkyEngine::_systemVars->systemFlags & SF_ALLOW_SPEECH))
 		return false;
 	uint16 speechFileNum = _speechConvertTable[textNum >> 12] + (textNum & 0xFFF);
 
@@ -1238,7 +1237,7 @@ bool Sound::startSpeech(uint16 textNum) {
 
 	free(speechData);
 
-	// Workaround for BASS bug #897775 - some voice-overs are played at
+	// Workaround for BASS bug #1461 - some voice-overs are played at
 	// half speed in 0.0368 (the freeware CD version), in 0.0372 they sound
 	// just fine.
 

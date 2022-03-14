@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -172,7 +171,7 @@ void errorExit(j_common_ptr cinfo) {
 	(*cinfo->err->format_message)(cinfo, buffer);
 	// This function is not allowed to return to the caller, thus we simply
 	// error out with our error handling here.
-	error("%s", buffer);
+	error("libjpeg: %s", buffer);
 }
 
 void outputMessage(j_common_ptr cinfo) {
@@ -298,7 +297,7 @@ bool JPEGDecoder::loadStream(Common::SeekableReadStream &stream) {
 
 	// Allocate buffer for one scanline
 	JDIMENSION pitch = cinfo.output_width * _surface.format.bytesPerPixel;
-	assert(_surface.pitch >= pitch);
+	assert(_surface.pitch >= (int)pitch);
 	JSAMPARRAY buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr)&cinfo, JPOOL_IMAGE, pitch, 1);
 
 	// Go through the image data scanline by scanline

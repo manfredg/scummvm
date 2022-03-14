@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,20 +24,15 @@
 
 #include "ultima/ultima8/filesys/named_archive_file.h"
 #include "ultima/shared/std/containers.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-class IDataSource;
-
 class U8SaveFile : public NamedArchiveFile {
 public:
-	ENABLE_RUNTIME_CLASSTYPE()
-
 	//! create U8SaveFile from datasource; U8SaveFile takes ownership of ds
 	//! and deletes it when destructed
-	explicit U8SaveFile(IDataSource *ds);
+	explicit U8SaveFile(Common::SeekableReadStream *rs);
 	~U8SaveFile() override;
 
 	bool exists(const Std::string &name) override;
@@ -51,10 +45,10 @@ public:
 		return _count;
 	}
 
-	static bool isU8SaveFile(IDataSource *ds);
+	static bool isU8SaveFile(Common::SeekableReadStream *rs);
 
 protected:
-	IDataSource *_ds;
+	Common::SeekableReadStream *_rs;
 	uint32 _count;
 
 	Std::map<Common::String, uint32> _indices;

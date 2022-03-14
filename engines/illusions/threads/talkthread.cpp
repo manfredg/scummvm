@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -66,13 +65,13 @@ TalkThread::TalkThread(IllusionsEngine *vm, uint32 threadId, uint32 callingThrea
 	_textStartTime = 0;
 	_textEndTime = 0;
 	_textDurationElapsed = 0;
-	_entryText = 0;
-	_currEntryText = 0;
+	_entryText = nullptr;
+	_currEntryText = nullptr;
 	_voiceDurationElapsed = 0;
 	_voiceDuration = duration;
 	_voiceStartTime = getCurrentTime();
 	_voiceEndTime = _voiceStartTime + duration;
-	_entryTblPtr = 0;
+	_entryTblPtr = nullptr;
 
 	if (callingThreadId) {
 		Thread *callingThread = _vm->_threads->findThread(callingThreadId);
@@ -106,7 +105,7 @@ int TalkThread::onUpdate() {
 	case 3:
 		talkEntry = getTalkResourceEntry(_talkId);
 		_flags = 0;
-		_currEntryText = 0;
+		_currEntryText = nullptr;
 		_entryText = talkEntry->_text;
 		_entryTblPtr = talkEntry->_tblPtr;
 		if (_sequenceId1) {
@@ -399,9 +398,9 @@ int TalkThread::insertText() {
 	WidthHeight dimensions;
 	_vm->getDefaultTextDimensions(dimensions);
 	uint16 *outTextPtr;
-	_vm->_screenText->insertText((uint16*)_currEntryText, 0x120001, dimensions,
+	_vm->_screenText->insertText(_currEntryText, 0x120001, dimensions,
 		Common::Point(0, 0), TEXT_FLAG_CENTER_ALIGN, 0, 0, 0, 0, 0, outTextPtr);
-	_entryText = (byte*)outTextPtr;
+	_entryText = outTextPtr;
 	Common::Point pt;
 	_vm->getDefaultTextPosition(pt);
 	_vm->_screenText->updateTextInfoPosition(pt);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -658,7 +657,7 @@ int TTparser::loadRequests(TTword *word) {
 		if (_sentence->checkCategory()) {
 			_sentenceConcept->_field1C = 1;
 			_sentenceConcept = _sentenceConcept->addSibling();
-			delete this;
+			clear();
 		} else {
 			addNode(WORD_TYPE_IS_SENTENCE_TYPE);
 		}
@@ -927,7 +926,7 @@ int TTparser::considerRequests(TTword *word) {
 
 		case SEEK_OWNERSHIP:
 			if (word->_id == 601) {
-				if (_conceptP->findByWordClass(WC_THING))
+				if (TTconcept::findByWordClass(_conceptP, WC_THING))
 					status = _conceptP->setOwner(word, false);
 
 				flag = true;
@@ -969,7 +968,7 @@ int TTparser::considerRequests(TTword *word) {
 				case WC_ABSTRACT:
 					if (word->_id != 300) {
 						status = processModifiers(3, word);
-					} else if (!_conceptP || !_conceptP->findByWordClass(WC_THING)) {
+					} else if (!TTconcept::findByWordClass(_conceptP, WC_THING)) {
 						status = processModifiers(3, word);
 					} else {
 						word->_id = atoi(word->_text.c_str());
@@ -980,7 +979,7 @@ int TTparser::considerRequests(TTword *word) {
 						addToConceptList(word);
 					break;
 				case WC_ADJECTIVE: {
-					TTconcept *conceptP = _conceptP->findByWordClass(WC_THING);
+					TTconcept *conceptP = TTconcept::findByWordClass(_conceptP, WC_THING);
 					if (conceptP) {
 						conceptP->_string2 += ' ';
 						conceptP->_string2 += word->getText();
@@ -997,7 +996,7 @@ int TTparser::considerRequests(TTword *word) {
 								currP->_field34 = 1;
 						}
 					} else {
-						TTconcept *conceptP = _conceptP->findByWordClass(WC_ACTION);
+						TTconcept *conceptP = TTconcept::findByWordClass(_conceptP, WC_ACTION);
 
 						if (conceptP) {
 							conceptP->_string2 += ' ';

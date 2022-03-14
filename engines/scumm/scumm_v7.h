@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -84,8 +83,9 @@ protected:
 	struct SubtitleText : TextObject {
 		bool actorSpeechMsg;
 	};
-	friend void syncWithSerializer(Common::Serializer &, SubtitleText &);
 #endif
+
+	friend void syncWithSerializer(Common::Serializer &, SubtitleText &);
 
 	int _subtitleQueuePos;
 	SubtitleText _subtitleQueue[20];
@@ -98,14 +98,14 @@ public:
 	bool isSmushActive() { return _smushActive; }
 
 protected:
-	int runDialog(Dialog &dialog) override;
 
 	void scummLoop_handleSound() override;
 	void scummLoop_handleDrawing() override;
 	void processInput() override;
 	void processKeyboard(Common::KeyState lastKeyHit) override;
 
-	void setupScumm() override;
+	void setupScumm(const Common::String &macResourceFile) override;
+	void resetScumm() override;
 
 	void setupScummVars() override;
 	void resetScummVars() override;
@@ -131,6 +131,8 @@ protected:
 	void playSpeech(const byte *ptr);
 
 	void drawVerb(int verb, int mode) override;
+
+	void pauseEngineIntern(bool pause) override;
 
 
 	void o6_kernelSetFunctions() override;

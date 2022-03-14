@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,7 +28,7 @@
 #include "audio/mixer.h"
 
 #include "sci/sci.h"
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/sound/drivers/mididriver.h"
 #ifdef ENABLE_SCI32
 #include "sci/sound/audio32.h"
@@ -83,8 +82,6 @@ public:
 	uint16 resourceId;
 
 	int time; // "tim"estamp to indicate in which order songs have been added
-
-	bool isQueued; // for SCI0 only!
 
 	uint16 dataInc;
 	uint16 ticker;
@@ -160,8 +157,21 @@ struct ChannelRemapping {
 	int lowestPrio() const;
 };
 
+struct MidiCommand {
+	enum CmdType {
+		kTypeMidiMessage = 0,
+		kTypeTrackInit
+	};
+	// Keeping this very simple, due to the very limited purpose of it.
+	MidiCommand(CmdType type, uint32 val) : _type(type), _dataPtr(0), _dataVal(val) {}
+	MidiCommand(CmdType type, void *ptr) : _type(type), _dataPtr(ptr), _dataVal(0) {}
+	CmdType _type;
+	void *_dataPtr;
+	uint32 _dataVal;
+};
+
 typedef Common::Array<MusicEntry *> MusicList;
-typedef Common::Array<uint32> MidiCommandQueue;
+typedef Common::Array<MidiCommand> MidiCommandQueue;
 
 class SciMusic : public Common::Serializable {
 
@@ -174,6 +184,8 @@ public:
 	void onTimer();
 	void putMidiCommandInQueue(byte status, byte firstOp, byte secondOp);
 	void putMidiCommandInQueue(uint32 midi);
+	void putTrackInitCommandInQueue(MusicEntry *psnd);
+	void removeTrackInitCommandsFromQueue(MusicEntry *psnd);
 private:
 	static void miditimerCallback(void *p);
 	void sendMidiCommandsFromQueue();
@@ -182,10 +194,11 @@ public:
 	void clearPlayList();
 	void pauseAll(bool pause);
 	void stopAll();
+	void stopAllSamples();
 
 	// sound and midi functions
 	void soundInitSnd(MusicEntry *pSnd);
-	void soundPlay(MusicEntry *pSnd);
+	void soundPlay(MusicEntry *pSnd, bool restoring = false);
 	void soundStop(MusicEntry *pSnd);
 	void soundKill(MusicEntry *pSnd);
 	void soundPause(MusicEntry *pSnd);
@@ -213,11 +226,13 @@ public:
 	}
 
 	MusicEntry *getSlot(reg_t obj);
-	MusicEntry *getActiveSci0MusicSlot();
+	MusicEntry *getFirstSlotWithStatus(SoundStatus status);
 
 	void pushBackSlot(MusicEntry *slotEntry) {
 		Common::StackLock lock(_mutex);
 		_playList.push_back(slotEntry);
+		if (_soundVersion <= SCI_VERSION_0_LATE) // I limit this to SCI0, since it always inserts the nodes at the correct position, but no idea about >=SCI1
+			sortPlayList();
 	}
 
 	void printPlayList(Console *con);
@@ -271,6 +286,8 @@ private:
 	int8 _channelRemap[16];
 	int8 _globalReverb;
 	bool _needsRemap;
+	int _globalPause;
+	bool _needsResume;
 
 	DeviceChannelUsage _channelMap[16];
 

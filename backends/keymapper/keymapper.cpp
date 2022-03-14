@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,7 +39,7 @@ Keymapper::Keymapper(EventManager *eventMan) :
 		_backendDefaultBindings(nullptr),
 		_delayedEventSource(new DelayedEventSource()),
 		_enabled(true),
-		_enabledKeymapType(Keymap::kKeymapTypeGlobal) {
+		_enabledKeymapType(Keymap::kKeymapTypeGame) {
 	_eventMan->getEventDispatcher()->registerSource(_delayedEventSource, true);
 	resetInputState();
 }
@@ -62,9 +61,16 @@ void Keymapper::clear() {
 	_hardwareInputs = nullptr;
 }
 
-void Keymapper::registerHardwareInputSet(HardwareInputSet *inputs) {
-	if (_hardwareInputs)
-		error("Hardware input set already registered");
+void Keymapper::registerHardwareInputSet(HardwareInputSet *inputs, KeymapperDefaultBindings *backendDefaultBindings) {
+	bool reloadMappings = false;
+	if (_hardwareInputs) {
+		reloadMappings = true;
+		delete _hardwareInputs;
+	}
+	if (_backendDefaultBindings) {
+		reloadMappings = true;
+		delete _backendDefaultBindings;
+	}
 
 	if (!inputs) {
 		warning("No hardware input were defined, using defaults");
@@ -75,13 +81,11 @@ void Keymapper::registerHardwareInputSet(HardwareInputSet *inputs) {
 	}
 
 	_hardwareInputs = inputs;
-}
-
-void Keymapper::registerBackendDefaultBindings(KeymapperDefaultBindings *backendDefaultBindings) {
-	if (!_keymaps.empty())
-		error("Backend default bindings must be defined before adding keymaps");
-
 	_backendDefaultBindings = backendDefaultBindings;
+
+	if (reloadMappings) {
+		reloadAllMappings();
+	}
 }
 
 void Keymapper::addGlobalKeymap(Keymap *keymap) {
@@ -90,9 +94,7 @@ void Keymapper::addGlobalKeymap(Keymap *keymap) {
 
 	ConfigManager::Domain *keymapperDomain = ConfMan.getDomain(ConfigManager::kKeymapperDomain);
 	initKeymap(keymap, keymapperDomain);
-
-	// Global keymaps have the lowest priority, they need to be first in the array
-	_keymaps.insert_at(0, keymap);
+	_keymaps.push_back(keymap);
 }
 
 void Keymapper::addGameKeymap(Keymap *keymap) {
@@ -115,6 +117,10 @@ void Keymapper::initKeymap(Keymap *keymap, ConfigManager::Domain *domain) {
 	}
 
 	keymap->setConfigDomain(domain);
+	reloadKeymapMappings(keymap);
+}
+
+void Keymapper::reloadKeymapMappings(Keymap *keymap) {
 	keymap->setHardwareInputs(_hardwareInputs);
 	keymap->setBackendDefaultBindings(_backendDefaultBindings);
 	keymap->loadMappings();
@@ -145,14 +151,14 @@ Keymap *Keymapper::getKeymap(const String &id) const {
 
 void Keymapper::reloadAllMappings() {
 	for (uint i = 0; i < _keymaps.size(); i++) {
-		_keymaps[i]->loadMappings();
+		reloadKeymapMappings(_keymaps[i]);
 	}
 }
 
 void Keymapper::setEnabledKeymapType(Keymap::KeymapType type) {
+	assert(type == Keymap::kKeymapTypeGui || type == Keymap::kKeymapTypeGame);
 	_enabledKeymapType = type;
 }
-
 
 List<Event> Keymapper::mapEvent(const Event &ev) {
 	if (!_enabled) {
@@ -163,45 +169,40 @@ List<Event> Keymapper::mapEvent(const Event &ev) {
 
 	hardcodedEventMapping(ev);
 
+	Keymap::ActionArray actions;
+	Keymap::KeymapMatch match = getMappedActions(ev, actions, _enabledKeymapType);
+	if (match != Keymap::kKeymapMatchExact) {
+		// If we found exact matching actions this input in the game / gui keymaps,
+		// no need to look at the global keymaps. An input resulting in actions
+		// from system and game keymaps would lead to unexpected user experience.
+		Keymap::ActionArray globalActions;
+		match = getMappedActions(ev, globalActions, Keymap::kKeymapTypeGlobal);
+		if (match == Keymap::kKeymapMatchExact || actions.empty()) {
+			actions = globalActions;
+		}
+	}
+
+	bool matchedAction = !actions.empty();
 	List<Event> mappedEvents;
-	for (int i = _keymaps.size() - 1; i >= 0; --i) {
-		if (!_keymaps[i]->isEnabled()) {
+	for (Keymap::ActionArray::const_iterator it = actions.begin(); it != actions.end(); it++) {
+		Event mappedEvent = executeAction(*it, ev);
+		if (mappedEvent.type == EVENT_INVALID) {
 			continue;
 		}
 
-		Keymap::KeymapType keymapType = _keymaps[i]->getType();
-		if (keymapType != _enabledKeymapType && keymapType != Keymap::kKeymapTypeGlobal) {
-			continue; // Ignore GUI keymaps while in game and vice versa
+		// In case we mapped a mouse event to something else, we need to generate an artificial
+		// mouse move event so event observers can keep track of the mouse position.
+		// Makes it possible to reliably use the mouse position from EventManager when consuming
+		// custom action events.
+		if (isMouseEvent(ev) && !isMouseEvent(mappedEvent)) {
+			Event fakeMouseEvent;
+			fakeMouseEvent.type  = EVENT_MOUSEMOVE;
+			fakeMouseEvent.mouse = ev.mouse;
+
+			mappedEvents.push_back(fakeMouseEvent);
 		}
 
-		debug(9, "Keymapper::mapKey keymap: %s", _keymaps[i]->getId().c_str());
-
-		const Keymap::ActionArray &actions = _keymaps[i]->getMappedActions(ev);
-		for (Keymap::ActionArray::const_iterator it = actions.begin(); it != actions.end(); it++) {
-			Event mappedEvent = executeAction(*it, ev);
-			if (mappedEvent.type == EVENT_INVALID) {
-				continue;
-			}
-
-			// In case we mapped a mouse event to something else, we need to generate an artificial
-			// mouse move event so event observers can keep track of the mouse position.
-			// Makes it possible to reliably use the mouse position from EventManager when consuming
-			// custom action events.
-			if (isMouseEvent(ev) && !isMouseEvent(mappedEvent)) {
-				Event fakeMouseEvent;
-				fakeMouseEvent.type  = EVENT_MOUSEMOVE;
-				fakeMouseEvent.mouse = ev.mouse;
-
-				mappedEvents.push_back(fakeMouseEvent);
-			}
-
-			mappedEvents.push_back(mappedEvent);
-		}
-		if (!actions.empty()) {
-			// If we found actions matching this input in a keymap, no need to look at the other keymaps.
-			// An input resulting in actions from system and game keymaps would lead to unexpected user experience.
-			break;
-		}
+		mappedEvents.push_back(mappedEvent);
 	}
 
 	if (ev.type == EVENT_JOYAXIS_MOTION && ev.joystick.axis < ARRAYSIZE(_joystickAxisPreviouslyPressed)) {
@@ -212,19 +213,33 @@ List<Event> Keymapper::mapEvent(const Event &ev) {
 		}
 	}
 
-	// Ignore keyboard repeat events. Repeat event are meant for text input,
-	// the keymapper / keymaps are supposed to be disabled during text input.
-	// TODO: Add a way to keep repeat events if needed.
-	if (!mappedEvents.empty() && ev.type == EVENT_KEYDOWN && ev.kbdRepeat) {
-		return List<Event>();
-	}
-
-	if (mappedEvents.empty()) {
+	if (!matchedAction) {
 		// if it didn't get mapped, just pass it through
 		mappedEvents.push_back(ev);
 	}
 
 	return mappedEvents;
+}
+
+Keymap::KeymapMatch Keymapper::getMappedActions(const Event &event, Keymap::ActionArray &actions, Keymap::KeymapType keymapType) const {
+	Keymap::KeymapMatch match = Keymap::kKeymapMatchNone;
+
+	for (uint i = 0; i < _keymaps.size(); i++) {
+		if (!_keymaps[i]->isEnabled() || _keymaps[i]->getType() != keymapType) {
+			continue;
+		}
+
+		Keymap::ActionArray array;
+		Keymap::KeymapMatch match2 = _keymaps[i]->getMappedActions(event, array);
+		if (match2 == match) {
+			actions.push_back(array);
+		} else if (match2 > match) {
+			match = match2;
+			actions.clear();
+			actions.push_back(array);
+		}
+	}
+	return match;
 }
 
 Keymapper::IncomingEventType Keymapper::convertToIncomingEventType(const Event &ev) const {
@@ -283,11 +298,20 @@ Event Keymapper::executeAction(const Action *action, const Event &incomingEvent)
 		return outgoingEvent;
 	}
 
+	if (incomingEvent.type == EVENT_KEYDOWN && incomingEvent.kbdRepeat && !action->shouldTriggerOnKbdRepeats()) {
+		outgoingEvent.type = EVENT_INVALID;
+		return outgoingEvent;
+	}
+
 	EventType convertedType = convertStartToEnd(outgoingEvent.type);
 
 	// hardware keys need to send up instead when they are up
 	if (incomingType == kIncomingEventEnd) {
 		outgoingEvent.type = convertedType;
+	}
+
+	if (outgoingEvent.type == EVENT_KEYDOWN && incomingEvent.type == EVENT_KEYDOWN) {
+		outgoingEvent.kbdRepeat = incomingEvent.kbdRepeat;
 	}
 
 	if (isMouseEvent(outgoingEvent)) {
@@ -359,7 +383,6 @@ HardwareInput Keymapper::findHardwareInput(const Event &event) {
 void Keymapper::hardcodedEventMapping(Event ev) {
 	// TODO: Either add support for long presses to the keymapper
 	// or move this elsewhere as an event observer + source
-#ifdef ENABLE_VKEYBD
 	// Trigger virtual keyboard on long press of more than 1 second
 	// of middle mouse button.
 	const uint32 vkeybdTime = 1000;
@@ -379,7 +402,6 @@ void Keymapper::hardcodedEventMapping(Event ev) {
 			_delayedEventSource->scheduleEvent(vkeybdEvent, 100);
 		}
 	}
-#endif
 }
 
 void Keymapper::resetInputState() {
@@ -402,7 +424,7 @@ bool DelayedEventSource::pollEvent(Event &event) {
 		return false;
 	}
 
-	uint32 now = g_system->getMillis();
+	uint32 now = g_system->getMillis(true);
 
 	if (now >= _delayedEffectiveTime) {
 		event = _delayedEvents.pop().event;

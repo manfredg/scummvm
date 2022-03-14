@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,10 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 
 #include "ultima/ultima8/games/start_u8_process.h"
 #include "ultima/ultima8/games/game.h"
@@ -33,17 +31,13 @@
 #include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/gumps/menu_gump.h"
-#include "ultima/ultima8/conf/setting_manager.h"
 #include "ultima/ultima8/world/get_object.h"
-
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
+#include "ultima/ultima8/graphics/palette_fader_process.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-// p_dynamic_cast stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE(StartU8Process, Process)
+DEFINE_RUNTIME_CLASSTYPE_CODE(StartU8Process)
 
 StartU8Process::StartU8Process(int saveSlot) : Process(),
 		_init(false), _saveSlot(saveSlot), _skipStart(saveSlot >= 0) {
@@ -53,7 +47,7 @@ StartU8Process::StartU8Process(int saveSlot) : Process(),
 void StartU8Process::run() {
 	if (!_skipStart && !_init) {
 		_init = true;
-		ProcId moviepid = Game::get_instance()->playIntroMovie();
+		ProcId moviepid = Game::get_instance()->playIntroMovie(false);
 		Process *movieproc = Kernel::get_instance()->getProcess(moviepid);
 		if (movieproc) {
 			waitFor(movieproc);
@@ -63,6 +57,7 @@ void StartU8Process::run() {
 
 	// Try to load the save game, if succeeded this pointer will no longer be valid
 	if (_saveSlot >= 0 &&Ultima8Engine::get_instance()->loadGameState(_saveSlot).getCode() == Common::kNoError) {
+		PaletteFaderProcess::I_fadeFromBlack(0, 0);
 		return;
 	}
 
@@ -79,7 +74,7 @@ void StartU8Process::run() {
 		}
 
 		uint16 objid = uclist.getuint16(0);
-		Egg *egg = p_dynamic_cast<Egg *>(getObject(objid));
+		Egg *egg = dynamic_cast<Egg *>(getObject(objid));
 		int32 ix, iy, iz;
 		egg->getLocation(ix, iy, iz);
 		// Center on egg
@@ -111,14 +106,14 @@ void StartU8Process::run() {
 	terminate();
 }
 
-void StartU8Process::saveData(ODataSource *ods) {
+void StartU8Process::saveData(Common::WriteStream *ws) {
 	CANT_HAPPEN();
 
-	Process::saveData(ods);
+	Process::saveData(ws);
 }
 
-bool StartU8Process::loadData(IDataSource *ids, uint32 version) {
-	if (!Process::loadData(ids, version)) return false;
+bool StartU8Process::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Process::loadData(rs, version)) return false;
 
 	return true;
 }

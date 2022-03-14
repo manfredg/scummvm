@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,13 +29,13 @@
  */
 
 /*
-    BS_RenderObjectManager
-    ----------------------
-    Diese Klasse ist für die Verwaltung von BS_RenderObjects zuständig.
+	BS_RenderObjectManager
+	----------------------
+	Diese Klasse ist fÃ¼r die Verwaltung von BS_RenderObjects zustÃ¤ndig.
 
-    Sie sorgt z.B. dafür, dass die BS_RenderObjects in der richtigen Reihenfolge gerendert werden.
+	Sie sorgt z.B. dafÃ¼r, dass die BS_RenderObjects in der richtigen Reihenfolge gerendert werden.
 
-    Autor: Malte Thiesen
+	Autor: Malte Thiesen
 */
 
 #ifndef SWORD25_RENDEROBJECTMANAGER_H
@@ -71,17 +70,17 @@ public:
 };
 
 /**
-    @brief Diese Klasse ist für die Verwaltung von BS_RenderObjects zuständig.
+	@brief Diese Klasse ist fÃ¼r die Verwaltung von BS_RenderObjects zustÃ¤ndig.
 
-    Sie sorgt dafür, dass die BS_RenderObjects in der richtigen Reihenfolge gerendert werden und ermöglicht den Zugriff auf die
-    BS_RenderObjects über einen String.
+	Sie sorgt dafÃ¼r, dass die BS_RenderObjects in der richtigen Reihenfolge gerendert werden und ermÃ¶glicht den Zugriff auf die
+	BS_RenderObjects Ã¼ber einen String.
 */
 class RenderObjectManager : public Persistable {
 public:
 	/**
 	    @brief Erzeugt ein neues BS_RenderObjectManager-Objekt.
-	    @param Width die horizontale Bildschirmauflösung in Pixeln
-	    @param Height die vertikale Bildschirmauflösung in Pixeln
+	    @param Width die horizontale BildschirmauflÃ¶sung in Pixeln
+	    @param Height die vertikale BildschirmauflÃ¶sung in Pixeln
 	    @param Die Anzahl an Framebuffern, die eingesetzt wird (Backbuffer + Primary).
 	*/
 	RenderObjectManager(int width, int height, int framebufferCount);
@@ -90,36 +89,36 @@ public:
 	// Interface
 	// ---------
 	/**
-	    @brief Initialisiert den Manager für einen neuen Frame.
-	    @remark Alle Veränderungen an Objekten müssen nach einem Aufruf dieser Methode geschehen, damit sichergestellt ist, dass diese
+	    @brief Initialisiert den Manager fÃ¼r einen neuen Frame.
+	    @remark Alle VerÃ¤nderungen an Objekten mÃ¼ssen nach einem Aufruf dieser Methode geschehen, damit sichergestellt ist, dass diese
 	            visuell umgesetzt werden.<br>
-	            Mit dem Aufruf dieser Methode werden die Rückgabewerte von GetUpdateRects() und GetUpdateRectCount() auf ihre Startwerte
-	            zurückgesetzt. Wenn man also mit diesen Werten arbeiten möchten, muss man dies nach einem Aufruf von Render() und vor
+	            Mit dem Aufruf dieser Methode werden die RÃ¼ckgabewerte von GetUpdateRects() und GetUpdateRectCount() auf ihre Startwerte
+	            zurÃ¼ckgesetzt. Wenn man also mit diesen Werten arbeiten mÃ¶chten, muss man dies nach einem Aufruf von Render() und vor
 	            einem Aufruf von StartFrame() tun.
 	 */
 	void startFrame();
 	/**
-	    @brief Rendert alle Objekte die sich während des letzten Aufrufes von Render() verändert haben.
-	    @return Gibt false zurück, falls das Rendern fehlgeschlagen ist.
+	    @brief Rendert alle Objekte die sich wÃ¤hrend des letzten Aufrufes von Render() verÃ¤ndert haben.
+	    @return Gibt false zurÃ¼ck, falls das Rendern fehlgeschlagen ist.
 	 */
 	bool render();
 	/**
-	    @brief Gibt einen Pointer auf die Wurzel des Objektbaumes zurück.
+	    @brief Gibt einen Pointer auf die Wurzel des Objektbaumes zurÃ¼ck.
 	 */
 	RenderObjectPtr<RenderObject> getTreeRoot() {
 		return _rootPtr;
 	}
 	/**
-	    @brief Fügt ein BS_TimedRenderObject in die Liste der zeitabhängigen Render-Objekte.
+	    @brief FÃ¼gt ein BS_TimedRenderObject in die Liste der zeitabhÃ¤ngigen Render-Objekte.
 
-	    Alle Objekte die sich in dieser Liste befinden werden vor jedem Frame über die seit dem letzten Frame
-	    vergangene Zeit informiert, so dass sich ihren Zustand zeitabhängig verändern können.
+	    Alle Objekte die sich in dieser Liste befinden werden vor jedem Frame Ã¼ber die seit dem letzten Frame
+	    vergangene Zeit informiert, so dass sich ihren Zustand zeitabhÃ¤ngig verÃ¤ndern kÃ¶nnen.
 
-	    @param RenderObject das einzufügende BS_TimedRenderObject
+	    @param RenderObject das einzufÃ¼gende BS_TimedRenderObject
 	*/
 	void attatchTimedRenderObject(RenderObjectPtr<TimedRenderObject> pRenderObject);
 	/**
-	    @brief Entfernt ein BS_TimedRenderObject aus der Liste für zeitabhängige Render-Objekte.
+	    @brief Entfernt ein BS_TimedRenderObject aus der Liste fÃ¼r zeitabhÃ¤ngige Render-Objekte.
 	*/
 	void detatchTimedRenderObject(RenderObjectPtr<TimedRenderObject> pRenderObject);
 

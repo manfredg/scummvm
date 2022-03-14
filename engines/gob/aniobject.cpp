@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,14 +26,14 @@
 
 namespace Gob {
 
-ANIObject::ANIObject(const ANIFile &ani) : _ani(&ani), _cmp(0),
+ANIObject::ANIObject(const ANIFile &ani) : _ani(&ani), _cmp(nullptr),
 	_visible(false), _paused(false), _mode(kModeContinuous), _x(0), _y(0) {
 
 	setAnimation(0);
 	setPosition();
 }
 
-ANIObject::ANIObject(const CMPFile &cmp) : _ani(0), _cmp(&cmp),
+ANIObject::ANIObject(const CMPFile &cmp) : _ani(nullptr), _cmp(&cmp),
 	_visible(false), _paused(false), _mode(kModeContinuous), _x(0), _y(0) {
 
 	setAnimation(0);
@@ -189,7 +188,7 @@ bool ANIObject::isIn(const ANIObject &obj) const {
 }
 
 bool ANIObject::draw(Surface &dest, int16 &left, int16 &top,
-                                    int16 &right, int16 &bottom) {
+									int16 &right, int16 &bottom) {
 
 	if (!_visible)
 		return false;
@@ -203,7 +202,7 @@ bool ANIObject::draw(Surface &dest, int16 &left, int16 &top,
 }
 
 bool ANIObject::drawCMP(Surface &dest, int16 &left, int16 &top,
-                                       int16 &right, int16 &bottom) {
+									   int16 &right, int16 &bottom) {
 
 	if (!hasBuffer()) {
 		uint16 width, height;
@@ -227,7 +226,7 @@ bool ANIObject::drawCMP(Surface &dest, int16 &left, int16 &top,
 }
 
 bool ANIObject::drawANI(Surface &dest, int16 &left, int16 &top,
-                                       int16 &right, int16 &bottom) {
+									   int16 &right, int16 &bottom) {
 
 	if (!hasBuffer()) {
 		uint16 width, height;
@@ -257,7 +256,7 @@ bool ANIObject::drawANI(Surface &dest, int16 &left, int16 &top,
 }
 
 bool ANIObject::clear(Surface &dest, int16 &left, int16 &top,
-                                     int16 &right, int16 &bottom) {
+									 int16 &right, int16 &bottom) {
 
 	return restoreScreen(dest, left, top, right, bottom);
 }

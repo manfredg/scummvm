@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -94,7 +93,7 @@ enum DniEnding {
 	kAtrusWantsPage   = 1, // Player is in Dni with the white page
 	kAtrusLeaves      = 2, // Atrus leaves Dni after receiving the white page
 	kForgotPage       = 3, // Player has entered Dni without bringing the white page
-	kBooksDestroyed   = 4  // Atrus returns to Dni after previously leaving 
+	kBooksDestroyed   = 4  // Atrus returns to Dni after previously leaving
 						   // and destroying the books of his sons
 };
 
@@ -105,7 +104,7 @@ public:
 	MystGameState(MohawkEngine_Myst*, Common::SaveFileManager*);
 	~MystGameState();
 
-	static SaveStateDescriptor querySaveMetaInfos(int slot);
+	static SaveStateDescriptor querySaveMetaInfos(const MetaEngine *metaEngine, int slot);
 	static Common::String querySaveDescription(int slot);
 
 	void reset();
@@ -131,8 +130,8 @@ public:
 		ActiveAge currentAge;
 		HeldPage heldPage;
 		uint16 u1;
-		uint16 transitions;
-		uint16 zipMode;
+		uint16 transitions; // Unused in ScummVM
+		uint16 zipMode;     // Unused in ScummVM
 		uint16 redPagesInBook;
 		uint16 bluePagesInBook;
 		DniEnding ending;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -108,17 +107,10 @@ Window *Windows::windowOpen(Window *splitwin, uint method, uint size,
 			return nullptr;
 		}
 
-		if (splitwin->_type == wintype_Pair) {
-			if ((method & winmethod_DirMask) != winmethod_Arbitrary) {
-				warning("window_open: Can only add windows to a Pair window in arbitrary mode");
-				return nullptr;
-			}
-		} else {
-			oldparent = splitwin->_parent;
-			if (oldparent && oldparent->_type != wintype_Pair) {
-				warning("window_open: parent window is not Pair");
-				return nullptr;
-			}
+		oldparent = splitwin->_parent;
+		if (oldparent && oldparent->_type != wintype_Pair) {
+			warning("window_open: parent window is not Pair");
+			return nullptr;
 		}
 	}
 
@@ -520,8 +512,9 @@ Window *Windows::iterateTreeOrder(Window *win) {
 
 Window::Window(Windows *windows, uint rock) : _windows(windows), _rock(rock),
 	_type(0), _parent(nullptr), _next(nullptr), _prev(nullptr), _yAdj(0),
-	_lineRequest(0), _lineRequestUni(0), _charRequest(0), _charRequestUni(0),
-	_mouseRequest(0), _hyperRequest(0), _moreRequest(0), _scrollRequest(0), _imageLoaded(0),
+	_lineRequest(false), _lineRequestUni(false), _charRequest(false),
+	_charRequestUni(false), _mouseRequest(false), _hyperRequest(false),
+	_moreRequest(false), _scrollRequest(false), _imageLoaded(false),
 	_echoLineInputBase(true), _lineTerminatorsBase(nullptr), _termCt(0), _echoStream(nullptr) {
 	_attr.fgset = false;
 	_attr.bgset = false;
@@ -714,6 +707,11 @@ bool Window::checkTerminators(uint32 ch) {
 }
 
 bool Window::imageDraw(uint image, uint align, int val1, int val2) {
+	return imageDraw(Common::String::format("%u", image),
+		align, val1, val2);
+}
+
+bool Window::imageDraw(const Common::String & image, uint align, int val1, int val2) {
 	if (!g_conf->_graphics)
 		return false;
 
@@ -774,11 +772,12 @@ WindowStyle::WindowStyle(const WindowStyleStatic &src) : font(src.font), reverse
 void Attributes::clear() {
 	fgset = false;
 	bgset = false;
+	reverse = false;
+	unused = false;
+	style = 0;
 	fgcolor = 0;
 	bgcolor = 0;
-	reverse = false;
 	hyper = 0;
-	style = 0;
 }
 
 uint Attributes::attrBg(const WindowStyle *styles) {

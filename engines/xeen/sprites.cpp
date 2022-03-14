@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,29 +39,27 @@ int SpriteResource::_clippedBottom;
 SpriteResource::SpriteResource() {
 	_filesize = 0;
 	_data = nullptr;
-	_scaledWidth = _scaledHeight = 0;
 }
 
 SpriteResource::SpriteResource(const Common::String &filename) {
 	_data = nullptr;
-	_scaledWidth = _scaledHeight = 0;
 	load(filename);
 }
 
 SpriteResource::SpriteResource(const Common::String &filename, int ccMode) {
 	_data = nullptr;
-	_scaledWidth = _scaledHeight = 0;
 	load(filename, ccMode);
+}
+
+SpriteResource::SpriteResource(const SpriteResource &src) {
+	copy(src);
 }
 
 SpriteResource::~SpriteResource() {
 	clear();
 }
 
-SpriteResource &SpriteResource::operator=(const SpriteResource &src) {
-	delete[] _data;
-	_index.clear();
-
+void SpriteResource::copy(const SpriteResource &src) {
 	_filesize = src._filesize;
 	_data = new byte[_filesize];
 	Common::copy(src._data, src._data + _filesize, _data);
@@ -70,6 +67,13 @@ SpriteResource &SpriteResource::operator=(const SpriteResource &src) {
 	_index.resize(src._index.size());
 	for (uint i = 0; i < src._index.size(); ++i)
 		_index[i] = src._index[i];
+}
+
+SpriteResource &SpriteResource::operator=(const SpriteResource &src) {
+	delete[] _data;
+	_index.clear();
+
+	copy(src);
 
 	return *this;
 }
@@ -140,7 +144,8 @@ void SpriteResource::draw(XSurface &dest, int frame, const Common::Point &destPo
 		drawer = new SpriteDrawer1(_data, _filesize, flags & 0x1F);
 		break;
 	case SPRFLAG_DRAWER2:
-		error("TODO: Sprite drawer mode 2");
+		drawer = new SpriteDrawer2(_data, _filesize, flags & 0x1F);
+		break;
 	case SPRFLAG_DRAWER3:
 		drawer = new SpriteDrawer3(_data, _filesize, flags & 0x1F);
 		break;
@@ -205,6 +210,10 @@ void SpriteDrawer::draw(XSurface &dest, uint16 offset, const Common::Point &pt,
 	bool flipped = (flags & SPRFLAG_HORIZ_FLIPPED) != 0;
 	int xInc = flipped ? -1 : 1;
 	bool enlarge = (scale & SCALE_ENLARGE) != 0;
+
+	_destTop = (byte *)dest.getBasePtr(clipRect.left, clipRect.top);
+	_destBottom = (byte *)dest.getBasePtr(clipRect.right, clipRect.bottom - 1);
+	_pitch = dest.pitch;
 
 	// Get cell header
 	Common::MemoryReadStream f(_data, _filesize);
@@ -356,6 +365,10 @@ void SpriteDrawer::draw(XSurface &dest, uint16 offset, const Common::Point &pt,
 
 			// Handle drawing out the line
 			byte *destP = (byte *)dest.getBasePtr(destPos.x, destPos.y);
+			_destLeft = (byte *)dest.getBasePtr(
+				(flags & SPRFLAG_SCENE_CLIPPED) ? SCENE_CLIP_LEFT : clipRect.left, destPos.y);
+			_destRight = (byte *)dest.getBasePtr(
+				(flags & SPRFLAG_SCENE_CLIPPED) ? SCENE_CLIP_RIGHT : clipRect.right, destPos.y);
 			int16 xp = destPos.x;
 			lineP = &tempLine[SCREEN_WIDTH];
 
@@ -417,14 +430,20 @@ void SpriteDrawer::drawPixel(byte *dest, byte pixel) {
 	*dest = pixel;
 }
 
+void SpriteDrawer::rcr(uint16 &val, bool &cf) {
+	bool newCf = (val & 1);
+	val = (val >> 1) | (cf ? 0x8000 : 0);
+	cf = newCf;
+}
+
 /*------------------------------------------------------------------------*/
 
-const byte DRAWER1_OFFSET[24] = {
+static const byte DRAWER1_OFFSET[24] = {
 	0x30, 0xC0, 0xB0, 0x10, 0x41, 0x20, 0x40, 0x21, 0x48, 0x46, 0x43, 0x40,
 	0xD0, 0xD3, 0xD6, 0xD8, 0x01, 0x04, 0x07, 0x0A, 0xEA, 0xEE, 0xF2, 0xF6
 };
 
-const byte DRAWER1_MASK[24] = {
+static const byte DRAWER1_MASK[24] = {
 	0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x07, 0x07, 0x0F, 0x07, 0x07, 0x07, 0x07,
 	0x07, 0x07, 0x07, 0x07, 0x0F, 0x0F, 0x0F, 0x0F, 0x07, 0x07, 0x07, 0x07
 };
@@ -440,8 +459,57 @@ void SpriteDrawer1::drawPixel(byte *dest, byte pixel) {
 
 /*------------------------------------------------------------------------*/
 
-const uint16 DRAWER3_MASK[4] = { 1, 3, 7, 15 };
-const uint16 DRAWER3_OFFSET[4] = { 1, 2, 4, 8 };
+static const byte DRAWER2_MASK1[32] = {
+	3, 0, 3, 0, 3, 0, 3, 0, 2, 0, 2, 0, 2, 0, 2, 0,
+	1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+static const byte DRAWER2_MASK2[16] = {
+	0x7E, 0x7E, 0x7E, 0x7E, 0x3E, 0x3E, 0x3E, 0x3E,
+	0x1E, 0x1E, 0x1E, 0x1E, 0x0E, 0x0E, 0x0E, 0x0E
+};
+
+static const int8 DRAWER2_DELTA[64] = {
+	-3, 3, 0, 0, 0, 0, 0, 0,
+	-5, 5, 0, 0, 0, 0, 0, 0,
+	-7, 7, 0, 0, 0, 0, 0, 0,
+	-9, 9, 0, 0, 0, 0, 0, 0,
+	-7, 7, 0, 0, 0, 0, 0, 0,
+	-9, 9, 0, 0, 0, 0, 0, 0,
+	-11, 11, 0, 0, 0, 0, 0, 0,
+	-13, 13, 0, 0, 0, 0, 0, 0
+};
+
+SpriteDrawer2::SpriteDrawer2(byte *data, size_t filesize, int index) : SpriteDrawer(data, filesize) {
+	_mask1 = DRAWER2_MASK1[index];
+	_mask2 = DRAWER2_MASK2[index];
+
+	_random1 = g_vm->getRandomNumber(0xffff);
+	_random2 = g_vm->getRandomNumber(0xffff);
+}
+
+void SpriteDrawer2::drawPixel(byte *dest, byte pixel) {
+	bool flag = (_random1 & 0x8000) != 0;
+	_random1 = (int)((uint16)_random1 << 1) - _random2 - (flag ? 1 : 0);
+
+	rcr(_random2, flag);
+	rcr(_random2, flag);
+	_random2 ^= _random1;
+
+	dest += DRAWER2_DELTA[(_random2 & _mask1 & _mask2) / 2];
+	if (dest >= _destLeft && dest < _destRight) {
+		dest += _pitch * DRAWER2_DELTA[((_random2 >> 8) &_mask1 &_mask2) / 2];
+
+		if (dest >= _destTop && dest < _destBottom) {
+			*dest = pixel;
+		}
+	}
+}
+
+/*------------------------------------------------------------------------*/
+
+static const uint16 DRAWER3_MASK[4] = { 1, 3, 7, 15 };
+static const uint16 DRAWER3_OFFSET[4] = { 1, 2, 4, 8 };
 
 SpriteDrawer3::SpriteDrawer3(byte *data, size_t filesize, int index) : SpriteDrawer(data, filesize) {
 	_offset = DRAWER3_OFFSET[index];
@@ -476,7 +544,7 @@ void SpriteDrawer3::drawPixel(byte *dest, byte pixel) {
 
 /*------------------------------------------------------------------------*/
 
-const byte DRAWER4_THRESHOLD[4] = { 4, 7, 10, 13 };
+static const byte DRAWER4_THRESHOLD[4] = { 4, 7, 10, 13 };
 
 SpriteDrawer4::SpriteDrawer4(byte *data, size_t filesize, int index) : SpriteDrawer(data, filesize) {
 	_threshold = DRAWER4_THRESHOLD[index];
@@ -489,7 +557,7 @@ void SpriteDrawer4::drawPixel(byte *dest, byte pixel) {
 
 /*------------------------------------------------------------------------*/
 
-const uint16 DRAWER5_THRESHOLD[4] = { 0x3333, 0x6666, 0x999A, 0xCCCD };
+static const uint16 DRAWER5_THRESHOLD[4] = { 0x3333, 0x6666, 0x999A, 0xCCCD };
 
 SpriteDrawer5::SpriteDrawer5(byte *data, size_t filesize, int index) : SpriteDrawer(data, filesize) {
 	_threshold = DRAWER5_THRESHOLD[index];
@@ -509,15 +577,9 @@ void SpriteDrawer5::drawPixel(byte *dest, byte pixel) {
 		*dest = pixel;
 }
 
-void SpriteDrawer5::rcr(uint16 &val, bool &cf) {
-	bool newCf = (val & 1);
-	val = (val >> 1) | (cf ? 0x8000 : 0);
-	cf = newCf;
-}
-
 /*------------------------------------------------------------------------*/
 
-const byte DRAWER6_MASK[16] = { 1, 2, 4, 8, 1, 3, 7, 15, 8, 12, 14, 15, 1, 2, 1, 2 };
+static const byte DRAWER6_MASK[16] = { 1, 2, 4, 8, 1, 3, 7, 15, 8, 12, 14, 15, 1, 2, 1, 2 };
 
 SpriteDrawer6::SpriteDrawer6(byte *data, size_t filesize, int index) : SpriteDrawer(data, filesize) {
 	_mask = DRAWER6_MASK[index];

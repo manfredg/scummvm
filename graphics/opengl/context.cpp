@@ -1,0 +1,223 @@
+/* ScummVM - Graphic Adventure Engine
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "graphics/opengl/context.h"
+
+#include "common/debug.h"
+#include "common/str.h"
+#include "common/textconsole.h"
+#include "common/tokenizer.h"
+
+#include "graphics/opengl/system_headers.h"
+
+#if defined(USE_OPENGL_GAME) || defined(USE_OPENGL_SHADERS)
+
+#ifdef USE_GLAD
+
+#ifdef SDL_BACKEND
+#include "backends/platform/sdl/sdl-sys.h"
+
+static GLADapiproc loadFunc(void *userptr, const char *name) {
+	return (GLADapiproc)SDL_GL_GetProcAddress(name);
+}
+
+#elif defined(__ANDROID__)
+// To keep includes light, don't include EGL here and don't include Android headers
+void *androidGLgetProcAddress(const char *name);
+
+static GLADapiproc loadFunc(void *userptr, const char *name) {
+	return (GLADapiproc)androidGLgetProcAddress(name);
+}
+
+#elif defined(IPHONE_IOS7)
+#include "backends/platform/ios7/ios7_common.h"
+
+static GLADapiproc loadFunc(void *userptr, const char *name) {
+	return (GLADapiproc)iOS7_getProcAddress(name);
+}
+
+#else
+#error Not implemented
+#endif
+
+#endif
+
+namespace Common {
+DECLARE_SINGLETON(OpenGL::ContextGL);
+}
+
+namespace OpenGL {
+
+ContextGL::ContextGL() {
+	reset();
+}
+
+void ContextGL::reset() {
+	maxTextureSize = 0;
+
+	NPOTSupported = false;
+	shadersSupported = false;
+	framebufferObjectSupported = false;
+	packedDepthStencilSupported = false;
+	unpackSubImageSupported = false;
+	framebufferObjectMultisampleSupported = false;
+	OESDepth24 = false;
+	multisampleMaxSamples = -1;
+}
+
+void ContextGL::initialize(ContextOGLType contextType) {
+	// Initialize default state.
+	reset();
+
+	type = contextType;
+
+#ifdef USE_GLAD
+	switch (type) {
+	case kOGLContextGL:
+		gladLoadGLUserPtr(loadFunc, this);
+		break;
+
+	case kOGLContextGLES2:
+		gladLoadGLES2UserPtr(loadFunc, this);
+		break;
+
+	default:
+		break;
+	}
+#endif
+
+	// Obtain maximum texture size.
+	glGetIntegerv(GL_MAX_TEXTURE_SIZE, (GLint *)&maxTextureSize);
+	debug(5, "OpenGL maximum texture size: %d", maxTextureSize);
+
+	const char *extString = (const char *)glGetString(GL_EXTENSIONS);
+
+	bool ARBShaderObjects = false;
+	bool ARBShadingLanguage100 = false;
+	bool ARBVertexShader = false;
+	bool ARBFragmentShader = false;
+	bool EXTFramebufferMultisample = false;
+	bool EXTFramebufferBlit = false;
+
+	Common::StringTokenizer tokenizer(extString, " ");
+	while (!tokenizer.empty()) {
+		Common::String token = tokenizer.nextToken();
+
+		if (token == "GL_ARB_texture_non_power_of_two" || token == "GL_OES_texture_npot") {
+			NPOTSupported = true;
+		} else if (token == "GL_ARB_shader_objects") {
+			ARBShaderObjects = true;
+		} else if (token == "GL_ARB_shading_language_100") {
+			ARBShadingLanguage100 = true;
+		} else if (token == "GL_ARB_vertex_shader") {
+			ARBVertexShader = true;
+		} else if (token == "GL_ARB_fragment_shader") {
+			ARBFragmentShader = true;
+		} else if (token == "GL_EXT_framebuffer_object") {
+			framebufferObjectSupported = true;
+		} else if (token == "GL_EXT_packed_depth_stencil" || token == "GL_OES_packed_depth_stencil") {
+			packedDepthStencilSupported = true;
+		} else if (token == "GL_EXT_unpack_subimage") {
+			unpackSubImageSupported = true;
+		} else if (token == "GL_EXT_framebuffer_multisample") {
+			EXTFramebufferMultisample = true;
+		} else if (token == "GL_EXT_framebuffer_blit") {
+			EXTFramebufferBlit = true;
+		} else if (token == "GL_OES_depth24") {
+			OESDepth24 = true;
+		}
+
+	}
+
+	int glslVersion = getGLSLVersion();
+	debug(5, "OpenGL GLSL version: %d", glslVersion);
+
+	if (type == kOGLContextGLES2) {
+		// GLES2 always has (limited) NPOT support.
+		NPOTSupported = true;
+
+		// GLES2 always has shader support.
+		shadersSupported = true;
+
+		// GLES2 always has FBO support.
+		framebufferObjectSupported = true;
+
+		// ScummVM does not support multisample FBOs with GLES2 for now
+		framebufferObjectMultisampleSupported = false;
+		multisampleMaxSamples = -1;
+	} else {
+		shadersSupported = ARBShaderObjects && ARBShadingLanguage100 && ARBVertexShader && ARBFragmentShader && glslVersion >= 120;
+
+		// Desktop GL always has unpack sub-image support
+		unpackSubImageSupported = true;
+
+		framebufferObjectMultisampleSupported = EXTFramebufferMultisample && EXTFramebufferBlit;
+
+		if (framebufferObjectMultisampleSupported) {
+			glGetIntegerv(GL_MAX_SAMPLES, (GLint *)&multisampleMaxSamples);
+		}
+	}
+
+	// Log context type.
+	switch (type) {
+		case kOGLContextGL:
+			debug(5, "OpenGL: GL context initialized");
+			break;
+
+		case kOGLContextGLES2:
+			debug(5, "OpenGL: GLES2 context initialized");
+			break;
+	}
+
+	// Log features supported by GL context.
+	debug(5, "OpenGL: NPOT texture support: %d", NPOTSupported);
+	debug(5, "OpenGL: Shader support: %d", shadersSupported);
+	debug(5, "OpenGL: FBO support: %d", framebufferObjectSupported);
+	debug(5, "OpenGL: Packed depth stencil support: %d", packedDepthStencilSupported);
+	debug(5, "OpenGL: Unpack subimage support: %d", unpackSubImageSupported);
+}
+
+int ContextGL::getGLSLVersion() const {
+	const char *glslVersionString = (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION);
+	if (!glslVersionString) {
+		warning("Could not get GLSL version");
+		return 0;
+	}
+
+	const char *glslVersionFormat;
+	if (type == kOGLContextGL) {
+		glslVersionFormat = "%d.%d";
+	} else {
+		glslVersionFormat = "OpenGL ES GLSL ES %d.%d";
+	}
+
+	int glslMajorVersion, glslMinorVersion;
+	if (sscanf(glslVersionString, glslVersionFormat, &glslMajorVersion, &glslMinorVersion) != 2) {
+		warning("Could not parse GLSL version '%s'", glslVersionString);
+		return 0;
+	}
+
+	return glslMajorVersion * 100 + glslMinorVersion;
+}
+
+} // End of namespace OpenGL
+
+#endif

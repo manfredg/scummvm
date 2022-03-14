@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,6 +36,7 @@ class MovementTrack {
 
 	struct Entry {
 		int     waypointId;
+		// delay specifies how long (in milliseconds) to stay at the target waypoint (when reached)
 		int32   delay;
 		int     angle;
 		bool    run;
@@ -51,15 +51,15 @@ class MovementTrack {
 public:
 	MovementTrack();
 	~MovementTrack();
-	int append(int waypointId, int32 delay, bool run);
-	int append(int waypointId, int32 delay, int angle, bool run);
+	int append(int waypointId, int32 delayMillis, bool run);
+	int append(int waypointId, int32 delayMillis, int angle, bool run);
 	void flush();
 	void repeat();
 	void pause();
 	void unpause();
 	bool isPaused() const;
 	bool hasNext() const;
-	bool next(int *waypointId, int32 *delay, int *angle, bool *run);
+	bool next(int *waypointId, int32 *delayMillis, int *angle, bool *run);
 
 	void save(SaveFileWriteStream &f);
 	void load(SaveFileReadStream &f);

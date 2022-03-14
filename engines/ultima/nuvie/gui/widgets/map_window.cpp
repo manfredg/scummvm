@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,11 +48,6 @@
 
 namespace Ultima {
 namespace Nuvie {
-
-#define USE_BUTTON 1 /* FIXME: put this in a common location */
-#define WALK_BUTTON 3
-#define ACTION_BUTTON 3
-#define DRAG_BUTTON 1
 
 #define TMP_MAP_BORDER 3
 
@@ -1136,7 +1130,7 @@ inline void MapWindow::drawObj(Obj *obj, bool draw_lowertiles, bool toptile) {
  * used with animated tiles. It only applies to the base tile in multi-tiles.
  */
 inline void MapWindow::drawTile(Tile *tile, uint16 x, uint16 y, bool toptile,
-                                bool use_tile_data) {
+								bool use_tile_data) {
 	bool dbl_width, dbl_height;
 	uint16 tile_num;
 

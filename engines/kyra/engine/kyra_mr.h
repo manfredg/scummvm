@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -185,9 +184,6 @@ private:
 	const char *const *_mainMenuStrings;
 	int _mainMenuStringsSize;
 
-	static const char *const _mainMenuSpanishFan[];
-	static const char *const _mainMenuItalianFan[];
-
 	// animator
 	uint8 *_gamePlayBuffer;
 	void restorePage3() override;
@@ -225,7 +221,13 @@ private:
 
 	// interface
 	uint8 *_interface;
+	uint32 _interfaceSize;
+	uint16 _interfaceH;
 	uint8 *_interfaceCommandLine;
+	uint32 _interfaceCommandLineSize;
+	uint16 _interfaceCommandLineY1;
+	uint16 _interfaceCommandLineY2;
+	uint16 _interfaceCommandLineH;
 
 	void loadInterfaceShapes();
 	void loadInterface();
@@ -419,7 +421,7 @@ private:
 
 	void objectChat(const char *text, int object, int vocHigh, int vocLow);
 	void objectChatInit(const char *text, int object, int vocHigh, int vocLow);
-	void objectChatPrintText(const char *text, int object);
+	void objectChatPrintText(const Common::String &text, int object);
 	void objectChatProcess(const char *script);
 	void objectChatWaitToFinish();
 

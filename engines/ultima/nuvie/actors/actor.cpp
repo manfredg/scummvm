@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,7 +39,6 @@
 #include "ultima/nuvie/core/events.h"
 #include "ultima/nuvie/actors/u6_actor.h"
 #include "ultima/shared/std/containers.h"
-#include "ultima/shared/std/misc.h"
 
 namespace Ultima {
 namespace Nuvie {
@@ -1312,15 +1310,15 @@ uint16 Actor::getSchedulePos(uint8 hour, uint8 day_of_week)
  for(j=i;sched[j] != NULL && sched[j]->hour == sched[i]->hour;j++)
   {
    if(sched[j]->day_of_week > day_of_week)
-     {
-      if(j != i)
-        return j-1;
-      else // hour is in the last schedule entry.
-        {
-         for(;sched[j+1] != NULL && sched[j+1]->hour == sched[i]->hour;) // move to the last schedule entry.
-          j++;
-        }
-     }
+	 {
+	  if(j != i)
+		return j-1;
+	  else // hour is in the last schedule entry.
+		{
+		 for(;sched[j+1] != NULL && sched[j+1]->hour == sched[i]->hour;) // move to the last schedule entry.
+		  j++;
+		}
+	 }
   }
 
  if(j==i)
@@ -1337,32 +1335,32 @@ inline uint16 Actor::getSchedulePos(uint8 hour)
  for(i=0;sched[i] != NULL;i++)
   {
    if(sched[i]->hour > hour)
-     {
-      if(i != 0)
-        return i-1;
-      else // hour is in the last schedule entry.
-        {
-         for(;sched[i+1] != NULL;) // move to the last schedule entry.
-          i++;
+	 {
+	  if(i != 0)
+		return i-1;
+	  else // hour is in the last schedule entry.
+		{
+		 for(;sched[i+1] != NULL;) // move to the last schedule entry.
+		  i++;
 
-         if(sched[i]->day_of_week > 0) //rewind to the start of the hour set.
-           {
-            cur_hour = sched[i]->hour;
-            for(;i >= 1 && sched[i-1]->hour == cur_hour;)
-              i--;
-           }
-        }
-     }
+		 if(sched[i]->day_of_week > 0) //rewind to the start of the hour set.
+		   {
+			cur_hour = sched[i]->hour;
+			for(;i >= 1 && sched[i-1]->hour == cur_hour;)
+			  i--;
+		   }
+		}
+	 }
    else
-      for(;sched[i+1] != NULL && sched[i+1]->hour == sched[i]->hour;) //skip to next hour set.
-        i++;
+	  for(;sched[i+1] != NULL && sched[i+1]->hour == sched[i]->hour;) //skip to next hour set.
+		i++;
   }
 
  if(sched[i] != NULL && sched[i]->day_of_week > 0) //rewind to the start of the hour set.
    {
-    cur_hour = sched[i]->hour;
-    for(;i >= 1 && sched[i-1]->hour == cur_hour;)
-      i--;
+	cur_hour = sched[i]->hour;
+	for(;i >= 1 && sched[i-1]->hour == cur_hour;)
+	  i--;
    }
 
  if(i==0)

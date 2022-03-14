@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,6 +47,8 @@ class AudioPlayer {
 	// increase tracks, reduce probability of tracks being skipped
 	static const int kTracks = 12;
 #endif // BLADERUNNER_ORIGINAL_BUGS
+	// Use SFX sound type if none is specified
+	static const Audio::Mixer::SoundType kAudioPlayerSoundType = Audio::Mixer::kSFXSoundType;
 
 	struct Track {
 		bool                isActive;
@@ -68,15 +69,15 @@ public:
 	AudioPlayer(BladeRunnerEngine *vm);
 	~AudioPlayer();
 
-	int playAud(const Common::String &name, int volume, int panStart, int panEnd, int priority, byte flags = 0, Audio::Mixer::SoundType type = Audio::Mixer::kSFXSoundType);
+	int playAud(const Common::String &name, int volume, int panStart, int panEnd, int priority, byte flags = 0, Audio::Mixer::SoundType type = kAudioPlayerSoundType);
 	bool isActive(int track) const;
 	uint32 getLength(int track) const;
 	void stop(int track, bool immediately);
 	void stopAll();
-	void adjustVolume(int track, int volume, uint32 delay, bool overrideVolume);
-	void adjustPan(int track, int pan, uint32 delay);
+	void adjustVolume(int track, int volume, uint32 delaySeconds, bool overrideVolume);
+	void adjustPan(int track, int pan, uint32 delaySeconds);
 
-	void setVolume(int volume);
+//	void setVolume(int volume);
 	int getVolume() const;
 	void playSample();
 

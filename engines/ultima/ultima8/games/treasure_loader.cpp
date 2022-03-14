@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,8 +39,8 @@ void TreasureLoader::loadDefaults() {
 	KeyMap lootkeyvals;
 
 	// load default treasure types
-	lootkeyvals = config->listKeyValues("game/treasure");
-	KeyMap::iterator defaultiter;
+	lootkeyvals = config->listKeyValues("game", "treasure");
+	KeyMap::const_iterator defaultiter;
 	for (defaultiter = lootkeyvals.begin();
 	        defaultiter != lootkeyvals.end(); ++defaultiter) {
 		TreasureInfo ti;
@@ -57,7 +56,7 @@ void TreasureLoader::loadDefaults() {
 }
 
 bool TreasureLoader::parse(const Std::string &desc,
-                           Std::vector<TreasureInfo> &treasure) {
+						   Std::vector<TreasureInfo> &treasure) {
 	treasure.clear();
 
 	Std::vector<Std::string> tr;
@@ -77,7 +76,7 @@ bool TreasureLoader::parse(const Std::string &desc,
 }
 
 bool TreasureLoader::internalParse(const Std::string &desc, TreasureInfo &ti,
-                                   bool loadingDefault) {
+								   bool loadingDefault) {
 	ti._special = "";
 	ti._chance = 1;
 	ti._map = 0;
@@ -121,7 +120,7 @@ bool TreasureLoader::internalParse(const Std::string &desc, TreasureInfo &ti,
 		} else if (key == "type" && !loadingDefault) {
 			if (loadedDefault)
 				return false;
-			TreasureMap::iterator iter;
+			TreasureMap::const_iterator iter;
 			iter = _defaultTreasure.find(val);
 			if (iter != _defaultTreasure.end())
 				ti = iter->_value;
@@ -148,7 +147,7 @@ bool TreasureLoader::internalParse(const Std::string &desc, TreasureInfo &ti,
 }
 
 bool TreasureLoader::parseUInt32Vector(const Std::string &val_,
-                                       Std::vector<uint32> &vec) {
+									   Std::vector<uint32> &vec) {
 	Std::string val = val_;
 	vec.clear();
 
@@ -179,7 +178,7 @@ bool TreasureLoader::parseUInt32Vector(const Std::string &val_,
 }
 
 bool TreasureLoader::parseUIntRange(const Std::string &val,
-                                    unsigned int &min, unsigned int &max) {
+									unsigned int &min, unsigned int &max) {
 	Std::string::size_type pos = val.find('-');
 	if (pos == 0 || pos == Std::string::npos || pos + 1 >= val.size())
 		return false;
@@ -196,13 +195,13 @@ bool TreasureLoader::parseUIntRange(const Std::string &val,
 
 bool TreasureLoader::parseDouble(const Std::string &val, double &d) {
 	// TODO: error checking
-	d = Std::atof(val.c_str());
+	d = atof(val.c_str());
 	return true;
 }
 
 bool TreasureLoader::parseInt(const Std::string &val, int &i) {
 	// TODO: error checking
-	i = Std::strtol(val.c_str(), 0, 0);
+	i = strtol(val.c_str(), 0, 0);
 	return true;
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -129,6 +128,10 @@ void PopUpDialog::reflowLayout() {
 void PopUpDialog::drawDialog(DrawLayer layerToDraw) {
 	Dialog::drawDialog(layerToDraw);
 
+	if (g_gui.useRTL()) {
+		_x = g_system->getOverlayWidth() - _x - _w + g_gui.getOverlayOffset();
+	}
+
 	// Draw the menu border
 	g_gui.theme()->drawWidgetBackground(Common::Rect(_x, _y, _x + _w, _y + _h), ThemeEngine::kWidgetBackgroundPlain);
 
@@ -195,14 +198,13 @@ void PopUpDialog::handleMouseLeft(int button) {
 	_lastRead = -1;
 }
 
-void PopUpDialog::read(Common::String str) {
-#ifdef USE_TTS
+void PopUpDialog::read(const Common::U32String &str) {
 	if (ConfMan.hasKey("tts_enabled", "scummvm") &&
 			ConfMan.getBool("tts_enabled", "scummvm")) {
 		Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
-		ttsMan->say(str);
+		if (ttsMan != nullptr)
+			ttsMan->say(str);
 	}
-#endif
 }
 
 void PopUpDialog::handleKeyDown(Common::KeyState state) {
@@ -283,7 +285,7 @@ void PopUpDialog::setWidth(uint16 width) {
 	_w = width;
 }
 
-void PopUpDialog::appendEntry(const Common::String &entry) {
+void PopUpDialog::appendEntry(const Common::U32String &entry) {
 	_entries.push_back(entry);
 }
 
@@ -385,16 +387,33 @@ void PopUpDialog::drawMenuEntry(int entry, bool hilite) {
 		w = _w - 2;
 	}
 
-	Common::String &name(_entries[entry]);
+	Common::U32String &name(_entries[entry]);
+
+	Common::Rect r1(x, y, x + w, y + _lineHeight);
+	Common::Rect r2(x + 1, y + 2, x + w, y + 2 + _lineHeight);
+	Graphics::TextAlign alignment = Graphics::kTextAlignLeft;
+	int pad = _leftPadding;
+
+	if (g_gui.useRTL()) {
+		if (_twoColumns) {
+			r1.translate(this->getWidth() - w, 0);		// Shift the line-separator to the "first" col of RTL popup
+		}
+
+		r2.left = g_system->getOverlayWidth() - r2.left - w + g_gui.getOverlayOffset();
+		r2.right = r2.left + w;
+
+		alignment = Graphics::kTextAlignRight;
+		pad = _rightPadding;
+	}
 
 	if (name.size() == 0) {
 		// Draw a separator
-		g_gui.theme()->drawLineSeparator(Common::Rect(x, y, x + w, y + _lineHeight));
+		g_gui.theme()->drawLineSeparator(r1);
 	} else {
 		g_gui.theme()->drawText(
-			Common::Rect(x + 1, y + 2, x + w, y + 2 + _lineHeight),
+			r2,
 			name, hilite ? ThemeEngine::kStateHighlight : ThemeEngine::kStateEnabled,
-			Graphics::kTextAlignLeft, ThemeEngine::kTextInversionNone, _leftPadding
+			alignment, ThemeEngine::kTextInversionNone, pad
 		);
 	}
 }
@@ -406,19 +425,21 @@ void PopUpDialog::drawMenuEntry(int entry, bool hilite) {
 // PopUpWidget
 //
 
-PopUpWidget::PopUpWidget(GuiObject *boss, const String &name, const char *tooltip)
+PopUpWidget::PopUpWidget(GuiObject *boss, const Common::String &name, const Common::U32String &tooltip, uint32 cmd)
 	: Widget(boss, name, tooltip), CommandSender(boss) {
 	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG | WIDGET_RETAIN_FOCUS | WIDGET_IGNORE_DRAG);
 	_type = kPopUpWidget;
+	_cmd = cmd;
 
 	_selectedItem = -1;
 	_leftPadding = _rightPadding = 0;
 }
 
-PopUpWidget::PopUpWidget(GuiObject *boss, int x, int y, int w, int h, const char *tooltip)
+PopUpWidget::PopUpWidget(GuiObject *boss, int x, int y, int w, int h, const Common::U32String &tooltip, uint32 cmd)
 	: Widget(boss, x, y, w, h, tooltip), CommandSender(boss) {
 	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG | WIDGET_RETAIN_FOCUS | WIDGET_IGNORE_DRAG);
 	_type = kPopUpWidget;
+	_cmd = cmd;
 
 	_selectedItem = -1;
 
@@ -441,7 +462,7 @@ void PopUpWidget::handleMouseDown(int x, int y, int button, int clickCount) {
 		int newSel = popupDialog.runModal();
 		if (newSel != -1 && _selectedItem != newSel) {
 			_selectedItem = newSel;
-			sendCommand(kPopUpItemSelectedCmd, _entries[_selectedItem].tag);
+			sendCommand(_cmd, _entries[_selectedItem].tag);
 			markAsDirty();
 		}
 	}
@@ -453,7 +474,7 @@ void PopUpWidget::handleMouseWheel(int x, int y, int direction) {
 
 		// Skip separator entries
 		while ((newSelection >= 0) && (newSelection < (int)_entries.size()) &&
-			_entries[newSelection].name.equals("")) {
+		       _entries[newSelection].name.empty()) {
 			newSelection += direction;
 		}
 
@@ -461,7 +482,7 @@ void PopUpWidget::handleMouseWheel(int x, int y, int direction) {
 		if ((newSelection >= 0) && (newSelection < (int)_entries.size()) &&
 			(newSelection != _selectedItem)) {
 			_selectedItem = newSelection;
-			sendCommand(kPopUpItemSelectedCmd, _entries[_selectedItem].tag);
+			sendCommand(_cmd, _entries[_selectedItem].tag);
 			markAsDirty();
 		}
 	}
@@ -474,11 +495,15 @@ void PopUpWidget::reflowLayout() {
 	Widget::reflowLayout();
 }
 
-void PopUpWidget::appendEntry(const String &entry, uint32 tag) {
+void PopUpWidget::appendEntry(const Common::U32String &entry, uint32 tag) {
 	Entry e;
 	e.name = entry;
 	e.tag = tag;
 	_entries.push_back(e);
+}
+
+void PopUpWidget::appendEntry(const Common::String &entry, uint32 tag) {
+	appendEntry(Common::U32String(entry), tag);
 }
 
 void PopUpWidget::clearEntries() {
@@ -507,10 +532,16 @@ void PopUpWidget::setSelectedTag(uint32 tag) {
 }
 
 void PopUpWidget::drawWidget() {
-	Common::String sel;
+	Common::U32String sel;
 	if (_selectedItem >= 0)
 		sel = _entries[_selectedItem].name;
-	g_gui.theme()->drawPopUpWidget(Common::Rect(_x, _y, _x + _w, _y + _h), sel, _leftPadding, _state);
+
+	int pad = _leftPadding;
+
+	if (g_gui.useRTL() && _useRTL)
+		pad = _rightPadding;
+
+	g_gui.theme()->drawPopUpWidget(Common::Rect(_x, _y, _x + _w, _y + _h), sel, pad, _state, (g_gui.useRTL() && _useRTL));
 }
 
 } // End of namespace GUI

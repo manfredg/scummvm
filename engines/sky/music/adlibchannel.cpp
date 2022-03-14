@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ AdLibChannel::AdLibChannel(OPL::OPL *opl, uint8 *pMusicData, uint16 startOfData)
 
 	uint16 instrumentDataLoc;
 
-	if (SkyEngine::_systemVars.gameVersion == 109) {
+	if (SkyEngine::_systemVars->gameVersion == 109) {
 		//instrumentDataLoc = (_musicData[0x11D0] << 8) | _musicData[0x11CF];
 		//_frequenceTable = (uint16 *)(_musicData + 0x835);
 		//_registerTable = _musicData + 0xE35;
@@ -61,7 +60,7 @@ AdLibChannel::AdLibChannel(OPL::OPL *opl, uint8 *pMusicData, uint16 startOfData)
 		_registerTable = _musicData + 0xE68;
 		_opOutputTable = _musicData + 0xE7A;
 		_adlibRegMirror = _musicData + 0xF7D;
-	} else if (SkyEngine::_systemVars.gameVersion == 267) {
+	} else if (SkyEngine::_systemVars->gameVersion == 267) {
 		instrumentDataLoc = READ_LE_UINT16(_musicData + 0x11FB);
 		_frequenceTable = (uint16 *)(_musicData + 0x7F4);
 		_registerTable = _musicData + 0xDF4;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -133,7 +132,7 @@ Common::SeekableReadStream *ResourceManager::getFileStream(const Common::String 
 	// Check if the file exits in the archive
 	if (!hasFile(name)) {
 		debugC(2, kLastExpressDebugResource, "Error opening file: %s", name.c_str());
-		return NULL;
+		return nullptr;
 	}
 
 	debugC(2, kLastExpressDebugResource, "Opening file: %s", name.c_str());
@@ -144,7 +143,8 @@ Common::SeekableReadStream *ResourceManager::getFileStream(const Common::String 
 //////////////////////////////////////////////////////////////////////////
 // Archive functions
 //////////////////////////////////////////////////////////////////////////
-bool ResourceManager::hasFile(const Common::String &name) const {
+bool ResourceManager::hasFile(const Common::Path &path) const {
+	Common::String name = path.toString();
 	for (Common::Array<HPFArchive *>::const_iterator it = _archives.begin(); it != _archives.end(); ++it) {
 		if ((*it)->hasFile(name))
 			return true;
@@ -167,14 +167,16 @@ int ResourceManager::listMembers(Common::ArchiveMemberList &list) const {
 	return count;
 }
 
-const Common::ArchiveMemberPtr ResourceManager::getMember(const Common::String &name) const {
+const Common::ArchiveMemberPtr ResourceManager::getMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	if (!hasFile(name))
 		return Common::ArchiveMemberPtr();
 
 	return Common::ArchiveMemberPtr(new Common::GenericArchiveMember(name, this));
 }
 
-Common::SeekableReadStream *ResourceManager::createReadStreamForMember(const Common::String &name) const {
+Common::SeekableReadStream *ResourceManager::createReadStreamForMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	for (Common::Array<HPFArchive *>::const_iterator it = _archives.begin(); it != _archives.end(); ++it) {
 
 		Common::SeekableReadStream *stream = (*it)->createReadStreamForMember(name);
@@ -183,7 +185,7 @@ Common::SeekableReadStream *ResourceManager::createReadStreamForMember(const Com
 			return stream;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -193,14 +195,14 @@ Background *ResourceManager::loadBackground(const Common::String &name) const {
 	// Open the resource
 	Common::SeekableReadStream *stream = createReadStreamForMember(name + ".bg");
 	if (!stream)
-		return NULL;
+		return nullptr;
 
 	// Create the new background & load the data
 	Background *bg = new Background();
 	if (!bg->load(stream)) {
 		delete bg;
 		// stream should be freed by the Background instance
-		return NULL;
+		return nullptr;
 	}
 
 	return bg;
@@ -210,14 +212,14 @@ Cursor *ResourceManager::loadCursor() const {
 	// Open the resource
 	Common::SeekableReadStream *stream = createReadStreamForMember("cursors.tbm");
 	if (!stream)
-		return NULL;
+		return nullptr;
 
 	// Create the new background
 	Cursor *c = new Cursor();
 	if (!c->load(stream)) {
 		delete c;
 		// stream should be freed by the Cursor instance
-		return NULL;
+		return nullptr;
 	}
 
 	return c;
@@ -227,14 +229,14 @@ Font *ResourceManager::loadFont() const {
 	// Open the resource
 	Common::SeekableReadStream *stream = createReadStreamForMember("font.dat");
 	if (!stream)
-		return NULL;
+		return nullptr;
 
 	// Create the new background
 	Font *f = new Font();
 	if (!f->load(stream)) {
 		delete f;
 		// stream should be freed by the Font instance
-		return NULL;
+		return nullptr;
 	}
 
 	return f;

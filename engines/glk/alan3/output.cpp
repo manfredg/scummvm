@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,7 +68,7 @@ void getPageSize(void) {
 /*----------------------------------------------------------------------*/
 static int updateColumn(int currentColumn, const char *string) {
 	const char *newlinePosition = strrchr(string, '\n');
-	if (newlinePosition != NULL)
+	if (newlinePosition != nullptr)
 		return &string[strlen(string)] - newlinePosition;
 	else
 		return currentColumn + strlen(string);
@@ -136,11 +135,11 @@ void printAndLog(const char *string) {
 	if (!g_io->onStatusLine && transcriptOption) {
 		// TODO Is this assuming only 70-char wide windows for GLK?
 		if ((int)strlen(string) > 70 - column) {
-			stringCopy = strdup(string);  /* Make sure we can write NULLs */
+			stringCopy = scumm_strdup(string);  /* Make sure we can write NULLs */
 			stringPart = stringCopy;
 			while ((int)strlen(stringPart) > 70 - column) {
 				int p;
-				for (p = 70 - column; p > 0 && !isspace((int)stringPart[p]); p--);
+				for (p = 70 - column; p > 0 && !Common::isSpace((int)stringPart[p]); p--);
 				stringPart[p] = '\0';
 				g_io->glk_put_string_stream(logFile, stringPart);
 				g_io->glk_put_char_stream(logFile, '\n');
@@ -242,7 +241,7 @@ static void sayParameter(CONTEXT, int p, int form) {
 
   str - The string starting with '$'
   */
-static char *printSymbol(CONTEXT, char str[]) { 
+static char *printSymbol(CONTEXT, char str[]) {
 	int advance = 2;
 
 	if (*str == '\0') printAndLog("$");
@@ -267,7 +266,7 @@ static char *printSymbol(CONTEXT, char str[]) {
 		case '-':
 		case '!':
 			space();
-			if (isdigit((int)str[2])) {
+			if (Common::isDigit((int)str[2])) {
 				int form;
 				switch (str[1]) {
 				case '+':
@@ -373,7 +372,7 @@ static bool punctuationNext(char *str) {
 	const char *punctuation = strchr(".,!?", str[0]);
 	bool end = str[1] == '\0';
 	bool space = isSpaceEquivalent(&str[1]);
-	return (punctuation != NULL && (end || space));
+	return (punctuation != nullptr && (end || space));
 }
 
 
@@ -390,7 +389,7 @@ void output(const char *original) {
 	char *symptr;
 	Context ctx;
 
-	copy = strdup(original);
+	copy = scumm_strdup(original);
 	str = copy;
 
 	if (inhibitSpace(str) || punctuationNext(str))
@@ -399,12 +398,12 @@ void output(const char *original) {
 		space();            /* Output space if needed (& not inhibited) */
 
 	/* Output string up to symbol and handle the symbol */
-	while ((symptr = strchr(str, '$')) != (char *) NULL) {
+	while ((symptr = strchr(str, '$')) != (char *) nullptr) {
 		ch = *symptr;       /* Terminate before symbol */
 		*symptr = '\0';
 		if (strlen(str) > 0) {
 			skipSpace = FALSE;    /* Only let skipSpace through if it is
-                                     last in the string */
+									 last in the string */
 			if (lastCharOf(str) == ' ') {
 				str[strlen(str) - 1] = '\0'; /* Truncate space character */
 				justify(str);       /* Output part before '$' */
@@ -426,10 +425,10 @@ void output(const char *original) {
 	}
 
 	if (needSpace)
-		capitalize = strchr("!?.", str[strlen(str) - 1]) != 0;
+		capitalize = strchr("!?.", str[strlen(str) - 1]) != nullptr;
 
 	anyOutput = TRUE;
-	delete[] copy;
+	free(copy);
 }
 
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -307,7 +306,7 @@ static void printGoodSectors(Common::Array<bool> &goodSectors, uint sectorsPerTr
 
 static Common::SeekableReadStream *readImage_NIB(Common::File &f, bool dos33, uint tracks = 35) {
 	if (f.size() != 35 * kNibTrackLen) {
-		warning("NIB: image '%s' has invalid size of %d bytes", f.getName(), f.size());
+		warning("NIB: image '%s' has invalid size of %d bytes", f.getName(), (int)f.size());
 		return nullptr;
 	}
 
@@ -394,7 +393,7 @@ static Common::SeekableReadStream *readTrack_WOZ(Common::File &f, uint track, bo
 		return nullptr;
 	}
 
-	Common::BitStreamMemory8MSB bitStream(new Common::BitStreamMemoryStream(inBuf, byteSize, DisposeAfterUse::YES), DisposeAfterUse::YES); 
+	Common::BitStreamMemory8MSB bitStream(new Common::BitStreamMemoryStream(inBuf, byteSize, DisposeAfterUse::YES), DisposeAfterUse::YES);
 
 	byte nibble = 0;
 	bool stop = false;
@@ -543,7 +542,7 @@ bool DiskImage::open(const Common::String &filename) {
 		return false;
 
 	if (_stream->size() != expectedSize)
-		error("Unrecognized disk image '%s' of size %d bytes (expected %d bytes)", filename.c_str(), _stream->size(), expectedSize);
+		error("Unrecognized disk image '%s' of size %d bytes (expected %d bytes)", filename.c_str(), (int)_stream->size(), expectedSize);
 
 	return true;
 }
@@ -684,10 +683,21 @@ void Files_AppleDOS::readSectorList(TrackSector start, Common::Array<TrackSector
 	}
 }
 
-void Files_AppleDOS::readVTOC(uint trackVTOC) {
-	Common::ScopedPtr<Common::SeekableReadStream> stream(_disk->createReadStream(trackVTOC, 0x00));
+void Files_AppleDOS::readVTOC() {
+	Common::ScopedPtr<Common::SeekableReadStream> stream(_disk->createReadStream(0x11, 0x00));
 	stream->readByte();
 	byte track = stream->readByte();
+
+	if (!track) {
+		// VTOC probably obfuscated, try track 0x10
+		stream.reset(_disk->createReadStream(0x10, 0x00));
+		stream->readByte();
+		track = stream->readByte();
+	}
+
+	if (!track)
+		error("VTOC not found");
+
 	byte sector = stream->readByte();
 
 	while (track != 0) {
@@ -815,12 +825,12 @@ Common::SeekableReadStream *Files_AppleDOS::createReadStream(const Common::Strin
 	return new Common::SeekableSubReadStream(stream, offset, stream->size(), DisposeAfterUse::YES);
 }
 
-bool Files_AppleDOS::open(const Common::String &filename, uint trackVTOC) {
+bool Files_AppleDOS::open(const Common::String &filename) {
 	_disk = new DiskImage();
 	if (!_disk->open(filename))
 		return false;
 
-	readVTOC(trackVTOC);
+	readVTOC();
 	return true;
 }
 

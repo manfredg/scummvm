@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -193,7 +192,7 @@ void Player_SID::handleMusicBuffer() { // $33cd
 int Player_SID::setupSongFileData() { // $36cb
 	// no song playing
 	// TODO: remove (never NULL)
-	if (_music == NULL) {
+	if (_music == nullptr) {
 		for (int i = 2; i >= 0; --i) {
 			if (songChannelBits & BITMASK[i]) {
 				func_3674(i);
@@ -334,7 +333,7 @@ void Player_SID::processSongData(int channel) { // $4939
 
 	//vec5[channel] = songFileOrChanBufData; // not used
 
-	if (songFileOrChanBufData == NULL) { // chanBuf (4C1C)
+	if (songFileOrChanBufData == nullptr) { // chanBuf (4C1C)
 		/*
 		// TODO: do we need this?
 		LOBYTE_(vec20[channel]) = 0;
@@ -569,7 +568,7 @@ int Player_SID::setupSongPtr(int channel) { // $4C1C
 	int resID = channelMap[channel];
 
 	// TODO: when does this happen, only if resID == 0?
-	if (getResource(resID) == NULL) {
+	if (getResource(resID) == nullptr) {
 		releaseResourceUnk(resID);
 		if (resID == bgSoundResID) {
 			bgSoundResID = 0;
@@ -776,17 +775,17 @@ void Player_SID::resetSwapVars() { // $52d0
 		swapSustain[i] = 0;
 	}
 	for (int i = 0; i < 3; ++i) {
-		swapVec5[i] = 0;
+		swapVec5[i] = nullptr;
 		swapSongPrio[i] = 0;
 		swapVec479C[i] = 0;
 		swapVec19[i] = 0;
 		swapSongPosUpdateCounter[i] = 0;
 		swapWaveCtrlReg[i] = 0;
-		swapSongPosPtr[i] = 0;
+		swapSongPosPtr[i] = nullptr;
 		swapFreqReg[i] = 0;
 		swapVec11[i] = 0;
 		swapVec10[i] = 0;
-		swapVec20[i] = 0;
+		swapVec20[i] = nullptr;
 		swapVec8[i] = 0;
 	}
 }
@@ -886,7 +885,7 @@ void Player_SID::initMusic(int songResIndex) { // $7de6
 
 	resID_song = songResIndex;
 	_music = getResource(resID_song);
-	if (_music == NULL) {
+	if (_music == nullptr) {
 		return;
 	}
 
@@ -1022,7 +1021,7 @@ int Player_SID::initSound(int soundResID) { // $4D0A
 	}
 
 	uint8 *songFilePtr = getResource(soundResID);
-	if (songFilePtr == NULL) {
+	if (songFilePtr == nullptr) {
 		initializing = false;
 		return 1;
 	}
@@ -1155,9 +1154,9 @@ Player_SID::Player_SID(ScummEngine *scumm, Audio::Mixer *mixer) {
 	minChanPrio = 0;
 	minChanPrioIndex = 0;
 
-	_music = NULL;
-	songFileOrChanBufData = NULL;
-	actSongFileData = NULL;
+	_music = nullptr;
+	songFileOrChanBufData = nullptr;
+	actSongFileData = nullptr;
 
 	initializing = false;
 	_soundInQueue = false;
@@ -1271,7 +1270,7 @@ Player_SID::~Player_SID() {
 uint8 *Player_SID::getResource(int resID) {
 	switch (resID) {
 	case 0:
-		return NULL;
+		return nullptr;
 	case 3:
 	case 4:
 	case 5:

@@ -1,5 +1,5 @@
 #define AppName "ScummVM"
-#define FileVersion=GetFileVersion('scummvm.exe') 
+#define FileVersion=GetFileVersion('scummvm.exe')
 #define ProductVersion=GetStringFileInfo('scummvm.exe', 'ProductVersion')
 #define Copyright=GetStringFileInfo('scummvm.exe', 'LegalCopyright')
 
@@ -191,7 +191,7 @@ Name: ukrainian; MessagesFile: compiler:Languages\Ukrainian.isl
 Name: hebrew; MessagesFile: compiler:Languages\Hebrew.isl
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}" 
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Icons]
 ; Optional desktop icon
@@ -204,18 +204,23 @@ Name: {group}\ScummVM; Filename: {app}\scummvm.exe; WorkingDir: {app}; Comment: 
 Name: {group}\ScummVM (noconsole); Filename: {app}\scummvm.exe; Parameters: "--no-console"; WorkingDir: {app}; Comment: scummvm; Flags: createonlyiffileexists; IconIndex: 0; Languages: not german
 Name: {group}\ScummVM (ohne Konsolenfenster); Filename: {app}\scummvm.exe; Parameters: "--no-console"; WorkingDir: {app}; Comment: scummvm; Flags: createonlyiffileexists; IconIndex:0; Languages: german
 Name: {group}\Saved Games\Saved Games; Filename: {userappdata}\ScummVM\Saved Games; WorkingDir: {userappdata}\ScummVM\Saved Games; Comment: Saved Games; IconIndex: 0; MinVersion: 0, 1; Languages: not german
-Name: {group}\Spielstände\Spielstände; Filename: {userappdata}\ScummVM\Saved Games; WorkingDir: {userappdata}\ScummVM\Saved Games; Comment: Spielstände; IconIndex: 0; MinVersion: 0, 1; Languages: german
+Name: {group}\Spielstï¿½nde\Spielstï¿½nde; Filename: {userappdata}\ScummVM\Saved Games; WorkingDir: {userappdata}\ScummVM\Saved Games; Comment: Spielstï¿½nde; IconIndex: 0; MinVersion: 0, 1; Languages: german
 Name: {group}\Saved Games\Saved Games (old default); Filename: {app}; WorkingDir: {app}; Comment: Saved Games (old default); IconIndex: 0; MinVersion: 0, 1; Languages: not german
-Name: {group}\Spielstände\Spielstände (alter Standard); Filename: {app}; WorkingDir: {app}; Comment: Spielstände (alter Standard); IconIndex: 0; MinVersion: 0, 1; Languages: german
+Name: {group}\Spielstï¿½nde\Spielstï¿½nde (alter Standard); Filename: {app}; WorkingDir: {app}; Comment: Spielstï¿½nde (alter Standard); IconIndex: 0; MinVersion: 0, 1; Languages: german
 
 ; DOCUMENTATION
 Name: {group}\Authors; Filename: {app}\AUTHORS.txt; WorkingDir: {app}; Comment: AUTHORS; Flags: createonlyiffileexists; Languages: not german
 Name: {group}\Mitwirkende; Filename: {app}\AUTHORS.txt; WorkingDir: {app}; Comment: AUTHORS; Flags: createonlyiffileexists; Languages: german
 Name: {group}\Copying; Filename: {app}\COPYING.txt; WorkingDir: {app}; Comment: COPYING; Flags: createonlyiffileexists
-Name: {group}\Copying.BSD; Filename: {app}\COPYING.BSD.txt; WorkingDir: {app}; Comment: COPYING.BSD; Flags: createonlyiffileexists
-Name: {group}\Copying.FREEFONT; Filename: {app}\COPYING.FREEFONT.txt; WorkingDir: {app}; Comment: COPYING.FREEFONT; Flags: createonlyiffileexists
-Name: {group}\Copying.OFL; Filename: {app}\COPYING.OFL.txt; WorkingDir: {app}; Comment: COPYING.OFL; Flags: createonlyiffileexists
-Name: {group}\Copying.LGPL; Filename: {app}\COPYING.LGPL.txt; WorkingDir: {app}; Comment: COPYING.LGPL; Flags: createonlyiffileexists
+Name: {group}\Copying.BSD; Filename: {app}\LICENSES\COPYING.BSD.txt; WorkingDir: {app}; Comment: COPYING.BSD; Flags: createonlyiffileexists
+Name: {group}\Copying.LGPL; Filename: {app}\LICENSES\COPYING.LGPL.txt; WorkingDir: {app}; Comment: COPYING.LGPL; Flags: createonlyiffileexists
+Name: {group}\Copying.FREEFONT; Filename: {app}\LICENSES\COPYING.FREEFONT.txt; WorkingDir: {app}; Comment: COPYING.FREEFONT; Flags: createonlyiffileexists
+Name: {group}\Copying.OFL; Filename: {app}\LICENSES\COPYING.OFL.txt; WorkingDir: {app}; Comment: COPYING.OFL; Flags: createonlyiffileexists
+Name: {group}\Copying.ISC; Filename: {app}\LICENSES\COPYING.ISC.txt; WorkingDir: {app}; Comment: COPYING.ISC; Flags: createonlyiffileexists
+Name: {group}\Copying.LUA; Filename: {app}\LICENSES\COPYING.LUA.txt; WorkingDir: {app}; Comment: COPYING.LUA; Flags: createonlyiffileexists
+Name: {group}\Copying.MIT; Filename: {app}\LICENSES\COPYING.MIT.txt; WorkingDir: {app}; Comment: COPYING.MIT; Flags: createonlyiffileexists
+Name: {group}\Copying.TINYGL; Filename: {app}\LICENSES\COPYING.TINYGL.txt; WorkingDir: {app}; Comment: COPYING.TINYGL; Flags: createonlyiffileexists
+Name: {group}\Copying.GLAD; Filename: {app}\LICENSES\COPYING.GLAD.txt; WorkingDir: {app}; Comment: COPYING.GLAD; Flags: createonlyiffileexists
 Name: {group}\Copyright; Filename: {app}\COPYRIGHT.txt; WorkingDir: {app}; Comment: COPYRIGHT; Flags: createonlyiffileexists
 
 ; NEWS

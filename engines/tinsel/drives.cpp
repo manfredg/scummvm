@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * CD/drive handling functions
  */
@@ -30,7 +29,7 @@
 
 namespace Tinsel {
 
-// FIXME: Avoid non-const global vars
+// These vars are reset upon engine destruction
 
 char g_currentCD = '1';
 
@@ -40,6 +39,14 @@ static char g_nextCD = '\0';
 static uint32 g_lastTime = 0;
 extern LANGUAGE g_sampleLanguage;
 
+void ResetVarsDrives() {
+	g_currentCD = '1';
+
+	g_bChangingCD = false;
+	g_nextCD = '\0';
+
+	g_lastTime = 0;
+}
 
 void CdCD(CORO_PARAM) {
 	CORO_BEGIN_CONTEXT;
@@ -149,7 +156,11 @@ bool GotoCD() {
 
 bool TinselFile::_warningShown = false;
 
-TinselFile::TinselFile() : ReadStreamEndian(TinselV1Mac) {
+TinselFile::TinselFile() : ReadStreamEndian(TinselV1Saturn) {
+	_stream = nullptr;
+}
+
+TinselFile::TinselFile(bool bigEndian) : ReadStreamEndian(bigEndian) {
 	_stream = nullptr;
 }
 
@@ -192,17 +203,17 @@ void TinselFile::close() {
 	_stream = nullptr;
 }
 
-int32 TinselFile::pos() const {
+int64 TinselFile::pos() const {
 	assert(_stream);
 	return _stream->pos();
 }
 
-int32 TinselFile::size() const {
+int64 TinselFile::size() const {
 	assert(_stream);
 	return _stream->size();
 }
 
-bool TinselFile::seek(int32 offset, int whence) {
+bool TinselFile::seek(int64 offset, int whence) {
 	assert(_stream);
 	return _stream->seek(offset, whence);
 }

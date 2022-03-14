@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -227,7 +226,14 @@ uint RenderedImage::getPixel(int x, int y) {
 // -----------------------------------------------------------------------------
 
 bool RenderedImage::blit(int posX, int posY, int flipping, Common::Rect *pPartRect, uint color, int width, int height, RectangleList *updateRects) {
-	_surface.blit(*_backSurface, posX, posY, (((flipping & 1) ? Graphics::FLIP_V : 0) | ((flipping & 2) ? Graphics::FLIP_H : 0)), pPartRect, color, width, height);
+	int newFlipping = (((flipping & 1) ? Graphics::FLIP_V : 0) | ((flipping & 2) ? Graphics::FLIP_H : 0));
+
+	int ca = (color >> BS_ASHIFT) & 0xff;
+	int cr = (color >> BS_RSHIFT) & 0xff;
+	int cg = (color >> BS_GSHIFT) & 0xff;
+	int cb = (color >> BS_BSHIFT) & 0xff;
+
+	_surface.blit(*_backSurface, posX, posY, newFlipping, pPartRect, _surface.format.ARGBToColor(ca, cr, cg, cb), width, height);
 
 	return true;
 }

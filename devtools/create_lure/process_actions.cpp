@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,6 +66,7 @@ JumpOffsetsRecord jumpOffsets[] = {
 	{FR_FRA, {0x8bbf, 0x8c18}},
 	{DE_DEU, {0x8c1c, 0x8c75}},
 	{ES_ESP, {0x8882, 0x88e0}},
+	{EN_USA, {0x8aa4, 0x8B02}},
 	{UNK_LANG, {0, 0}}
 };
 
@@ -127,6 +127,7 @@ uint16 process_action_sequence_entry(int supportIndex, byte *data, uint16 remain
 
 	switch (language) {
 	case EN_ANY:
+	case EN_USA:
 		if (startOffset == 0x7dcb) { startOffset = 0x7d9d; maxOffset = 0x7dcb; }
 		if (startOffset == 0x7248) { startOffset = 0x71ce; maxOffset = 0x7248; }
 		if (startOffset == 0x79a8) { startOffset = 0x785c; maxOffset = 0x79a8; }
@@ -371,13 +372,14 @@ void read_action_sequence(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) raOffset = 0x4df0;
 	else if (language == DE_DEU) raOffset = 0x4de0;
 	else if (language == ES_ESP) raOffset = 0x4dc0;
-	else if (language != EN_ANY) errorExit("read_action_sequence: Unknown language");
+	else if (language != EN_ANY && language != EN_USA)
+		errorExit("read_action_sequence: Unknown language");
 
 	lureExe.seek(dataSegment + raOffset, SEEK_SET);
 	for (roomIndex = 0; roomIndex < RANDOM_ROOM_NUM_ENTRIES; ++roomIndex) {
 		randomActions[roomIndex].offset = lureExe.readWord();
 		randomActions[roomIndex].numEntries = 0;
-		randomActions[roomIndex].entries = NULL;
+		randomActions[roomIndex].entries = nullptr;
 	}
 
 	// Next get the set of offsetes for the start of each sequence
@@ -419,6 +421,7 @@ void read_action_sequence(byte *&data, uint16 &totalSize) {
 	// index, so they need to be first, and in that order
 	switch (language) {
 	case EN_ANY:
+	case EN_USA:
 		process_entry(0x13c2, data, totalSize);	  // RETURN sequence
 		process_entry(0xbb95, data, totalSize);	  // Exit blocked sequence
 		process_entry(0x706c, data, totalSize);   // Jump proc #2 - go to castle basement
@@ -464,7 +467,8 @@ void read_action_sequence(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) hsOffset = 0x5e78;
 	else if (language == DE_DEU) hsOffset = 0x5ea8;
 	else if (language == ES_ESP) hsOffset = 0x5e78;
-	else if (language != EN_ANY) errorExit("read_action_sequence: Unknown language");
+	else if (language != EN_ANY && language != EN_USA)
+		errorExit("read_action_sequence: Unknown language");
 
 	hotspotIndex = 0;
 	for (;;) {
@@ -535,7 +539,7 @@ void read_action_sequence(byte *&data, uint16 &totalSize) {
 
 	// Free up the random room action array
 	for (roomIndex = 0; roomIndex < 1; ++roomIndex) {
-		if (randomActions[roomIndex].entries != NULL)
+		if (randomActions[roomIndex].entries != nullptr)
 			delete[] randomActions[roomIndex].entries;
 	}
 	delete[] randomActions;

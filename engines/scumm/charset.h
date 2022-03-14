@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 
 #include "common/scummsys.h"
 #include "common/rect.h"
+#include "graphics/fonts/macfont.h"
 #include "graphics/sjis.h"
 #include "scumm/scumm.h"
 #include "scumm/gfx.h"
@@ -35,12 +35,33 @@ class ScummEngine;
 class NutRenderer;
 struct VirtScreen;
 
+static inline bool checkKSCode(byte hi, byte lo) {
+	//hi : xx
+	//lo : yy
+	if ((0xA1 > lo) || (0xFE < lo)) {
+		return false;
+	}
+	if ((hi >= 0xB0) && (hi <= 0xC8)) {
+		return true;
+	}
+	return false;
+}
+
 static inline bool checkSJISCode(byte c) {
 	if ((c >= 0x80 && c <= 0x9f) || (c >= 0xe0 && c <= 0xfd))
 		return true;
 	return false;
 }
 
+static inline bool is2ByteCharacter(Common::Language lang, byte c) {
+	if (lang == Common::JA_JPN)
+		return (c >= 0x80 && c <= 0x9F) || (c >= 0xE0 && c <= 0xFD);
+	else if (lang == Common::KO_KOR)
+		return (c >= 0xB0 && c <= 0xD0);
+	else if (lang == Common::ZH_TWN || lang == Common::ZH_CHN)
+		return (c >= 0x80);
+	return false;
+}
 
 class CharsetRenderer {
 public:
@@ -75,7 +96,7 @@ public:
 	virtual void printChar(int chr, bool ignoreCharsetMask) = 0;
 	virtual void drawChar(int chr, Graphics::Surface &s, int x, int y) {}
 
-	int getStringWidth(int a, const byte *str);
+	virtual int getStringWidth(int arg, const byte *text, uint strLenMax = 100000);
 	void addLinebreaks(int a, byte *str, int pos, int maxwidth);
 	void translateColor();
 
@@ -121,6 +142,7 @@ class CharsetRendererPC : public CharsetRendererCommon {
 protected:
 	virtual void enableShadow(bool enable);
 	virtual void drawBits1(Graphics::Surface &dest, int x, int y, const byte *src, int drawTop, int width, int height);
+	void drawBits1Kor(Graphics::Surface &dest, int x1, int y1, const byte *src, int drawTop, int width, int height);
 
 public:
 	CharsetRendererPC(ScummEngine *vm) : CharsetRendererCommon(vm), _shadowType(kNoShadowType) { }
@@ -252,6 +274,38 @@ public:
 	int getCharWidth(uint16 chr) override { return 8; }
 };
 
+class CharsetRendererMac : public CharsetRendererCommon {
+protected:
+	Graphics::MacFONTFont _macFonts[2];
+	bool _correctFontSpacing;
+	bool _pad;
+	int _lastTop;
+
+
+	int getDrawWidthIntern(uint16 chr);
+
+	void printCharInternal(int chr, int color, bool shadow, int x, int y);
+	void printCharToTextBox(int chr, int color, int x, int y);
+
+	byte getTextColor();
+	byte getTextShadowColor();
+
+	Graphics::Surface *_glyphSurface;
+
+public:
+	CharsetRendererMac(ScummEngine *vm, const Common::String &fontFile, bool correctFontSpacing);
+	~CharsetRendererMac() override;
+
+	void setCurID(int32 id) override;
+
+	int getStringWidth(int arg, const byte *text, uint strLenMax = 100000) override;
+	int getFontHeight() override;
+	int getCharWidth(uint16 chr) override;
+	void printChar(int chr, bool ignoreCharsetMask) override;
+	void drawChar(int chr, Graphics::Surface &s, int x, int y) override;
+	void setColor(byte color) override;
+};
+
 #ifdef ENABLE_SCUMM_7_8
 class CharsetRendererNut : public CharsetRenderer {
 protected:
@@ -266,6 +320,7 @@ public:
 
 	void setCurID(int32 id) override;
 
+	int getStringWidth(int arg, const byte *text, uint strLenMax = 1000000) override;
 	int getFontHeight() override;
 	int getCharHeight(byte chr) override;
 	int getCharWidth(uint16 chr) override;

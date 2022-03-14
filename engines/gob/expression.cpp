@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,10 +32,8 @@
 namespace Gob {
 
 Expression::Stack::Stack(size_t size) {
-	opers  = new byte[size];
-	values = new int32[size];
-	memset(opers , 0, size * sizeof(byte ));
-	memset(values, 0, size * sizeof(int32));
+	opers  = new byte[size]();
+	values = new int32[size]();
 }
 
 Expression::Stack::~Stack() {
@@ -653,7 +650,7 @@ int16 Expression::parseVarIndex(uint16 *size, uint16 *type) {
 }
 
 int16 Expression::parseValExpr(byte stopToken) {
-	parseExpr(stopToken, 0);
+	parseExpr(stopToken, nullptr);
 
 	return _resultInt;
 }
@@ -759,7 +756,7 @@ void Expression::loadValue(byte operation, uint32 varBase, const StackFrame &sta
 
 	case OP_FUNC:
 		operation = _vm->_game->_script->readByte();
-		parseExpr(OP_END_EXPR, 0);
+		parseExpr(OP_END_EXPR, nullptr);
 
 		switch (operation) {
 		case FUNC_SQRT1:
@@ -985,12 +982,12 @@ bool Expression::complexArithmetic(Stack &stack, StackFrame &stackFrame, int16 b
 
 // Assign the result to the appropriate _result variable
 void Expression::getResult(byte operation, int32 value, byte *type) {
-	if (type != 0)
+	if (type != nullptr)
 		*type = operation;
 
 	switch (operation) {
 	case OP_NOT:
-		if (type != 0)
+		if (type != nullptr)
 			*type ^= 1;
 		break;
 
@@ -1009,7 +1006,7 @@ void Expression::getResult(byte operation, int32 value, byte *type) {
 
 	default:
 		_resultInt = 0;
-		if (type != 0)
+		if (type != nullptr)
 			*type = OP_LOAD_IMM_INT16;
 		break;
 	}

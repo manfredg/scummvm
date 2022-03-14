@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -168,7 +167,7 @@ Common::OutSaveFile *DefaultSaveFileManager::openForSaving(const Common::String 
 	}
 
 	// Open the file for saving.
-	Common::WriteStream *const sf = fileNode.createWriteStream();
+	Common::SeekableWriteStream *const sf = fileNode.createWriteStream();
 	if (!sf)
 		return nullptr;
 	Common::OutSaveFile *const result = new Common::OutSaveFile(compress ? Common::wrapCompressedWriteStream(sf) : sf);
@@ -205,21 +204,37 @@ bool DefaultSaveFileManager::removeSavefile(const Common::String &filename) {
 		_saveFileCache.erase(file);
 		file = _saveFileCache.end();
 
-		// FIXME: remove does not exist on all systems. If your port fails to
-		// compile because of this, please let us know (scummvm-devel).
-		// There is a nicely portable workaround, too: Make this method overloadable.
-		if (remove(fileNode.getPath().c_str()) != 0) {
-			if (errno == EACCES)
-				setError(Common::kWritePermissionDenied, "Search or write permission denied: "+fileNode.getName());
-
-			if (errno == ENOENT)
-				setError(Common::kPathDoesNotExist, "removeSavefile: '"+fileNode.getName()+"' does not exist or path is invalid");
-
-			return false;
-		} else {
+		Common::ErrorCode result = removeFile(fileNode.getPath());
+		if (result == Common::kNoError)
 			return true;
-		}
+		Common::Error error(result);
+		setError(error, "Failed to remove savefile '" + fileNode.getName() + "': " + error.getDesc());
+		return false;
 	}
+}
+
+Common::ErrorCode DefaultSaveFileManager::removeFile(const Common::String &filepath) {
+	if (remove(filepath.c_str()) == 0)
+		return Common::kNoError;
+	if (errno == EACCES)
+		return Common::kWritePermissionDenied;
+	if (errno == ENOENT)
+		return Common::kPathDoesNotExist;
+	return Common::kUnknownError;
+}
+
+bool DefaultSaveFileManager::exists(const Common::String &filename) {
+	// Assure the savefile name cache is up-to-date.
+	assureCached(getSavePath());
+	if (getError().getCode() != Common::kNoError)
+		return false;
+
+	for (Common::StringArray::const_iterator i = _lockedFiles.begin(), end = _lockedFiles.end(); i != end; ++i) {
+		if (filename == *i)
+			return true;
+	}
+
+	return _saveFileCache.contains(filename);
 }
 
 Common::String DefaultSaveFileManager::getSavePath() const {
@@ -229,7 +244,7 @@ Common::String DefaultSaveFileManager::getSavePath() const {
 	// Try to use game specific savepath from config
 	dir = ConfMan.get("savepath");
 
-	// Work around a bug (#999122) in the original 0.6.1 release of
+	// Work around a bug (#1689) in the original 0.6.1 release of
 	// ScummVM, which would insert a bad savepath value into config files.
 	if (dir == "None") {
 		ConfMan.removeKey("savepath", ConfMan.getActiveDomainName());
@@ -309,8 +324,9 @@ Common::HashMap<Common::String, uint32> DefaultSaveFileManager::loadTimestamps()
 	while (!file->eos()) {
 		//read filename into buffer (reading until the first ' ')
 		Common::String buffer;
-		while (!file->eos()) {
+		while (true) {
 			byte b = file->readByte();
+			if (file->eos()) break;
 			if (b == ' ') break;
 			buffer += (char)b;
 		}
@@ -320,8 +336,9 @@ Common::HashMap<Common::String, uint32> DefaultSaveFileManager::loadTimestamps()
 		while (true) {
 			bool lineEnded = false;
 			buffer = "";
-			while (!file->eos()) {
+			while (true) {
 				byte b = file->readByte();
+				if (file->eos()) break;
 				if (b == ' ' || b == '\n' || b == '\r') {
 					lineEnded = (b == '\n');
 					break;

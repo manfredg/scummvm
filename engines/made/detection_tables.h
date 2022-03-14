@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,26 +23,19 @@
 #define MADE_DETECTION_TABLES_H
 
 #include "engines/advancedDetector.h"
+#include "common/translation.h"
 
 namespace Made {
 
-struct MadeGameDescription {
-	ADGameDescription desc;
-
-	int gameID;
-	int gameType;
-	uint32 features;
-	uint16 version;
-};
-
 static const MadeGameDescription gameDescriptions[] = {
+
 	{
 		// NOTE: Return to Zork entries with *.dat are used to detect the game via rtzcd.dat,
 		// which is packed inside rtzcd.red. Entries with *.red refer to the packed file
 		// directly, which is the "official" way.
 
 		// Return to Zork - English CD version 1.0 9/15/93 (installed)
-		// Patch #1953654 submitted by spookypeanut
+		// Ticket #8858 submitted by spookypeanut
 		{
 			"rtz",
 			"V1.0, 9/15/93, installed, CD",
@@ -61,7 +53,7 @@ static const MadeGameDescription gameDescriptions[] = {
 
 	{
 		// Return to Zork - English CD version 1.0 9/15/93
-		// Patch #1953654 submitted by spookypeanut
+		// Ticket #8858 submitted by spookypeanut
 		{
 			"rtz",
 			"V1.0, 9/15/93, CD",
@@ -95,11 +87,28 @@ static const MadeGameDescription gameDescriptions[] = {
 	},
 
 	{
-		// Return to Zork - English CD version 1.1 12/7/93
+		// Return to Zork - English OEM CD version 1.1 12/7/93
 		{
 			"rtz",
 			"V1.1, 12/7/93, CD",
 			AD_ENTRY1s("rtzcd.red", "c4e2430e6b6c6ff1562a80fb4a9df24c", 276177),
+			Common::EN_ANY,
+			Common::kPlatformDOS,
+			ADGF_CD,
+			GUIO0()
+		},
+		GID_RTZ,
+		0,
+		GF_CD_COMPRESSED,
+		3,
+	},
+
+	{
+		// Return to Zork - English Retail CD version 1.1 12/7/93
+		{
+			"rtz",
+			"V1.1, 12/7/93, CD",
+			AD_ENTRY1s("rtzcd.red", "c4e2430e6b6c6ff1562a80fb4a9df24c", 276466),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_CD,
@@ -134,7 +143,11 @@ static const MadeGameDescription gameDescriptions[] = {
 		{
 			"rtz",
 			"V1.2, 9/29/94, CD",
-			AD_ENTRY1s("rtzcd.red", "946997d8b0aa6cb4e848bad02a1fc3d2", 276584),
+			{
+				{ "rtzcd.red", 0, "946997d8b0aa6cb4e848bad02a1fc3d2", 276584 },
+				{ "rtzcd.prj", 0, "974d74410c3c29d50e857863e8bf40e2", 43016792 },
+				AD_LISTEND
+			},
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_CD,
@@ -184,7 +197,7 @@ static const MadeGameDescription gameDescriptions[] = {
 
 	{
 		// Return to Zork - Italian CD version 1.2 3/31/95 (installed)
-		// Patch #2685032 submitted by goodoldgeorg
+		// Patch #4225 submitted by goodoldgeorg
 		{
 			"rtz",
 			"V1.2, 3/31/95, installed, CD",
@@ -202,7 +215,7 @@ static const MadeGameDescription gameDescriptions[] = {
 
 	{
 		// Return to Zork - Italian CD version 1.2 3/31/95
-		// Patch #2685032 submitted by goodoldgeorg
+		// Patch #4225 submitted by goodoldgeorg
 		{
 			"rtz",
 			"V1.2, 3/31/95, CD",
@@ -220,7 +233,7 @@ static const MadeGameDescription gameDescriptions[] = {
 
 	{
 		// Return to Zork - French CD version 1.2 5/13/95 (installed)
-		// Patch #2685032 submitted by goodoldgeorg
+		// Patch #4225 submitted by goodoldgeorg
 		{
 			"rtz",
 			"V1.2, 5/13/95, installed, CD",
@@ -238,12 +251,35 @@ static const MadeGameDescription gameDescriptions[] = {
 
 	{
 		// Return to Zork - French CD version 1.2 5/13/95
-		// Patch #2685032 submitted by goodoldgeorg
+		// Patch #4225 submitted by goodoldgeorg
 		{
 			"rtz",
 			"V1.2, 3/31/95, CD",
 			AD_ENTRY1s("rtzcd.red", "946997d8b0aa6cb4e848bad02a1fc3d2", 354614),
 			Common::FR_FRA,
+			Common::kPlatformDOS,
+			ADGF_CD,
+			GUIO0()
+		},
+		GID_RTZ,
+		0,
+		GF_CD_COMPRESSED,
+		3,
+	},
+
+	{
+		// Return to Zork - Korean CD version 1.2 9/29/94
+		// Dub only. No text was translated, even in menus, so there are no font issues.
+		// submitted by trembyle
+		{
+			"rtz",
+			"V1.2, 9/29/94, CD",
+			{
+				{ "rtzcd.red", 0, "946997d8b0aa6cb4e848bad02a1fc3d2", 276584 },
+				{ "rtzcd.prj", 0, "3c8644f7ce77b74968637c035c3532d8", 48083511 },
+				AD_LISTEND
+			},
+			Common::KO_KOR,
 			Common::kPlatformDOS,
 			ADGF_CD,
 			GUIO0()
@@ -285,6 +321,60 @@ static const MadeGameDescription gameDescriptions[] = {
 		GID_RTZ,
 		0,
 		GF_DEMO,
+		3,
+	},
+
+	{
+		// Return to Zork - Standalone CD Demo v1.1
+		{
+			"rtz",
+			"V1.1, 12/6/93, Demo CD",
+			AD_ENTRY1s("rtzcd.red", "827cfb323eae37b385985a2359fae3e9", 133784),
+			Common::EN_ANY,
+			Common::kPlatformDOS,
+			ADGF_DEMO | ADGF_CD,
+			GUIO0()
+		},
+		GID_RTZ,
+		0,
+		GF_CD_COMPRESSED,
+		3,
+	},
+
+	{
+		// Return to Zork - Demo from Zork Anthology CD
+		// Bugreport #11202
+		{
+			"rtz",
+			"V1.2, 9/8/94, Demo CD",
+			AD_ENTRY1s("rtzcd.red", "946997d8b0aa6cb4e848bad02a1fc3d2", 130683),
+			Common::EN_ANY,
+			Common::kPlatformDOS,
+			ADGF_DEMO | ADGF_CD,
+			GUIO0()
+		},
+		GID_RTZ,
+		0,
+		GF_CD_COMPRESSED,
+		3,
+	},
+
+	{
+		// Return to Zork - Mac Demo from Zork Anthology CD
+		// Same disc as DOS version (on ISO-9660)
+		// The only resource fork is in the executable
+		{
+			"rtz",
+			"V1.2, 5/4/94, Demo CD",
+			AD_ENTRY1s("Return To Zork", "0c1377afd4b6fc4ee900e1882ac13895", 1714064),
+			Common::EN_ANY,
+			Common::kPlatformMacintosh,
+			ADGF_DEMO | ADGF_CD | ADGF_MACRESFORK,
+			GUIO0()
+		},
+		GID_RTZ,
+		0,
+		GF_CD_COMPRESSED,
 		3,
 	},
 
@@ -342,24 +432,41 @@ static const MadeGameDescription gameDescriptions[] = {
 		3,
 	},
 
-// The Manhole: Masterpiece Edition is not a MADE engine and should not be
-// added to the detection list. It is a HyperCard-like engine
-//	{
-//		// The Manhole: Masterpiece Edition (GOG/CD)
-//		{
-//			"manhole",
-//			"",
-//			AD_ENTRY1("manhole.dat", "e8cec9bf21e4c50a7ebc193a4e0b48f5"),
-//			Common::EN_ANY,
-//			Common::kPlatformDOS,
-//			ADGF_UNSTABLE,
-//			GUIO1(GUIO_NOSPEECH)
-//		},
-//		GID_MANHOLE,
-//		0,
-//		GF_CD,
-//		2,
-//	},
+	// The Manhole: Masterpiece Edition is not a MADE engine and cannot be
+	// supported by MADE. It is a HyperCard-like engine
+	{
+		// The Manhole: Masterpiece Edition (GOG/CD)
+		{
+			"manhole",
+			_s("The game is using unsupported engine"),
+			AD_ENTRY1("manhole.dat", "e8cec9bf21e4c50a7ebc193a4e0b48f5"),
+			Common::EN_ANY,
+			Common::kPlatformDOS,
+			ADGF_UNSUPPORTED,
+			GUIO1(GUIO_NOSPEECH)
+		},
+		GID_MANHOLE,
+		0,
+		GF_CD,
+		2,
+	},
+
+	// Bugreport #5855
+	{
+		{
+			"manhole",
+			_s("The game is using unsupported engine"),
+			AD_ENTRY1s("manhole.dat", "df77ad5232757d7149342fb6471de4ed", 99317),
+			Common::EN_ANY,
+			Common::kPlatformDOS,
+			ADGF_UNSUPPORTED,
+			GUIO1(GUIO_NOSPEECH)
+		},
+		GID_MANHOLE,
+		0,
+		GF_CD,
+		2,
+	},
 
 	{
 		// The Manhole: New and Enhanced
@@ -414,7 +521,7 @@ static const MadeGameDescription gameDescriptions[] = {
 
 	{
 		// Leather Goddesses of Phobos 2 (German)
-		// Supplied by windlepoons (bug tracker #2675695)
+		// Supplied by windlepoons (bug tracker #4218)
 		{
 			"lgop2",
 			"",
@@ -432,7 +539,7 @@ static const MadeGameDescription gameDescriptions[] = {
 
 	{
 		// Leather Goddesses of Phobos 2 (French)
-		// Supplied by goodoldgeorg (bug tracker #2675759)
+		// Supplied by goodoldgeorg (bug tracker #4219)
 		{
 			"lgop2",
 			"",
@@ -450,7 +557,7 @@ static const MadeGameDescription gameDescriptions[] = {
 
 	{
 		// Leather Goddesses of Phobos 2 (Spanish)
-		// Supplied by goodoldgeorg (bug tracker #2675759)
+		// Supplied by goodoldgeorg (bug tracker #4219)
 		{
 			"lgop2",
 			"",

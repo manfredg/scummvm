@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,17 +30,16 @@ namespace GUI {
 class SaveLoadChooserDialog;
 
 class SaveLoadChooser {
-	typedef Common::String String;
 protected:
 	SaveLoadChooserDialog *_impl;
 
-	const String _title;
-	const String _buttonLabel;
+	const Common::U32String _title;
+	const Common::U32String _buttonLabel;
 	const bool _saveMode;
 
-	void selectChooser(const MetaEngine &engine);
+	void selectChooser(const MetaEngine *engine);
 public:
-	SaveLoadChooser(const String &title, const String &buttonLabel, bool saveMode);
+	SaveLoadChooser(const Common::U32String &title, const Common::U32String &buttonLabel, bool saveMode);
 	~SaveLoadChooser();
 
 	/**
@@ -51,9 +49,9 @@ public:
 	 * @return The selcted save slot. -1 in case none is selected.
 	 */
 	int runModalWithCurrentTarget();
-	int runModalWithPluginAndTarget(const Plugin *plugin, const String &target);
+	int runModalWithMetaEngineAndTarget(const MetaEngine *engine, const Common::String &target);
 
-	const Common::String &getResultString() const;
+	const Common::U32String &getResultString() const;
 
 	/**
 	 * Creates a default save description for the specified slot. Depending

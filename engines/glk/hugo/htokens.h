@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -50,16 +49,16 @@ enum TOKEN_T {
 	NOT_EQUAL_T, AMPERSAND_T, GREATER_T, LESS_T,
 	IF_T, COMMA_T, ELSE_T, ELSEIF_T,
 	WHILE_T, DO_T, SELECT_T, CASE_T,
-	
+
 	/* 0x20 - 0x2f */
 	FOR_T, RETURN_T, BREAK_T, AND_T,
 	OR_T, JUMP_T, RUN_T, IS_T,
 	NOT_T, TRUE_T, FALSE_T, LOCAL_T,
 	VERB_T, XVERB_T, HELD_T, MULTI_T,
-	
+
 	/* 0x30 - 0x3f */
 	MULTIHELD_T, NEWLINE_T, ANYTHING_T, PRINT_T,
-	NUMBER_T, CAPITAL_T, TEXT_T, GRAPHICS_T, 
+	NUMBER_T, CAPITAL_T, TEXT_T, GRAPHICS_T,
 	COLOR_T, REMOVE_T, MOVE_T, TO_T,
 	PARENT_T, SIBLING_T, CHILD_T, YOUNGEST_T,
 
@@ -80,7 +79,7 @@ enum TOKEN_T {
 	RESTART_T, HEX_T, OBJECT_T, XOBJECT_T,
 	STRING_T, ARRAY_T, PRINTCHAR_T, UNDO_T,
 	DICT_T, RECORDON_T, RECORDOFF_T, WRITEFILE_T,
-	
+
 	/* 0x70 - */
 	READFILE_T, WRITEVAL_T, READVAL_T, PLAYBACK_T,
 	COLOUR_T, PICTURE_T, LABEL_T, SOUND_T,

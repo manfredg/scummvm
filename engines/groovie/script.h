@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,16 @@
 #define GROOVIE_SCRIPT_H
 
 #include "groovie/groovie.h"
+#ifdef ENABLE_GROOVIE2
+#include "groovie/logic/beehive.h"
+#include "groovie/logic/cake.h"
+#include "groovie/logic/gallery.h"
+#include "groovie/logic/mousetrap.h"
+#include "groovie/logic/othello.h"
+#include "groovie/logic/pente.h"
+#include "groovie/logic/triangle.h"
+#include "groovie/logic/winerack.h"
+#endif
 
 #include "common/random.h"
 #include "common/rect.h"
@@ -38,13 +47,10 @@ struct Surface;
 
 namespace Groovie {
 
-enum EngineVersion {
-	kGroovieT7G,
-	kGroovieV2
-};
-
 class CellGame;
 class Debugger;
+class GroovieEngine;
+class TlcGame;
 
 class Script {
 	friend class Debugger;
@@ -67,6 +73,9 @@ public:
 	void setMouseClick(uint8 button);
 	void setKbdChar(uint8 c);
 
+	void setBitFlag(int bitnum, bool value);
+	bool getBitFlag(int bitnum);
+
 	Common::String &getContext();
 
 private:
@@ -85,6 +94,7 @@ private:
 
 	// Save names
 	Common::String _saveNames[MAX_SAVES];
+	bool _wantAutosave;
 
 	// Code
 	byte *_code;
@@ -109,7 +119,6 @@ private:
 	uint8 _kbdChar;
 	uint8 _eventKbdChar;
 	uint16 _inputLoopAddress;
-	int16 _inputAction;
 	uint8 _newCursorStyle;
 	uint16 _hotspotTopAction;
 	uint16 _hotspotTopCursor;
@@ -118,6 +127,8 @@ private:
 	uint16 _hotspotRightAction;
 	uint16 _hotspotLeftAction;
 	uint16 _hotspotSlot;
+	bool _fastForwarding;
+	void resetFastForward();
 
 	// Video
 	Common::SeekableReadStream *_videoFile;
@@ -130,7 +141,9 @@ private:
 	Common::String _debugString;
 	uint16 _oldInstruction;
 
-	CellGame *_staufsMove;
+	// Special classes depending on played game
+	CellGame *_cellGame;
+	TlcGame *_tlcGame;
 
 	// Helper functions
 	uint8 getCodeByte(uint16 address);
@@ -139,14 +152,18 @@ private:
 	uint32 readScript32bits();
 	uint16 readScript8or16bits();
 	uint8 readScriptChar(bool allow7C, bool limitVal, bool limitVar);
+	void readScriptString(Common::String &str);
 	uint8 readScriptVar();
-	uint32 getVideoRefString();
+	uint32 getVideoRefString(Common::String &resName);
 
+	void executeInputAction(uint16 address);
 	bool hotspot(Common::Rect rect, uint16 addr, uint8 cursor);
 
 	void loadgame(uint slot);
-	void savegame(uint slot);
-	bool playvideofromref(uint32 fileref);
+	bool preview_loadgame(uint slot);
+	void savegame(uint slot, const char name[27]);
+	bool playvideofromref(uint32 fileref, bool loopUntilAudioDone = false);
+	bool playBackgroundSound(uint32 fileref, uint32 loops);
 	void printString(Graphics::Surface *surface, const char *str);
 
 	// Opcodes
@@ -223,7 +240,6 @@ private:
 	void o_loadscript();
 	void o_setvideoorigin();
 	void o_sub();
-	void o_cellmove();
 	void o_returnscript();
 	void o_sethotspotright();
 	void o_sethotspotleft();
@@ -232,18 +248,37 @@ private:
 	void o_musicdelay();
 	void o_hotspot_outrect();
 	void o_stub56();
+	void o_wipemaskfromstring58();
 	void o_stub59();
 
+	void o2_bf0on();
+	void o2_copybgtofg();
+	void o2_printstring();
 	void o2_playsong();
+	void o2_midicontrol();
 	void o2_setbackgroundsong();
 	void o2_videofromref();
 	void o2_vdxtransition();
 	void o2_setvideoskip();
-	void o2_copyscreentobg();
-	void o2_copybgtoscreen();
-	void o2_stub42();
-	void o2_stub52();
+	void o2_savescreen();
+	void o2_restorescreen();
+	void o_gamelogic();
+	void o2_copyfgtobg();
 	void o2_setscriptend();
+	void o2_playsound();
+	void o2_check_sounds_overlays();
+	void o2_preview_loadgame();
+
+#ifdef ENABLE_GROOVIE2
+	BeehiveGame _beehive;
+	CakeGame _cake;
+	GalleryGame _gallery;
+	MouseTrapGame _mouseTrap;
+	OthelloGame _othello;
+	PenteGame _pente;
+	TriangleGame _triangle;
+	WineRackGame _wineRack;
+#endif
 };
 
 } // End of Groovie namespace

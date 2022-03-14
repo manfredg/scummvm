@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -51,6 +50,11 @@ void SceneScriptHF01::InitializeScene() {
 		Scene_Exit_Add_2D_Exit(2, 560, 231, 639, 360, 0);
 		if (Game_Flag_Query(kFlagSpinnerAtHF01)) {
 			Scene_Exit_Add_2D_Exit(3, 0, 311, 66, 417, 2);
+			if (_vm->_cutContent) {
+				// improve hotspot for Spinner in HF01
+				Scene_Exit_Add_2D_Exit(4,  66, 335, 140, 410, 2);
+				Scene_Exit_Add_2D_Exit(5, 140, 350, 230, 390, 2);
+			}
 		}
 	}
 
@@ -210,7 +214,8 @@ bool SceneScriptHF01::ClickedOnExit(int exitId) {
 		return true;
 	}
 
-	if (exitId == 3) {
+	if (exitId == 3
+	    || (_vm->_cutContent && (exitId == 4 || exitId == 5))) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, 100.0f, 0.0f, -260.0f, 0, true, false, false)) {
 			Game_Flag_Reset(kFlagMcCoyInChinaTown);
 			Game_Flag_Reset(kFlagMcCoyInRunciters);
@@ -404,7 +409,7 @@ void SceneScriptHF01::PlayerWalkedIn() {
 
 void SceneScriptHF01::PlayerWalkedOut() {
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 
 	if (!Game_Flag_Query(kFlagHF01toHF05)
 	 && !Game_Flag_Query(kFlagHF01toHF02)

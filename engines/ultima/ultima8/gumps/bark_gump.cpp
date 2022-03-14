@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,60 +15,67 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
+#include "common/config-manager.h"
+
 #include "ultima/ultima8/gumps/bark_gump.h"
 #include "ultima/ultima8/gumps/widgets/text_widget.h"
 #include "ultima/ultima8/kernel/kernel.h"
 #include "ultima/ultima8/audio/audio_process.h"
 #include "ultima/ultima8/world/get_object.h"
-#include "ultima/ultima8/conf/setting_manager.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(BarkGump, ItemRelativeGump)
+static const int INT_MAX_VALUE = 0x7fffffff;
+static const int NO_SPEECH_LENGTH = 480;
+
+DEFINE_RUNTIME_CLASSTYPE_CODE(BarkGump)
 
 // TODO: Remove all the hacks
 
 BarkGump::BarkGump() : ItemRelativeGump(), _counter(0), _textWidget(0),
-		_speechShapeNum(0), _speechLength(0), _totalTextHeight(0) {
+		_speechShapeNum(0), _speechLength(0), _totalTextHeight(0),
+		_subtitles(false), _speechMute(false), _talkSpeed(0) {
+	_subtitles = ConfMan.getBool("subtitles");
+	_speechMute = ConfMan.getBool("speech_mute");
+	_talkSpeed = ConfMan.getInt("talkspeed");
 }
 
 BarkGump::BarkGump(uint16 owner, const Std::string &msg, uint32 speechShapeNum) :
 	ItemRelativeGump(0, 0, 100, 100, owner, FLAG_KEEP_VISIBLE, LAYER_ABOVE_NORMAL),
 	_barked(msg), _counter(100), _speechShapeNum(speechShapeNum),
-	_speechLength(0), _totalTextHeight(0), _textWidget(0) {
-	SettingManager::get_instance()->get("textdelay", _textDelay);
+	_speechLength(0), _totalTextHeight(0), _textWidget(0),
+	_subtitles(false), _speechMute(false), _talkSpeed(0) {
+	_subtitles = ConfMan.getBool("subtitles");
+	_speechMute = ConfMan.getBool("speech_mute");
+	_talkSpeed = ConfMan.getInt("talkspeed");
 }
 
 BarkGump::~BarkGump(void) {
 }
 
-void BarkGump::InitGump(Gump *newparent, bool take_focus) {
+int BarkGump::dialogFontForActor(uint16 actor) {
 	// OK, this is a bit of a hack, but it's how it has to be
-	int fontnum;
-	if (_owner == 1) fontnum = 6;
-	else if (_owner > 256) fontnum = 8;
-	else switch (_owner % 3) {
-		case 1:
-			fontnum = 5;
-			break;
+	if (actor == 1)
+		return 6;
+	if (actor > 256)
+		return 8;
+	switch (actor % 3) {
+	case 1:
+		return 5;
+	case 2:
+		return 7;
+	default:
+		return 0;
+	}
+}
 
-		case 2:
-			fontnum = 7;
-			break;
-
-		default:
-			fontnum = 0;
-			break;
-		}
+void BarkGump::InitGump(Gump *newparent, bool take_focus) {
+	int fontnum = dialogFontForActor(_owner);
 
 	// This is a hack. We init the gump twice...
 	ItemRelativeGump::InitGump(newparent, take_focus);
@@ -82,7 +89,7 @@ void BarkGump::InitGump(Gump *newparent, bool take_focus) {
 	// see if we need to play speech
 	AudioProcess *ap = AudioProcess::get_instance();
 	_speechLength = 0;
-	if (_speechShapeNum && ap) {
+	if (!_speechMute && _speechShapeNum && ap) {
 		if (ap->playSpeech(_barked, _speechShapeNum, _owner)) {
 			_speechLength = ap->getSpeechLength(_barked, _speechShapeNum) / 33;
 			if (_speechLength == 0) _speechLength = 1;
@@ -91,12 +98,16 @@ void BarkGump::InitGump(Gump *newparent, bool take_focus) {
 			// First we count the total height of all text blocks.
 			Rect d;
 			widget->GetDims(d);
-			_totalTextHeight = d.h;
+			_totalTextHeight = d.height();
 			while (widget->setupNextText()) {
 				widget->GetDims(d);
-				_totalTextHeight += d.h;
+				_totalTextHeight += d.height();
 			}
 			widget->rewind();
+
+			if (!_subtitles) {
+				widget->SetVisibility(false);
+			}
 		}
 	}
 
@@ -104,31 +115,37 @@ void BarkGump::InitGump(Gump *newparent, bool take_focus) {
 	Rect d;
 	widget->GetDims(d);
 	if (_speechLength && _totalTextHeight) {
-		_counter = (d.h * _speechLength) / _totalTextHeight;
-	} else {
-		_counter = d.h * _textDelay;
+		_counter = (d.height() * _speechLength) / _totalTextHeight;
+	} else if (_talkSpeed) {
+		_counter = (d.height() * NO_SPEECH_LENGTH) / _talkSpeed;
 	}
-	_dims.h = d.h;
-	_dims.w = d.w;
+	else {
+		_counter = INT_MAX_VALUE;
+	}
+	_dims.setHeight(d.height());
+	_dims.setWidth(d.width());
 
 	// Wait with ItemRelativeGump initialization until we calculated our size.
 	ItemRelativeGump::InitGump(newparent, take_focus);
 }
 
 bool BarkGump::NextText() {
-	TextWidget *widget = p_dynamic_cast<TextWidget *>(getGump(_textWidget));
+	TextWidget *widget = dynamic_cast<TextWidget *>(getGump(_textWidget));
 	assert(widget);
 	if (widget->setupNextText()) {
 		// This is just a hack
 		Rect d;
 		widget->GetDims(d);
 		if (_speechLength && _totalTextHeight) {
-			_counter = (d.h * _speechLength) / _totalTextHeight;
-		} else {
-			_counter = d.h * _textDelay;
+			_counter = (d.height() * _speechLength) / _totalTextHeight;
+		} else if (_talkSpeed) {
+			_counter = (d.height() * NO_SPEECH_LENGTH) / _talkSpeed;
 		}
-		_dims.h = d.h;
-		_dims.w = d.w;
+		else {
+			_counter = INT_MAX_VALUE;
+		}
+		_dims.setHeight(d.height());
+		_dims.setWidth(d.width());
 		return true;
 	}
 
@@ -145,7 +162,7 @@ void BarkGump::run() {
 			bool done = !NextText();
 			if (done) {
 				bool speechplaying = false;
-				if (_speechLength) {
+				if (!_speechMute && _speechLength) {
 					// waiting for speech to finish?
 					AudioProcess *ap = AudioProcess::get_instance();
 					if (ap)
@@ -156,20 +173,22 @@ void BarkGump::run() {
 				// if speech done too, close
 				if (!speechplaying)
 					Close();
+				else if (_talkSpeed)
+					_counter = NO_SPEECH_LENGTH / _talkSpeed;
 				else
-					_counter = _textDelay;
+					_counter = INT_MAX_VALUE;
 			}
 		}
 	}
 }
 
-Gump *BarkGump::OnMouseDown(int button, int32 mx, int32 my) {
-	Gump *g = ItemRelativeGump::OnMouseDown(button, mx, my);
+Gump *BarkGump::onMouseDown(int button, int32 mx, int32 my) {
+	Gump *g = ItemRelativeGump::onMouseDown(button, mx, my);
 	if (g) return g;
 
 	// Scroll to next text, if possible
 	if (!NextText()) {
-		if (_speechLength) {
+		if (!_speechMute && _speechLength) {
 			AudioProcess *ap = AudioProcess::get_instance();
 			if (ap) ap->stopSpeech(_barked, _speechShapeNum, _owner);
 		}
@@ -178,31 +197,31 @@ Gump *BarkGump::OnMouseDown(int button, int32 mx, int32 my) {
 	return this;
 }
 
-void BarkGump::saveData(ODataSource *ods) {
-	ItemRelativeGump::saveData(ods);
+void BarkGump::saveData(Common::WriteStream *ws) {
+	ItemRelativeGump::saveData(ws);
 
-	ods->write4(static_cast<uint32>(_counter));
-	ods->write2(_textWidget);
-	ods->write4(_speechShapeNum);
-	ods->write4(_speechLength);
-	ods->write4(_totalTextHeight);
-	ods->write4(static_cast<uint32>(_barked.size()));
-	ods->write(_barked.c_str(), _barked.size());
+	ws->writeUint32LE(static_cast<uint32>(_counter));
+	ws->writeUint16LE(_textWidget);
+	ws->writeUint32LE(_speechShapeNum);
+	ws->writeUint32LE(_speechLength);
+	ws->writeUint32LE(_totalTextHeight);
+	ws->writeUint32LE(static_cast<uint32>(_barked.size()));
+	ws->write(_barked.c_str(), _barked.size());
 }
 
-bool BarkGump::loadData(IDataSource *ids, uint32 version) {
-	if (!ItemRelativeGump::loadData(ids, version)) return false;
+bool BarkGump::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!ItemRelativeGump::loadData(rs, version)) return false;
 
-	_counter = static_cast<int32>(ids->read4());
-	_textWidget = ids->read2();
-	_speechShapeNum = ids->read4();
-	_speechLength = ids->read4();
-	_totalTextHeight = ids->read4();
+	_counter = static_cast<int32>(rs->readUint32LE());
+	_textWidget = rs->readUint16LE();
+	_speechShapeNum = rs->readUint32LE();
+	_speechLength = rs->readUint32LE();
+	_totalTextHeight = rs->readUint32LE();
 
-	uint32 slen = ids->read4();
+	uint32 slen = rs->readUint32LE();
 	if (slen > 0) {
 		char *buf = new char[slen + 1];
-		ids->read(buf, slen);
+		rs->read(buf, slen);
 		buf[slen] = 0;
 		_barked = buf;
 		delete[] buf;
@@ -210,17 +229,23 @@ bool BarkGump::loadData(IDataSource *ids, uint32 version) {
 		_barked = "";
 	}
 
-
-	TextWidget *widget = p_dynamic_cast<TextWidget *>(getGump(_textWidget));
-
-	SettingManager::get_instance()->get("textdelay", _textDelay);
+	TextWidget *widget = dynamic_cast<TextWidget *>(getGump(_textWidget));
+	if (!widget)
+		return false;
 
 	// This is just a hack
 	Rect d;
 	widget->GetDims(d);
-	_counter = d.h * _textDelay;
-	_dims.h = d.h;
-	_dims.w = d.w;
+	_dims.setHeight(d.height());
+	_dims.setWidth(d.width());
+
+	_subtitles = ConfMan.getBool("subtitles");
+	_speechMute = ConfMan.getBool("speech_mute");
+	_talkSpeed = ConfMan.getInt("talkspeed");
+	if (_talkSpeed)
+		_counter = (d.height() * NO_SPEECH_LENGTH) / _talkSpeed;
+	else
+		_counter = INT_MAX_VALUE;
 
 	return true;
 }

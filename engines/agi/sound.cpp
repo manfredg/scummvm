@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,8 +46,8 @@ SoundGen::~SoundGen() {
 //
 
 AgiSound *AgiSound::createFromRawResource(uint8 *data, uint32 len, int resnum, int soundemu) {
-	if (data == NULL || len < 2) // Check for too small resource or no resource at all
-		return NULL;
+	if (data == nullptr || len < 2) // Check for too small resource or no resource at all
+		return nullptr;
 	uint16 type = READ_LE_UINT16(data);
 
 	// For V1 sound resources
@@ -71,7 +70,7 @@ AgiSound *AgiSound::createFromRawResource(uint8 *data, uint32 len, int resnum, i
 	}
 
 	warning("Sound resource (%d) has unknown type (0x%04x). Not using the sound", resnum, type);
-	return NULL;
+	return nullptr;
 }
 
 PCjrSound::PCjrSound(uint8 *data, uint32 len, int resnum) : AgiSound() {
@@ -83,7 +82,7 @@ PCjrSound::PCjrSound(uint8 *data, uint32 len, int resnum) : AgiSound() {
 	if ((_type & 0xFF) == 0x01)
 		_type = AGI_SOUND_4CHN;
 
-	_isValid = (_type == AGI_SOUND_4CHN) && (_data != NULL) && (_len >= 2);
+	_isValid = (_type == AGI_SOUND_4CHN) && (_data != nullptr) && (_len >= 2);
 
 	if (!_isValid) // Check for errors
 		warning("Error creating PCjr 4-channel sound from resource %d (Type %d, length %d)", resnum, _type, len);
@@ -115,7 +114,7 @@ void SoundMgr::unloadSound(int resnum) {
 
 		// Release the sound resource's data
 		delete _vm->_game.sounds[resnum];
-		_vm->_game.sounds[resnum] = NULL;
+		_vm->_game.sounds[resnum] = nullptr;
 		_vm->_game.dirSound[resnum].flags &= ~RES_LOADED;
 	}
 }
@@ -132,7 +131,7 @@ void SoundMgr::unloadSound(int resnum) {
 void SoundMgr::startSound(int resnum, int flag) {
 	debugC(3, kDebugLevelSound, "startSound(resnum = %d, flag = %d)", resnum, flag);
 
-	if (_vm->_game.sounds[resnum] == NULL) // Is this needed at all?
+	if (_vm->_game.sounds[resnum] == nullptr) // Is this needed at all?
 		return;
 
 	stopSound();

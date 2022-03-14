@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,12 +45,14 @@ bool ResourceContext::loadResV1(uint32 contextOffset, uint32 contextSize) {
 	ResourceData *resourceData;
 
 	if (contextSize < RSC_MIN_FILESIZE) {
+		warning("ResourceContext::loadResV1(): Incorrect contextSize: %d < %d", contextSize, RSC_MIN_FILESIZE);
 		return false;
 	}
 
 	_file.seek(contextOffset + contextSize - RSC_TABLEINFO_SIZE);
 
 	if (_file.read(tableInfo, RSC_TABLEINFO_SIZE) != RSC_TABLEINFO_SIZE) {
+		warning("ResourceContext::loadResV1(): Incorrect table size: %d for %s", RSC_TABLEINFO_SIZE, _fileName);
 		return false;
 	}
 
@@ -62,6 +63,9 @@ bool ResourceContext::loadResV1(uint32 contextOffset, uint32 contextSize) {
 
 	// Check for sane table offset
 	if (resourceTableOffset != contextSize - RSC_TABLEINFO_SIZE - RSC_TABLEENTRY_SIZE * count) {
+		warning("ResourceContext::loadResV1(): Incorrect tables offset: %d != %d for %s, endian is %d",
+			resourceTableOffset, contextSize - RSC_TABLEINFO_SIZE - RSC_TABLEENTRY_SIZE * count,
+			_fileName, _isBigEndian);
 		return false;
 	}
 
@@ -92,7 +96,7 @@ bool ResourceContext::loadResV1(uint32 contextOffset, uint32 contextSize) {
 }
 
 bool ResourceContext::load(SagaEngine *vm, Resource *resource) {
-	if (_fileName == NULL) // IHNM special case
+	if (_fileName == nullptr) // IHNM special case
 		return true;
 
 	if (!_file.open(_fileName))
@@ -164,7 +168,8 @@ bool Resource::createContexts() {
 
 	for (const ADGameFileDescription *gameFileDescription = _vm->getFilesDescriptions();
 		gameFileDescription->fileName; gameFileDescription++) {
-		addContext(gameFileDescription->fileName, gameFileDescription->fileType);
+		if (gameFileDescription->fileType > 0)
+			addContext(gameFileDescription->fileName, gameFileDescription->fileType);
 		if (gameFileDescription->fileType == GAME_SOUNDFILE) {
 			soundFileInArray = true;
 		}
@@ -180,10 +185,6 @@ bool Resource::createContexts() {
 		{	GID_IHNM,	"sfx.res",			false,	0	},
 		{	GID_IHNM,	"sfx.cmp",			true,	0	},
 #endif
-#ifdef ENABLE_SAGA2
-		{	GID_FTA2,	"ftasound.hrs",		false,	0	},
-		{	GID_DINO,	"dinosnd.hrs",		false,	0	},
-#endif
 		{	-1,			"",				false,	0	}
 	};
 
@@ -193,7 +194,11 @@ bool Resource::createContexts() {
 			if (curSoundFile->gameId != _vm->getGameId()) continue;
 			if (!Common::File::exists(curSoundFile->fileName)) continue;
 			strcpy(_soundFileName, curSoundFile->fileName);
-			addContext(_soundFileName, GAME_SOUNDFILE, curSoundFile->isCompressed);
+			uint32 flags = GAME_SOUNDFILE;
+
+			if (_vm->getFeatures() & GF_SOME_MAC_RESOURCES)
+				flags |= GAME_SWAPENDIAN;
+			addContext(_soundFileName, flags, curSoundFile->isCompressed);
 			break;
 		}
 	}
@@ -215,9 +220,6 @@ bool Resource::createContexts() {
 		{	GID_IHNM,	"voicess.cmp",					true	,	0},
 		{	GID_IHNM,	"voicesd.res",					false	,	0},
 		{	GID_IHNM,	"voicesd.cmp",					true	,	0},
-#endif
-#ifdef ENABLE_SAGA2
-		{	GID_FTA2,	"ftavoice.hrs",					false	,	0},
 #endif
 		{	-1,			"",							false	,	0}
 	};
@@ -282,12 +284,17 @@ bool Resource::createContexts() {
 		if (curSoundFile->gameId != _vm->getGameId()) continue;
 		if (!Common::File::exists(curSoundFile->fileName)) continue;
 		strcpy(_musicFileName, curSoundFile->fileName);
-		addContext(_musicFileName, GAME_DIGITALMUSICFILE, curSoundFile->isCompressed);
+		uint32 flags = GAME_DIGITALMUSICFILE;
+
+		if (_vm->getFeatures() & GF_SOME_MAC_RESOURCES)
+			flags |= GAME_SWAPENDIAN;
+		addContext(_musicFileName, flags, curSoundFile->isCompressed);
 		break;
 	}
 
 	for (ResourceContextList::iterator i = _contexts.begin(); i != _contexts.end(); ++i) {
 		if (!(*i)->load(_vm, this)) {
+			warning("Cannot load context %s", (*i)->_fileName);
 			return false;
 		}
 	}
@@ -320,7 +327,7 @@ void Resource::loadResource(ResourceContext *context, uint32 resourceId, ByteArr
 	// ITE uses several patch files which are loaded and then not needed
 	// anymore (as they're in memory), so close them here. IHNM uses only
 	// 1 patch file, which is reused, so don't close it
-	if (resourceData->patchData != NULL && _vm->getGameId() == GID_ITE)
+	if (resourceData->patchData != nullptr && _vm->getGameId() == GID_ITE)
 		file->close();
 }
 
@@ -331,7 +338,7 @@ ResourceContext *Resource::getContext(uint16 fileType, int serial) {
 			return context;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 } // End of namespace Saga

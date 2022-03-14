@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "sci/sci.h"
 
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/sound/drivers/mididriver.h"
 #include "sci/util.h"
 
@@ -146,8 +145,8 @@ private:
 	byte _sysExBuf[kMaxSysExSize];
 };
 
-MidiPlayer_Fb01::MidiPlayer_Fb01(SciVersion version) : MidiPlayer(version), _playSwitch(true), _masterVolume(15), _timerParam(NULL), _timerProc(NULL),
-	_numParts(version > SCI_VERSION_0_LATE ? kVoices : 0), _isOpen(false), _missingFiles(0) {
+MidiPlayer_Fb01::MidiPlayer_Fb01(SciVersion version) : MidiPlayer(version), _playSwitch(true), _masterVolume(15), _timerParam(nullptr), _timerProc(nullptr),
+	_numParts(version > SCI_VERSION_0_LATE ? kVoices : 0), _isOpen(false), _missingFiles(nullptr) {
 	MidiDriver::DeviceHandle dev = MidiDriver::detectDevice(MDT_MIDI);
 	_driver = MidiDriver::createMidi(dev);
 
@@ -157,7 +156,7 @@ MidiPlayer_Fb01::MidiPlayer_Fb01(SciVersion version) : MidiPlayer(version), _pla
 
 MidiPlayer_Fb01::~MidiPlayer_Fb01() {
 	if (_driver)
-		_driver->setTimerCallback(NULL, NULL);
+		_driver->setTimerCallback(nullptr, nullptr);
 	close();
 	delete _driver;
 }
@@ -520,7 +519,7 @@ void MidiPlayer_Fb01::midiTimerCallback(void *p) {
 }
 
 void MidiPlayer_Fb01::setTimerCallback(void *timer_param, Common::TimerManager::TimerProc timer_proc) {
-	_driver->setTimerCallback(NULL, NULL);
+	_driver->setTimerCallback(nullptr, nullptr);
 
 	_timerParam = timer_param;
 	_timerProc = timer_proc;
@@ -554,7 +553,7 @@ void MidiPlayer_Fb01::sendBanks(const SciSpan<const byte> &data) {
 }
 
 int MidiPlayer_Fb01::open(ResourceManager *resMan) {
-	assert(resMan != NULL);
+	assert(resMan != nullptr);
 
 	int retval = _driver->open();
 	if (retval != 0) {
@@ -630,7 +629,7 @@ int MidiPlayer_Fb01::open(ResourceManager *resMan) {
 
 void MidiPlayer_Fb01::close() {
 	if (_driver)
-		_driver->setTimerCallback(NULL, NULL);
+		_driver->setTimerCallback(nullptr, nullptr);
 	_isOpen = false;
 	if (_driver)
 		_driver->close();
@@ -680,7 +679,7 @@ void MidiPlayer_Fb01::initTrack(SciSpan<const byte>& header) {
 		setVoiceParam(i, 1, _voices[i].channel);
 
 	initVoices();
-	
+
 	setVolume(_masterVolume);
 }
 
@@ -783,7 +782,6 @@ void MidiPlayer_Fb01::sysEx(const byte *msg, uint16 length) {
 	delay += 10;
 
 	g_system->delayMillis(delay);
-	g_system->updateScreen();
 }
 
 byte MidiPlayer_Fb01::getPlayId() const {

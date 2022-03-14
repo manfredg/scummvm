@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -95,7 +94,7 @@ private:
 	int connect_to_server(const char* hostname, const char* tcp_port);
 
 	/* send command to the server; printf-like; returns reply string */
-	char *timidity_ctl_command(const char *fmt, ...) GCC_PRINTF(2, 3);
+	char *timidity_ctl_command(MSVC_PRINTF const char *fmt, ...) GCC_PRINTF(2, 3);
 
 	/* timidity data socket-related stuff */
 	void timidity_meta_seq(int p1, int p2, int p3);
@@ -352,7 +351,7 @@ void MidiDriver_TIMIDITY::timidity_meta_seq(int p1, int p2, int p3) {
 	/* see _CHN_COMMON from soundcard.h; this is simplified
 	 * to just send seq to the server without any buffers,
 	 * delays and extra functions/macros */
-	u_char seqbuf[8];
+	unsigned char seqbuf[8];
 
 	seqbuf[0] = 0x92;
 	seqbuf[1] = 0;

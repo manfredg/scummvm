@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,11 @@ class MapGlob;
 class Shape;
 class MusicFlex;
 class WpnOvlayDat;
+class NPCDat;
+class CombatDat;
+class FireType;
 class ShapeFrame;
+class WeaselDat;
 class SoundFlex;
 class SpeechFlex;
 struct GameInfo;
@@ -73,7 +76,7 @@ public:
 	GumpShapeArchive *getGumps() const {
 		return _gumps;
 	}
-	Shape *getMouse() const {
+	const Shape *getMouse() const {
 		return _mouse;
 	}
 	MusicFlex *getMusic() const {
@@ -89,9 +92,18 @@ public:
 
 	ShapeArchive *getShapeFlex(uint16 flexId) const;
 	Shape *getShape(FrameID frameid) const;
-	ShapeFrame *getFrame(FrameID frameid) const;
+	const ShapeFrame *getFrame(FrameID frameid) const;
 
-	Std::string translate(Std::string text);
+	const NPCDat *getNPCData(uint16 entry) const;
+	const NPCDat *getNPCDataForShape(uint16 shapeno) const;
+
+	const CombatDat *getCombatDat(uint16 entry) const;
+
+	const FireType *getFireType(uint16 type) const;
+
+	const WeaselDat *getWeaselDat(uint16 level) const;
+
+	Std::string translate(const Std::string &text);
 	FrameID translate(FrameID frame);
 
 	enum ShapeFlexId {
@@ -101,7 +113,7 @@ public:
 	};
 private:
 	void loadTranslation();
-	void setupTTFOverrides(const char *configkey, bool SJIS);
+	void setupTTFOverrides(const char *category, bool SJIS);
 	void setupJPOverrides();
 
 	RawArchive *_fixed;
@@ -113,6 +125,9 @@ private:
 	Shape *_mouse;
 	MusicFlex *_music;
 	WpnOvlayDat *_weaponOverlay;
+	Std::vector<NPCDat *> _npcTable;
+	Std::vector<CombatDat *> _combatData;
+	Std::vector<WeaselDat *> _weaselData;
 
 	SoundFlex *_soundFlex;
 	Std::vector<SpeechFlex **> _speech;

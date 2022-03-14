@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,47 +15,30 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "made/made.h"
-#include "made/detection_tables.h"
-
+#include "base/plugins.h"
 #include "engines/advancedDetector.h"
 
-namespace Made {
+#include "made/detection.h"
 
-uint32 MadeEngine::getGameID() const {
-	return _gameDescription->gameID;
-}
-
-uint32 MadeEngine::getFeatures() const {
-	return _gameDescription->features;
-}
-
-Common::Platform MadeEngine::getPlatform() const {
-	return _gameDescription->desc.platform;
-}
-
-uint16 MadeEngine::getVersion() const {
-	return _gameDescription->version;
-}
-
-}
+#include "common/config-manager.h"
 
 static const PlainGameDescriptor madeGames[] = {
 	{"manhole", "The Manhole"},
 	{"rtz", "Return to Zork"},
 	{"lgop2", "Leather Goddesses of Phobos 2"},
 	{"rodney", "Rodney's Funscreen"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
-class MadeMetaEngine : public AdvancedMetaEngine {
+#include "made/detection_tables.h"
+
+class MadeMetaEngineDetection : public AdvancedMetaEngineDetection {
 public:
-	MadeMetaEngine() : AdvancedMetaEngine(Made::gameDescriptions, sizeof(Made::MadeGameDescription), madeGames) {
+	MadeMetaEngineDetection() : AdvancedMetaEngineDetection(Made::gameDescriptions, sizeof(Made::MadeGameDescription), madeGames) {
 	}
 
 	const char *getEngineId() const override {
@@ -70,32 +53,30 @@ public:
 		return "MADE Engine (C) Activision";
 	}
 
-	bool hasFeature(MetaEngineFeature f) const override;
-	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	const ExtraGuiOptions getExtraGuiOptions(const Common::String &target) const override;
 
-	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const override;
-
+	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist, ADDetectedGameExtraInfo **extra) const override;
 };
 
-bool MadeMetaEngine::hasFeature(MetaEngineFeature f) const {
-	return
-		false;
-}
+static const ExtraGuiOption introMusicDigital = {
+	_s("Play a digital soundtrack during the opening movie"),
+	_s("If selected, the game will use a digital soundtrack during the introduction. Otherwise, it will play MIDI music."),
+	"intro_music_digital",
+	true
+};
 
-bool Made::MadeEngine::hasFeature(EngineFeature f) const {
-	return
-		(f == kSupportsRTL);
-}
+const ExtraGuiOptions MadeMetaEngineDetection::getExtraGuiOptions(const Common::String &target) const {
+	const Common::String gameid = ConfMan.get("gameid", target);
+	const Common::String extra = ConfMan.get("extra", target);
 
-bool MadeMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	const Made::MadeGameDescription *gd = (const Made::MadeGameDescription *)desc;
-	if (gd) {
-		*engine = new Made::MadeEngine(syst, gd);
+	ExtraGuiOptions options;
+	if (target.empty() || (gameid == "rtz" && extra.contains("CD"))) {
+		options.push_back(introMusicDigital);
 	}
-	return gd != 0;
+	return options;
 }
 
-ADDetectedGame MadeMetaEngine::fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const {
+ADDetectedGame MadeMetaEngineDetection::fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist, ADDetectedGameExtraInfo **extra) const {
 	// Set the default values for the fallback descriptor's ADGameDescription part.
 	Made::g_fallbackDesc.desc.language = Common::UNK_LANG;
 	Made::g_fallbackDesc.desc.platform = Common::kPlatformDOS;
@@ -110,8 +91,4 @@ ADDetectedGame MadeMetaEngine::fallbackDetect(const FileMap &allFiles, const Com
 	return ADDetectedGame();
 }
 
-#if PLUGIN_ENABLED_DYNAMIC(MADE)
-	REGISTER_PLUGIN_DYNAMIC(MADE, PLUGIN_TYPE_ENGINE, MadeMetaEngine);
-#else
-	REGISTER_PLUGIN_STATIC(MADE, PLUGIN_TYPE_ENGINE, MadeMetaEngine);
-#endif
+REGISTER_PLUGIN_STATIC(MADE_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, MadeMetaEngineDetection);

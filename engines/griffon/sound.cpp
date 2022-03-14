@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  *              Originally written by Syn9 in FreeBASIC with SDL
@@ -46,7 +45,8 @@
 namespace Griffon {
 
 void GriffonEngine::setChannelVolume(int channel, int volume) {
-	_mixer->setChannelVolume(_handles[channel], volume);
+	if (channel >= 0 && channel < kSoundHandles)
+		_mixer->setChannelVolume(_handles[channel], volume);
 }
 
 int GriffonEngine::getSoundHandle() {
@@ -56,24 +56,23 @@ int GriffonEngine::getSoundHandle() {
 		}
 	}
 
-	error("getSoundHandle(): Too many sound handles");
-
 	return -1;
 }
 
 int GriffonEngine::playSound(DataChunk *chunk, bool looped) {
-	int ch = getSoundHandle();
+	int ch = -1;
 
 #ifdef USE_VORBIS
-	Audio::SeekableAudioStream *audioStream = Audio::makeVorbisStream(new Common::MemoryReadStream(chunk->data, chunk->size), DisposeAfterUse::YES);
+	if ((ch = getSoundHandle()) != -1) {
+		Audio::SeekableAudioStream *audioStream = Audio::makeVorbisStream(new Common::MemoryReadStream(chunk->data, chunk->size), DisposeAfterUse::YES);
 
+		if (looped) {
+			Audio::AudioStream *loopingStream = new Audio::LoopingAudioStream(audioStream, 0, DisposeAfterUse::YES);
+			_mixer->playStream(Audio::Mixer::kSFXSoundType, &_handles[ch], loopingStream, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::YES, false, false);
 
-	if (looped) {
-		Audio::AudioStream *loopingStream = new Audio::LoopingAudioStream(audioStream, 0, DisposeAfterUse::YES);
-		_mixer->playStream(Audio::Mixer::kSFXSoundType, &_handles[ch], loopingStream, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::YES, false, false);
-
-	} else {
-		_mixer->playStream(Audio::Mixer::kSFXSoundType, &_handles[ch], audioStream, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::YES, false, false);
+		} else {
+			_mixer->playStream(Audio::Mixer::kSFXSoundType, &_handles[ch], audioStream, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::YES, false, false);
+		}
 	}
 #endif // USE_VORBIS
 
@@ -81,24 +80,26 @@ int GriffonEngine::playSound(DataChunk *chunk, bool looped) {
 }
 
 void GriffonEngine::pauseSoundChannel(int channel) {
-	_mixer->pauseHandle(_handles[channel], true);
+	if (channel >= 0 && channel < kSoundHandles)
+		_mixer->pauseHandle(_handles[channel], true);
 }
 
 void GriffonEngine::haltSoundChannel(int channel) {
 	if (channel == -1) {
 		for (int i = 0; i < kSoundHandles; i++)
 			_mixer->stopHandle(_handles[i]);
-	} else {
+	} else if (channel >= 0 && channel < kSoundHandles) {
 		_mixer->stopHandle(_handles[channel]);
 	}
 }
 
 void GriffonEngine::resumeSoundChannel(int channel) {
-	_mixer->pauseHandle(_handles[channel], false);
+	if (channel >= 0 && channel < kSoundHandles)
+		_mixer->pauseHandle(_handles[channel], false);
 }
 
 bool GriffonEngine::isSoundChannelPlaying(int channel) {
-	return _mixer->isSoundHandleActive(_handles[channel]);
+	return (channel >= 0 && channel < kSoundHandles) ? _mixer->isSoundHandleActive(_handles[channel]) : false;
 }
 
 DataChunk *cacheSound(const char *name) {
@@ -131,8 +132,7 @@ void GriffonEngine::setupAudio() {
 	rcDest.left = 160 - 44;
 	rcDest.top = 116 + 12;
 
-	loadimg->setAlpha(160, true); // 128
-	loadimg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+	loadimg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(160, 255, 255, 255));
 
 	g_system->copyRectToScreen(_videoBuffer->getPixels(), _videoBuffer->pitch, 0, 0, _videoBuffer->w, _videoBuffer->h);
 	g_system->updateScreen();
@@ -190,7 +190,7 @@ void GriffonEngine::setupAudio() {
 void GriffonEngine::updateMusic() {
 	static int loopseta = 0;
 
-	DataChunk *iplaysound = NULL;
+	DataChunk *iplaysound = nullptr;
 
 	if (config.music) {
 		// if(_curmap > 5 && _curmap < 42) iplaysound = macademy;
@@ -200,11 +200,11 @@ void GriffonEngine::updateMusic() {
 			iplaysound = _musicBoss;
 
 		if (iplaysound == _musicBoss && _playingBoss)
-			iplaysound = NULL;
+			iplaysound = nullptr;
 		if (iplaysound == _musicGardens1 && _playingGardens)
-			iplaysound = NULL;
+			iplaysound = nullptr;
 
-		if (iplaysound != NULL) {
+		if (iplaysound != nullptr) {
 			haltSoundChannel(_musicChannel);
 
 			_playingBoss = (iplaysound == _musicBoss);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 namespace BladeRunner {
 
 AIScriptDektora::AIScriptDektora(BladeRunnerEngine *vm) : AIScriptBase(vm) {
-	_flag = false;
+	_resumeIdleAfterFramesetCompletesFlag = false;
 	_x = _y = _z = 0.0f;
 }
 
@@ -35,7 +34,7 @@ void AIScriptDektora::Initialize() {
 	_animationStateNext = 0;
 	_animationNext = 0;
 
-	_flag = false;
+	_resumeIdleAfterFramesetCompletesFlag = false;
 	_x = _y = _z = 0.0f;
 
 	Actor_Set_Goal_Number(kActorDektora, kGoalDektoraDefault);
@@ -118,8 +117,8 @@ bool AIScriptDektora::Update() {
 	}
 
 	if (chapter == 4) {
-		if (Actor_Query_Goal_Number(kActorDektora) < 300) {
-			Actor_Set_Goal_Number(kActorDektora, 300);
+		if (Actor_Query_Goal_Number(kActorDektora) < kGoalDektoraStartAct4StashedAway) {
+			Actor_Set_Goal_Number(kActorDektora, kGoalDektoraStartAct4StashedAway);
 		}
 		return true;
 	}
@@ -219,7 +218,6 @@ void AIScriptDektora::ClickedByPlayer() {
 	if (Actor_Query_Goal_Number(kActorDektora) == kGoalDektoraGone) {
 		Actor_Face_Actor(0, kActorDektora, true);
 		Actor_Says(kActorMcCoy, 8630, 12);  // What a waste
-
 		return; //true;
 	}
 
@@ -232,9 +230,11 @@ void AIScriptDektora::ClickedByPlayer() {
 		Game_Flag_Set(kFlagNR08TouchedDektora);
 		AI_Movement_Track_Flush(kActorHanoi);
 		Actor_Force_Stop_Walking(kActorMcCoy);
+#if BLADERUNNER_ORIGINAL_BUGS
+		// this is a redundant call
 		Player_Loses_Control();
+#endif
 		Actor_Set_Goal_Number(kActorHanoi, kGoalHanoiThrowOutMcCoy);
-
 		return; //true;
 	}
 
@@ -277,13 +277,15 @@ bool AIScriptDektora::ShotAtAndHit() {
 		Actor_Set_Health(kActorDektora, 100, 100);
 		if (_vm->_cutContent) {
 		// add hit sounds with small probability
-		switch (Random_Query(1, 10)) {
+			switch (Random_Query(1, 10)) {
 			case 1:
 				Sound_Play_Speech_Line(kActorDektora, 9000, 65, 0, 99);
 				break;
+
 			case 2:
 				Sound_Play_Speech_Line(kActorDektora, 9005, 65, 0, 99);
 				break;
+
 			default:
 				break;
 			}
@@ -343,7 +345,7 @@ void AIScriptDektora::Retired(int byActorId) {
 			Player_Set_Combat_Mode(false);
 			Loop_Actor_Walk_To_XYZ(kActorMcCoy, -12.0f, -41.58f, 72.0f, 0, true, false, false);
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagKP07toKP06);
 			Game_Flag_Reset(kFlagMcCoyIsHelpingReplicants);
 			Set_Enter(kSetKP05_KP06, kSceneKP06);
@@ -572,6 +574,11 @@ bool AIScriptDektora::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 
 	case kGoalDektoraNR11RanAway:
 		Game_Flag_Set(kFlagDektoraRanAway);
+#if !BLADERUNNER_ORIGINAL_BUGS
+		// This will teleport Dektora out of the NR11 scene
+		// and remove the awry target hotspot at the region where she left
+		Actor_Set_Goal_Number(kActorDektora, kGoalDektoraStartAct4StashedAway);
+#endif // !BLADERUNNER_ORIGINAL_BUGS
 		break;
 
 	case 299:
@@ -580,10 +587,10 @@ bool AIScriptDektora::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 		Actor_Set_Goal_Number(kActorDektora, kGoalDektoraGone);
 		break;
 
-	case 300:
+	case kGoalDektoraStartAct4StashedAway:
 		AI_Movement_Track_Flush(kActorDektora);
 		Actor_Put_In_Set(kActorDektora, kSetFreeSlotA);
-		Actor_Set_At_Waypoint(kActorDektora, 33, 0);
+		Actor_Set_At_Waypoint(kActorDektora, 33, 0); // in kSetFreeSlotA
 		break;
 
 	default:
@@ -605,15 +612,14 @@ bool AIScriptDektora::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 1:
-		*animation = 19;
+		// Dummy placeholder, kModelAnimationMcCoyIdle (19) is a McCoy animation
+		*animation = kModelAnimationMcCoyIdle;
 		_animationFrame = 0;
 		break;
 
 	case 2:
 		*animation = kModelAnimationDektoraStandingNodShort;
-		if (_animationFrame == 0
-		 && _flag
-		) {
+		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
 			*animation = kModelAnimationDektoraStandingIdle;
 			_animationState = 0;
 		} else {
@@ -897,7 +903,7 @@ bool AIScriptDektora::UpdateAnimation(int *animation, int *frame) {
 
 	case 27:
 		*animation = kModelAnimationDektoraSittingSubtleTalking;
-		if (!_animationFrame && _flag) {
+		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
 			*animation = kModelAnimationDektoraSittingIdle;
 			_animationState = 25;
 		} else {
@@ -1149,43 +1155,69 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 		}
 		switch (_animationState) {
 		case 2:
+			// fall through
 		case 3:
+			// fall through
 		case 4:
+			// fall through
 		case 5:
+			// fall through
 		case 6:
+			// fall through
 		case 7:
+			// fall through
 		case 8:
+			// fall through
 		case 27:
+			// fall through
 		case 28:
-			_flag = true;
+			_resumeIdleAfterFramesetCompletesFlag = true;
 			break;
+
 		case 9:
+			// fall through
 		case 10:
+			// fall through
 		case 12:
+			// fall through
 		case 13:
+			// fall through
 		case 14:
+			// fall through
 		case 15:
+			// fall through
 		case 16:
+			// fall through
 		case 17:
 			_animationState = 11;
 			_animationFrame = 0;
 			break;
+
 		case 11:
+			// fall through
 		case 18:
+			// fall through
 		case 19:
+			// fall through
 		case 20:
+			// fall through
 		case 26:
+			// fall through
 		case 29:
+			// fall through
 		case 30:
 			break;
+
 		case 25:
 			_animationState = 25;
 			_animationFrame = 0;
 			break;
+
 		case 31:
 			_animationState = 31;
 			_animationFrame = 0;
 			break;
+
 		default:
 			_animationState = 0;
 			_animationFrame = 0;
@@ -1214,27 +1246,35 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 		) {
 			_animationState = 2;
 			_animationFrame = 0;
-			_flag = false;
+			_resumeIdleAfterFramesetCompletesFlag = false;
 		}
 		break;
 
 	case kAnimationModeCombatIdle:
 		switch (_animationState) {
 		case 9:
+			// fall through
 		case 10:
+			// fall through
 		case 16:
+			// fall through
 		case 17:
 			break;
+
 		case 25:
+			// fall through
 		case 27:
+			// fall through
 		case 28:
 			_animationState = 29;
 			_animationFrame = 0;
 			break;
+
 		case 31:
 			_animationState = 30;
 			_animationFrame = Slice_Animation_Query_Number_Of_Frames(kModelAnimationDektoraSittingPullingGunOut) - 1;
 			break;
+
 		default:
 			_animationState = 10;
 			_animationFrame = 0;
@@ -1274,7 +1314,7 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 		) {
 			_animationState = 3;
 			_animationFrame = 0;
-			_flag = false;
+			_resumeIdleAfterFramesetCompletesFlag = false;
 		}
 		break;
 
@@ -1284,7 +1324,7 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 		) {
 			_animationState = 4;
 			_animationFrame = 0;
-			_flag = false;
+			_resumeIdleAfterFramesetCompletesFlag = false;
 		}
 		break;
 
@@ -1294,7 +1334,7 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 		) {
 			_animationState = 5;
 			_animationFrame = 0;
-			_flag = 0;
+			_resumeIdleAfterFramesetCompletesFlag = false;
 		}
 		break;
 
@@ -1304,7 +1344,7 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 		) {
 			_animationState = 6;
 			_animationFrame = 0;
-			_flag = false;
+			_resumeIdleAfterFramesetCompletesFlag = false;
 		}
 		break;
 
@@ -1314,7 +1354,7 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 		) {
 			_animationState = 7;
 			_animationFrame = 0;
-			_flag = false;
+			_resumeIdleAfterFramesetCompletesFlag = false;
 		}
 		break;
 
@@ -1324,7 +1364,7 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 		) {
 			_animationState = 8;
 			_animationFrame = 0;
-			_flag = false;
+			_resumeIdleAfterFramesetCompletesFlag = false;
 		}
 		break;
 
@@ -1336,11 +1376,17 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 		}
 		switch (_animationState) {
 		case 9:
+			// fall through
 		case 10:
+			// fall through
 		case 11:
+			// fall through
 		case 12:
+			// fall through
 		case 13:
+			// fall through
 		case 16:
+			// fall through
 		case 17:
 			if (Random_Query(0, 1) == 1) {
 				_animationState = 14;
@@ -1348,7 +1394,9 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 				_animationState = 15;
 			}
 			break;
+
 		case 14:
+			// fall through
 		case 15:
 			if (Random_Query(0, 1) == 1) {
 				_animationState = 18;
@@ -1356,6 +1404,7 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 				_animationState = 19;
 			}
 			break;
+
 		default:
 			break;
 		}
@@ -1373,7 +1422,7 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 		) {
 			_animationState = 27;
 			_animationFrame = 0;
-			_flag = false;
+			_resumeIdleAfterFramesetCompletesFlag = false;
 		}
 		break;
 
@@ -1383,7 +1432,7 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 		) {
 			_animationState = 28;
 			_animationFrame = 0;
-			_flag = false;
+			_resumeIdleAfterFramesetCompletesFlag = false;
 		}
 		break;
 
@@ -1399,7 +1448,7 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 
 	case kAnimationModeDie:
 		if (_vm->_cutContent && Global_Variable_Query(kVariableChapter) == 5) {
-			// only play the rattle sound in the Act 5 death (moon bud), but not in chapter 3 death
+			// only play the rattle sound in the Act 5 death (moon bus), but not in chapter 3 death
 			// The rattle also plays in ShotAtAndHit() in Act 3 (if Dektora is shot at the back in NR11,
 			// and she is Human) but that case is currently never triggered.
 			Sound_Play_Speech_Line(kActorDektora, 9020, 60, 0, 99); // add Dektora's death rattle here
@@ -1411,14 +1460,20 @@ bool AIScriptDektora::ChangeAnimationMode(int mode) {
 	case 53:
 		switch (_animationState) {
 		case 26:
+			// fall through
 		case 29:
+			// fall through
 		case 30:
+			// fall through
 		case 31:
 			break;
+
 		case 27:
+			// fall through
 		case 28:
-			_flag = true;
+			_resumeIdleAfterFramesetCompletesFlag = true;
 			break;
+
 		default:
 			_animationState = 25;
 			_animationFrame = 0;

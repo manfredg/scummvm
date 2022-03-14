@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -85,31 +84,42 @@ bool SceneScriptPS06::ClickedOn3DObject(const char *objectName, bool a2) {
 			Actor_Clues_Transfer_New_From_Mainframe(kActorMcCoy);
 			if (_vm->_cutContent) {
 				Actor_Clues_Transfer_New_From_Mainframe(kActorKlein);
+				// also play "new clues added" cue, since McCoy gets the registrations clues
+				Actor_Says(kActorAnsweringMachine, 360, kAnimationModeTalk);
 			}
 			return true;
 		} else {
-			bool transferedClues = Actor_Clues_Transfer_New_To_Mainframe(kActorMcCoy);
-			if (_vm->_cutContent && !transferedClues) {
-				Actor_Says(kActorAnsweringMachine, 370,  kAnimationModeTalk); // no clues transfered
-			} else {
+			bool uploadedClues = Actor_Clues_Transfer_New_To_Mainframe(kActorMcCoy);
+			if (!_vm->_cutContent || uploadedClues) {
 				if (_vm->_cutContent) {
 					Actor_Clues_Transfer_New_From_Mainframe(kActorKlein);
 				}
 				Ambient_Sounds_Play_Sound(kSfxDATALOAD, 50, 0, 0, 99);
-				Delay(2000);
+				if (_vm->_cutContent) {
+					Delay(800); // shorten delay in Restored Content mode
+				} else {
+					Delay(2000);
+				}
 			}
-			Actor_Says(kActorAnsweringMachine, 340,  kAnimationModeTalk);     // downloading clues
-			transferedClues = Actor_Clues_Transfer_New_From_Mainframe(kActorMcCoy);
-			if (_vm->_cutContent && !transferedClues) {
-				Actor_Says(kActorAnsweringMachine, 370,  kAnimationModeTalk); // no clues transfered
-			} else {
+			Actor_Says(kActorAnsweringMachine, 340,  kAnimationModeTalk);         // downloading clues
+			bool downloadedClues = Actor_Clues_Transfer_New_From_Mainframe(kActorMcCoy);
+			if (!_vm->_cutContent || downloadedClues) {
 				Ambient_Sounds_Play_Sound(kSfxDATALOAD, 50, 0, 0, 99);
-				Delay(2000);
+				if (_vm->_cutContent) {
+					Delay(800); // shorten delay in Restored Content mode
+				} else {
+					Delay(2000);
+				}
 			}
 			Ambient_Sounds_Play_Sound(kSfxBEEPNEAT, 80, 0, 0, 99);
 			Actor_Says(kActorAnsweringMachine, 350, kAnimationModeTalk);          // db transfer complete
-			if (_vm->_cutContent && transferedClues) {
-				Actor_Says(kActorAnsweringMachine, 360, kAnimationModeTalk);      // new clues added
+			if (_vm->_cutContent) {
+				if (downloadedClues) {
+					Actor_Says(kActorAnsweringMachine, 360, kAnimationModeTalk);  // new clues added
+				} else if (!uploadedClues && !downloadedClues) {
+					// Play the "No clues transfered" if overall no clues were exchanged
+					Actor_Says(kActorAnsweringMachine, 370,  kAnimationModeTalk); // no clues transfered
+				}
 			}
 			return true;
 		}
@@ -129,7 +139,7 @@ bool SceneScriptPS06::ClickedOnExit(int exitId) {
 	if (exitId == 0) {
 		Game_Flag_Set(kFlagPS06toPS05);
 		Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-		Ambient_Sounds_Remove_All_Looping_Sounds(1);
+		Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 		Set_Enter(kSetPS05, kScenePS05);
 		return true;
 	}

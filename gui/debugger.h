@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,8 @@
 #include "common/array.h"
 #include "common/str.h"
 #include "common/str-array.h"
+
+#include "engines/engine.h"
 
 namespace GUI {
 
@@ -90,6 +91,7 @@ protected:
 	enum VarType {
 		DVAR_BYTE,
 		DVAR_INT,
+		DVAR_FLOAT,
 		DVAR_BOOL,
 		DVAR_INTARRAY,
 		DVAR_STRING
@@ -111,31 +113,39 @@ private:
 	 * @param type		the type of the variable (byte, int, bool, ...)
 	 * @param arraySize	for type DVAR_INTARRAY this specifies the size of the array
 	 */
-	void registerVar(const Common::String &varname, void *variable, VarType type, int arraySize);
+	void registerVarImpl(const Common::String &varname, void *variable, VarType type, int arraySize);
 
 protected:
 	void registerVar(const Common::String &varname, byte *variable) {
-		registerVar(varname, variable, DVAR_BYTE, 0);
+		registerVarImpl(varname, variable, DVAR_BYTE, 0);
 	}
 
 	void registerVar(const Common::String &varname, int *variable) {
-		registerVar(varname, variable, DVAR_INT, 0);
+		registerVarImpl(varname, variable, DVAR_INT, 0);
+	}
+
+	void registerVar(const Common::String &varname, float *variable) {
+		registerVarImpl(varname, variable, DVAR_FLOAT, 0);
 	}
 
 	void registerVar(const Common::String &varname, bool *variable) {
-		registerVar(varname, variable, DVAR_BOOL, 0);
+		registerVarImpl(varname, variable, DVAR_BOOL, 0);
 	}
 
 	void registerVar(const Common::String &varname, int32 **variable, int arraySize) {
-		registerVar(varname, variable, DVAR_INTARRAY, arraySize);
+		registerVarImpl(varname, variable, DVAR_INTARRAY, arraySize);
 	}
 
 	void registerVar(const Common::String &varname, Common::String *variable) {
-		registerVar(varname, variable, DVAR_STRING, 0);
+		registerVarImpl(varname, variable, DVAR_STRING, 0);
 	}
 
 	void registerCmd(const Common::String &cmdname, Debuglet *debuglet);
 
+	/**
+	 * Remove all vars except default "debug_countdown"
+	 */
+	void clearVars();
 
 private:
 	/**
@@ -171,6 +181,9 @@ private:
 	 * time.
 	 */
 	bool _firstTime;
+
+protected:
+	PauseToken _debugPauseToken;
 
 #ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
 	GUI::ConsoleDialog *_debuggerDialog;
@@ -233,6 +246,7 @@ protected:
 	bool cmdDebugFlagsList(int argc, const char **argv);
 	bool cmdDebugFlagEnable(int argc, const char **argv);
 	bool cmdDebugFlagDisable(int argc, const char **argv);
+	bool cmdExecFile(int argc, const char **argv);
 
 #ifndef USE_TEXT_CONSOLE_FOR_DEBUGGER
 private:

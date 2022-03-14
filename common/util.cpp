@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 
 #include "common/util.h"
 #include "common/debug.h"
+#include "common/translation.h"
 
 namespace Common {
 
@@ -92,7 +92,8 @@ bool parseBool(const String &val, bool &valAsBool) {
 	}
 	if (val.equalsIgnoreCase("false") ||
 		val.equalsIgnoreCase("no") ||
-		val.equals("0")) {
+		val.equals("0") ||
+		val.empty()) {
 		valAsBool = false;
 		return true;
 	}
@@ -107,6 +108,11 @@ bool parseBool(const String &val, bool &valAsBool) {
 #define ENSURE_ASCII_CHAR(c) \
 		if (c < 0 || c > 127) \
 			return false
+
+bool isAscii(int c) {
+	ENSURE_ASCII_CHAR(c);
+	return true;
+}
 
 bool isAlnum(int c) {
 	ENSURE_ASCII_CHAR(c);
@@ -163,32 +169,41 @@ bool isGraph(int c) {
 	return isgraph((byte)c);
 }
 
+bool isBlank(int c) {
+	return c == ' ' || c == '\t';
+}
+
 
 #pragma mark -
 
 
-Common::String getHumanReadableBytes(uint64 bytes, Common::String &unitsOut) {
+Common::U32String getHumanReadableBytes(uint64 bytes, Common::String &unitsOut) {
 	if (bytes < 1024) {
-		unitsOut = "B";
+		// I18N: Abbreviation for 'bytes' as data size
+		unitsOut = _("B");
 		return Common::String::format("%lu", (unsigned long int)bytes);
 	}
 
 	double floating = bytes / 1024.0;
-	unitsOut = "KB";
+		// I18N: Abbreviation for 'kilobytes' as data size
+	unitsOut = _("KB");
 
 	if (floating >= 1024) {
 		floating /= 1024.0;
-		unitsOut = "MB";
+		// I18N: Abbreviation for 'megabytes' as data size
+		unitsOut = _("MB");
 	}
 
 	if (floating >= 1024) {
 		floating /= 1024.0;
-		unitsOut = "GB";
+		// I18N: Abbreviation for 'gigabytes' as data size
+		unitsOut = _("GB");
 	}
 
 	if (floating >= 1024) { // woah
 		floating /= 1024.0;
-		unitsOut = "TB";
+		// I18N: Abbreviation for 'terabytes' as data size
+		unitsOut = _("TB");
 	}
 
 	// print one digit after floating point

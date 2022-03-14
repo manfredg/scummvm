@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,10 +27,6 @@
 #include "gui/dialog.h"
 #include "common/str.h"
 #include "audio/mididrv.h"
-
-#ifdef GUI_ENABLE_KEYSDIALOG
-#include "gui/KeysDialog.h"
-#endif
 
 #ifdef USE_FLUIDSYNTH
 #include "gui/fluidsynth-dialog.h"
@@ -59,10 +54,9 @@ class CommandSender;
 class GuiObject;
 class RadiobuttonGroup;
 class RadiobuttonWidget;
+class OptionsContainerWidget;
 
 class OptionsDialog : public Dialog {
-	typedef Common::Array<CheckboxWidget *> CheckboxWidgetList;
-
 public:
 	OptionsDialog(const Common::String &domain, int x, int y, int w, int h);
 	OptionsDialog(const Common::String &domain, const Common::String &name);
@@ -75,6 +69,7 @@ public:
 	void close() override;
 	void handleCommand(CommandSender *sender, uint32 cmd, uint32 data) override;
 	void handleTickle() override;
+	void handleOtherEvent(const Common::Event &event) override;
 
 	const Common::String& getDomain() const { return _domain; }
 
@@ -95,6 +90,8 @@ protected:
 
 	void addControlControls(GuiObject *boss, const Common::String &prefix);
 	void addKeyMapperControls(GuiObject *boss, const Common::String &prefix, const Common::Array<Common::Keymap *> &keymaps, const Common::String &domain);
+	void addAchievementsControls(GuiObject *boss, const Common::String &prefix);
+	void addStatisticsControls(GuiObject *boss, const Common::String &prefix);
 	void addGraphicControls(GuiObject *boss, const Common::String &prefix);
 	void addShaderControls(GuiObject *boss, const Common::String &prefix);
 	void addAudioControls(GuiObject *boss, const Common::String &prefix);
@@ -104,7 +101,6 @@ protected:
 	// The default value is the launcher's non-scaled talkspeed value. When SCUMM uses the widget,
 	// it uses its own scale
 	void addSubtitleControls(GuiObject *boss, const Common::String &prefix, int maxSliderVal = 255);
-	void addEngineControls(GuiObject *boss, const Common::String &prefix, const ExtraGuiOptions &engineOptions);
 
 	void setGraphicSettingsState(bool enabled);
 	void setShaderSettingsState(bool enabled);
@@ -115,6 +111,7 @@ protected:
 	void setSubtitleSettingsState(bool enabled);
 
 	virtual void setupGraphicsTab();
+	void updateScaleFactors(uint32 tag);
 
 	bool loadMusicDeviceSetting(PopUpWidget *popup, Common::String setting, MusicType preferredType = MT_AUTO);
 	void saveMusicDeviceSetting(PopUpWidget *popup, Common::String setting);
@@ -132,8 +129,6 @@ private:
 	bool _enableControlSettings;
 
 	CheckboxWidget *_touchpadCheckbox;
-	CheckboxWidget *_onscreenCheckbox;
-	CheckboxWidget *_swapMenuAndBackBtnsCheckbox;
 
 	StaticTextWidget *_kbdMouseSpeedDesc;
 	SliderWidget *_kbdMouseSpeedSlider;
@@ -155,10 +150,17 @@ private:
 	PopUpWidget *_gfxPopUp;
 	StaticTextWidget *_stretchPopUpDesc;
 	PopUpWidget *_stretchPopUp;
+	StaticTextWidget *_scalerPopUpDesc;
+	PopUpWidget *_scalerPopUp, *_scaleFactorPopUp;
 	CheckboxWidget *_fullscreenCheckbox;
 	CheckboxWidget *_filteringCheckbox;
 	CheckboxWidget *_aspectCheckbox;
 	CheckboxWidget *_crtEmulationCheckbox;
+	CheckboxWidget *_vsyncCheckbox;
+	StaticTextWidget *_rendererTypePopUpDesc;
+	PopUpWidget *_rendererTypePopUp;
+	StaticTextWidget *_antiAliasPopUpDesc;
+	PopUpWidget *_antiAliasPopUp;
 	StaticTextWidget *_renderModePopUpDesc;
 	PopUpWidget *_renderModePopUp;
 
@@ -204,6 +206,7 @@ private:
 	//
 	int getSubtitleMode(bool subtitles, bool speech_mute);
 	bool _enableSubtitleSettings;
+	bool _enableSubtitleToggle;
 	StaticTextWidget *_subToggleDesc;
 	RadiobuttonGroup *_subToggleGroup;
 	RadiobuttonWidget *_subToggleSubOnly;
@@ -245,9 +248,9 @@ protected:
 	Common::String _guioptionsString;
 
 	//
-	// Engine-specific controls
+	// Backend controls
 	//
-	CheckboxWidgetList _engineCheckboxes;
+	OptionsContainerWidget *_backendOptions;
 };
 
 
@@ -269,9 +272,6 @@ protected:
 
 	Common::String _newTheme;
 	LauncherDialog *_launcher;
-#ifdef GUI_ENABLE_KEYSDIALOG
-	KeysDialog *_keysDialog;
-#endif
 #ifdef USE_FLUIDSYNTH
 	FluidSynthSettingsDialog *_fluidSynthSettingsDialog;
 #endif
@@ -282,12 +282,16 @@ protected:
 	ButtonWidget	 *_savePathClearButton;
 	StaticTextWidget *_themePath;
 	ButtonWidget	 *_themePathClearButton;
+	StaticTextWidget *_iconPath;
+	ButtonWidget	 *_iconPathClearButton;
 	StaticTextWidget *_extraPath;
 	ButtonWidget	 *_extraPathClearButton;
 #ifdef DYNAMIC_MODULES
 	StaticTextWidget *_pluginsPath;
 	ButtonWidget	 *_pluginsPathClearButton;
 #endif
+	StaticTextWidget *_browserPath;
+	ButtonWidget	 *_browserPathClearButton;
 
 	void addPathsControls(GuiObject *boss, const Common::String &prefix, bool lowres);
 
@@ -295,6 +299,8 @@ protected:
 	// Misc controls
 	//
 	StaticTextWidget *_curTheme;
+	StaticTextWidget *_guiBasePopUpDesc;
+	PopUpWidget *_guiBasePopUp;
 	StaticTextWidget *_rendererPopUpDesc;
 	PopUpWidget *_rendererPopUp;
 	StaticTextWidget *_autosavePeriodPopUpDesc;
@@ -303,6 +309,8 @@ protected:
 	PopUpWidget *_guiLanguagePopUp;
 	CheckboxWidget *_guiLanguageUseGameLanguageCheckbox;
 	CheckboxWidget *_useSystemDialogsCheckbox;
+	CheckboxWidget *_guiReturnToLauncherAtExit;
+	CheckboxWidget *_guiConfirmExit;
 
 
 #ifdef USE_UPDATES
@@ -310,6 +318,7 @@ protected:
 	PopUpWidget *_updatesPopUp;
 #endif
 
+	bool updateAutosavePeriod(int newValue);
 	void addMiscControls(GuiObject *boss, const Common::String &prefix, bool lowres);
 
 #ifdef USE_CLOUD
@@ -385,6 +394,10 @@ protected:
 	PopUpWidget *_ttsVoiceSelectionPopUp;
 
 	void addAccessibilityControls(GuiObject *boss, const Common::String &prefix);
+#endif
+#ifdef USE_DISCORD
+	bool _enableDiscordRpc;
+	CheckboxWidget *_discordRpcCheckbox;
 #endif
 };
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,7 +56,7 @@ int ip_back, parse_ip;
 static int vnum;  /* Verb number from synonym scan */
 
 /* Pointers to negative-terminated arrays of possible nouns */
-static parse_rec *lactor = NULL, *lobj = NULL, *lnoun = NULL;
+static parse_rec *lactor = nullptr, *lobj = nullptr, *lnoun = nullptr;
 
 static int ambig_flag = 0;
 /* Was last input ambiguous? (so player could be entering
@@ -67,9 +66,9 @@ disambiguation info?)  1=ambig actor, 2=ambig noun,
 
 /* Empty ALL error messages, for those verbs that have their own */
 int all_err_msg[] = {73, 83, 113, 103, /* open, close, lock, unlock: 15 - 18 */
-                     239, 239, 239, 239, /* 19 - 22 */
-                     123, 125
-                    }; /* eat, drink: 23 - 24 */
+					 239, 239, 239, 239, /* 19 - 22 */
+					 123, 125
+					}; /* eat, drink: 23 - 24 */
 
 
 
@@ -81,7 +80,7 @@ int all_err_msg[] = {73, 83, 113, 103, /* open, close, lock, unlock: 15 - 18 */
 static void freeall(void) {
 	rfree(lnoun);
 	rfree(lobj);
-	lnoun = lobj = NULL;
+	lnoun = lobj = nullptr;
 }
 
 
@@ -133,7 +132,7 @@ static void print_nlist(parse_rec *n) {
 /* Output the parser's analysis of the current input line; used
    for debugging */
 static int parse_out(parse_rec *lactor_, int vb_, parse_rec *lnoun_, int prep_,
-                     parse_rec *lobj_) {
+					 parse_rec *lobj_) {
 	writeln("ANALYSIS:");
 	writestr("Actor: ");
 	print_nlist(lactor_);
@@ -181,7 +180,7 @@ static void restore_input(void) {
 #define w_and(w) (w==ext_code[wand] || w==ext_code[wc])
 #define w_but(w) (w==ext_code[wbut] || w==ext_code[wexcept])
 #define w_isterm(w) (w==ext_code[wp] || w==ext_code[wthen] || \
-                     w==ext_code[wsc] || w_and(w) || w==-1)
+					 w==ext_code[wsc] || w_and(w) || w==-1)
 
 
 
@@ -248,14 +247,14 @@ static rbool orig_agt_verb(word w) {
 
 /* A few comments on id_verb:
    The sequence is as follows:
-     i) Convert built-in synonyms to the base form (TAKE-->GET, for example)
-        _unless_ there is an author-defined synonym. (The original AGT
-    didn't have this 'unless'.)
-     ii) Check room-synonyms
-     iii) ID the verb based first on game-specific synonyms and then
-        falling back to the built-in ones.
-    (AGT gave the built-in ones higher priority than the game-specific
-    ones, but this causes problems and is generally a bad idea.)
+	 i) Convert built-in synonyms to the base form (TAKE-->GET, for example)
+		_unless_ there is an author-defined synonym. (The original AGT
+	didn't have this 'unless'.)
+	 ii) Check room-synonyms
+	 iii) ID the verb based first on game-specific synonyms and then
+		falling back to the built-in ones.
+	(AGT gave the built-in ones higher priority than the game-specific
+	ones, but this causes problems and is generally a bad idea.)
  */
 
 static int id_verb(void)
@@ -371,7 +370,7 @@ static parse_rec *new_list(void) {
 }
 
 static parse_rec *add_w_rec(parse_rec *pold, int obj0, long num0, int info0,
-                            word adj0, word noun0) {
+							word adj0, word noun0) {
 	parse_rec *pnew;
 	int n;
 
@@ -391,7 +390,7 @@ static parse_rec *add_rec(parse_rec *old, int obj0, long num0, int info0) {
 	word w;
 
 	if (obj0 < 0) w = -obj0;  /* The NOUN field of literal words will just be
-               that word */
+			   that word */
 	else w = 0;
 	return add_w_rec(old, obj0, num0, info0, 0, w);
 }
@@ -546,7 +545,7 @@ static rbool ident_objrec(parse_rec *p1, parse_rec *p2) {
 static parse_rec *fix_actor(parse_rec *alist) {
 	int i, cnt;
 
-	assert(alist != NULL);
+	assert(alist != nullptr);
 	if (alist[0].info == D_ALL) { /* ALL?! */
 		rfree(alist);
 		return new_list();
@@ -606,7 +605,7 @@ static parse_rec *convert_to_all(parse_rec *list, int *ofsref) {
 
 
 static parse_rec *add_disambig_info(parse_rec *ilist, int ofs,
-                                    parse_rec *truenoun)
+									parse_rec *truenoun)
 /* Basically, try to find interesection of tmp and truenoun,
 or failing that, between ilist and truenoun */
 /*  truenoun is what the player just typed in to resolve
@@ -644,7 +643,7 @@ static int score_disambig(parse_rec *rec, int ambig_type)
 	if (ambig_type == 1) /* ACTOR */
 		return DISAMBIG_SUCC;
 	else if (ambig_type == 2) /* NOUN */
-		return check_obj(lactor, vnum, rec, prep, NULL);
+		return check_obj(lactor, vnum, rec, prep, nullptr);
 	else if (ambig_type == 3) /* IOBJ */
 		return check_obj(lactor, vnum, lnoun, prep, rec);
 	else fatal("Invalid ambig_type!");
@@ -674,7 +673,7 @@ static parse_rec *expand_all(parse_rec *lnoun_) {
 	creature[i].scratch = 0;
 	objloop(i)
 	if (((verbflag[vnum]&VERB_GLOBAL) != 0 || visible(i))
-	        && (lnoun_ == NULL || !scan_andrec(i, lnoun_))) {
+	        && (lnoun_ == nullptr || !scan_andrec(i, lnoun_))) {
 		temp_obj.obj = i;
 		if (score_disambig(&temp_obj, 2) >= 500) {
 			if (tnoun(i)) noun[i - first_noun].scratch = 1;
@@ -714,11 +713,11 @@ static parse_rec *expand_all(parse_rec *lnoun_) {
 
 
 /* disambig check checks for the various things that can eliminate a noun
-     from the list. The higher dlev is, the more things that are bad */
+	 from the list. The higher dlev is, the more things that are bad */
 /* Returns 1 if we should keep it, 0 if we should kill it */
 /* The elimination order is based on AGT:
   0-Eliminate adjective matches if PURE_NOUN is set and
-      out-of-scope adjectives that are not at the head of the list.
+	  out-of-scope adjectives that are not at the head of the list.
   1-Eliminate adj matches if the adjective is out-of-scope.
   2-eliminate SCENE and DOOR (D_INTERN)
   3-eliminate out-of-scope nouns that are not at the head of the list
@@ -741,7 +740,7 @@ static parse_rec *expand_all(parse_rec *lnoun_) {
    are visible, we don't want to ask disambiguation questions) */
 
 static rbool disambig_check(parse_rec *rec, int dsch, int dlev,
-                            int ambig_type, rbool pick_one) {
+							int ambig_type, rbool pick_one) {
 	switch (dsch) {
 	case 0:
 		switch (dlev) { /* Syntactic checks: pre-scope */
@@ -751,7 +750,7 @@ static rbool disambig_check(parse_rec *rec, int dsch, int dlev,
 			return (rec->info != D_INTERN); /* Elim SCENE and DOOR */
 		case 2:
 			return (rec->info != D_NUM || rec->obj != 0); /* Eliminate numbers w/o
-                           corrosponding word matches */
+						   corrosponding word matches */
 		default:
 			return 0;
 		}
@@ -807,20 +806,20 @@ static parse_rec *disambig_a_noun(parse_rec *list, int ofs, int ambig_type)
 {
 	int i, cnt; /* cnt keeps track of how many nouns we've let through */
 	int dsch; /* Dismabiguation scheme; we run through these in turn,
-           pushing dlev as high as possible for each scheme */
+		   pushing dlev as high as possible for each scheme */
 	int dlev; /* Disambiguation level: how picky do we want to be?
-           We keep raising this until we get a unique choice
-           or until we reach MAX_DLEV and have to give up */
+		   We keep raising this until we get a unique choice
+		   or until we reach MAX_DLEV and have to give up */
 	rbool one_in_scope; /* True if at least one noun is visible; if no nouns
-            are visible then we never ask for disambiguation
-            from the player (to avoid giving things away) but
-            just take the first one. */
+			are visible then we never ask for disambiguation
+			from the player (to avoid giving things away) but
+			just take the first one. */
 
 	cnt = 2; /* Arbitrary number > 1 */
 	one_in_scope = 0;
 	max_disambig_score = -1000;  /* Nothing built in returns anything lower than 0,
-                but some game author might come up with a
-                clever application of negative scores */
+				but some game author might come up with a
+				clever application of negative scores */
 	for (dsch = 0; dsch <= MAX_DSCHEME; dsch++)
 		for (dlev = 0; dlev <= MAX_DLEV; dlev++) {
 			if (DEBUG_DISAMBIG)
@@ -876,7 +875,7 @@ static parse_rec *disambig_a_noun(parse_rec *list, int ofs, int ambig_type)
 
 
 static int disambig_phrase(parse_rec **ilist, parse_rec *truenoun, int tn_ofs,
-                           int ambig_type)
+						   int ambig_type)
 /* Note that ilist is double dereferenced: this is so we can realloc it */
 /* ambig_type=1 for actor, 2 for noun, 3 for object */
 /* We can assume that the earlier bits have already been disambiguated */
@@ -950,7 +949,7 @@ static parse_rec *disambig(int ambig_set, parse_rec *list, parse_rec *truenoun)
 /* ambig_set = 1 for actor, 2 for noun, 3 for object */
 {
 	if (ambig_flag == ambig_set || ambig_flag == 0) { /* restart where we left off...*/
-		if (truenoun == NULL || truenoun[0].info == D_END) disambig_ofs = -1;
+		if (truenoun == nullptr || truenoun[0].info == D_END) disambig_ofs = -1;
 		disambig_ofs = disambig_phrase(&list, truenoun, disambig_ofs, ambig_set);
 		if (disambig_ofs == -1) ambig_flag = 0; /* Success */
 		else if (disambig_ofs == -2) ambig_flag = -1; /* Error: elim all choices */
@@ -972,10 +971,10 @@ static parse_rec *disambig(int ambig_set, parse_rec *list, parse_rec *truenoun)
 /* Leave ip pointing _after_ last word we get. */
 /*   Return list of all possible objects */
 /*   Go to some difficullty to make sure "all the kings men" will
-     not be accidentally parsed as "all" + "the kings men" */
+	 not be accidentally parsed as "all" + "the kings men" */
 /*   (Yes, yes, I know -- you can't have an AGT object with a name as
-     complex as 'all the king's men'-- but you could try to simulate it using
-     synonyms) */
+	 complex as 'all the king's men'-- but you could try to simulate it using
+	 synonyms) */
 /*   May also want to use more intellegence along the adj--noun distinction */
 /*   all_ok indicates whether ALL is acceptable */
 
@@ -1085,7 +1084,7 @@ static parse_rec *parse_a_noun(void)
 			nlist = add_rec(nlist, -input[oip], numval, D_NUM);
 
 		/* Next handle the flag nouns and global nouns */
-		if (globalnoun != NULL)
+		if (globalnoun != nullptr)
 			for (i = 0; i < numglobal; i++)
 				if (input[oip] == globalnoun[i])
 					nlist = add_rec(nlist, -input[oip], 0, D_GLOBAL);
@@ -1132,7 +1131,7 @@ resolving disambiguation) */
 
 	if (lnoun_[0].info == D_ALL && w_but(input[ip])) /* ALL EXCEPT ... */
 		all_except = 1; /* This will cause us to skip over EXCEPT and
-             start creating an AND list */
+			 start creating an AND list */
 
 	/* Now, itereate over <noun> AND <noun> AND ... */
 	while ((all_except || w_and(input[ip])) &&
@@ -1182,16 +1181,16 @@ static int parse_cmd(void)
 /* Needs to leave ip pointing at beginning of next statement */
 {
 	rbool new_actor; /* This is used for some error checking; it is set
-             if we just found an actor on this command
-             (as opposed to inheriting one from a previous
-             command in a multiple statement) */
+			 if we just found an actor on this command
+			 (as opposed to inheriting one from a previous
+			 command in a multiple statement) */
 	parse_rec *tmp;
 	int tp;
 
 	/* First go looking for an actor. */
 	ap = ip;
 	new_actor = 0;
-	if (lactor == NULL) {
+	if (lactor == nullptr) {
 		new_actor = 1;
 		lactor = parse_noun(0, 1);
 		/* Check that actor is a creature. */
@@ -1202,7 +1201,7 @@ static int parse_cmd(void)
 				if (input[ip] == ext_code[wc]) /* ie there is a comma */
 					return parseerr(229, "Who is this '$word$' you are addressing?", ap);
 				else ip = ap; /* Otherwise, assume we shouldn't have parsed it as
-               an actor-- it may be a verb. */
+			   an actor-- it may be a verb. */
 			}
 		}
 		if (lactor[0].info != D_END && input[ip] == ext_code[wc])
@@ -1225,7 +1224,7 @@ static int parse_cmd(void)
 	}
 
 TELLHack:  /* This is used to restart the noun/prep/object scan
-          if we find a TELL <actor> TO <verb> ... command */
+		  if we find a TELL <actor> TO <verb> ... command */
 
 	if (vnum == 0)
 		return parseerr(230, "I don't understand '$word$' as a verb.", ip);
@@ -1252,11 +1251,11 @@ TELLHack:  /* This is used to restart the noun/prep/object scan
 		rfree(lactor);
 		rfree(lobj);
 		lactor = lnoun;
-		lnoun = NULL;
+		lnoun = nullptr;
 		vp = ip; /* Replace TELL with new verb */
 		vnum = id_verb(); /* May increment ip (ip points att last word in verb) */
 		goto TELLHack;  /* Go back up and reparse the sentence from
-             the new start point. */
+			 the new start point. */
 	}
 
 	/* Convert TURN <noun> ON to TURN ON <noun> */
@@ -1327,7 +1326,7 @@ TELLHack:  /* This is used to restart the noun/prep/object scan
 
 
 static void v_undo(void) {
-	if (undo_state == NULL) {
+	if (undo_state == nullptr) {
 		writeln("There is insufficiant memory to support UNDO");
 		ip = -1;
 		return;
@@ -1356,7 +1355,7 @@ rbool parse(void)
 	int fixword;
 	int start_ip;
 
-	currnoun = NULL;
+	currnoun = nullptr;
 	start_ip = ip;
 	/* First, we need to see if someone has issued an OOPS command.
 	   OOPS commands are always assumed to stand alone. (i.e. no
@@ -1388,7 +1387,7 @@ rbool parse(void)
 			ambig_flag = 0;
 			rfree(currnoun);
 			freeall();
-			currnoun = NULL;
+			currnoun = nullptr;
 		}
 	}
 
@@ -1450,7 +1449,7 @@ rbool parse(void)
 	   we save the undo state before executing if this is the first command
 	   in a sequence. (That is, UNDO undoes whole lines of commands,
 	   not just individual commands) */
-	if (start_ip == 0 && undo_state != NULL) {
+	if (start_ip == 0 && undo_state != nullptr) {
 		undo_state = getstate(undo_state);
 		can_undo = 1;
 	}
@@ -1465,7 +1464,7 @@ rbool parse(void)
 
 	/* Now we clear lnoun and lobj; lactor is handled elsewhere since
 	   we might have FRED, GET ROCK THEN GO NORTH */
-	lnoun = lobj = NULL;
+	lnoun = lobj = nullptr;
 
 	/* Finally check for THENs */
 
@@ -1495,8 +1494,8 @@ void menu_cmd(void) {
 	int nm_size, nm_width; /* Size and width of noun menu */
 
 
-	nounval = NULL;
-	nounmenu = NULL;
+	nounval = nullptr;
+	nounmenu = nullptr;
 	/* Get verb+prep */
 	choice = agt_menu("", vm_size, vm_width, verbmenu);
 	if (choice == -1 || doing_restore) return;
@@ -1590,7 +1589,7 @@ void menu_cmd(void) {
 		return;
 	}
 
-	if (undo_state != NULL) {
+	if (undo_state != nullptr) {
 		undo_state = getstate(undo_state);
 		can_undo = 1;
 	}
@@ -1599,7 +1598,7 @@ void menu_cmd(void) {
 	tmpobj(&actrec);
 	actrec.obj = 0;
 	exec(&actrec, vnum_, lnoun, prep_, &mobj);
-	lnoun = NULL; /* exec() is responsible for freeing lnoun */
+	lnoun = nullptr; /* exec() is responsible for freeing lnoun */
 }
 
 

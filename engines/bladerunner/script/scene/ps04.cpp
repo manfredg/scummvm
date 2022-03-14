@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -133,7 +132,7 @@ bool SceneScriptPS04::ClickedOnExit(int exitId) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -668.0f, -350.85f, 962.0f, 0, true, false, false)) {
 			Game_Flag_Set(kFlagPS04toPS03);
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Set_Enter(kSetPS03, kScenePS03);
 		}
 		return true;
@@ -330,7 +329,7 @@ void SceneScriptPS04::dialogueWithGuzza() {
 		            || Actor_Clue_Query(kActorMcCoy, kClueSushiMenu))
 		           &&  Actor_Clue_Query(kActorMcCoy, kClueRunciterInterviewA)
 		           &&  Actor_Query_Friendliness_To_Other(kActorGuzza, kActorMcCoy) < 50
-		           && !Game_Flag_Query(kFlagPS04GuzzaTalk1)
+		           && !Game_Flag_Query(kFlagPS04GuzzaTalkIsFurious)
 		) {
 			Actor_Says(kActorMcCoy, 3970, 18);
 			Actor_Says(kActorGuzza, 330, 30);
@@ -345,17 +344,20 @@ void SceneScriptPS04::dialogueWithGuzza() {
 			Actor_Says(kActorMcCoy, 3985, 18);
 			Actor_Says(kActorGuzza, 400, 34);
 			Actor_Says(kActorGuzza, 410, 31);
-			Game_Flag_Set(kFlagPS04GuzzaTalk1);
+			Game_Flag_Set(kFlagPS04GuzzaTalkIsFurious);
 		} else if ((Actor_Clue_Query(kActorMcCoy, kClueChopstickWrapper)
 		            || Actor_Clue_Query(kActorMcCoy, kClueSushiMenu))
 		           &&  Actor_Clue_Query(kActorMcCoy, kClueRunciterInterviewA)
-		           && !Game_Flag_Query(kFlagPS04GuzzaTalk2)
+		           && !Game_Flag_Query(kFlagPS04GuzzaTalkDumpToMainframe)
 		) {
+			// McCoy metions Bryant's "vacation",
+			// Guzza says about the procedure via Mainframe
 			Actor_Says(kActorMcCoy, 3920, 13);
 			Actor_Says(kActorGuzza, 570, 32);
 			Actor_Says(kActorMcCoy, 4070, 13);
-			Game_Flag_Set(kFlagPS04GuzzaTalk2);
+			Game_Flag_Set(kFlagPS04GuzzaTalkDumpToMainframe);
 		} else if (Actor_Query_Friendliness_To_Other(kActorGuzza, kActorMcCoy) >= 50) {
+			// Main check-in talk
 			Actor_Says(kActorMcCoy, 4020, 13);
 			Actor_Says(kActorGuzza, 580, 34);
 			Actor_Says(kActorMcCoy, 4075, 16);

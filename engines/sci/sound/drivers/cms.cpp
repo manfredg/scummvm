@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +27,10 @@
 
 #include "common/system.h"
 
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/util.h"
+
+#define SCI0_CMS_ORIGINAL_BUG		1
 
 namespace Sci {
 
@@ -103,18 +104,21 @@ private:
 		kAttack		= 2,
 		kDecay		= 3,
 		kSustain	= 4,
-		kRelease	= 5		
+		kRelease	= 5
 	};
-	
+
 	EnvelopeState _envState;
 	uint8 _envAR;
 	uint8 _envTL;
 	uint8 _envDR;
 	uint8 _envSL;
-	uint8 _envRR;	
+	uint8 _envRR;
 	uint8 _envSLI;
 	uint8 _envPAC;
 	uint8 _envPA;
+#ifdef SCI0_CMS_ORIGINAL_BUG
+	static uint8  _envAR1;
+#endif
 
 	uint8 _envNote;
 	uint8 _envSSL;
@@ -192,8 +196,8 @@ public:
 
 	void onTimer() override;
 
-	MidiChannel *allocateChannel() override { return 0; }
-	MidiChannel *getPercussionChannel() override { return 0; }
+	MidiChannel *allocateChannel() override { return nullptr; }
+	MidiChannel *getPercussionChannel() override { return nullptr; }
 
 	bool isStereo() const override { return true; }
 	int getRate() const override { return _rate; }
@@ -249,7 +253,7 @@ private:
 };
 
 CMSVoice::CMSVoice(uint8 id, MidiDriver_CMS* driver, CMSEmulator *cms, SciSpan<const uint8>& patchData) : _id(id), _regOffset(id > 5 ? id - 6 : id), _portOffset(id > 5 ? 2 : 0),
-	_driver(driver), _cms(cms), _assign(0xFF), _note(0xFF), _sustained(false), _duration(0), _releaseDuration(0), _secondaryVoice(0), _patchData(patchData) {
+	_driver(driver), _cms(cms), _assign(0xFF), _note(0xFF), _sustained(false), _duration(0), _releaseDuration(0), _secondaryVoice(nullptr), _patchData(patchData) {
 	assert(_id < 12);
 	_octaveRegs[_id >> 1] = 0;
 }
@@ -258,7 +262,7 @@ void CMSVoice::sendFrequency() {
 	uint8 frequency = 0;
 	uint8 octave = 0;
 
-	recalculateFrequency(frequency, octave);	
+	recalculateFrequency(frequency, octave);
 
 	uint8 octaveData = _octaveRegs[_id >> 1];
 	octaveData = (_id & 1) ? (octaveData & 0x0F) | (octave << 4) : (octaveData & 0xF0) | octave;
@@ -294,9 +298,16 @@ const int CMSVoice::_frequencyTable[48] = {
 	242, 246, 250, 253
 };
 
+#ifdef SCI0_CMS_ORIGINAL_BUG
+uint8 CMSVoice_V0::_envAR1 = 0;
+#endif
+
 CMSVoice_V0::CMSVoice_V0(uint8 id, MidiDriver_CMS* driver, CMSEmulator *cms, SciSpan<const uint8>& patchData) : CMSVoice(id, driver, cms, patchData), _envState(kReady), _currentLevel(0), _strMask(0),
 	_envAR(0), _envTL(0), _envDR(0), _envSL(0), _envRR(0), _envSLI(0), _vbrOn(false), _vbrSteps(0), _vbrState(0), _vbrMod(0), _vbrCur(0), _isSecondary(id > 7),
 	_vbrPhase(0), _transOct(0), _transFreq(0), _envPAC(0), _envPA(0), _panMask(_id & 1 ? 0xF0 : 0x0F), _envSSL(0), _envNote(0xFF), _updateCMS(false) {
+#ifdef SCI0_CMS_ORIGINAL_BUG
+	_envAR1 = 0;
+#endif
 }
 
 void CMSVoice_V0::noteOn(int note, int) {
@@ -338,7 +349,7 @@ void CMSVoice_V0::programChange(int program) {
 		// I encountered this with PQ2 at the airport (program 204 sent on part 13). The original driver does not really handle that.
 		// In fact, it even interprets this value as signed so it will not point into the instrument data buffer, but into a random
 		// invalid memory location (in the case of 204 it will read a value of 8 from the device init data array). Since there seems
-		// to be no effect on the sound I don't emulate this (mis)behaviour. 
+		// to be no effect on the sound I don't emulate this (mis)behaviour.
 		warning("CMSVoice_V0::programChange:: Invalid program '%d' requested on midi channel '%d'", program, _assign);
 		program = 0;
 	} else if (program == 127) {
@@ -372,7 +383,7 @@ void CMSVoice_V0::programChange(int program) {
 		if (data.getUint8At(pos) == 0xFF) {
 			_secondaryVoice->stop();
 			_secondaryVoice->_assign = 0xFF;
-			_secondaryVoice = 0;
+			_secondaryVoice = nullptr;
 		} else {
 			_secondaryVoice->setPanMask(_panMask);
 			_secondaryVoice->programChange(program);
@@ -399,8 +410,15 @@ void CMSVoice_V0::update() {
 			--_envPAC;
 			break;
 		} else {
+#ifdef SCI0_CMS_ORIGINAL_BUG
+			// This is bugged in two ways. The attack rate value is misinterpreted as a int8 for the comparison (the only place in the code
+			// where it does that). And it always uses the attack rate of voice no. 1 as a modifier instead of the voice's own attack rate.
+			// Keeping these bugs will result in faithful audio. It probably even sounds as intended, since the sequencer will have likely
+			// suffered from the same bug and calculated the deltas based on that...
+			_currentLevel = ((_currentLevel >> 1) > (int8)_envAR)?((_currentLevel >> 1) - _envAR1) & 0xFF : (_envAR - _envAR1) & 0xFF;
+#else
 			_currentLevel = ((_currentLevel >> 1) > _envAR) ? ((_currentLevel >> 1) - _envAR) : 0;
-			//_currentLevel = ((_currentLevel >> 1) > (int8)_envAR) ? ((_currentLevel >> 1) - _envAR1) & 0xFF : (_envAR - _envAR1) & 0xFF;
+#endif
 			_envState = kAttack;
 		}
 		// fall through
@@ -452,7 +470,7 @@ void CMSVoice_V0::update() {
 
 void CMSVoice_V0::reset() {
 	_envState = kReady;
-	_secondaryVoice = 0;
+	_secondaryVoice = nullptr;
 	_assign = _note = _envNote = 0xFF;
 	_panMask = _id & 1 ? 0xF0 : 0x0F;
 	_envTL = 0;
@@ -493,7 +511,7 @@ void CMSVoice_V0::recalculateFrequency(uint8 &freq, uint8 &octave) {
 			frequency = 47;
 		}
 	}
-	
+
 	octave = CLIP<int8>(octave + _transOct, 0, 7);
 	frequency = _frequencyTable[frequency & 0xFF] + _transFreq + _vbrPhase;
 
@@ -519,7 +537,7 @@ void CMSVoice_V0::recalculateEnvelopeLevels() {
 	} else if (_envTL) {
 		_envTL = chanVol;
 	}
-	
+
 	int volIndexSL = (_envSLI << 4) + (_envTL >> 4);
 	assert(volIndexSL < ARRAYSIZE(_volumeTable));
 	_envSL = _volumeTable[volIndexSL];
@@ -539,6 +557,10 @@ void CMSVoice_V0::selectEnvelope(int id) {
 	_vbrCur = _vbrMod;
 	_vbrState = _vbrSteps & 0x0F;
 	_vbrPhase = 0;
+#ifdef SCI0_CMS_ORIGINAL_BUG
+	if (_id == 1)
+		_envAR1 = _envAR;
+#endif
 }
 
 const uint8 CMSVoice_V0::_volumeTable[176] = {
@@ -721,7 +743,7 @@ const int CMSVoice_V1::_velocityTable[32] = {
 };
 
 MidiDriver_CMS::MidiDriver_CMS(Audio::Mixer* mixer, ResourceManager* resMan, SciVersion version) : MidiDriver_Emulated(mixer), _resMan(resMan),
-	_version(version), _cms(0), _rate(0), _playSwitch(true), _masterVolume(0), _numVoicesPrimary(version > SCI_VERSION_0_LATE ? 12 : 8),
+	_version(version), _cms(nullptr), _rate(0), _playSwitch(true), _masterVolume(0), _numVoicesPrimary(version > SCI_VERSION_0_LATE ? 12 : 8),
 	_actualTimerInterval(1000000 / _baseFreq), _reqTimerInterval(1000000/60), _numVoicesSecondary(version > SCI_VERSION_0_LATE ? 0 : 4) {
 	memset(_voice, 0, sizeof(_voice));
 	_updateTimer = _reqTimerInterval;
@@ -745,8 +767,7 @@ int MidiDriver_CMS::open() {
 
 	_rate = _mixer->getOutputRate();
 	_cms = new CMSEmulator(_rate);
-	assert(_cms);	
-	
+
 	for (uint i = 0; i < ARRAYSIZE(_channel); ++i)
 		_channel[i] = Channel();
 
@@ -756,7 +777,7 @@ int MidiDriver_CMS::open() {
 		else
 			_voice[i] = new CMSVoice_V1(i, this, _cms, *_patchData);
 	}
-	
+
 	_playSwitch = true;
 	_masterVolume = 0;
 
@@ -1081,12 +1102,12 @@ void MidiDriver_CMS::unbindVoices(int channelNr, int voices, bool bindSecondary)
 		for (int i = 0; i < _numVoicesPrimary; ++i) {
 			if (_voice[i]->_assign == channelNr && _voice[i]->_note == 0xFF) {
 				_voice[i]->_assign = 0xFF;
-				
+
 				CMSVoice *sec = _voice[i]->_secondaryVoice;
 				if (sec) {
 					sec->stop();
 					sec->_assign = 0xFF;
-					_voice[i]->_secondaryVoice = 0;
+					_voice[i]->_secondaryVoice = nullptr;
 				}
 
 				--voices;
@@ -1123,7 +1144,7 @@ void MidiDriver_CMS::unbindVoices(int channelNr, int voices, bool bindSecondary)
 			if (sec) {
 				sec->stop();
 				sec->_assign = 0xFF;
-				_voice[voiceNr]->_secondaryVoice = 0;
+				_voice[voiceNr]->_secondaryVoice = nullptr;
 			}
 
 			--voices;
@@ -1243,7 +1264,7 @@ int MidiDriver_CMS::findVoice(int channelNr, int note) {
 
 		return voiceNr;
 	}
-	
+
 	return -1;
 }
 
@@ -1307,7 +1328,7 @@ public:
 
 	void playSwitch(bool play) override { _driver->property(MidiDriver_CMS::MIDI_PROP_PLAYSWITCH, play ? 1 : 0); }
 
-	const char *reportMissingFiles() override { return _filesMissing ? _requiredFiles : 0; }
+	const char *reportMissingFiles() override { return _filesMissing ? _requiredFiles : nullptr; }
 
 private:
 	bool _filesMissing;
@@ -1328,7 +1349,7 @@ int MidiPlayer_CMS::open(ResourceManager *resMan) {
 }
 
 void MidiPlayer_CMS::close() {
-	_driver->setTimerCallback(0, 0);
+	_driver->setTimerCallback(nullptr, nullptr);
 	_driver->close();
 	delete _driver;
 	_driver = nullptr;

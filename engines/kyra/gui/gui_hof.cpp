@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@ namespace Kyra {
 
 void KyraEngine_HoF::loadButtonShapes() {
 	const uint8 *src = _screen->getCPagePtr(3);
-	_screen->loadBitmap("_BUTTONS.CSH", 3, 3, 0);
+	_screen->loadBitmap("_BUTTONS.CSH", 3, 3, nullptr);
 
 	_gui->_scrollUpButton.data0ShapePtr = _buttonShapes[0] = _screen->makeShapeCopy(src, 0);
 	_gui->_scrollUpButton.data2ShapePtr = _buttonShapes[1] = _screen->makeShapeCopy(src, 1);
@@ -79,33 +78,44 @@ void KyraEngine_HoF::setupLangButtonShapes() {
 GUI_HoF::GUI_HoF(KyraEngine_HoF *vm) : GUI_v2(vm), _vm(vm), _screen(_vm->_screen) {
 }
 
-const char *GUI_HoF::getMenuTitle(const Menu &menu) {
+Common::String GUI_HoF::getMenuTitle(const Menu &menu) {
 	if (!menu.menuNameId)
-		return 0;
+		return Common::String();
 
-	return _vm->getTableString(menu.menuNameId, _vm->_optionsBuffer, 1);
+	return _vm->getTableString(menu.menuNameId, _vm->_optionsBuffer, true);
 }
 
-const char *GUI_HoF::getMenuItemTitle(const MenuItem &menuItem) {
+Common::String GUI_HoF::getMenuItemTitle(const MenuItem &menuItem) {
+	if (menuItem.useItemString)
+		return menuItem.itemString;
+
 	if (!menuItem.itemId)
-		return 0;
+		return Common::String();
 
 	// Strings 41-45 are menu labels, those must be handled uncompressed!
 	if (menuItem.itemId >= 41 && menuItem.itemId <= 45)
-		return _vm->getTableString(menuItem.itemId, _vm->_optionsBuffer, 0);
+		return _vm->getTableString(menuItem.itemId, _vm->_optionsBuffer, false);
 	else
-		return _vm->getTableString(menuItem.itemId, _vm->_optionsBuffer, 1);
+		return _vm->getTableString(menuItem.itemId, _vm->_optionsBuffer, true);
 }
 
-const char *GUI_HoF::getMenuItemLabel(const MenuItem &menuItem) {
+Common::String GUI_HoF::getMenuItemLabel(const MenuItem &menuItem) {
 	if (!menuItem.labelId)
-		return 0;
+		return Common::String();
 
 	return _vm->getTableString(menuItem.labelId, _vm->_optionsBuffer, 1);
 }
 
-char *GUI_HoF::getTableString(int id) {
-	return _vm->getTableString(id, _vm->_optionsBuffer, 0);
+Common::String GUI_HoF::getTableString(int id, bool decode) {
+	// Apparently, these were forgotten to translate in the text files...
+	if (_vm->gameFlags().lang == Common::ZH_TWN) {
+		if (id == 18)
+			return Common::String(_saveLoadStringsZH[1]);
+		else if (id == 42)
+			return Common::String(_saveLoadStringsZH[0]);
+	}
+
+	return _vm->getTableString(id, _vm->_optionsBuffer, decode);
 }
 
 #pragma mark -
@@ -255,31 +265,46 @@ void KyraEngine_HoF::redrawInventory(int page) {
 
 void KyraEngine_HoF::scrollInventoryWheel() {
 	WSAMovie_v2 movie(this);
-	movie.open("INVWHEEL.WSA", 0, 0);
+	movie.open("INVWHEEL.WSA", 0, nullptr);
 	int frames = movie.opened() ? movie.frames() : 6;
 	memcpy(_screenBuffer, _screen->getCPagePtr(2), 64000);
 	uint8 overlay[0x100];
 	_screen->generateOverlay(_screen->getPalette(0), overlay, 0, 50);
-	_screen->copyRegion(0x46, 0x90, 0x46, 0x79, 0x71, 0x17, 0, 2, Screen::CR_NO_P_CHECK);
+
+	int ry2 = 121;
+	int rh = 23;
+	int rh2 = 46;
+	int rm = 981;
+	// The Chinese version needs a couple of extra pixels for the text display.
+	// at the bottom. This means that the animation has to be clipped a bit, so
+	// that it does not collide with the text.
+	if (_flags.lang == Common::ZH_TWN) {
+		ry2 = 123;
+		rh = 21;
+		rh2 = 42;
+		rm = 896;
+	}
+
+	_screen->copyRegion(70, 144, 70, ry2, 113, rh, 0, 2, Screen::CR_NO_P_CHECK);
 	snd_playSoundEffect(0x25);
 
 	bool breakFlag = false;
 	for (int i = 0; i <= 6 && !breakFlag; ++i) {
 		if (movie.opened()) {
-			movie.displayFrame(i % frames, 0, 0, 0, 0, 0, 0);
+			movie.displayFrame(i % frames, 0, 0, 0, 0, nullptr, nullptr);
 			_screen->updateScreen();
 		}
 
 		uint32 endTime = _system->getMillis() + _tickLength;
 
-		int y = (i * 981) >> 8;
-		if (y >= 23 || i == 6) {
-			y = 23;
+		int y = (i * rm) >> 8;
+		if (y >= rh || i == 6) {
+			y = rh;
 			breakFlag = true;
 		}
 
-		_screen->applyOverlay(0x46, 0x79, 0x71, 0x17, 2, overlay);
-		_screen->copyRegion(0x46, y+0x79, 0x46, 0x90, 0x71, 0x2E, 2, 0, Screen::CR_NO_P_CHECK);
+		_screen->applyOverlay(70, ry2, 113, rh, 2, overlay);
+		_screen->copyRegion(70, y+ry2, 70, 144, 113, rh2, 2, 0, Screen::CR_NO_P_CHECK);
 		_screen->updateScreen();
 
 		delayUntil(endTime);
@@ -293,7 +318,7 @@ void KyraEngine_HoF::scrollInventoryWheel() {
 
 int KyraEngine_HoF::bookButton(Button *button) {
 	if (!queryGameFlag(1)) {
-		objectChat(getTableString(0xEB, _cCodeBuffer, 1), 0, 0x83, 0xEB);
+		objectChat(getTableString(0xEB, _cCodeBuffer, true), 0, 0x83, 0xEB);
 		return 0;
 	}
 
@@ -329,7 +354,7 @@ int KyraEngine_HoF::bookButton(Button *button) {
 	}
 
 	_screen->hideMouse();
-	showMessage(0, 0xCF);
+	showMessage(nullptr, 0xCF);
 	displayInvWsaLastFrame();
 	_bookNewPage = _bookCurPage;
 
@@ -368,10 +393,10 @@ int KyraEngine_HoF::bookButton(Button *button) {
 	_screen->showMouse();
 
 	if (!queryGameFlag(4) && !queryGameFlag(0xB8)) {
-		objectChat(getTableString(0xEC, _cCodeBuffer, 1), 0, 0x83, 0xEC);
-		objectChat(getTableString(0xED, _cCodeBuffer, 1), 0, 0x83, 0xED);
-		objectChat(getTableString(0xEE, _cCodeBuffer, 1), 0, 0x83, 0xEE);
-		objectChat(getTableString(0xEF, _cCodeBuffer, 1), 0, 0x83, 0xEF);
+		objectChat(getTableString(0xEC, _cCodeBuffer, true), 0, 0x83, 0xEC);
+		objectChat(getTableString(0xED, _cCodeBuffer, true), 0, 0x83, 0xED);
+		objectChat(getTableString(0xEE, _cCodeBuffer, true), 0, 0x83, 0xEE);
+		objectChat(getTableString(0xEF, _cCodeBuffer, true), 0, 0x83, 0xEF);
 		setGameFlag(4);
 	}
 
@@ -418,29 +443,29 @@ void KyraEngine_HoF::loadBookBkgd() {
 			strcpy(filename, "_BOOKA.CPS");
 	}
 
-	_screen->loadBitmap(filename, 3, 3, 0);
+	_screen->loadBitmap(filename, 3, 3, nullptr);
 }
 
 void KyraEngine_HoF::showBookPage() {
 	char filename[16];
 
 	sprintf(filename, "PAGE%.01X.%s", _bookCurPage, _languageExtension[_lang]);
-	uint8 *leftPage = _res->fileData(filename, 0);
+	uint8 *leftPage = _res->fileData(filename, nullptr);
 	if (!leftPage) {
 		// some floppy version use a TXT extension
 		sprintf(filename, "PAGE%.01X.TXT", _bookCurPage);
-		leftPage = _res->fileData(filename, 0);
+		leftPage = _res->fileData(filename, nullptr);
 	}
 
 	int leftPageY = _bookPageYOffset[_bookCurPage];
 
 	sprintf(filename, "PAGE%.01X.%s", _bookCurPage+1, _languageExtension[_lang]);
-	uint8 *rightPage = 0;
+	uint8 *rightPage = nullptr;
 	if (_bookCurPage != _bookMaxPage) {
-		rightPage = _res->fileData(filename, 0);
+		rightPage = _res->fileData(filename, nullptr);
 		if (!rightPage) {
 			sprintf(filename, "PAGE%.01X.TXT", _bookCurPage);
-			rightPage = _res->fileData(filename, 0);
+			rightPage = _res->fileData(filename, nullptr);
 		}
 	}
 
@@ -473,7 +498,7 @@ void KyraEngine_HoF::bookLoop() {
 	GUI_V2_BUTTON(bookButtons[4], 0x28, 0, 0, 1, 1, 1, 0x4487, 0, 0xAA, 0x08, 0x8E, 0xB4, 0xC7, 0xCF, 0xC7, 0xCF, 0xC7, 0xCF, 0);
 	bookButtons[4].buttonCallback = BUTTON_FUNCTOR(KyraEngine_HoF, this, &KyraEngine_HoF::bookNextPage);
 
-	Button *buttonList = 0;
+	Button *buttonList = nullptr;
 
 	for (uint i = 0; i < ARRAYSIZE(bookButtons); ++i)
 		buttonList = _gui->addButtonToList(buttonList, &bookButtons[i]);
@@ -518,12 +543,28 @@ void KyraEngine_HoF::bookPrintText(int dstPage, const uint8 *str, int x, int y, 
 	_screen->_curPage = dstPage;
 
 	_screen->setTextColor(_bookTextColorMap, 0, 3);
-	Screen::FontId oldFont = _screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_BOOKFONT_FNT);
-	_screen->_charWidth = -2;
+	Screen::FontId oldFont = _screen->setFont(_bookFont);
+	_screen->_charSpacing = -2;
 
-	_screen->printText((const char *)str, x, y, color, (_flags.lang == Common::JA_JPN) ? 0xF6 : 0);
+	Common::String strr((const char *)str);
+	Common::String revBuffer;
+	Common::String lineBuffer;
+	const char *tmp = strr.c_str();
+	if (_flags.lang == Common::HE_ISR) {
+		for (int i = strr.size() - 1; i >= 0; --i) {
+			if (str[i] != '\r') {
+				lineBuffer += str[i];
+			} else {
+				revBuffer = lineBuffer + '\r' + revBuffer;
+				lineBuffer.clear();
+			}
+		}
+		tmp = revBuffer.c_str();
+	}
 
-	_screen->_charWidth = 0;
+	_screen->printText(tmp, x, y, color, (_flags.lang == Common::JA_JPN) ? 0xF6 : 0);
+
+	_screen->_charSpacing = 0;
 	_screen->setFont(oldFont);
 	_screen->_curPage = curPageBackUp;
 }
@@ -548,7 +589,7 @@ int KyraEngine_HoF::bookClose(Button *button) {
 int KyraEngine_HoF::cauldronClearButton(Button *button) {
 	if (!queryGameFlag(2)) {
 		updateCharFacing();
-		objectChat(getTableString(0xF0, _cCodeBuffer, 1), 0, 0x83, 0xF0);
+		objectChat(getTableString(0xF0, _cCodeBuffer, true), 0, 0x83, 0xF0);
 		return 0;
 	}
 
@@ -562,7 +603,7 @@ int KyraEngine_HoF::cauldronClearButton(Button *button) {
 	snd_playSoundEffect(0x25);
 	loadInvWsa("PULL.WSA", 1, 6, 0, -1, -1, 1);
 	loadInvWsa("CAULD00.WSA", 1, 7, 0, 0xD4, 0x0F, 1);
-	showMessage(0, 0xCF);
+	showMessage(nullptr, 0xCF);
 	setCauldronState(0, 0);
 	clearCauldronTable();
 	snd_playSoundEffect(0x57);
@@ -573,7 +614,7 @@ int KyraEngine_HoF::cauldronClearButton(Button *button) {
 
 int KyraEngine_HoF::cauldronButton(Button *button) {
 	if (!queryGameFlag(2)) {
-		objectChat(getTableString(0xF0, _cCodeBuffer, 1), 0, 0x83, 0xF0);
+		objectChat(getTableString(0xF0, _cCodeBuffer, true), 0, 0x83, 0xF0);
 		return 0;
 	}
 
@@ -619,7 +660,7 @@ int KyraEngine_HoF::cauldronButton(Button *button) {
 				snd_playSoundEffect(0x6C);
 				++_cauldronUseCount;
 				if (_cauldronStateTable[_cauldronState] <= _cauldronUseCount && _cauldronUseCount) {
-					showMessage(0, 0xCF);
+					showMessage(nullptr, 0xCF);
 					setCauldronState(0, true);
 					clearCauldronTable();
 				}
@@ -653,7 +694,7 @@ int GUI_HoF::optionsButton(Button *button) {
 	if (!_screen->isMouseVisible() && button)
 		return 0;
 
-	_vm->showMessage(0, 0xCF);
+	_vm->showMessage(nullptr, 0xCF);
 
 	if (_vm->_mouseState < -1) {
 		_vm->_mouseState = -1;
@@ -690,7 +731,7 @@ int GUI_HoF::optionsButton(Button *button) {
 
 		_loadedSave = false;
 
-		loadMenu(0);
+		loadMenu(nullptr);
 
 		if (_loadedSave) {
 			if (_restartGame)
@@ -981,7 +1022,7 @@ int GUI_HoF::gameOptionsTalkie(Button *caller) {
 int GUI_HoF::changeLanguage(Button *caller) {
 	updateMenuButton(caller);
 	++_vm->_lang;
-	_vm->_lang %= 3;
+	_vm->_lang %= _vm->_numLang;
 	setupOptionsButtons();
 	renewHighlight(_gameOptions);
 	return 0;
@@ -1120,7 +1161,7 @@ int GUI_HoF::loadMenu(Button *caller) {
 	}
 
 	_savegameOffset = 0;
-	setupSavegameNames(_loadMenu, 5);
+	setupSavegameNames(_loadMenu, _saveLoadNumSlots);
 	initMenu(_loadMenu);
 	_isLoadMenu = true;
 	_noLoadProcess = false;

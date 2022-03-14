@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,14 +34,14 @@
 // compatibility with all pre-10.5 systems.
 //
 // Since 10.5 was the last system to support PowerPC, we use the old, deprecated
-// APIs on PowerPC based systems by default. On all other systems (such as Mac
-// OS X running on Intel hardware, or iOS running on ARM), we use the new API by
+// APIs on PowerPC based systems by default. On all other systems (such as macOS
+// running on Intel hardware, or iOS running on ARM), we use the new API by
 // default.
 //
 // This leaves Mac OS X 10.4 running on x86 processors as the only system
 // combination that this code will not support by default. It seems quite
 // reasonable to assume that anybody with an Intel system has since then moved
-// on to a newer Mac OS X release. But if for some reason you absolutely need to
+// on to a newer macOS release. But if for some reason you absolutely need to
 // build an x86 version of this code using the old, deprecated API, you can
 // simply do so by manually enable the USE_DEPRECATED_COREAUDIO_API switch (e.g.
 // by adding setting it suitably in CPPFLAGS).
@@ -265,7 +264,7 @@ void MidiDriver_CORE::loadSoundFont(const char *soundfont) {
 #endif // USE_DEPRECATED_COREAUDIO_API
 
 	if (err != noErr)
-		error("Failed loading custom sound font '%s' (error %ld)", soundfont, (long)err);
+		error("Failed loading custom SoundFont '%s' (error %ld)", soundfont, (long)err);
 }
 
 void MidiDriver_CORE::close() {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,8 @@
 #include "common/endian.h"
 
 namespace Cine {
+
+extern int16 currentDisk;
 
 /**
  * Cine engine's save game formats.
@@ -64,14 +65,31 @@ enum CineSaveGameFormat {
 	ANIMSIZE_23,
 	ANIMSIZE_30_PTRS_BROKEN,
 	ANIMSIZE_30_PTRS_INTACT,
-	TEMP_OS_FORMAT
+	TEMP_OS_FORMAT,
+	VERSIONED_FW_FORMAT,
+	VERSIONED_OS_FORMAT
 };
 
 /** Identifier for the temporary Operation Stealth savegame format. */
 static const uint32 TEMP_OS_FORMAT_ID = MKTAG('T', 'E', 'M', 'P');
 
-/** The current version number of Operation Stealth's savegame format. */
-static const uint32 CURRENT_OS_SAVE_VER = 1;
+/** Identifiers for versioned Future Wars and Operation Stealth savegame formats. */
+static const uint32 VERSIONED_FW_FORMAT_ID = MKTAG('C', '1', 'F', 'W');
+static const uint32 VERSIONED_OS_FORMAT_ID = MKTAG('C', '2', 'O', 'S');
+
+/** The current version number of versioned Future Wars and Operation Stealth savegame formats.
+Version 4: First version used. Added disableSystemMenu to Future Wars savegame format.
+*/
+static const uint32 CURRENT_SAVE_VER = 4;
+
+/** The last version number of temporary Operation Stealth's savegame format.
+Version 0: Color count was not saved, was assumed to be 256. BGIncrust.bgIdx does not exist, _currentBg was used.
+Version 1: Saving of real color count was added but still 256 colors were always saved.
+Version 2: BGIncrust.bgIdx was added.
+Version 3: Saving real values for current music name, music playing status, current background index,
+		   scroll background index and background scrolling was added.
+*/
+static const uint32 LAST_TEMP_OS_SAVE_VER = 3;
 
 /** Chunk header used by the temporary Operation Stealth savegame format. */
 struct ChunkHeader {

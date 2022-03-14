@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,8 +60,10 @@ static Common::FSNode getNodeForRelativePath(const Common::String &filename) {
 	}
 
 	// Relative path:
-	if (filename.contains('\\')) {
-		Common::StringTokenizer path(filename, "\\");
+	Common::String fixedFilename = filename;
+	correctSlashes(fixedFilename);
+	if (fixedFilename.contains('/')) {
+		Common::StringTokenizer path(fixedFilename, "/");
 
 		// Start traversing relative to the game-data-dir
 		const Common::FSNode gameDataDir(ConfMan.get("path"));
@@ -70,7 +71,7 @@ static Common::FSNode getNodeForRelativePath(const Common::String &filename) {
 
 		// Parse all path-elements
 		while (!path.empty()) {
-			// Get the next path-component by slicing on '\\'
+			// Get the next path-component by slicing on '/'
 			Common::String pathPart = path.nextToken();
 			// Get the next FSNode in the chain, if it exists as a child from the previous.
 			curNode = curNode.getChild(pathPart);
@@ -109,6 +110,11 @@ bool diskFileExists(const Common::String &filename) {
 	return false;
 }
 
+
+int listMatchingDiskFileMembers(Common::ArchiveMemberList &list, const Common::String &pattern) {
+	return Common::FSDirectory(ConfMan.get("path")).listMatchingMembers(list, pattern);
+}
+
 Common::SeekableReadStream *openDiskFile(const Common::String &filename) {
 	uint32 prefixSize = 0;
 	Common::SeekableReadStream *file = nullptr;
@@ -125,7 +131,7 @@ Common::SeekableReadStream *openDiskFile(const Common::String &filename) {
 				"c:/users/mathieu/desktop/wintermute engine development kit/jeu verve/vervegame/data/", // Machu Mayu refers to "c:\users\mathieu\desktop\wintermute engine development kit\jeu verve\vervegame\data\interface\system\cr<0xE9>dits.script"
 				"c:/windows/fonts/", // East Side Story refers to "c:\windows\fonts\framd.ttf"
 				"c:/carol6/svn/data/", // Carol Reed 6: Black Circle refers to "c:\carol6\svn\data\sprites\system\help.png"
-				"d:/engine/\322\3032/tg_ie_080128_1005/data/", // Tanya Grotter and the Disappearing Floor refers to "d:\engine\<0xD2><0xC3>2\tg_ie_080128_1005\data\interface\pixel\pixel.png"
+				("d:/engine/\322\303" "2/tg_ie_080128_1005/data/"), // Tanya Grotter and the Disappearing Floor refers to "d:\engine\<0xD2><0xC3>2\tg_ie_080128_1005\data\interface\pixel\pixel.png"
 				"e:/users/jonathan/onedrive/knossos/data/", // K'NOSSOS refers to "e:\users\jonathan\onedrive\knossos\data\entities\helprobot\helprobot.script"
 				"f:/dokument/spel 5/demo/data/", // Carol Reed 5 (non-demo) refers to "f:\dokument\spel 5\demo\data\scenes\credits\op_cred_00\op_cred_00.jpg"
 				"f:/quest!!!/engine/quest/data/" // Book of Gron Part One refers to several files named "f:\quest!!!\engine\quest\data\entities\dver\*"

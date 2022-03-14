@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@ CursorMgr::CursorMgr(PinkEngine *game, Page *page)
 	_time(0), _isPlayingAnimation(false),
 	_isSecondFrame(false), _firstFrameIndex(0)  {}
 
-void CursorMgr::setCursor(uint index, const Common::Point point, const Common::String &itemName) {
+void CursorMgr::setCursor(byte index, Common::Point point, const Common::String &itemName) {
 	switch (index) {
 	case kClickableFirstFrameCursor:
 	case kPDAClickableFirstFrameCursor:
@@ -64,8 +63,8 @@ void CursorMgr::update() {
 	}
 }
 
-void CursorMgr::setCursor(const Common::String &cursorName, const Common::Point point) {
-	uint index;
+void CursorMgr::setCursor(const Common::String &cursorName, Common::Point point) {
+	byte index;
 	if (cursorName == kCursorNameExitLeft)
 		index = kExitLeftCursor;
 	else if (cursorName == kCursorNameExitRight)
@@ -87,7 +86,7 @@ void CursorMgr::hideItem() {
 		_actor->setAction(kHideAction);
 }
 
-void CursorMgr::startAnimation(uint index) {
+void CursorMgr::startAnimation(byte index) {
 	if (_isPlayingAnimation)
 		return;
 
@@ -98,7 +97,7 @@ void CursorMgr::startAnimation(uint index) {
 	_isSecondFrame = false;
 }
 
-void CursorMgr::showItem(const Common::String &itemName, const Common::Point point) {
+void CursorMgr::showItem(const Common::String &itemName, Common::Point point) {
 	if (!_actor)
 		_actor = static_cast<CursorActor *>(_page->findActor(kCursor));
 	_actor->setCursorItem(itemName, point);

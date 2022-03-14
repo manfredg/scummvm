@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,7 +71,7 @@ namespace Kyra {
 #define GUI_V1_MENU_ITEM(item, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v) \
 	do { \
 		item.enabled = a; \
-		item.itemString = d; \
+		item.itemString = ""; \
 		item.x = e; \
 		item.y = g; \
 		item.width = h; \
@@ -153,9 +152,9 @@ private:
 	uint8 defaultColor1() const override { return 12; }
 	uint8 defaultColor2() const override { return 248; }
 
-	const char *getMenuTitle(const Menu &menu) override { return menu.menuNameString; }
-	const char *getMenuItemTitle(const MenuItem &menuItem) override { return menuItem.itemString; }
-	const char *getMenuItemLabel(const MenuItem &menuItem) override { return menuItem.labelString; }
+	Common::String getMenuTitle(const Menu &menu) override { return menu.menuNameString; }
+	Common::String getMenuItemTitle(const MenuItem &menuItem) override { return menuItem.itemString; }
+	Common::String getMenuItemLabel(const MenuItem &menuItem) override { return menuItem.labelString; }
 
 	KyraEngine_LoK *_vm;
 	Screen_LoK *_screen;
@@ -167,6 +166,8 @@ private:
 	char _savegameNames[5][35];
 	const char *_specialSavegameString;
 
+	int _saveLoadNumSlots;
+
 	Button::Callback _scrollUpFunctor;
 	Button::Callback _scrollDownFunctor;
 	Button::Callback getScrollUpButtonHandler() const override { return _scrollUpFunctor; }
@@ -176,7 +177,8 @@ private:
 	const char *_textSpeedString;
 	const char *_onString;
 	const char *_offString;
-	const char *_onCDString;
+	const char *_confMusicMenuStrings[3];
+	uint8 _confMusicMenuMod;
 };
 
 } // End of namespace Kyra

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -190,7 +189,7 @@ void Actor::updateActorsScene(int actorsEntrance) {
 	_vm->_sound->stopVoice();
 	_activeSpeech.stringsCount = 0;
 	_activeSpeech.playing = false;
-	_protagonist = NULL;
+	_protagonist = nullptr;
 
 	for (ActorDataArray::iterator actor = _actors.begin(); actor != _actors.end(); ++actor) {
 		actor->_inScene = false;
@@ -216,7 +215,7 @@ void Actor::updateActorsScene(int actorsEntrance) {
 	}
 
 	// _protagonist can be null while loading a game from the command line
-	if (_protagonist == NULL)
+	if (_protagonist == nullptr)
 		return;
 
 	if ((actorsEntrance >= 0) && (!_vm->_scene->_entryList.empty())) {
@@ -232,7 +231,7 @@ void Actor::updateActorsScene(int actorsEntrance) {
 			_protagonist->_location.y = sceneEntry->location.y * ACTOR_LMULT;
 			_protagonist->_location.z = sceneEntry->location.z * ACTOR_LMULT;
 		}
-		// Workaround for bug #1328045:
+		// Workaround for bug #2264:
 		// "When entering any of the houses at the start of the
 		// game if you click on anything inside the building you
 		// start walking through the door, turn around and leave."
@@ -667,7 +666,7 @@ void Actor::handleActions(int msec, bool setup) {
 		}
 
 		if ((actor->_currentAction >= kActionWalkToPoint) && (actor->_currentAction <= kActionWalkDir)) {
-			hitZone = NULL;
+			hitZone = nullptr;
 
 			if (_vm->_scene->getFlags() & kSceneFlagISO) {
 				actor->_location.toScreenPointUV(hitPoint);
@@ -688,7 +687,7 @@ void Actor::handleActions(int msec, bool setup) {
 			if (_vm->getGameId() == GID_IHNM) {
 				if (_vm->_scene->currentChapterNumber() == 1 && _vm->_scene->currentSceneNumber() == 22)
 					if (hitPoint.x <= 300)
-						hitZone = NULL;
+						hitZone = nullptr;
 			}
 
 			if (hitZone != actor->_lastZone) {
@@ -1166,7 +1165,7 @@ void Actor::moveDragon(ActorData *actor) {
 		dir0 = actor->_actionDirection;
 		dir1 = actor->_tileDirections[actor->_walkStepIndex++];
 		dir2 = actor->_tileDirections[actor->_walkStepIndex];
-		// Fix for Bug #3324850 ("ITE (SAGA): crash in dog sewers")
+		// Fix for Bug #5767 ("ITE (SAGA): crash in dog sewers")
 		// If there were more than two steps left, get the third (next) step.
 		// Otherwise, store the second step again so the anim looks right.
 		// (If you stop the move instead, Rif isn't automatically knocked into

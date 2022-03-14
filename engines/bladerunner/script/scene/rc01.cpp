@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ enum kRC01Regions {
 void SceneScriptRC01::InitializeScene() {
 	if (!Game_Flag_Query(kFlagIntroPlayed)) {
 		Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-		Ambient_Sounds_Remove_All_Looping_Sounds(1);
+		Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 		Outtake_Play(kOuttakeWestwood, true, -1);
 		Outtake_Play(kOuttakeBladeRunner, true, -1);
 		Outtake_Play(kOuttakeIntro, false, -1);
@@ -201,8 +200,8 @@ void SceneScriptRC01::SceneLoaded() {
 		Preload(kModelAnimationMcCoyWalking);
 		Preload(kModelAnimationMcCoyRunning);
 		Preload(kModelAnimationMcCoyIdle);
-		Preload(582);
-		Preload(589);
+		Preload(kModelAnimationOfficerLearyWalking);
+		Preload(kModelAnimationOfficerLearyOscillateIdle);
 	}
 
 	if (!Game_Flag_Query(kFlagRC01ChromeDebrisTaken)) {
@@ -632,7 +631,7 @@ bool SceneScriptRC01::ClickedOnExit(int exitId) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -471.98f, -0.3f, 258.15f, 4, true, false, false)) {
 			Game_Flag_Set(kFlagRC01toRC03);
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Set_Enter(kSetRC03, kSceneRC03);
 		}
 		return true;
@@ -740,7 +739,7 @@ void SceneScriptRC01::PlayerWalkedIn() {
 
 void SceneScriptRC01::PlayerWalkedOut() {
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 	if (!Game_Flag_Query(kFlagRC01toRC02)
 	 && !Game_Flag_Query(kFlagRC01toRC03)
 	) {

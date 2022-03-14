@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,13 +53,13 @@ namespace LastExpress {
 
 LastExpressEngine::LastExpressEngine(OSystem *syst, const ADGameDescription *gd) :
 	Engine(syst), _gameDescription(gd),
-	_debugger(NULL), _random("lastexpress"), _cursor(NULL),
-	_font(NULL), _logic(NULL), _menu(NULL),
+	_debugger(nullptr), _random("lastexpress"), _cursor(nullptr),
+	_font(nullptr), _logic(nullptr), _menu(nullptr),
 	_lastFrameCount(0),
-	_graphicsMan(NULL), _resMan(NULL),
-	_sceneMan(NULL), _soundMan(NULL),
-	_eventMouse(NULL), _eventTick(NULL),
-	_eventMouseBackup(NULL), _eventTickBackup(NULL)
+	_graphicsMan(nullptr), _resMan(nullptr),
+	_sceneMan(nullptr), _soundMan(nullptr),
+	_eventMouse(nullptr), _eventTick(nullptr),
+	_eventMouseBackup(nullptr), _eventTickBackup(nullptr)
 	{
 	// Setup mixer
 	Engine::syncSoundSettings();
@@ -68,17 +67,6 @@ LastExpressEngine::LastExpressEngine(OSystem *syst, const ADGameDescription *gd)
 	// Adding the default directories
 	const Common::FSNode gameDataDir(ConfMan.get("path"));
 	SearchMan.addSubDirectoryMatching(gameDataDir, "data");
-
-	// Initialize the custom debug levels
-	DebugMan.addDebugChannel(kLastExpressDebugGraphics, "Graphics", "Debug graphics & animation/sequence playback");
-	DebugMan.addDebugChannel(kLastExpressDebugResource, "Resource", "Debug resource management");
-	DebugMan.addDebugChannel(kLastExpressDebugCursor, "Cursor", "Debug cursor handling");
-	DebugMan.addDebugChannel(kLastExpressDebugSound, "Sound", "Debug sound playback");
-	DebugMan.addDebugChannel(kLastExpressDebugSubtitle, "Subtitle", "Debug subtitles");
-	DebugMan.addDebugChannel(kLastExpressDebugSavegame, "Savegame", "Debug savegames");
-	DebugMan.addDebugChannel(kLastExpressDebugLogic, "Logic", "Debug logic");
-	DebugMan.addDebugChannel(kLastExpressDebugScenes, "Scenes", "Debug scenes & hotspots");
-	DebugMan.addDebugChannel(kLastExpressDebugUnknown, "Unknown", "Debug unknown data");
 }
 
 LastExpressEngine::~LastExpressEngine() {
@@ -100,7 +88,7 @@ LastExpressEngine::~LastExpressEngine() {
 	SAFE_DELETE(_eventTickBackup);
 
 	// Zero passed pointers
-	_gameDescription = NULL;
+	_gameDescription = nullptr;
 }
 
 // TODO: which error should we return when some game files are missing/corrupted?
@@ -273,7 +261,7 @@ bool LastExpressEngine::handleEvents() {
 /// Event Handling
 ///////////////////////////////////////////////////////////////////////////////////
 void LastExpressEngine::backupEventHandlers() {
-	if (_eventMouseBackup != NULL || _eventTickBackup != NULL)
+	if (_eventMouseBackup != nullptr || _eventTickBackup != nullptr)
 		error("[LastExpressEngine::backupEventHandlers] backup event handlers are already set");
 
 	_eventMouseBackup = _eventMouse;
@@ -281,7 +269,7 @@ void LastExpressEngine::backupEventHandlers() {
 }
 
 void LastExpressEngine::restoreEventHandlers() {
-	if (_eventMouseBackup == NULL || _eventTickBackup == NULL)
+	if (_eventMouseBackup == nullptr || _eventTickBackup == nullptr)
 		error("[LastExpressEngine::restoreEventHandlers] restore called before backing up the event handlers");
 
 	// Cleanup previous event handlers
@@ -291,8 +279,8 @@ void LastExpressEngine::restoreEventHandlers() {
 	_eventMouse = _eventMouseBackup;
 	_eventTick = _eventTickBackup;
 
-	_eventMouseBackup = NULL;
-	_eventTickBackup = NULL;
+	_eventMouseBackup = nullptr;
+	_eventTickBackup = nullptr;
 }
 
 void LastExpressEngine::setEventHandlers(EventHandler::EventFunction *mouse, EventHandler::EventFunction *tick) {
@@ -310,7 +298,7 @@ void LastExpressEngine::setEventHandlers(EventHandler::EventFunction *mouse, Eve
 /// Misc Engine
 ///////////////////////////////////////////////////////////////////////////////////
 bool LastExpressEngine::hasFeature(EngineFeature f) const {
-	return (f == kSupportsRTL);
+	return (f == kSupportsReturnToLauncher);
 }
 
 } // End of namespace LastExpress

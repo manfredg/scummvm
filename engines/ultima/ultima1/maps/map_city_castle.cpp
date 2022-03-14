@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -115,7 +114,7 @@ void MapCityCastle::loadWidgets() {
 		default:
 			error("Unknown NPC type %d", lp[0]);
 		}
-		
+
 		person->_position = Point(lp[1], lp[2]);
 		addWidget(person);
 	}
@@ -315,7 +314,7 @@ void MapCity::dropCoins(uint coins) {
 			// Increase one of the attributes randomly
 			uint *attrList[6] = { &c._strength, &c._agility, &c._stamina, &c._charisma, &c._wisdom, &c._intelligence };
 			uint &attr = *attrList[_game->getRandomNumber(0, 5)];
-			
+
 			attr = MIN(attr + coins / 10, 99U);
 			break;
 		}
@@ -404,14 +403,14 @@ void MapCastle::dropCoins(uint coins) {
 	if (tile._tileId == CTILE_POND_EDGE1) {
 		uint hp = coins * 3 / 2;
 		c._hitPoints = MIN(c._hitPoints + hp, 9999U);
-		
+
 		if (_game->getRandomNumber(1, 255) > 16) {
 			addInfoMsg(_game->_res->SHAZAM);
 		} else {
 			uint spellNum = _game->getRandomNumber(1, 7);
 			if (spellNum == Spells::SPELL_MAGIC_MISSILE)
 				spellNum = Spells::SPELL_STEAL;
-		
+
 			c._spells[spellNum]->incrQuantity();
 			addInfoMsg(_game->_res->ALAKAZOT);
 		}

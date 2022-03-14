@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ char invOptionsTextDE[5][17] = {
 	"Anschauen",
 	"Benutzen",
 	"\x84""ffnen/Sto\x7f""en",
-	"Schlie\x7f""en/Ziehen",
+	("Schlie\x7f""en/Ziehen"),
 	"Geben"
 };
 
@@ -59,7 +58,7 @@ const char optionsTextDE[7][17] = {
 	"Wegnehmen",
 	"Benutzen",
 	"\x84""ffnen/Sto\x7f""en",
-	"Schlie\x7f""en/Ziehen",
+	("Schlie\x7f""en/Ziehen"),
 	"Ansprechen"
 };
 
@@ -82,6 +81,25 @@ const char *optionsTextEN[] = {
 	"Talk to"
 };
 
+// ES
+const char *invOptionsTextES[] = {
+	"Examinar",
+	"Usar",
+	"Abrir/Empujar",
+	"Cerrar/Tirar",
+	"Dar"
+};
+
+const char *optionsTextES[] = {
+	"Caminar a",
+	"Examinar",
+	"Coger",
+	"Usar",
+	"Abrir/Empujar",
+	"Cerrar/Tirar",
+	"Hablar con"
+};
+
 // RU
 const char *invOptionsTextRU[] = {
 	"Cvjnhtnm",
@@ -92,13 +110,32 @@ const char *invOptionsTextRU[] = {
 };
 
 const char *optionsTextRU[] = {
-	"Gjlevfnm",
+	"Gjljqnb",
 	"Jcvjnhtnm",
 	"Dpznm ",
 	"Bcgjkmp.",
 	"Jnrhsnm/""\x83""bnm ",
 	"Pfrhsnm/Nzyenm  ",
 	"Ujdjhbnm  "
+};
+
+// RU localization from "Russian Project"
+const char *invOptionsTextRU2[] = {
+	"n""\x91""\x8c""\x8e""\x92""\x90""\x85""\x92""\x9c",
+	"h""\x91""\x8f""\x8e""\x8b""\x9c""\x87"".",
+	"n""\x92""\x8a""\x90""\x9b""\x92""\x9c""/r""\x8e""\x8b""\x8a""\x80""\x92""\x9c",
+	"g""\x80""\x8a""\x90""\x9b""\x92""\x9c""/r""\x9f""\x8d""\x93""\x92""\x9c",
+	"d""\x80""\x92""\x9c"
+};
+
+const char *optionsTextRU2[] = {
+	"o""\x8e""\x84""\x8e""\x89""\x92""\x88",
+	"n""\x91""\x8c""\x8e""\x92""\x90""\x85""\x92""\x9c",
+	"b""\x87""\x9f""\x92""\x9c",
+	"h""\x91""\x8f""\x8e""\x8b""\x9c""\x87"".",
+	"n""\x92""\x8a""\x90""\x9b""\x92""\x9c""/r""\x8e""\x8b""\x8a""\x80""\x92""\x9c",
+	"g""\x80""\x8a""\x90""\x9b""\x92""\x9c""/r""\x9f""\x8d""\x93""\x92""\x9c",
+	"c""\x8e""\x82""\x8e""\x90""\x88""\x92""\x9c"
 };
 
 } // End of namespace Prince

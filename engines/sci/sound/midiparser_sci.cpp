@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,7 +55,7 @@ MidiParser_SCI::MidiParser_SCI(SciVersion soundVersion, SciMusic *music) :
 	_volume = 127;
 
 	_resetOnPause = false;
-	_pSnd = 0;
+	_pSnd = nullptr;
 
 	_mainThreadCalled = false;
 
@@ -67,7 +66,7 @@ MidiParser_SCI::~MidiParser_SCI() {
 	unloadMusic();
 	// we do this, so that MidiParser won't be able to call his own ::allNotesOff()
 	//  this one would affect all channels and we can't let that happen
-	_driver = 0;
+	_driver = nullptr;
 }
 
 void MidiParser_SCI::mainThreadBegin() {
@@ -158,6 +157,9 @@ void MidiParser_SCI::midiMixChannels() {
 		_track->channels[i].time = 0;
 		_track->channels[i].prev = 0;
 		_track->channels[i].curPos = 0;
+		// Ignore the digital channel data, if it exists - it's not MIDI data
+		if (i == _track->digitalChannelNr)
+			continue;
 		totalSize += _track->channels[i].data.size();
 	}
 
@@ -168,11 +170,12 @@ void MidiParser_SCI::midiMixChannels() {
 	byte midiCommand = 0, midiParam, globalPrev = 0;
 	long newDelta;
 	SoundResource::Channel *channel;
+	bool breakOut = false;
 
 	while ((channelNr = midiGetNextChannel(ticker)) != 0xFF) { // there is still an active channel
 		channel = &_track->channels[channelNr];
 		if (!validateNextRead(channel))
-			goto end;
+			break;
 		curDelta = channel->data[channel->curPos++];
 		channel->time += (curDelta == 0xF8 ? 240 : curDelta); // when the command is supposed to occur
 		if (curDelta == 0xF8)
@@ -180,8 +183,10 @@ void MidiParser_SCI::midiMixChannels() {
 		newDelta = channel->time - ticker;
 		ticker += newDelta;
 
+		if (channelNr == _track->digitalChannelNr)
+			continue;
 		if (!validateNextRead(channel))
-			goto end;
+			break;
 		midiCommand = channel->data[channel->curPos++];
 		if (midiCommand != kEndOfTrack) {
 			// Write delta
@@ -191,13 +196,16 @@ void MidiParser_SCI::midiMixChannels() {
 			}
 			*outData++ = (byte)newDelta;
 		}
+
 		// Write command
 		switch (midiCommand) {
 		case 0xF0: // sysEx
 			*outData++ = midiCommand;
 			do {
-				if (!validateNextRead(channel))
-					goto end;
+				if (!validateNextRead(channel)) {
+					breakOut = true;
+					break;
+				}
 				midiParam = channel->data[channel->curPos++];
 				*outData++ = midiParam;
 			} while (midiParam != 0xF7);
@@ -207,8 +215,10 @@ void MidiParser_SCI::midiMixChannels() {
 			break;
 		default: // MIDI command
 			if (midiCommand & 0x80) {
-				if (!validateNextRead(channel))
-					goto end;
+				if (!validateNextRead(channel)) {
+					breakOut = true;
+					break;
+				}
 				midiParam = channel->data[channel->curPos++];
 			} else {// running status
 				midiParam = midiCommand;
@@ -223,16 +233,20 @@ void MidiParser_SCI::midiMixChannels() {
 				*outData++ = midiCommand;
 			*outData++ = midiParam;
 			if (nMidiParams[(midiCommand >> 4) - 8] == 2) {
-				if (!validateNextRead(channel))
-					goto end;
+				if (!validateNextRead(channel)) {
+					breakOut = true;
+					break;
+				}
 				*outData++ = channel->data[channel->curPos++];
 			}
 			channel->prev = midiCommand;
 			globalPrev = midiCommand;
 		}
+
+		if (breakOut)
+			break;
 	}
 
-end:
 	// Insert stop event
 	*outData++ = 0;    // Delta
 	*outData++ = 0xFF; // Meta event
@@ -363,7 +377,7 @@ end:
 	*outData++ = 0x00;
 
 	// This occurs in the music tracks of LB1 Amiga, when using the MT-32
-	// driver (bug #3297881)
+	// driver (bug #5692)
 	if (!containsMidiData)
 		warning("MIDI parser: the requested SCI0 sound has no MIDI note data for the currently selected sound driver");
 }
@@ -383,6 +397,20 @@ void MidiParser_SCI::resetStateTracking() {
 	}
 }
 
+void MidiParser_SCI::initTrack() {
+	if (_soundVersion > SCI_VERSION_0_LATE || !_pSnd || !_track || !_track->header.byteSize())
+		return;
+	// Send header data to SCI0 sound drivers. The driver function which parses the header (opcode 3)
+	// seems to be implemented at least in all SCI0_LATE drivers. The things that the individual drivers
+	// do in that init function varies.
+	// Unlike the original (which doesn't need that due to the way it is implemented) we need to have a
+	// thread safe way to call this to avoid glitches (like permanently hanging notes in some situations).
+	if (_mainThreadCalled)
+		_music->putTrackInitCommandInQueue(_pSnd);
+	else
+		static_cast<MidiPlayer*>(_driver)->initTrack(_track->header);
+}
+
 void MidiParser_SCI::sendInitCommands() {
 	resetStateTracking();
 
@@ -390,20 +418,12 @@ void MidiParser_SCI::sendInitCommands() {
 	_volume = 127;
 
 	// Set initial voice count
-	if (_pSnd) {
-		if (_soundVersion <= SCI_VERSION_0_LATE) {
-			// Send header data to SCI0 sound drivers. The driver function which parses the header (opcode 3)
-			// seems to be implemented at least in all SCI0_LATE drivers. The things that the individual drivers
-			// do in that init function varies.
-			if (_track->header.byteSize())
-				static_cast<MidiPlayer *>(_driver)->initTrack(_track->header);
-		} else {
-			for (int i = 0; i < _track->channelCount; ++i) {
-				byte voiceCount = _track->channels[i].poly;
-				byte num = _track->channels[i].number;
-				// TODO: Should we skip the control channel?
-				sendToDriver(0xB0 | num, 0x4B, voiceCount);
-			}
+	if (_pSnd && _soundVersion > SCI_VERSION_0_LATE) {
+		for (int i = 0; i < _track->channelCount; ++i) {
+			byte voiceCount = _track->channels[i].poly;
+			byte num = _track->channels[i].number;
+			// TODO: Should we skip the control channel?
+			sendToDriver(0xB0 | num, 0x4B, voiceCount);
 		}
 	}
 
@@ -423,8 +443,13 @@ void MidiParser_SCI::unloadMusic() {
 	if (_pSnd) {
 		resetTracking();
 		allNotesOff();
+		// Pending track init commands have to be removed from the queue,
+		// since the sound thread will otherwise continue to try executing these.
+		_music->removeTrackInitCommandsFromQueue(_pSnd);
 	}
 	_numTracks = 0;
+	_pSnd = nullptr;
+	_track = nullptr;
 	_activeTrack = 255;
 	_resetOnPause = false;
 	_mixedData.clear();
@@ -669,7 +694,7 @@ bool MidiParser_SCI::processEvent(const EventInfo &info, bool fireEvents) {
 				// SCI1 and newer games. Signalling is done differently in SCI0
 				// though, so ignoring these signals in SCI0 games will result
 				// in glitches (e.g. the intro of LB1 Amiga gets stuck - bug
-				// #3297883). Refer to MusicEntry::setSignal() in sound/music.cpp.
+				// #5693). Refer to MusicEntry::setSignal() in sound/music.cpp.
 				// FIXME: SSCI doesn't start playing at the very beginning
 				// of the stream, but at a fixed location a few commands later.
 				// That is probably why this signal isn't triggered
@@ -806,7 +831,7 @@ bool MidiParser_SCI::processEvent(const EventInfo &info, bool fireEvents) {
 			// QFG3 abuses the hold flag. Its scripts call kDoSoundSetHold,
 			// but sometimes there's no hold marker in the associated songs
 			// (e.g. song 110, during the intro). The original interpreter
-			// treats this case as an infinite loop (bug #3311911).
+			// treats this case as an infinite loop (bug #5744).
 			if (_pSnd->loop || _pSnd->hold > 0) {
 				jumpToTick(_loopTick);
 
@@ -814,7 +839,6 @@ bool MidiParser_SCI::processEvent(const EventInfo &info, bool fireEvents) {
 				return true;
 
 			} else {
-				_pSnd->status = kSoundStopped;
 				_pSnd->setSignal(SIGNAL_OFFSET);
 
 				debugC(4, kDebugLevelSound, "signal EOT");
@@ -880,7 +904,7 @@ void MidiParser_SCI::allNotesOff() {
 	for (i = 0; i < 16; ++i) {
 		if (_channelRemap[i] != -1) {
 			sendToDriver(0xB0 | i, 0x7b, 0); // All notes off
-			sendToDriver(0xB0 | i, 0x40, 0); // Also send a sustain off event (bug #3116608)
+			sendToDriver(0xB0 | i, 0x40, 0); // Also send a sustain off event (bug #5524)
 		}
 	}
 

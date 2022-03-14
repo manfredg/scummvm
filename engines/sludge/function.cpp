@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "sludge/builtin.h"
+#include "sludge/errors.h"
+#include "sludge/fileset.h"
 #include "sludge/function.h"
-#include "sludge/loadsave.h"
 #include "sludge/newfatal.h"
 #include "sludge/people.h"
 #include "sludge/sludge.h"
@@ -164,6 +164,22 @@ void unfreezeSubs() {
 	}
 }
 
+Common::String getCommandParameter(int com, int param) {
+	switch(com) {
+	case SLU_LOAD_BUILT:
+		return getBuiltInName(param);
+
+	case SLU_SET_GLOBAL:
+		return Common::String::format("global%d", param);
+
+	case SLU_LOAD_STRING:
+		return Common::String::format("\"%s\"", g_sludge->_resMan->getNumberedString(param).c_str());
+
+	default:
+		return Common::String::format("%d", param);
+	}
+}
+
 bool continueFunction(LoadedFunction *fun) {
 	bool keepLooping = true;
 	bool advanceNow;
@@ -177,9 +193,9 @@ bool continueFunction(LoadedFunction *fun) {
 
 	while (keepLooping) {
 		advanceNow = true;
-		debugC(1, kSludgeDebugStackMachine, "Executing command line %i : ", fun->runThisLine);
 		param = fun->compiledLines[fun->runThisLine].param;
 		com = fun->compiledLines[fun->runThisLine].theCommand;
+		debugC(1, kSludgeDebugStackMachine, "Executing command line %i : %s(%s)", fun->runThisLine, sludgeText[com], getCommandParameter(com, param).c_str());
 
 		if (numBIFNames) {
 			setFatalInfo((fun->originalNumber < numUserFunc) ? allUserFunc[fun->originalNumber] : "Unknown user function", (com < numSludgeCommands) ? sludgeText[com] : ERROR_UNKNOWN_MCODE);
@@ -638,10 +654,12 @@ bool loadFunctionCode(LoadedFunction *newFunc) {
 		return false;
 
 	for (numLinesRead = 0; numLinesRead < numLines; numLinesRead++) {
-		newFunc->compiledLines[numLinesRead].theCommand = (SludgeCommand)readStream->readByte();
-		newFunc->compiledLines[numLinesRead].param = readStream->readUint16BE();
-		debugC(3, kSludgeDebugDataLoad, "command line %i: %i", numLinesRead,
-				newFunc->compiledLines[numLinesRead].theCommand);
+		byte com = readStream->readByte();
+		uint16 param = readStream->readUint16BE();
+		newFunc->compiledLines[numLinesRead].theCommand = (SludgeCommand)com;
+		newFunc->compiledLines[numLinesRead].param = param;
+		debugC(3, kSludgeDebugDataLoad, "command line %i: %s(%s)", numLinesRead,
+				sludgeText[com], getCommandParameter(com, param).c_str());
 	}
 	g_sludge->_resMan->finishAccess();
 
@@ -763,8 +781,11 @@ LoadedFunction *loadFunction(Common::SeekableReadStream *stream) {
 	buildFunc->calledBy = NULL;
 	if (stream->readByte()) {
 		buildFunc->calledBy = loadFunction(stream);
-		if (!buildFunc->calledBy)
+		if (!buildFunc->calledBy) {
+			delete buildFunc;
+
 			return NULL;
+		}
 	}
 
 	buildFunc->timeLeft = stream->readUint32LE();

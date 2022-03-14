@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,8 +36,15 @@ Spells::Spells(XeenEngine *vm) : _vm(vm) {
 
 void Spells::load() {
 	File f1((g_vm->getGameID() == GType_Clouds) ? "spells.cld" : "spells.xen", 1);
-	while (f1.pos() < f1.size())
-		_spellNames.push_back(f1.readString());
+	int i = 0;
+	while (f1.pos() < f1.size()) {
+		if (Common::RU_RUS == g_vm->getLanguage() && GType_Clouds == g_vm->getGameID()) {
+			f1.readString();
+			_spellNames.push_back(Res.CLOUDS_SPELLS[i++]);
+		} else 
+			_spellNames.push_back(f1.readString());
+
+	}
 	f1.close();
 }
 
@@ -85,7 +91,8 @@ void Spells::executeSpell(MagicSpell spellId) {
 		&Spells::wizardEye
 	};
 
-	(this->*SPELL_LIST[spellId])();
+	if (spellId < 76)
+		(this->*SPELL_LIST[spellId])();
 }
 
 void Spells::spellFailed() {

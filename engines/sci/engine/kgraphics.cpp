@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,12 +30,13 @@
 
 #include "sci/sci.h"
 #include "sci/event.h"
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/engine/features.h"
 #include "sci/engine/guest_additions.h"
 #include "sci/engine/savegame.h"
 #include "sci/engine/state.h"
 #include "sci/engine/selector.h"
+#include "sci/engine/tts.h"
 #include "sci/engine/kernel.h"
 #include "sci/graphics/animate.h"
 #include "sci/graphics/cache.h"
@@ -60,7 +60,7 @@ namespace Sci {
 static int16 adjustGraphColor(int16 color) {
 	// WORKAROUND: EGA and Amiga games can set invalid colors (above 0 - 15).
 	// It seems only the lower nibble was used in these games.
-	// bug #3048908, #3486899.
+	// bug #5267, #5968.
 	// Confirmed in EGA games KQ4(late), QFG1(ega), LB1 that
 	// at least FillBox (only one of the functions using adjustGraphColor)
 	// behaves like this.
@@ -70,7 +70,7 @@ static int16 adjustGraphColor(int16 color) {
 		return color;
 }
 
-int showScummVMDialog(const Common::String &message, const char *altButton = nullptr, bool alignCenter = true) {
+int showScummVMDialog(const Common::U32String &message, const Common::U32String &altButton = Common::U32String(), bool alignCenter = true) {
 	Graphics::TextAlign alignment = alignCenter ? Graphics::kTextAlignCenter : Graphics::kTextAlignLeft;
 	GUI::MessageDialog dialog(message, _("OK"), altButton, alignment);
 	return dialog.runModal();
@@ -134,7 +134,7 @@ static reg_t kSetCursorSci0(EngineState *s, int argc, reg_t *argv) {
 
 static reg_t kSetCursorSci11(EngineState *s, int argc, reg_t *argv) {
 	Common::Point pos;
-	Common::Point *hotspot = NULL;
+	Common::Point *hotspot = nullptr;
 
 	switch (argc) {
 	case 1:
@@ -198,7 +198,7 @@ static reg_t kSetCursorSci11(EngineState *s, int argc, reg_t *argv) {
 		}
 		break;
 	case 10:
-		// Freddy pharkas, when using the whiskey glass to read the prescription (bug #3034973)
+		// Freddy pharkas, when using the whiskey glass to read the prescription (bug #4969)
 		g_sci->_gfxCursor->kernelSetZoomZone(argv[0].toUint16(),
 			Common::Rect(argv[1].toUint16(), argv[2].toUint16(), argv[3].toUint16(), argv[4].toUint16()),
 			argv[5].toUint16(), argv[6].toUint16(), argv[7].toUint16(),
@@ -331,44 +331,45 @@ reg_t kGraphSaveUpscaledHiresBox(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kTextSize(EngineState *s, int argc, reg_t *argv) {
-	int16 textWidth, textHeight;
-	Common::String text = s->_segMan->getString(argv[1]);
 	reg_t *dest = s->_segMan->derefRegPtr(argv[0], 4);
-	int maxwidth = (argc > 3) ? argv[3].toUint16() : 0;
-	int font_nr = argv[2].toUint16();
+	Common::String text = s->_segMan->getString(argv[1]);
+	int font = argv[2].toUint16();
+	int maxWidth = (argc > 3) ? argv[3].toUint16() : 0;
 
 	if (!dest) {
 		debugC(kDebugLevelStrings, "GetTextSize: Empty destination");
 		return s->r_acc;
 	}
 
-	Common::String sep_str;
-	const char *sep = NULL;
+	Common::String separatorString;
+	const char *separator = nullptr;
 	if ((argc > 4) && (argv[4].getSegment())) {
-		sep_str = s->_segMan->getString(argv[4]);
-		sep = sep_str.c_str();
+		separatorString = s->_segMan->getString(argv[4]);
+		separator = separatorString.c_str();
 	}
 
-	dest[0] = dest[1] = NULL_REG;
+	dest[0] = NULL_REG;
+	dest[1] = NULL_REG;
 
 	if (text.empty()) { // Empty text
-		dest[2] = dest[3] = make_reg(0, 0);
+		dest[2] = NULL_REG;
+		dest[3] = NULL_REG;
 		debugC(kDebugLevelStrings, "GetTextSize: Empty string");
 		return s->r_acc;
 	}
 
-	textWidth = dest[3].toUint16(); textHeight = dest[2].toUint16();
-
 	uint16 languageSplitter = 0;
-	Common::String splitText = g_sci->strSplitLanguage(text.c_str(), &languageSplitter, sep);
+	Common::String splitText = g_sci->strSplitLanguage(text.c_str(), &languageSplitter, separator);
 
-	g_sci->_gfxText16->kernelTextSize(splitText.c_str(), languageSplitter, font_nr, maxwidth, &textWidth, &textHeight);
+	int16 textWidth;
+	int16 textHeight;
+	g_sci->_gfxText16->kernelTextSize(splitText.c_str(), languageSplitter, font, maxWidth, &textWidth, &textHeight);
 
 	// One of the game texts in LB2 German contains loads of spaces in
 	// its end. We trim the text here, otherwise the graphics code will
 	// attempt to draw a very large window (larger than the screen) to
 	// show the text, and crash.
-	// Fixes bug #3306417.
+	// Fixes bug #5710.
 	if (textWidth >= g_sci->_gfxScreen->getDisplayWidth() ||
 		textHeight >= g_sci->_gfxScreen->getDisplayHeight()) {
 		// TODO: Is this needed for SCI32 as well?
@@ -378,7 +379,7 @@ reg_t kTextSize(EngineState *s, int argc, reg_t *argv) {
 			// Copy over the trimmed string...
 			s->_segMan->strcpy(argv[1], text.c_str());
 			// ...and recalculate bounding box dimensions
-			g_sci->_gfxText16->kernelTextSize(splitText.c_str(), languageSplitter, font_nr, maxwidth, &textWidth, &textHeight);
+			g_sci->_gfxText16->kernelTextSize(splitText.c_str(), languageSplitter, font, maxWidth, &textWidth, &textHeight);
 		}
 	}
 
@@ -394,6 +395,9 @@ reg_t kTextSize(EngineState *s, int argc, reg_t *argv) {
 	return s->r_acc;
 }
 
+// kWait is a throttling function that sleeps up to the requested
+// number of ticks, or possibly not at all. The sleep duration
+// is based on the time since kWait was last called.
 reg_t kWait(EngineState *s, int argc, reg_t *argv) {
 	uint16 ticks = argv[0].toUint16();
 
@@ -403,8 +407,22 @@ reg_t kWait(EngineState *s, int argc, reg_t *argv) {
 		return NULL_REG;
 	}
 
+	s->_paletteSetIntensityCounter = 0;
 	return make_reg(0, delta);
 }
+
+#ifdef ENABLE_SCI32
+// kScummVMSleep is our own custom kernel function that sleeps for
+// the number of ticks requested. We use this in SCI32 script patches
+// to replace spin loops so that the application remains responsive
+// and doesn't just block the thread without updating the screen or
+// processing input events.
+reg_t kScummVMSleep(EngineState *s, int argc, reg_t *argv) {
+	uint16 ticks = argv[0].toUint16();
+	s->sleep(ticks);
+	return s->r_acc;
+}
+#endif
 
 reg_t kCoordPri(EngineState *s, int argc, reg_t *argv) {
 	int16 y = argv[0].toSint16();
@@ -646,6 +664,22 @@ reg_t kPaletteSetIntensity(EngineState *s, int argc, reg_t *argv) {
 	if (g_sci->_gfxPalette16->getTotalColorCount() < 256)
 		return s->r_acc;
 
+	if (setPalette) {
+		// Detect if we're being called from an unthrottled script loop.
+		// Throttled loops that call kWait on each iteration are okay.
+		if (s->_paletteSetIntensityCounter > 0) {
+			// Call speed throttler, otherwise the palette fade from this
+			// unthrottled script loop won't have any visible effect.
+			// Examples: KQ6 intro text/credits and SQ4CD intro credits
+			s->speedThrottler(30);
+		}
+		s->_paletteSetIntensityCounter++;
+
+		// Enable normal throttling in case this is being called from a script that
+		// doesn't animate anything with kAnimate, such as the LB2 title screen.
+		s->_throttleTrigger = true;
+	}
+
 	g_sci->_gfxPalette16->kernelSetIntensity(fromColor, toColor, intensity, setPalette);
 	return s->r_acc;
 }
@@ -856,7 +890,7 @@ void _k_GenericDrawControl(EngineState *s, reg_t controlObject, bool hilite) {
 	switch (type) {
 	case SCI_CONTROLS_TYPE_BUTTON:
 	case SCI_CONTROLS_TYPE_TEXTEDIT:
-		splitText = g_sci->strSplitLanguage(text.c_str(), &languageSplitter, NULL);
+		splitText = g_sci->strSplitLanguage(text.c_str(), &languageSplitter, nullptr);
 		break;
 	case SCI_CONTROLS_TYPE_TEXT:
 		splitText = g_sci->strSplitLanguage(text.c_str(), &languageSplitter);
@@ -899,7 +933,7 @@ void _k_GenericDrawControl(EngineState *s, reg_t controlObject, bool hilite) {
 			int c = readSelectorValue(s->_segMan, controlObject, SELECTOR(cel));
 			celNo = (c & 0x80) ? c - 256 : c;
 			// Check if the control object specifies a priority selector (like in Jones)
-			if (lookupSelector(s->_segMan, controlObject, SELECTOR(priority), NULL, NULL) == kSelectorVariable)
+			if (lookupSelector(s->_segMan, controlObject, SELECTOR(priority), nullptr, nullptr) == kSelectorVariable)
 				priority = readSelectorValue(s->_segMan, controlObject, SELECTOR(priority));
 			else
 				priority = -1;
@@ -920,7 +954,7 @@ void _k_GenericDrawControl(EngineState *s, reg_t controlObject, bool hilite) {
 			upperOffset = readSelectorValue(s->_segMan, controlObject, SELECTOR(topString));
 		} else {
 			// Earlier games use lsTop or brTop
-			if (lookupSelector(s->_segMan, controlObject, SELECTOR(brTop), NULL, NULL) == kSelectorVariable)
+			if (lookupSelector(s->_segMan, controlObject, SELECTOR(brTop), nullptr, nullptr) == kSelectorVariable)
 				upperOffset = readSelectorValue(s->_segMan, controlObject, SELECTOR(brTop));
 			else
 				upperOffset = readSelectorValue(s->_segMan, controlObject, SELECTOR(lsTop));
@@ -1102,7 +1136,7 @@ reg_t kSetPort(EngineState *s, int argc, reg_t *argv) {
 		error("SetPort was called with %d parameters", argc);
 		break;
 	}
-	return NULL_REG;
+	return s->r_acc;
 }
 
 reg_t kDrawCel(EngineState *s, int argc, reg_t *argv) {
@@ -1144,6 +1178,8 @@ reg_t kDisposeWindow(EngineState *s, int argc, reg_t *argv) {
 		reanimate = true;
 
 	g_sci->_gfxPorts->kernelDisposeWindow(windowId, reanimate);
+	g_sci->_tts->stop();
+
 	return s->r_acc;
 }
 
@@ -1162,7 +1198,7 @@ reg_t kNewWindow(EngineState *s, int argc, reg_t *argv) {
 	Common::String title;
 	if (argv[4 + argextra].getSegment()) {
 		title = s->_segMan->getString(argv[4 + argextra]);
-		title = g_sci->strSplit(title.c_str(), NULL);
+		title = g_sci->strSplit(title.c_str(), nullptr);
 	}
 
 	return g_sci->_gfxPorts->kernelNewWindow(rect1, rect2, style, priority, colorPen, colorBack, title.c_str());
@@ -1178,7 +1214,7 @@ reg_t kAnimate(EngineState *s, int argc, reg_t *argv) {
 	// doesn't call kGetEvent(), so no events are processed (e.g. window
 	// focusing, window moving etc). We poll events for that scene, to
 	// keep ScummVM responsive. Fixes ScummVM "freezing" during the credits,
-	// bug #3101846
+	// bug #5494
 	if (g_sci->getGameId() == GID_ECOQUEST && s->currentRoomNumber() == 680)
 		g_sci->getEventManager()->getSciEvent(kSciEventPeek);
 

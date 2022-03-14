@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,6 +37,8 @@ private:
 	TimerSlot *_head;
 	TimerSlotMap _callbacks;
 
+	uint32 _timerCallbackNext;
+
 public:
 	DefaultTimerManager();
 	virtual ~DefaultTimerManager();
@@ -48,6 +49,12 @@ public:
 	 * Timer callback, to be invoked at regular time intervals by the backend.
 	 */
 	void handler();
+
+	/*
+	 * Ensure that the callback is called at regular time intervals.
+	 * Should be called from pollEvents() on backends without threads.
+	 */
+	void checkTimers(uint32 interval = 10);
 };
 
 #endif

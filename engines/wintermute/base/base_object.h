@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,6 +34,12 @@
 #include "common/events.h"
 #include "graphics/transform_struct.h"
 
+#ifdef ENABLE_WME3D
+#include "math/angle.h"
+#include "math/matrix4.h"
+#include "math/vector3d.h"
+#endif
+
 namespace Wintermute {
 
 class BaseSprite;
@@ -44,6 +49,11 @@ class BaseScriptHolder;
 class ScValue;
 class ScStack;
 class ScScript;
+
+#ifdef ENABLE_WME3D
+class ModelX;
+#endif
+
 class BaseObject : public BaseScriptHolder {
 protected:
 	bool _autoSoundPanning;
@@ -134,6 +144,25 @@ public:
 	};
 	bool _nonIntMouseEvents;
 
+#ifdef ENABLE_WME3D
+	Math::Angle _angle;
+	ModelX *_modelX;
+	ModelX *_shadowModel;
+	Math::Matrix4 _worldMatrix;
+	Math::Vector3d _posVector;
+	bool getMatrix(Math::Matrix4 *modelMatrix, Math::Vector3d *posVect = nullptr);
+	uint32 _shadowColor;
+	BaseSurface *_shadowImage;
+	float _shadowSize;
+	float _scale3D;
+	Math::Vector3d _shadowLightPos;
+	bool _drawBackfaces;
+	TShadowType _shadowType;
+
+	virtual uint32 getAnimTransitionTime(char *from, char *to) {
+		return 0;
+	};
+#endif
 
 public:
 	// scripting interface

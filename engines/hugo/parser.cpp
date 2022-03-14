@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -144,7 +143,7 @@ void Parser::loadBackgroundObjects(Common::ReadStream &in) {
  * Read _catchallList from Hugo.dat
  */
 void Parser::loadCatchallList(Common::ReadStream &in) {
-	Background *wrkCatchallList = 0;
+	Background *wrkCatchallList = nullptr;
 	Background tmpBG;
 	memset(&tmpBG, 0, sizeof(tmpBG));
 
@@ -183,7 +182,7 @@ const char *Parser::useBG(const char *name) {
 
 void Parser::freeParser() {
 	if (_arrayReqs) {
-		for (int i = 0; _arrayReqs[i] != 0; i++)
+		for (int i = 0; _arrayReqs[i] != nullptr; i++)
 			free(_arrayReqs[i]);
 		free(_arrayReqs);
 		_arrayReqs = nullptr;
@@ -404,7 +403,7 @@ void Parser::command(const char *format, ...) {
  * Locate any member of object name list appearing in command line
  */
 bool Parser::isWordPresent(char **wordArr) const {
-	if (wordArr != 0) {
+	if (wordArr != nullptr) {
 		debugC(1, kDebugParser, "isWordPresent(%s)", wordArr[0]);
 
 		for (int i = 0; strlen(wordArr[i]); i++) {

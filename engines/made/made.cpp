@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,9 +46,12 @@ MadeEngine::MadeEngine(OSystem *syst, const MadeGameDescription *gameDesc) : Eng
 	_eventKey = 0;
 	_autoStopSound = false;
 	_soundEnergyIndex = 0;
-	_soundEnergyArray = 0;
+	_soundEnergyArray = nullptr;
 	_musicBeatStart = 0;
 	_cdTimeStart = 0;
+	_introMusicDigital = true;
+	if (ConfMan.hasKey("intro_music_digital"))
+		_introMusicDigital = ConfMan.getBool("intro_music_digital");
 
 	_rnd = new Common::RandomSource("made");
 
@@ -109,13 +111,7 @@ MadeEngine::~MadeEngine() {
 void MadeEngine::syncSoundSettings() {
 	Engine::syncSoundSettings();
 
-	bool mute = false;
-	if (ConfMan.hasKey("mute"))
-		mute = ConfMan.getBool("mute");
-
-	_music->setVolume(mute ? 0 : ConfMan.getInt("music_volume"));
-	_mixer->setVolumeForSoundType(Audio::Mixer::kPlainSoundType,
-									mute ? 0 : ConfMan.getInt("sfx_volume"));
+	_music->syncSoundSettings();
 }
 
 int16 MadeEngine::getTicks() {
@@ -254,7 +250,7 @@ void MadeEngine::handleEvents() {
 }
 
 Common::Error MadeEngine::run() {
-	_music = new MusicPlayer(getGameID() == GID_RTZ);
+	_music = new MusicPlayer(this, getGameID() == GID_RTZ);
 	syncSoundSettings();
 
 	// Initialize backend
@@ -296,8 +292,12 @@ Common::Error MadeEngine::run() {
 		error ("Unknown MADE game");
 	}
 
-	if ((getFeatures() & GF_CD) || (getFeatures() & GF_CD_COMPRESSED))
-		checkCD();
+	if ((getFeatures() & GF_CD) || (getFeatures() & GF_CD_COMPRESSED)) {
+		if (!existExtractedCDAudioFiles()
+		    && !isDataAndCDAudioReadFromSameCD()) {
+			warnMissingExtractedCDAudio();
+		}
+	}
 
 	_autoStopSound = false;
 	_eventNum = _eventKey = _eventMouseX = _eventMouseY = 0;
@@ -309,7 +309,21 @@ Common::Error MadeEngine::run() {
 	_script->runScript(_dat->getMainCodeObjectIndex());
 #endif
 
+	_music->close();
+
 	return Common::kNoError;
+}
+
+void MadeEngine::pauseEngineIntern(bool pause) {
+	Engine::pauseEngineIntern(pause);
+
+	if (pause) {
+		if (_music)
+			_music->pause();
+	} else {
+		if (_music)
+			_music->resume();
+	}
 }
 
 } // End of namespace Made

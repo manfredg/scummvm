@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -95,7 +94,7 @@ bool SceneScriptHF04::ClickedOnExit(int exitId) {
 	if (exitId == 0) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, 1132.27f, -0.31f, -113.46f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagHF04toHF03);
 			Set_Enter(kSetHF02, kSceneHF02);
 		}
@@ -171,14 +170,14 @@ void SceneScriptHF04::PlayerWalkedIn() {
 	 || Actor_Query_Goal_Number(kActorLucy) == kGoalLucyHF04Run1
 	) {
 		Player_Set_Combat_Mode(true);
-		Music_Play(kMusicBatl226M, 60, 0, 2, -1, 0, 0);
+		Music_Play(kMusicBatl226M, 60, 0, 2, -1, kMusicLoopPlayOnce, 0);
 	}
 	Loop_Actor_Walk_To_XYZ(kActorMcCoy, -45.0f, -0.31f, 307.0f, 0, false, true, false);
 	Delay(2500);
 }
 
 void SceneScriptHF04::PlayerWalkedOut() {
-	Music_Stop(5);
+	Music_Stop(5u);
 }
 
 void SceneScriptHF04::DialogueQueueFlushed(int a1) {

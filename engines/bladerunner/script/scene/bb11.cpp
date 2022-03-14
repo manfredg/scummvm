@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,17 +44,17 @@ void SceneScriptBB11::InitializeScene() {
 
 	if (Game_Flag_Query(kFlagBB11SadikFight)) {
 		Preload(kModelAnimationMcCoyIdle);
-		Preload(220);
-		Preload(227);
-		Preload(328);
-		Preload(343);
-		Preload(344);
+		Preload(kModelAnimationClovisWalking);
+		Preload(kModelAnimationClovisIdle);
+		Preload(kModelAnimationSadikIdle);
+		Preload(kModelAnimationSadikKicksSomeoneWhoIsDown);
+		Preload(kModelAnimationSadikHoldsSomeoneAndPunches);
 		Preload(kModelAnimationMcCoyGotHitRight);
 		Preload(kModelAnimationMcCoyRunning);
-		Preload(324);
-		Preload(323);
+		Preload(kModelAnimationSadikRunning);
+		Preload(kModelAnimationSadikWalking);
 		Preload(kModelAnimationMcCoyFallsOnHisBack);
-		Preload(345);
+		Preload(kModelAnimationSadikPicksUpAndThrowsMcCoy);
 	}
 }
 
@@ -91,7 +90,7 @@ bool SceneScriptBB11::ClickedOnExit(int exitId) {
 	if (exitId == 0) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, 43.39f, -10.27f, -68.52f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagBB11toBB10);
 			Set_Enter(kSetBB10, kSceneBB10);
 		}
@@ -104,6 +103,7 @@ bool SceneScriptBB11::ClickedOn2DRegion(int region) {
 	if (_vm->_cutContent) {
 		if (!Game_Flag_Query(kFlagMcCoyCommentsOnFans) && (region == 0 || region == 1) ) {
 			Game_Flag_Set(kFlagMcCoyCommentsOnFans);
+			Actor_Force_Stop_Walking(kActorMcCoy);
 			Actor_Face_Heading(kActorMcCoy, 550, false);
 			Actor_Voice_Over(3740, kActorVoiceOver);
 			Actor_Voice_Over(3750, kActorVoiceOver);
@@ -137,14 +137,14 @@ void SceneScriptBB11::PlayerWalkedIn() {
 	) {
 		Actor_Set_Invisible(kActorMcCoy, true);
 		Actor_Set_Goal_Number(kActorSadik, kGoalSadikBB11ThrowMcCoy);
-		Music_Play(kMusicBeating1, 61, 0, 1, -1, 0, 0);
+		Music_Play(kMusicBeating1, 61, 0, 1, -1, kMusicLoopPlayOnce, 0);
 		Player_Loses_Control();
 	}
 }
 
 void SceneScriptBB11::PlayerWalkedOut() {
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 }
 
 void SceneScriptBB11::DialogueQueueFlushed(int a1) {

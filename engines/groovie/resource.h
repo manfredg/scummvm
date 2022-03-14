@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@ class MacResManager;
 namespace Groovie {
 
 struct ResInfo {
+	uint32 disks;       // This seems to be a bitfield indicating on which disk(s) the file is located.
 	uint16 gjd;
 	uint32 offset;
 	uint32 size;
@@ -41,8 +41,13 @@ public:
 	virtual ~ResMan() {}
 
 	Common::SeekableReadStream *open(uint32 fileRef);
+	Common::SeekableReadStream *open(const ResInfo &resInfo);
 
-	virtual uint32 getRef(Common::String name, Common::String scriptname = "") = 0;
+	void dumpResource(const Common::String &fileName);
+	void dumpResource(uint32 fileRef, const Common::String &fileName);
+	void dumpResource(Common::SeekableReadStream *inFile, const Common::String &fileName, bool dispose = true);
+
+	virtual uint32 getRef(Common::String name) = 0;
 	virtual bool getResInfo(uint32 fileRef, ResInfo &resInfo) = 0;
 
 protected:
@@ -56,7 +61,7 @@ public:
 	ResMan_t7g(Common::MacResManager *macResFork = 0);
 	~ResMan_t7g() override {}
 
-	uint32 getRef(Common::String name, Common::String scriptname) override;
+	uint32 getRef(Common::String name) override;
 	bool getResInfo(uint32 fileRef, ResInfo &resInfo) override;
 
 private:
@@ -68,7 +73,7 @@ public:
 	ResMan_v2();
 	~ResMan_v2() override {}
 
-	uint32 getRef(Common::String name, Common::String scriptname) override;
+	uint32 getRef(Common::String name) override;
 	bool getResInfo(uint32 fileRef, ResInfo &resInfo) override;
 };
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,11 +64,13 @@ WindowBlock *AGOSEngine::openWindow(uint x, uint y, uint w, uint h, uint flags, 
 	window->textRow = 0;
 	window->scrollY = 0;
 
-	// Characters are 6 pixels
+	// Characters are 6 pixels (except Japanese: when downscaled, 1-byte characters are 4 pixels, 2-byte characters are 8 pixels)
 	if (getGameType() == GType_ELVIRA2)
 		window->textMaxLength = (window->width * 8 - 4) / 6;
 	else if (getGameType() == GType_PN)
 		window->textMaxLength = window->width * 8 / 6 + 1;
+	else if (getGameType() == GType_ELVIRA1 && getPlatform() == Common::kPlatformPC98)
+		window->textMaxLength = window->width << 1;
 	else
 		window->textMaxLength = window->width * 8 / 6;
 
@@ -85,7 +86,7 @@ WindowBlock *AGOSEngine::openWindow(uint x, uint y, uint w, uint h, uint flags, 
 void AGOSEngine::changeWindow(uint a) {
 	a &= 7;
 
-	if (_windowArray[a] == NULL || _curWindow == a)
+	if (_windowArray[a] == nullptr || _curWindow == a)
 		return;
 
 	_curWindow = a;
@@ -95,18 +96,19 @@ void AGOSEngine::changeWindow(uint a) {
 }
 
 void AGOSEngine::closeWindow(uint a) {
-	if (_windowArray[a] == NULL)
+	if (_windowArray[a] == nullptr)
 		return;
 	removeIconArray(a);
 	resetWindow(_windowArray[a]);
-	_windowArray[a] = NULL;
+	_windowArray[a] = nullptr;
 	if (_curWindow == a) {
-		_textWindow = NULL;
+		_textWindow = nullptr;
 		changeWindow(0);
 	}
 }
 
 void AGOSEngine::clearWindow(WindowBlock *window) {
+	clearHiResTextLayer();
 	if (window->flags & 0x10)
 		restoreWindow(window);
 	else
@@ -169,19 +171,21 @@ void AGOSEngine::colorWindow(WindowBlock *window) {
 void AGOSEngine::colorBlock(WindowBlock *window, uint16 x, uint16 y, uint16 w, uint16 h) {
 	_videoLockOut |= 0x8000;
 
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = getBackendSurface();
 	byte *dst = (byte *)screen->getBasePtr(x, y);
 
 	uint8 color = window->fillColor;
 	if (getGameType() == GType_ELVIRA2 || getGameType() == GType_WW)
 		color += dst[0] & 0xF0;
+	uint16 h2 = h;
 
 	do {
 		memset(dst, color, w);
 		dst += screen->pitch;
 	} while (--h);
 
-	_system->unlockScreen();
+	Common::Rect dirtyRect(x, y, x + w, y + h2);
+	updateBackendSurface(&dirtyRect);
 
 	_videoLockOut &= ~0x8000;
 }
@@ -196,7 +200,7 @@ void AGOSEngine::restoreWindow(WindowBlock *window) {
 	_videoLockOut |= 0x8000;
 
 	if (getGameType() == GType_FF || getGameType() == GType_PP) {
-		restoreBlock(window->y + window->height, window->x + window->width, window->y, window->x);
+		restoreBlock(window->x, window->y, window->x + window->width, window->y + window->height);
 	} else if (getGameType() == GType_SIMON2) {
 		if (_restoreWindow6 && _windowArray[2] == window) {
 			window = _windowArray[6];
@@ -227,30 +231,31 @@ void AGOSEngine::restoreWindow(WindowBlock *window) {
 	_videoLockOut &= ~0x8000;
 }
 
-void AGOSEngine::restoreBlock(uint16 x, uint16 y, uint16 w, uint16 h) {
+void AGOSEngine::restoreBlock(uint16 left, uint16 top, uint16 right, uint16 bottom) {
 	byte *dst, *src;
 	uint i;
 
-	Graphics::Surface *screen = _system->lockScreen();
+	Graphics::Surface *screen = getBackendSurface();
 	dst = (byte *)screen->getPixels();
 	src = getBackGround();
 
-	dst += y * screen->pitch;
-	src += y * _backGroundBuf->pitch;
+	dst += top * screen->pitch;
+	src += top * _backGroundBuf->pitch;
 
 	uint8 paletteMod = 0;
-	if (getGameType() == GType_ELVIRA1 && !(getFeatures() & GF_DEMO) && y >= 133)
+	Common::Rect dirtyRect(left, top, right, bottom);
+	if (getGameType() == GType_ELVIRA1 && !(getFeatures() & GF_DEMO) && top >= 133)
 		paletteMod = 16;
 
-	while (y < h) {
-		for (i = x; i < w; i++)
+	while (top < bottom) {
+		for (i = left; i < right; i++)
 			dst[i] = src[i] + paletteMod;
-		y++;
+		top++;
 		dst += screen->pitch;
 		src += _backGroundBuf->pitch;
 	}
 
-	_system->unlockScreen();
+	updateBackendSurface(&dirtyRect);
 }
 
 void AGOSEngine::setTextColor(uint color) {
@@ -286,9 +291,11 @@ void AGOSEngine::waitWindow(WindowBlock *window) {
 	window->textRow = window->height - 1;
 	window->textLength = 0;
 
+	_forceAscii = true;
 	message = "[ OK ]";
 	for (; *message; message++)
 		windowPutChar(window, *message);
+	_forceAscii = false;
 
 	ha = findEmptyHitArea();
 	ha->x = (window->width / 2 + window->x - 3) * 8;
@@ -300,17 +307,17 @@ void AGOSEngine::waitWindow(WindowBlock *window) {
 	ha->priority = 999;
 
 	while (!shouldQuit()) {
-		_lastHitArea = NULL;
-		_lastHitArea3 = NULL;
+		_lastHitArea = nullptr;
+		_lastHitArea3 = nullptr;
 
 		while (!shouldQuit()) {
-			if (_lastHitArea3 != 0)
+			if (_lastHitArea3 != nullptr)
 				break;
 			delay(1);
 		}
 
 		ha = _lastHitArea;
-		if (ha == NULL) {
+		if (ha == nullptr) {
 		} else if (ha->id == 0x7FFF) {
 			break;
 		}
@@ -321,6 +328,7 @@ void AGOSEngine::waitWindow(WindowBlock *window) {
 
 void AGOSEngine::writeChar(WindowBlock *window, int x, int y, int offs, int val) {
 	int chr;
+	_forceAscii = true;
 
 	// Clear background of first digit
 	window->textColumnOffset = offs;
@@ -351,6 +359,8 @@ void AGOSEngine::writeChar(WindowBlock *window, int x, int y, int offs, int val)
 		window->textColor = 15;
 		windowDrawChar(window, x * 8, y, chr);
 	}
+
+	_forceAscii = false;
 }
 
 } // End of namespace AGOS

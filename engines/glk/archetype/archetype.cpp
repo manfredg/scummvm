@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,7 +62,7 @@ bool Archetype::initialize() {
 	saveload_init();
 	sys_object_init();
 	timestamp_init();
-	
+
 	// keywords
 	new_xarray(Literals);
 	new_xarray(Vocabulary);
@@ -84,7 +83,7 @@ bool Archetype::initialize() {
 	NullStr = NewConstStr("null");
 
 	// GLK window
-	_mainWindow = glk_window_open(0, 0, 0, wintype_TextBuffer);
+	_mainWindow = glk_window_open(nullptr, 0, 0, wintype_TextBuffer);
 	glk_set_window(_mainWindow);
 
 	// Check for savegame to load
@@ -166,11 +165,11 @@ String Archetype::readLine() {
 	if (text.contains("save") || text.contains("load")) {
 		writeln();
 		return "";
-	
+
 	} else if (loadingSavegame()) {
 		// Automatically trigger a load action if a savegame needs loading from the launcher
 		return String("load");
-	
+
 	} else if (_saveSlot == -2) {
 		_saveSlot = -1;
 		return String("look");
@@ -315,7 +314,7 @@ bool Archetype::send_message(int transport, int message_sent, int recipient,
 	bool done, find_other;
 	ObjectPtr op, original;
 	ResultType r;
-	NodePtr np;  
+	NodePtr np;
 	StatementPtr st;
 	void *p;
 	ContextType c;
@@ -332,7 +331,7 @@ bool Archetype::send_message(int transport, int message_sent, int recipient,
 		r._kind = IDENT;
 		r._data._ident.ident_kind = OBJECT_ID;
 		r._data._ident.ident_int = context.self;
-		
+
 		debugN(" : ");
 		display_result(r);
 

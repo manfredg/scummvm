@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,7 @@
 
 namespace BladeRunner {
 
-SaveStateList SaveFileManager::list(const Common::String &target) {
+SaveStateList SaveFileManager::list(const MetaEngine *metaEngine, const Common::String &target) {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Common::StringArray files = saveFileMan->listSavefiles(target + ".###");
 
@@ -50,7 +49,7 @@ SaveStateList SaveFileManager::list(const Common::String &target) {
 		readHeader(*saveFile, header);
 
 		int slotNum = atoi(fileName->c_str() + fileName->size() - 3);
-		saveList.push_back(SaveStateDescriptor(slotNum, header._name));
+		saveList.push_back(SaveStateDescriptor(metaEngine, slotNum, header._name));
 
 		delete saveFile;
 	}
@@ -60,7 +59,7 @@ SaveStateList SaveFileManager::list(const Common::String &target) {
 	return saveList;
 }
 
-SaveStateDescriptor SaveFileManager::queryMetaInfos(const Common::String &target, int slot) {
+SaveStateDescriptor SaveFileManager::queryMetaInfos(const MetaEngine *metaEngine, const Common::String &target, int slot) {
 	Common::String filename = Common::String::format("%s.%03d", target.c_str(), slot);
 	Common::InSaveFile *saveFile = g_system->getSavefileManager()->openForLoading(filename);
 
@@ -75,7 +74,7 @@ SaveStateDescriptor SaveFileManager::queryMetaInfos(const Common::String &target
 	}
 	delete saveFile;
 
-	SaveStateDescriptor desc(slot, header._name);
+	SaveStateDescriptor desc(metaEngine, slot, header._name);
 	desc.setThumbnail(header._thumbnail);
 	desc.setSaveDate(header._year, header._month, header._day);
 	desc.setSaveTime(header._hour, header._minute);
@@ -152,12 +151,17 @@ bool SaveFileManager::readHeader(Common::SeekableReadStream &in, SaveFileHeader 
 
 		s.skip(4); //skip size;
 
-		uint16 *thumbnailData = (uint16*)malloc(kThumbnailSize); // freed by ScummVM's smartptr
-		for (uint i = 0; i < kThumbnailSize / 2; ++i) {
-			thumbnailData[i] = s.readUint16LE();
-		}
+		if (header._version >= 4) {
+			Graphics::loadThumbnail(s, header._thumbnail);
+		} else {
+			uint16 alphamask = (0xFF >> gameDataPixelFormat().aLoss) << gameDataPixelFormat().aShift;
+			uint16 *thumbnailData = (uint16*)malloc(kThumbnailSize); // freed by ScummVM's smartptr
+			for (uint i = 0; i < kThumbnailSize / 2; ++i) {
+				thumbnailData[i] = s.readUint16LE() | alphamask; // We set all pixels to non-transparency
+			}
 
-		header._thumbnail->init(80, 60, 160, thumbnailData, gameDataPixelFormat());
+			header._thumbnail->init(80, 60, 160, thumbnailData, gameDataPixelFormat());
+		}
 
 		s.seek(pos);
 	}

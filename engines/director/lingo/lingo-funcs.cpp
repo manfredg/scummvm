@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "audio/audiostream.h"
 #include "audio/decoders/wave.h"
 #include "common/file.h"
 #include "common/macresman.h"
@@ -28,11 +28,16 @@
 #include "graphics/macgui/macwindowmanager.h"
 
 #include "director/director.h"
-#include "director/lingo/lingo.h"
-#include "director/cast.h"
+#include "director/castmember.h"
+#include "director/cursor.h"
+#include "director/movie.h"
 #include "director/score.h"
 #include "director/sound.h"
+#include "director/window.h"
 #include "director/util.h"
+
+#include "director/lingo/lingo.h"
+
 
 namespace Director {
 
@@ -69,13 +74,14 @@ struct MCIToken {
 
 	{ kMCITokenNone, kMCITokenWait,   "wait", 0 },
 
-	{ kMCITokenNone, kMCITokenNone,   0, 0 }
+	{ kMCITokenNone, kMCITokenNone,   nullptr, 0 }
 };
 
-void Lingo::func_mci(Common::String &s) {
+void Lingo::func_mci(const Common::String &name) {
 	Common::String params[5];
 	MCITokenType command = kMCITokenNone;
 
+	Common::String s = name;
 	s.trim();
 	s.toLowercase();
 
@@ -159,10 +165,10 @@ void Lingo::func_mci(Common::String &s) {
 				return;
 			}
 
-			uint32 from = strtol(params[1].c_str(), 0, 10);
-			uint32 to = strtol(params[2].c_str(), 0, 10);
+			uint32 from = strtol(params[1].c_str(), nullptr, 10);
+			uint32 to = strtol(params[2].c_str(), nullptr, 10);
 
-			_vm->getSoundManager()->playMCI(*_audioAliases[params[0]], from, to);
+			_vm->getCurrentWindow()->getSoundManager()->playMCI(*_audioAliases[params[0]], from, to);
 		}
 		break;
 	default:
@@ -170,275 +176,195 @@ void Lingo::func_mci(Common::String &s) {
 	}
 }
 
-void Lingo::func_mciwait(Common::String &s) {
-	warning("STUB: MCI wait file: %s", s.c_str());
+void Lingo::func_mciwait(const Common::String &name) {
+	warning("STUB: MCI wait file: %s", name.c_str());
 }
 
 void Lingo::func_goto(Datum &frame, Datum &movie) {
 	_vm->_playbackPaused = false;
 
-	if (!_vm->getCurrentScore())
+	if (!_vm->getCurrentMovie())
 		return;
 
-	if (movie.type != VOID) {
-		movie.toString();
-
-		Common::String movieFilename = pathMakeRelative(*movie.u.s);
-		Common::String cleanedFilename;
-
-		bool fileExists = false;
-
-		if (_vm->getPlatform() == Common::kPlatformMacintosh) {
-			Common::MacResManager resMan;
-
-			for (const byte *p = (const byte *)movieFilename.c_str(); *p; p++)
-				if (*p >= 0x20 && *p <= 0x7f)
-					cleanedFilename += (char) *p;
-
-			if (resMan.open(movieFilename)) {
-				fileExists = true;
-				cleanedFilename = movieFilename;
-			} else if (!movieFilename.equals(cleanedFilename) && resMan.open(cleanedFilename)) {
-				fileExists = true;
-			}
-		} else {
-			Common::File file;
-			cleanedFilename = movieFilename + ".MMM";
-
-			if (file.open(movieFilename)) {
-				fileExists = true;
-				cleanedFilename = movieFilename;
-			} else if (!movieFilename.equals(cleanedFilename) && file.open(cleanedFilename)) {
-				fileExists = true;
-			}
-		}
-
-		debug(1, "func_goto: '%s' -> '%s' -> '%s' -> '%s'", movie.u.s->c_str(), convertPath(*movie.u.s).c_str(),
-				movieFilename.c_str(), cleanedFilename.c_str());
-
-		if (!fileExists) {
-			warning("Movie %s does not exist", movieFilename.c_str());
-			return;
-		}
-
-		_vm->_nextMovie.movie = cleanedFilename;
-		_vm->getCurrentScore()->_stopPlay = true;
-
-		_vm->_nextMovie.frameS.clear();
-		_vm->_nextMovie.frameI = -1;
-
-		if (frame.type == VOID)
-			return;
-
-		if (frame.type == STRING) {
-			_vm->_nextMovie.frameS = *frame.u.s;
-			return;
-		}
-
-		frame.toInt();
-
-		_vm->_nextMovie.frameI = frame.u.i;
-
+	if (movie.type == VOID && frame.type == VOID)
 		return;
-	}
 
-	if (frame.type == VOID)
-		return;
+	Window *stage = _vm->getCurrentWindow();
+	Score *score = _vm->getCurrentMovie()->getScore();
 
 	_vm->_skipFrameAdvance = true;
 
-	if (frame.type == STRING) {
-		if (_vm->getCurrentScore())
-			_vm->getCurrentScore()->setStartToLabel(*frame.u.s);
+	// If there isn't already frozen Lingo (e.g. from a previous func_goto we haven't yet unfrozen),
+	// freeze this script context. We'll return to it after entering the next frame.
+	if (!g_lingo->hasFrozenContext()) {
+		g_lingo->_freezeContext = true;
+	}
+
+	if (movie.type != VOID) {
+		Common::String movieFilenameRaw = movie.asString();
+
+		if (!stage->setNextMovie(movieFilenameRaw))
+			return;
+
+		score->_playState = kPlayStopped;
+
+		stage->_nextMovie.frameS.clear();
+		stage->_nextMovie.frameI = -1;
+
+		if (frame.type == STRING) {
+			stage->_nextMovie.frameS = *frame.u.s;
+		} else if (frame.type != VOID) {
+			stage->_nextMovie.frameI = frame.asInt();
+		}
+
+		// Set cursor to watch.
+		score->_defaultCursor.readFromResource(4);
+		score->renderCursor(stage->getMousePos());
+
 		return;
 	}
 
-	frame.toInt();
-
-	if (_vm->getCurrentScore())
-		_vm->getCurrentScore()->setCurrentFrame(frame.u.i);
+	if (frame.type == STRING) {
+		score->setStartToLabel(*frame.u.s);
+	} else {
+		score->setCurrentFrame(frame.asInt());
+	}
 }
 
 void Lingo::func_gotoloop() {
-	if (!_vm->getCurrentScore())
+	if (!_vm->getCurrentMovie())
 		return;
 
-	_vm->getCurrentScore()->gotoLoop();
+	_vm->getCurrentMovie()->getScore()->gotoLoop();
 
 	_vm->_skipFrameAdvance = true;
 }
 
 void Lingo::func_gotonext() {
-	if (!_vm->getCurrentScore())
+	if (!_vm->getCurrentMovie())
 		return;
 
-	_vm->getCurrentScore()->gotoNext();
+	_vm->getCurrentMovie()->getScore()->gotoNext();
 
 	_vm->_skipFrameAdvance = true;
 }
 
 void Lingo::func_gotoprevious() {
-	if (!_vm->getCurrentScore())
+	if (!_vm->getCurrentMovie())
 		return;
 
-	_vm->getCurrentScore()->gotoPrevious();
+	_vm->getCurrentMovie()->getScore()->gotoPrevious();
 
 	_vm->_skipFrameAdvance = true;
 }
 
 void Lingo::func_play(Datum &frame, Datum &movie) {
 	MovieReference ref;
+	Window *stage = _vm->getCurrentWindow();
+
+
+	// play #done
+	if (frame.type == SYMBOL) {
+		if (!frame.u.s->equals("done")) {
+			warning("Lingo::func_play: unknown symbol: #%s", frame.u.s->c_str());
+			return;
+		}
+		if (stage->_movieStack.empty()) {	// No op if no nested movies
+			return;
+		}
+		ref = stage->_movieStack.back();
+
+		stage->_movieStack.pop_back();
+
+		Datum m, f;
+
+		if (ref.movie.empty()) {
+			m.type = VOID;
+		} else {
+			m.type = STRING;
+			m.u.s = new Common::String(ref.movie);
+		}
+
+		f.type = INT;
+		f.u.i = ref.frameI;
+
+		func_goto(f, m);
+
+		return;
+	}
+
+	if (!_vm->getCurrentMovie()) {
+		warning("Lingo::func_play(): no movie");
+		return;
+	}
 
 	if (movie.type != VOID) {
-		warning("STUB: func_play()");
-
-		return;
+		ref.movie = _vm->getCurrentMovie()->_movieArchive->getPathName();
 	}
+	ref.frameI = _vm->getCurrentMovie()->getScore()->getCurrentFrame();
 
-	if (!_vm->getCurrentScore()) {
-		warning("Lingo::func_play(): no score");
-		return;
-	}
+	// if we are issuing play command from script channel script. then play done should return to next frame
+	if (g_lingo->_currentChannelId == 0)
+		ref.frameI++;
 
-	ref.frameI = _vm->getCurrentScore()->getCurrentFrame();
-
-	_vm->_movieStack.push_back(ref);
+	stage->_movieStack.push_back(ref);
 
 	func_goto(frame, movie);
 }
 
-void Lingo::func_playdone() {
-	MovieReference ref = _vm->_movieStack.back();
-
-	_vm->_movieStack.pop_back();
-
-	Datum m, f;
-
-	if (ref.movie.empty()) {
-		m.type = VOID;
+void Lingo::func_cursor(Datum cursorDatum) {
+	Score *score = _vm->getCurrentMovie()->getScore();
+	if (cursorDatum.type == ARRAY){
+		score->_defaultCursor.readFromCast(cursorDatum);
 	} else {
-		m.type = STRING;
-		m.u.s = new Common::String(ref.movie);
+		score->_defaultCursor.readFromResource(cursorDatum);
 	}
-
-	f.type = INT;
-	f.u.i = ref.frameI;
-
-	func_goto(f, m);
-}
-
-void Lingo::func_cursor(int c, int m) {
-	if (_cursorOnStack) {
-		// pop cursor
-		_vm->getMacWindowManager()->popCursor();
-	}
-
-	if (m != -1) {
-		Score *score = _vm->getCurrentScore();
-		if (!score->_loadedCast->contains(c) || !score->_loadedCast->contains(m)) {
-			warning("cursor: non-existent cast reference");
-			return;
-		}
-
-		if (score->_loadedCast->getVal(c)->_type != kCastBitmap || score->_loadedCast->getVal(m)->_type != kCastBitmap) {
-			warning("cursor: wrong cast reference type");
-			return;
-		}
-
-		if (score->_loadedCast->getVal(c)->_surface == nullptr) {
-			warning("cursor: empty sprite %d surface", c);
-			return;
-		}
-		if (score->_loadedCast->getVal(m)->_surface == nullptr) {
-			warning("cursor: empty sprite %d surface", m);
-			return;
-		}
-
-		byte *assembly = (byte *)malloc(16 * 16);
-		byte *dst = assembly;
-
-		for (int y = 0; y < 16; y++) {
-			const byte *cursor, *mask;
-			bool nocursor = false;
-
-			if (y >= score->_loadedCast->getVal(c)->_surface->h ||
-					y >= score->_loadedCast->getVal(m)->_surface->h )
-				nocursor = true;
-
-			if (!nocursor) {
-				cursor = (const byte *)score->_loadedCast->getVal(c)->_surface->getBasePtr(0, y);
-				mask = (const byte *)score->_loadedCast->getVal(m)->_surface->getBasePtr(0, y);
-			}
-
-			for (int x = 0; x < 16; x++) {
-				if (x >= score->_loadedCast->getVal(c)->_surface->w ||
-						x >= score->_loadedCast->getVal(m)->_surface->w )
-					nocursor = true;
-
-				if (nocursor) {
-					*dst = 3;
-				} else {
-					*dst = *mask ? 3 : (*cursor ? 1 : 0);
-					cursor++;
-					mask++;
-				}
-				dst++;
-			}
-		}
-
-		_vm->getMacWindowManager()->pushCustomCursor(assembly, 16, 16, 3);
-
-		return;
-	}
-
-	// and then push cursor.
-	switch (c) {
-	case 0:
-	case -1:
-	default:
-		_vm->getMacWindowManager()->pushArrowCursor();
-		break;
-	case 1:
-		_vm->getMacWindowManager()->pushBeamCursor();
-		break;
-	case 2:
-		_vm->getMacWindowManager()->pushCrossHairCursor();
-		break;
-	case 3:
-		_vm->getMacWindowManager()->pushCrossBarCursor();
-		break;
-	case 4:
-		_vm->getMacWindowManager()->pushWatchCursor();
-		break;
-	}
-
-	_cursorOnStack = true;
+	score->_cursorDirty = true;
 }
 
 void Lingo::func_beep(int repeats) {
 	for (int r = 1; r <= repeats; r++) {
-		_vm->getSoundManager()->systemBeep();
+		_vm->getCurrentWindow()->getSoundManager()->systemBeep();
 		if (r < repeats)
 			g_system->delayMillis(400);
 	}
 }
 
 int Lingo::func_marker(int m) 	{
-	if (!_vm->getCurrentScore())
+	if (!_vm->getCurrentMovie())
 		return 0;
 
-	int labelNumber = _vm->getCurrentScore()->getCurrentLabelNumber();
+	int labelNumber = _vm->getCurrentMovie()->getScore()->getCurrentLabelNumber();
 	if (m != 0) {
 		if (m < 0) {
 			for (int marker = 0; marker > m; marker--)
-				labelNumber = _vm->getCurrentScore()->getPreviousLabelNumber(labelNumber);
+				labelNumber = _vm->getCurrentMovie()->getScore()->getPreviousLabelNumber(labelNumber);
 		} else {
 			for (int marker = 0; marker < m; marker++)
-				labelNumber = _vm->getCurrentScore()->getNextLabelNumber(labelNumber);
+				labelNumber = _vm->getCurrentMovie()->getScore()->getNextLabelNumber(labelNumber);
 		}
 	}
 
 	return labelNumber;
 }
 
+uint16 Lingo::func_label(Datum &label) {
+	Score *score = _vm->getCurrentMovie()->getScore();
+
+	if (!score->_labels)
+		return 0;
+
+	if (label.type == STRING)
+		return score->getLabel(*label.u.s);
+
+	int num = CLIP<int>(label.asInt() - 1, 0, score->_labels->size() - 1);
+
+	uint16 res = score->getNextLabelNumber(0);
+
+	while (--num > 0)
+		res = score->getNextLabelNumber(res);
+
+	return res;
 }
+
+} // End of namespace Director

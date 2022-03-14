@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -203,7 +202,12 @@ void SceneScriptRC04::dialogueWithBulletBob() {
 		Actor_Says(kActorBulletBob, 490, 31);
 		Actor_Says(kActorBulletBob, 500, 32);
 		Actor_Says(kActorBulletBob, 510, 33);
+#if BLADERUNNER_ORIGINAL_BUGS
 		Actor_Says(kActorBulletBob, 520, 34);
+#else
+		//  Quote 530 is the second half of the 520 sentence and flow of speech works better without the default delay
+		Actor_Says_With_Pause(kActorBulletBob, 520, 0.0f, 34);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 		Actor_Says(kActorBulletBob, 530, 35);
 		Actor_Says(kActorBulletBob, 540, 36);
 		Actor_Says(kActorMcCoy, 5040, 16);
@@ -226,9 +230,11 @@ void SceneScriptRC04::dialogueWithBulletBob() {
 			Actor_Says(kActorMcCoy, 5080, 11);
 			Actor_Says(kActorBulletBob, 730, 37);
 #if BLADERUNNER_ORIGINAL_BUGS
-			Actor_Clue_Acquire(kActorMcCoy, kClueBobInterview1, true, kActorMcCoy);  // A bug? Shouldn't the last argument be -1 or kActorBulletBob here?
-#else
-			Actor_Clue_Acquire(kActorMcCoy, kClueBobInterview1, true, kActorBulletBob);
+			// Last argument should be -1 or kActorBulletBob here
+			// However, this clue is acquired for asking about Izo, when Izo is Replicant
+			// (see also the KIA entry for it, which references the audio recording from that discussion)
+			// It should not be acquired here.
+			Actor_Clue_Acquire(kActorMcCoy, kClueBobInterview1, true, kActorMcCoy);
 #endif // BLADERUNNER_ORIGINAL_BUGS
 		} else {
 			Actor_Says(kActorBulletBob, 560, 37);
@@ -305,7 +311,12 @@ void SceneScriptRC04::dialogueWithBulletBob() {
 		Actor_Says(kActorMcCoy, 4980, 11);
 		if (Actor_Query_Friendliness_To_Other(kActorBulletBob, kActorMcCoy) > 49) {
 			Actor_Says(kActorBulletBob, 740, 37);
+#if BLADERUNNER_ORIGINAL_BUGS
 			Actor_Says(kActorMcCoy, 5085, 16);
+#else
+			// McCoy is interrupted here
+			Actor_Says_With_Pause(kActorMcCoy, 5085, 0.0f, 16);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 			Actor_Says(kActorBulletBob, 750, 37);
 			Actor_Says(kActorBulletBob, 760, 37);
 			Voight_Kampff_Activate(kActorBulletBob, 50);
@@ -319,7 +330,12 @@ void SceneScriptRC04::dialogueWithBulletBob() {
 		} else {
 			Actor_Says(kActorBulletBob, 770, 36);
 			Actor_Says(kActorBulletBob, 780, 36);
+#if BLADERUNNER_ORIGINAL_BUGS
 			Actor_Says(kActorMcCoy, 5090, 16);
+#else
+			// McCoy is interrupted here
+			Actor_Says_With_Pause(kActorMcCoy, 5090, 0.0f, 16);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 			Actor_Says(kActorBulletBob, 790, 36);
 			Actor_Says(kActorBulletBob, 800, 35);
 			Voight_Kampff_Activate(kActorBulletBob, 50);

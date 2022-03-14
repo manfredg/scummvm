@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -80,7 +79,7 @@ int32 Sound::voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volum
 Audio::SeekableAudioStream *Sound::getVoiceStream(const char *file) const {
 	Common::String filename;
 
-	Audio::SeekableAudioStream *audioStream = 0;
+	Audio::SeekableAudioStream *audioStream = nullptr;
 	for (int i = 0; _supportedCodecs[i].fileext; ++i) {
 		filename = file;
 		filename += _supportedCodecs[i].fileext;
@@ -95,7 +94,7 @@ Audio::SeekableAudioStream *Sound::getVoiceStream(const char *file) const {
 
 	if (!audioStream) {
 		warning("Couldn't load sound file '%s'", file);
-		return 0;
+		return nullptr;
 	} else {
 		return audioStream;
 	}
@@ -118,7 +117,7 @@ bool Sound::playVoiceStream(Audio::AudioStream *stream, Audio::SoundHandle *hand
 		// When we run out of handles we need to destroy the stream object,
 		// this is to avoid memory leaks in some scenes where too many sfx
 		// are started.
-		// See bug #3427240 "LOL-CD: Memory leak in caves level 3".
+		// See bug #5886 "LOL-CD: Memory leak in caves level 3".
 		delete stream;
 		return false;
 	}
@@ -232,10 +231,10 @@ void MixedSoundDriver::haltTrack() {
 }
 
 bool MixedSoundDriver::isPlaying() const {
-	return _music->isPlaying() | _sfx->isPlaying();
+	return _music->isPlaying() || _sfx->isPlaying();
 }
 
-void MixedSoundDriver::playSoundEffect(uint8 track, uint8 volume) {
+void MixedSoundDriver::playSoundEffect(uint16 track, uint8 volume) {
 	_sfx->playSoundEffect(track, volume);
 }
 
@@ -284,11 +283,7 @@ void KyraEngine_v1::snd_playWanderScoreViaMap(int command, int restart) {
 	if (!_trackMap || !_trackMapSize)
 		return;
 
-	//if (!_disableSound) {
-	//	XXX
-	//}
-
-	if (_flags.platform == Common::kPlatformDOS || _flags.platform == Common::kPlatformMacintosh) {
+	if (_flags.platform == Common::kPlatformDOS) {
 		assert(command * 2 + 1 < _trackMapSize);
 		if (_curMusicTheme != _trackMap[command * 2]) {
 			if (_trackMap[command * 2] != -1 && _trackMap[command * 2] != -2)
@@ -303,6 +298,7 @@ void KyraEngine_v1::snd_playWanderScoreViaMap(int command, int restart) {
 		} else {
 			_sound->beginFadeOut();
 		}
+
 	} else if (_flags.platform == Common::kPlatformFMTowns || _flags.platform == Common::kPlatformPC98) {
 		if (command == -1) {
 			_sound->haltTrack();
@@ -313,12 +309,12 @@ void KyraEngine_v1::snd_playWanderScoreViaMap(int command, int restart) {
 				_sound->playTrack(command);
 			}
 		}
-	} else if (_flags.platform == Common::kPlatformAmiga) {
+	} else if (_flags.platform == Common::kPlatformMacintosh || _flags.platform == Common::kPlatformAmiga) {
 		if (_curMusicTheme != 1)
 			snd_playTheme(1, -1);
 
 		assert(command < _trackMapSize);
-		if (_trackMap[_lastMusicCommand] != _trackMap[command])
+		if (_lastMusicCommand == -1 || _trackMap[_lastMusicCommand] != _trackMap[command])
 			_sound->playTrack(_trackMap[command]);
 	}
 
@@ -365,7 +361,7 @@ const Sound::SpeechCodecs Sound::_supportedCodecs[] = {
 	{ ".FLA", Audio::makeFLACStream },
 #endif // USE_FLAC
 
-	{ 0, 0 }
+	{ nullptr, nullptr }
 };
 
 } // End of namespace Kyra

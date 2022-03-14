@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -96,7 +95,7 @@ void Module1000::updateScene() {
 			if (_moduleResult == 1)
 				leaveModule(0);
 			else if (_moduleResult == 2) {
-				if (_vm->isDemo())
+				if (_vm->isDemo() && !_vm->isBigDemo())
 					// Demo version returns to the same scene
 					createScene(1, 2);
 				else
@@ -124,7 +123,7 @@ void Module1000::updateScene() {
 }
 
 Scene1001::Scene1001(NeverhoodEngine *vm, Module *parentModule, int which)
-	: Scene(vm, parentModule), _asDoor(NULL), _asWindow(NULL) {
+	: Scene(vm, parentModule), _asDoor(nullptr), _asWindow(nullptr) {
 
 	Sprite *tempSprite;
 
@@ -402,7 +401,7 @@ uint32 Scene1002::handleMessage(int messageNum, const MessageParam &param, Entit
 		}
 		break;
 	case NM_POSITION_CHANGE:
-		_messageList = NULL;
+		_messageList = nullptr;
 		break;
 	case NM_KLAYMEN_CLIMB_LADDER:
 		_isClimbingLadder = true;

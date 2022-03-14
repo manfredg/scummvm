@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,7 +56,7 @@ public:
 	                      int32 camx, int32 camy, int32 camz);
 
 	void AddItem(int32 x, int32 y, int32 z, uint32 shape_num, uint32 frame_num, uint32 item_flags, uint32 ext_flags, uint16 item_num = 0);
-	void AddItem(Item *);                   // Add an Item. SetupLerp() MUST have been called
+	void AddItem(const Item *);                   // Add an Item. SetupLerp() MUST have been called
 
 	void PaintDisplayList(bool item_highlight = false);             // Finishes the display list and Paints
 
@@ -65,12 +64,7 @@ public:
 	// If face is non-NULL, also return the face of the 3d bbox (x,y) is on
 	uint16 Trace(int32 x, int32 y, HitFace *face = 0, bool item_highlight = false);
 
-	void IncSortLimit() {
-		_sortLimit++;
-	}
-	void DecSortLimit() {
-		if (_sortLimit > 0) _sortLimit--;
-	}
+	void IncSortLimit(int count);
 
 private:
 	bool PaintSortItem(SortItem *);

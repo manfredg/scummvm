@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -51,20 +50,6 @@ Console::Console(SagaEngine *vm) : GUI::Debugger() {
 	registerCmd("play_music",	WRAP_METHOD(Console, cmdPlayMusic));
 	registerCmd("play_sound",	WRAP_METHOD(Console, cmdPlaySound));
 	registerCmd("play_voice",	WRAP_METHOD(Console, cmdPlayVoice));
-
-	// Game stuff
-
-#if 0
-	#define MAXPATH 512
-
-	// Register "g_language" cfg cvar
-	strncpy(GameModule.game_language, "us", MAXPATH);
-
-	CVAR_Register_S(GameModule.game_language, "g_language", NULL, CVAR_CFG, GAME_LANGSTR_LIMIT);
-
-	// Register "g_skipintro" cfg cvar
-	CVAR_Register_I(&GameModule.g_skipintro, "g_skipintro", NULL, CVAR_CFG, 0, 1);
-#endif
 
 	// Scene commands
 	registerCmd("current_scene",		WRAP_METHOD(Console, cmdCurrentScene));

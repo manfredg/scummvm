@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,6 +70,24 @@ const FakeTransitionActionPlace CryOmni3DEngine_Versailles::kFakeTransitions[] =
 	{0, 0} // Must be the last one
 };
 
+static void readSubtitles(Common::HashMap<Common::String, Common::Array<SubtitleEntry> > &subtitles,
+						  DATSeekableStream *data) {
+	uint16 vidsCount = data->readUint16LE();
+	for (uint16 i = 0; i < vidsCount; i++) {
+		Common::String vidName = data->readString16();
+		Common::Array<SubtitleEntry> &entries = subtitles[vidName];
+
+		uint16 linesCount = data->readUint16LE();
+		entries.resize(linesCount);
+		for (uint16 j = 0; j < linesCount; j++) {
+			SubtitleEntry &entry = entries[j];
+
+			entry.frameStart = data->readUint32LE();
+			entry.text = data->readString16();
+		}
+	}
+}
+
 void CryOmni3DEngine_Versailles::loadStaticData() {
 	// This should match data in devtools/create_cryomni3d_dat
 	DATSeekableStream *data = getStaticData(MKTAG('V', 'R', 'S', 'L'), 1);
@@ -83,13 +100,34 @@ void CryOmni3DEngine_Versailles::loadStaticData() {
 	// epigraph settings, bomb password
 	_epigraphContent = data->readString16();
 	_epigraphPassword = data->readString16();
-	_bombPassword = data->readString16();
+
+	if (getLanguage() == Common::JA_JPN) {
+		_bombAlphabet = data->readString16().decode(Common::kWindows932);
+		_bombPassword = data->readString16().decode(Common::kWindows932);
+	} else {
+		_bombAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ '";
+		_bombPassword = data->readString16();
+	}
 
 	// messages, paintings titles
 	data->readString16Array16(_messages);
-	assert(_messages.size() == 146);
+	if ((getLanguage() == Common::JA_JPN) ||
+	        (getLanguage() == Common::KO_KOR) ||
+	        (getLanguage() == Common::ZH_TWN)) {
+		assert(_messages.size() == 151);
+	} else {
+		assert(_messages.size() == 146);
+	}
 	data->readString16Array16(_paintingsTitles);
 	assert(_paintingsTitles.size() == 48);
+
+	_subtitles.clear();
+	// Only CJK have subtitles, don't change dat format for other languages
+	if ((getLanguage() == Common::JA_JPN) ||
+	        (getLanguage() == Common::KO_KOR) ||
+	        (getLanguage() == Common::ZH_TWN)) {
+		readSubtitles(_subtitles, data);
+	}
 
 	delete data;
 }

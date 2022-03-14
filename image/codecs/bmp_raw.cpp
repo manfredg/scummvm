@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +27,8 @@
 
 namespace Image {
 
-BitmapRawDecoder::BitmapRawDecoder(int width, int height, int bitsPerPixel) : Codec(),
-		_width(width), _height(height), _bitsPerPixel(bitsPerPixel) {
+BitmapRawDecoder::BitmapRawDecoder(int width, int height, int bitsPerPixel, bool ignoreAlpha, bool flip) : Codec(),
+		_width(width), _height(height), _bitsPerPixel(bitsPerPixel), _ignoreAlpha(ignoreAlpha), _flip(flip)  {
 	_surface.create(_width, _height, getPixelFormat());
 }
 
@@ -46,6 +45,9 @@ const Graphics::Surface *BitmapRawDecoder::decodeFrame(Common::SeekableReadStrea
 	if (_bitsPerPixel == 1) {
 		srcPitch = (_width + 7) / 8;
 		extraDataLength = (srcPitch % 2) ? 2 - (srcPitch % 2) : 0;
+	} else if (_bitsPerPixel == 4) {
+		srcPitch = (_width + 1) / 2;
+		extraDataLength = (srcPitch % 4) ? 4 - (srcPitch % 4) : 0;
 	}
 
 	if (_bitsPerPixel == 1) {
@@ -82,11 +84,26 @@ const Graphics::Surface *BitmapRawDecoder::decodeFrame(Common::SeekableReadStrea
 			stream.skip(extraDataLength);
 		}
 	} else if (_bitsPerPixel == 8) {
+		// flip the 8bpp images when we are decoding QTvideo
 		byte *dst = (byte *)_surface.getPixels();
 
 		for (int i = 0; i < _height; i++) {
-			stream.read(dst + (_height - i - 1) * _width, _width);
+			stream.read(dst + (_flip ? i : _height - i - 1) * _width, _width);
 			stream.skip(extraDataLength);
+		}
+	} else if (_bitsPerPixel == 16) {
+		byte *dst = (byte *)_surface.getBasePtr(0, _height - 1);
+
+		for (int i = 0; i < _height; i++) {
+			for (int j = 0; j < _width; j++) {
+				uint16 color = stream.readUint16LE();
+
+				*(uint16 *)dst = color;
+				dst += format.bytesPerPixel;
+			}
+
+			stream.skip(extraDataLength);
+			dst -= _surface.pitch * 2;
 		}
 	} else if (_bitsPerPixel == 24) {
 		byte *dst = (byte *)_surface.getBasePtr(0, _height - 1);
@@ -113,11 +130,15 @@ const Graphics::Surface *BitmapRawDecoder::decodeFrame(Common::SeekableReadStrea
 				byte b = stream.readByte();
 				byte g = stream.readByte();
 				byte r = stream.readByte();
-				// Ignore the last byte, as in v3 it is unused
-				// and should thus NOT be used as alpha.
-				// ref: http://msdn.microsoft.com/en-us/library/windows/desktop/dd183376%28v=vs.85%29.aspx
-				stream.readByte();
-				uint32 color = format.RGBToColor(r, g, b);
+
+				uint32 color;
+				if (_ignoreAlpha) {
+					stream.readByte();
+					color = format.RGBToColor(r, g, b);
+				} else {
+					byte a = stream.readByte();
+					color = format.ARGBToColor(a, r, g, b);
+				}
 
 				*((uint32 *)dst) = color;
 				dst += format.bytesPerPixel;
@@ -137,6 +158,8 @@ Graphics::PixelFormat BitmapRawDecoder::getPixelFormat() const {
 	case 4:
 	case 8:
 		return Graphics::PixelFormat::createFormatCLUT8();
+	case 16:
+		return Graphics::PixelFormat(2, 5, 5, 5, 0, 10, 5, 0, 0);
 	case 24:
 	case 32:
 		return Graphics::PixelFormat(4, 8, 8, 8, 8, 8, 16, 24, 0);

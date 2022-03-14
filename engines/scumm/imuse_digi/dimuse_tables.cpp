@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,10 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-
-//#include "scumm/imuse_digi/dimuse.h"
 #include "scumm/imuse_digi/dimuse_tables.h"
 
 namespace Scumm {
@@ -284,8 +281,8 @@ const imuseDigTable _digSeqMusicTable[] = {
 };
 
 const imuseComiTable _comiStateMusicTable[] = {
-	{0, 1000, "STATE_NULL",         0, 0,    0, ""},             /* 00 */
-	{0, 1001, "stateNoChange",      0, 0,    0, ""},             /* 01 */
+	{0, 1000, "STATE_NULL",         0, 0,    0, ""            }, /* 00 */
+	{0, 1001, "stateNoChange",      0, 0,    0, ""            }, /* 01 */
 	{3, 1098, "stateCredits1",      0, 0,   60, "1098-C~1.IMX"}, /* 02 */
 	{3, 1099, "stateMenu",          0, 0,   60, "1099-M~1.IMX"}, /* 03 */
 	{3, 1100, "stateHold1",         4, 0,   60, "1100-H~1.IMX"}, /* 04 */
@@ -377,20 +374,20 @@ const imuseComiTable _comiStateMusicTable[] = {
 	{3, 1514, "stateSnow",         87, 0,   60, "1514-S~1.IMX"}, /* 90 */
 	{3, 1515, "stateCredits",       0, 0,   60, "1515-C~1.IMX"}, /* 91 */
 	{3, 1520, "stateCarnAmb",       0, 0,   60, "1520-C~1.IMX"}, /* 92 */
-	{0,   -1, "",                   0, 0,    0, ""}
+	{0,   -1, "",                   0, 0,    0, "",           }
 };
 
 const imuseComiTable _comiSeqMusicTable[] = {
-	{0, 2000, "SEQ_NULL",        0, 0,    0, ""},
-	{0, 2100, "seqINTRO",        0, 0,    0, ""},
+	{0, 2000, "SEQ_NULL",        0, 0,    0, ""            },
+	{0, 2100, "seqINTRO",        0, 0,    0, ""            },
 	{3, 2105, "seqInterlude1",   0, 0,   60, "2105-I~1.IMX"},
-	{8, 2110, "seqLastBoat",     0, 1,    0, ""},
-	{0, 2115, "seqSINK_SHIP",    0, 0,    0, ""},
-	{0, 2120, "seqCURSED_RING",  0, 0,   60, ""},
+	{8, 2110, "seqLastBoat",     0, 1,    0, ""            },
+	{0, 2115, "seqSINK_SHIP",    0, 0,    0, ""            },
+	{0, 2120, "seqCURSED_RING",  0, 0,   60, ""            },
 	{3, 2200, "seqInterlude2",   0, 0,   60, "2200-I~1.IMX"},
 	{3, 2210, "seqKidnapped",    0, 0,   60, "2210-K~1.IMX"},
-	{8, 2220, "seqSnakeVomits",  0, 1,    0, ""},
-	{8, 2222, "seqPopBalloon",   0, 1,    0, ""},
+	{8, 2220, "seqSnakeVomits",  0, 1,    0, ""            },
+	{8, 2222, "seqPopBalloon",   0, 1,    0, ""            },
 	{3, 2225, "seqDropBalls",    0, 0,   60, "2225-D~1.IMX"},
 	{4, 2232, "seqArriveBarber", 0, 0,   60, "2232-A~1.IMX"},
 	{3, 2233, "seqAtonal",       0, 0,   60, "2233-A~1.IMX"},
@@ -404,11 +401,11 @@ const imuseComiTable _comiSeqMusicTable[] = {
 	{3, 2260, "seqBlowUpTree1",  0, 0,   60, "2260-B~1.IMX"},
 	{2, 2261, "seqBlowUpTree2",  0, 2,   60, "2260-B~1.IMX"},
 	{3, 2275, "seqMonkeys",      0, 0,   60, "2275-M~1.IMX"},
-	{9, 2277, "seqAttack",       0, 1,    0, ""},
+	{9, 2277, "seqAttack",       0, 1,    0, ""            },
 	{3, 2285, "seqSharks",       0, 0,   60, "2285-S~1.IMX"},
 	{3, 2287, "seqTowelWalk",    0, 0,   60, "2287-T~1.IMX"},
-	{0, 2293, "seqNICE_BOOTS",   0, 0,    0, ""},
-	{0, 2295, "seqBIG_BONED",    0, 0,    0, ""},
+	{0, 2293, "seqNICE_BOOTS",   0, 0,    0, ""            },
+	{0, 2295, "seqBIG_BONED",    0, 0,    0, ""            },
 	{3, 2300, "seqToBlood",      0, 0,   60, "2300-T~1.IMX"},
 	{3, 2301, "seqInterlude3",   0, 0,   60, "2301-I~1.IMX"},
 	{3, 2302, "seqRott1",        0, 0,   60, "2302-R~1.IMX"},
@@ -434,7 +431,7 @@ const imuseComiTable _comiSeqMusicTable[] = {
 	{3, 2345, "seqSwordWin",     0, 0,   60, "1340-S~1.IMX"},
 	{3, 2347, "seqGetMap",       0, 0,   60, "1345-G~1.IMX"},
 	{3, 2400, "seqInterlude4",   0, 0,   60, "2400-I~1.IMX"},
-	{0, 2405, "seqSHIPWRECK",    0, 0,    0, ""},
+	{0, 2405, "seqSHIPWRECK",    0, 0,    0, ""            },
 	{3, 2408, "seqFakeCredits",  0, 0,   60, "2408-F~1.IMX"},
 	{3, 2410, "seqPassOut",      0, 0,   60, "2410-P~1.IMX"},
 	{3, 2414, "seqGhostTalk",    0, 0,   60, "2414-G~1.IMX"},
@@ -448,15 +445,15 @@ const imuseComiTable _comiSeqMusicTable[] = {
 	{2, 2451, "seqFall",         0, 1,   60, "2450-C~1.IMX"},
 	{2, 2452, "seqUmbrella",     0, 2,   60, "2450-C~1.IMX"},
 	{3, 2460, "seqFight",        0, 0,   60, "2460-F~1.IMX"},
-	{0, 2465, "seqLAVE_RIDE",    0, 0,    0, ""},
-	{0, 2470, "seqMORE_SLAW",    0, 0,    0, ""},
-	{0, 2475, "seqLIFT_CURSE",   0, 0,    0, ""},
+	{0, 2465, "seqLAVE_RIDE",    0, 0,    0, ""            },
+	{0, 2470, "seqMORE_SLAW",    0, 0,    0, ""            },
+	{0, 2475, "seqLIFT_CURSE",   0, 0,    0, ""            },
 	{3, 2500, "seqInterlude5",   0, 0,   60, "2500-I~1.IMX"},
 	{3, 2502, "seqExitSkycar",   0, 0,   60, "2502-E~1.IMX"},
 	{3, 2504, "seqGrow1",        0, 0,   60, "2504-G~1.IMX"},
 	{2, 2505, "seqGrow2",        0, 1,   60, "2504-G~1.IMX"},
 	{3, 2508, "seqInterlude6",   0, 0,   60, "2508-I~1.IMX"},
-	{0, 2515, "seqFINALE",       0, 0,    0, ""},
+	{0, 2515, "seqFINALE",       0, 0,    0, ""            },
 	{3, 2520, "seqOut",          0, 0,   60, "2520-OUT.IMX"},
 	{3, 2530, "seqZap1a",        0, 0,   60, "2530-Z~1.IMX"},
 	{2, 2531, "seqZap1b",        0, 1,   60, "2530-Z~1.IMX"},
@@ -470,7 +467,28 @@ const imuseComiTable _comiSeqMusicTable[] = {
 	{3, 2560, "seqZap4a",        0, 0,   60, "2560-Z~1.IMX"},
 	{2, 2561, "seqZap4b",        0, 1,   60, "2560-Z~1.IMX"},
 	{2, 2562, "seqZap4c",        0, 2,   60, "2560-Z~1.IMX"},
-	{0,   -1, "",                0, 0,    0, ""}
+	{0,   -1, "",                0, 0,    0, ""            }
+};
+
+const imuseComiTable _comiDemoStateMusicTable[] = {
+	{0, 1000, "STATE_NULL",      0, 0,    0, "",       }, /* 00 */
+	{0, 1001, "stateNoChange",   0, 0,    0, "",       }, /* 01 */
+	{3, 1100, "stateHold1",      2, 0,   60, "in1.imx" }, /* 02 */
+	{0, 1001, "empty",           0, 0,    0, "",       }, /* 03 */
+	{3, 1120, "stateHold2",      4, 0,   60, "in2.imx" }, /* 04 */
+	{0, 1001, "empty",           0, 0,    0, "",       }, /* 05 */
+	{0, 1001, "empty",           0, 0,    0, "",       }, /* 06 */
+	{0, 1001, "empty",           0, 0,    0, "",       }, /* 07 */
+	{3, 1140, "stateWaterline1", 2, 0,   60, "out1.imx"}, /* 08 */
+	{3, 1150, "stateWaterline2", 4, 0,   60, "out2.imx"}, /* 09 */
+	{0, 1001, "empty",           0, 0,    0, "",       }, /* 10 */
+	{0, 1001, "empty",           0, 0,    0, "",       }, /* 11 */
+	{0, 1001, "empty",           0, 0,    0, "",       }, /* 12 */
+	{0, 1001, "empty",           0, 0,    0, "",       }, /* 13 */
+	{0, 1001, "empty",           0, 0,    0, "",       }, /* 14 */
+	{0, 1001, "empty",           0, 0,    0, "",       }, /* 15 */
+	{3, 1210, "stateCannon",     4, 0,   60, "gun.imx" }, /* 16 */
+	{0,   -1, "",                0, 0,    0, "",       }
 };
 
 const imuseFtStateTable _ftStateMusicTable[] = {
@@ -523,6 +541,7 @@ const imuseFtStateTable _ftStateMusicTable[] = {
 	{"saveme",   2,  127,  "statePlaneControls"  },
 	{"",         4,  0,    "stateCliffHanger1"   },
 	{"",         4,  0,    "stateCliffHanger2"   },
+	{"",         0,  0,    ""                    },
 };
 
 const imuseFtNames _ftSeqNames[] = {
@@ -556,6 +575,7 @@ const imuseFtNames _ftSeqNames[] = {
 	{"seqNestolusAtRanch" },
 	{"seqRipLimo"         },
 	{"seqGorgeTurn"       },
+	{"seqStealRamp"       },
 	{"seqCavefishTalk"    },
 	{"seqArriveCorville"  },
 	{"seqSingleBunny"     },
@@ -577,7 +597,8 @@ const imuseFtNames _ftSeqNames[] = {
 	{"seqFanBunnies"      },
 	{"seqRipDead"         },
 	{"seqFuneral"         },
-	{"seqCredits"         }
+	{"seqCredits"         },
+	{""                   }
 };
 
 const imuseFtSeqTable _ftSeqMusicTable[] = {
@@ -756,7 +777,7 @@ const imuseFtSeqTable _ftSeqMusicTable[] = {
 	{"",         0,  0  },
 	{"",         0,  0  },
 
-	{"veltures", 2,  127},
+	{"vultures", 2,  127},
 	{"",         0,  0  },
 	{"",         0,  0  },
 	{"",         0,  0  },
@@ -832,7 +853,7 @@ const imuseFtSeqTable _ftSeqMusicTable[] = {
 	{"",         0,  0  },
 
 	{"funeral",  2,  127},
-	{"",         2,  127},
+	{"",         0,  0  },
 	{"moshop",   3,  64 },
 	{"",         0,  0  },
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -67,12 +66,10 @@
 #include "backends/platform/sdl/win32/win32-window.h"
 
 #include "common/config-manager.h"
-#include "common/system.h"
-#include "common/events.h"
 #include "common/translation.h"
 
 Win32DialogManager::Win32DialogManager(SdlWindow_Win32 *window) : _window(window) {
-	CoInitialize(NULL);
+	CoInitialize(nullptr);
 }
 
 Win32DialogManager::~Win32DialogManager() {
@@ -83,47 +80,41 @@ Win32DialogManager::~Win32DialogManager() {
 HRESULT winCreateItemFromParsingName(PCWSTR pszPath, IBindCtx *pbc, REFIID riid, void **ppv) {
 	typedef HRESULT(WINAPI *SHFunc)(PCWSTR, IBindCtx *, REFIID, void **);
 
-	SHFunc func = (SHFunc)GetProcAddress(GetModuleHandle(TEXT("shell32.dll")), "SHCreateItemFromParsingName");
-	if (func == NULL)
+	SHFunc func = (SHFunc)(void *)GetProcAddress(GetModuleHandle(TEXT("shell32.dll")), "SHCreateItemFromParsingName");
+	if (func == nullptr)
 		return E_NOTIMPL;
 
 	return func(pszPath, pbc, riid, ppv);
 }
 
 HRESULT getShellPath(IShellItem *item, Common::String &path) {
-	LPWSTR name = NULL;
+	LPWSTR name = nullptr;
 	HRESULT hr = item->GetDisplayName(SIGDN_FILESYSPATH, &name);
 	if (SUCCEEDED(hr)) {
 		char *str = Win32::unicodeToAnsi(name);
 		path = Common::String(str);
 		CoTaskMemFree(name);
-		delete[] str;
+		free(str);
 	}
 	return hr;
 }
 
-Common::DialogManager::DialogResult Win32DialogManager::showFileBrowser(const char *title, Common::FSNode &choice, bool isDirBrowser) {
+Common::DialogManager::DialogResult Win32DialogManager::showFileBrowser(const Common::U32String &title, Common::FSNode &choice, bool isDirBrowser) {
 	DialogResult result = kDialogError;
 
 	// Do nothing if not running on Windows Vista or later
 	if (!Win32::confirmWindowsVersion(6, 0))
 		return result;
 
-	IFileOpenDialog *dialog = NULL;
+	IFileOpenDialog *dialog = nullptr;
 	HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog,
-		NULL,
+		nullptr,
 		CLSCTX_INPROC_SERVER,
 		IID_IFileOpenDialog,
 		reinterpret_cast<void **> (&(dialog)));
 
 	if (SUCCEEDED(hr)) {
-		// If in fullscreen mode, switch to windowed mode
-		bool wasFullscreen = g_system->getFeatureState(OSystem::kFeatureFullscreenMode);
-		if (wasFullscreen) {
-			g_system->beginGFXTransaction();
-			g_system->setFeatureState(OSystem::kFeatureFullscreenMode, false);
-			g_system->endGFXTransaction();
-		}
+		beginDialog();
 
 		// Customize dialog
 		bool showHidden = ConfMan.getBool("gui_browser_show_hidden", Common::ConfigManager::kApplicationDomain);
@@ -138,22 +129,23 @@ Common::DialogManager::DialogResult Win32DialogManager::showFileBrowser(const ch
 			hr = dialog->SetOptions(dwOptions);
 		}
 
-		LPWSTR str = Win32::ansiToUnicode(title, Win32::getCurrentCharset());
-		hr = dialog->SetTitle(str);
-		delete[] str;
+		LPWSTR dialogTitle = (LPWSTR)title.encodeUTF16Native();
+		hr = dialog->SetTitle(dialogTitle);
+		free(dialogTitle);
 
-		str = Win32::ansiToUnicode(_("Choose"), Win32::getCurrentCharset());
-		hr = dialog->SetOkButtonLabel(str);
-		delete[] str;
+		LPWSTR okTitle = (LPWSTR)_("Choose").encodeUTF16Native();
+		hr = dialog->SetOkButtonLabel(okTitle);
+		free(okTitle);
 
+		LPWSTR str;
 		if (ConfMan.hasKey("browser_lastpath")) {
 			str = Win32::ansiToUnicode(ConfMan.get("browser_lastpath").c_str());
-			IShellItem *item = NULL;
-			hr = winCreateItemFromParsingName(str, NULL, IID_IShellItem, reinterpret_cast<void **> (&(item)));
+			IShellItem *item = nullptr;
+			hr = winCreateItemFromParsingName(str, nullptr, IID_IShellItem, reinterpret_cast<void **> (&(item)));
 			if (SUCCEEDED(hr)) {
 				hr = dialog->SetDefaultFolder(item);
 			}
-			delete[] str;
+			free(str);
 		}
 
 		// Show dialog
@@ -161,7 +153,7 @@ Common::DialogManager::DialogResult Win32DialogManager::showFileBrowser(const ch
 
 		if (SUCCEEDED(hr)) {
 			// Get the selection from the user
-			IShellItem *selectedItem = NULL;
+			IShellItem *selectedItem = nullptr;
 			hr = dialog->GetResult(&selectedItem);
 			if (SUCCEEDED(hr)) {
 				Common::String path;
@@ -174,7 +166,7 @@ Common::DialogManager::DialogResult Win32DialogManager::showFileBrowser(const ch
 			}
 
 			// Save last path
-			IShellItem *lastFolder = NULL;
+			IShellItem *lastFolder = nullptr;
 			hr = dialog->GetFolder(&lastFolder);
 			if (SUCCEEDED(hr)) {
 				Common::String path;
@@ -191,12 +183,7 @@ Common::DialogManager::DialogResult Win32DialogManager::showFileBrowser(const ch
 
 		dialog->Release();
 
-		// If we were in fullscreen mode, switch back
-		if (wasFullscreen) {
-			g_system->beginGFXTransaction();
-			g_system->setFeatureState(OSystem::kFeatureFullscreenMode, true);
-			g_system->endGFXTransaction();
-		}
+		endDialog();
 	}
 
 	return result;

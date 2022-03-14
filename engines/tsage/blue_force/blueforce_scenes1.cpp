@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -63,7 +62,11 @@ void Scene100::Action1::signal() {
 			setTextStrings(msg1, msg2, this);
 			--_actionIndex;
 		} else {
-			setTextStrings(BF_NAME, BF_ALL_RIGHTS_RESERVED, this);
+			if (g_vm->getLanguage() == Common::ES_ESP) {
+				setTextStrings(BF_NAME, ESP_BF_ALL_RIGHTS_RESERVED, this);
+			} else {
+				setTextStrings(BF_NAME, BF_ALL_RIGHTS_RESERVED, this);
+			}
 
 			Common::Point pt(_sceneText1._position.x, 80);
 			NpcMover *mover = new NpcMover();
@@ -145,7 +148,13 @@ void Scene100::Action2::signal() {
 			g_globals->_player.enableControl();
 			g_globals->_events.setCursor(CURSOR_WALK);
 
-			if (MessageDialog::show2(WATCH_INTRO_MSG, START_PLAY_BTN_STRING, INTRODUCTION_BTN_STRING) == 0) {
+			int rc;
+			if (g_vm->getLanguage() == Common::ES_ESP) {
+				rc = MessageDialog::show2(ESP_WATCH_INTRO_MSG, ESP_START_PLAY_BTN_STRING, ESP_INTRODUCTION_BTN_STRING);
+			} else {
+				rc = MessageDialog::show2(WATCH_INTRO_MSG, START_PLAY_BTN_STRING, INTRODUCTION_BTN_STRING);
+			}
+			if (rc == 0) {
 				// Signal to start the game
 				scene->_index = 190;
 				remove();
@@ -233,7 +242,11 @@ void Scene109::Action1::signal() {
 		setDelay(10);
 		break;
 	case 2:
-		scene->_text.setup(BF_19840515, this);
+		if (g_vm->getLanguage() == Common::ES_ESP) {
+			scene->_text.setup(ESP_BF_19840515, this);
+		} else {
+			scene->_text.setup(BF_19840515, this);
+		}
 		break;
 	case 3:
 		scene->loadScene(115);
@@ -2253,7 +2266,11 @@ void Scene140::Action1::signal() {
 	case 1:
 		BF_GLOBALS._scenePalette.loadPalette(2);
 		BF_GLOBALS._scenePalette.refresh();
-		scene->_text.setup(BF_19840518, this);
+		if (g_vm->getLanguage() == Common::ES_ESP) {
+			scene->_text.setup(ESP_BF_19840518, this);
+		} else {
+			scene->_text.setup(BF_19840518, this);
+		}
 		break;
 	case 2:
 		scene->_object1.show();
@@ -2615,7 +2632,11 @@ void Scene160::Action2::signal() {
 		break;
 	case 22:
 		scene->_sceneBounds.set(0, 0, 320, 200);
-		scene->_text.setup(BF_11_YEARS, this);
+		if (g_vm->getLanguage() == Common::ES_ESP) {
+			scene->_text.setup(ESP_BF_11_YEARS, this);
+		} else {
+			scene->_text.setup(BF_11_YEARS, this);
+		}
 		break;
 	case 23:
 		BF_GLOBALS._scenePalette.loadPalette(2);
@@ -2659,7 +2680,11 @@ void Scene160::Action3::signal() {
 
 	switch (_actionIndex++) {
 	case 0:
-		scene->_text.setup(BF_3_DAYS, this);
+		if (g_vm->getLanguage() == Common::ES_ESP) {
+			scene->_text.setup(ESP_BF_3_DAYS, this);
+		} else {
+			scene->_text.setup(BF_3_DAYS, this);
+		}
 		break;
 	case 1: {
 		Common::Point destPos(720, 100);
@@ -2784,7 +2809,11 @@ void Scene180::postInit(SceneObjectList *OwnerList) {
 	setZoomPercents(121, 60, 125, 70);
 
 	if ((BF_GLOBALS._bookmark == bLyleStoppedBy) && (BF_GLOBALS._dayNumber == 1)) {
-		_sceneMessage.setup(THE_NEXT_DAY);
+		if (g_vm->getLanguage() == Common::ES_ESP) {
+			_sceneMessage.setup(ESP_THE_NEXT_DAY);
+		} else {
+			_sceneMessage.setup(THE_NEXT_DAY);
+		}
 		_sceneMode = 6;
 		setAction(&_sceneMessage, this);
 		BF_GLOBALS._driveFromScene = 4;
@@ -2792,7 +2821,11 @@ void Scene180::postInit(SceneObjectList *OwnerList) {
 		BF_GLOBALS._mapLocationId = 4;
 	} else if (((BF_GLOBALS._bookmark == bDroppedOffLyle) && (BF_GLOBALS._dayNumber == 3)) ||
 			((BF_GLOBALS._bookmark == bDoneAtLyles) && (BF_GLOBALS._dayNumber == 4))) {
-		_sceneMessage.setup(THE_NEXT_DAY);
+		if (g_vm->getLanguage() == Common::ES_ESP) {
+			_sceneMessage.setup(ESP_THE_NEXT_DAY);
+		} else {
+			_sceneMessage.setup(THE_NEXT_DAY);
+		}
 		_sceneMode = 6;
 		setAction(&_sceneMessage, this);
 	} else if (BF_GLOBALS._dayNumber == 0) {

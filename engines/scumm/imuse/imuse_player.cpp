@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,9 +55,9 @@ uint16 Player::_active_notes[128];
 //////////////////////////////////////////////////
 
 Player::Player() :
-	_midi(NULL),
-	_parser(NULL),
-	_parts(NULL),
+	_midi(nullptr),
+	_parser(nullptr),
+	_parts(nullptr),
 	_active(false),
 	_scanning(false),
 	_id(0),
@@ -79,16 +78,17 @@ Player::Player() :
 	_isMT32(false),
 	_isMIDI(false),
 	_supportsPercussion(false),
-	_se(0),
+	_se(nullptr),
 	_vol_chan(0),
 	_abort(false),
-	_music_tick(0) {
+	_music_tick(0),
+	_parserType(kParserTypeNone) {
 }
 
 Player::~Player() {
 	if (_parser) {
 		delete _parser;
-		_parser = 0;
+		_parser = nullptr;
 	}
 }
 
@@ -108,7 +108,7 @@ bool Player::startSound(int sound, MidiDriver *midi) {
 	_isMIDI = _se->isMIDI(sound);
 	_supportsPercussion = _se->supportsPercussion(sound);
 
-	_parts = NULL;
+	_parts = nullptr;
 	_active = true;
 	_midi = midi;
 	_id = sound;
@@ -121,7 +121,7 @@ bool Player::startSound(int sound, MidiDriver *midi) {
 
 	if (start_seq_sound(sound) != 0) {
 		_active = false;
-		_midi = NULL;
+		_midi = nullptr;
 		return false;
 	}
 
@@ -151,13 +151,13 @@ void Player::clear() {
 
 	if (_parser) {
 		_parser->unloadMusic();
-		delete _parser;
-		_parser = 0;
+		_parser->setMidiDriver(nullptr);
 	}
+
 	uninit_parts();
 	_se->ImFireAllTriggers(_id);
 	_active = false;
-	_midi = NULL;
+	_midi = nullptr;
 	_id = 0;
 	_note_offset = 0;
 }
@@ -179,19 +179,30 @@ int Player::start_seq_sound(int sound, bool reset_vars) {
 	}
 
 	ptr = _se->findStartOfSound(sound);
-	if (ptr == NULL)
+	if (ptr == nullptr)
 		return -1;
-	delete _parser;
 
 	if (!memcmp(ptr, "RO", 2)) {
 		// Old style 'RO' resource
-		_parser = MidiParser_createRO();
+		if (_parserType != kParserTypeRO) {
+			delete _parser;
+			_parser = MidiParser_createRO();
+			_parserType = kParserTypeRO;
+		}
 	} else if (!memcmp(ptr, "FORM", 4)) {
 		// Humongous Games XMIDI resource
-		_parser = MidiParser::createParser_XMIDI();
+		if (_parserType != kParserTypeXMI) {
+			delete _parser;
+			_parser = MidiParser::createParser_XMIDI();
+			_parserType = kParserTypeXMI;
+		}
 	} else {
 		// SCUMM SMF resource
-		_parser = MidiParser::createParser_SMF();
+		if (_parserType != kParserTypeSMF) {
+			delete _parser;
+			_parser = MidiParser::createParser_SMF();
+			_parserType = kParserTypeSMF;
+		}
 	}
 
 	_parser->setMidiDriver(this);
@@ -262,7 +273,7 @@ void Player::send(uint32 b) {
 	switch (cmd >> 4) {
 	case 0x8: // Key Off
 		if (!_scanning) {
-			if ((part = getPart(chan)) != 0)
+			if ((part = getPart(chan)) != nullptr)
 				part->noteOff(param1);
 		} else {
 			_active_notes[param1] &= ~(1 << chan);
@@ -274,7 +285,7 @@ void Player::send(uint32 b) {
 		if (!_scanning) {
 			if (_isMT32 && !_se->isNativeMT32())
 				param2 = (((param2 * 3) >> 2) + 32) & 0x7F;
-			if ((part = getPart(chan)) != 0)
+			if ((part = getPart(chan)) != nullptr)
 				part->noteOn(param1, param2);
 		} else {
 			_active_notes[param1] |= (1 << chan);
@@ -390,7 +401,7 @@ void Player::sysEx(const byte *p, uint16 len) {
 		} else {
 			// SysEx manufacturer 0x97 has been spotted in the
 			// Monkey Island 2 AdLib music, so don't make this a
-			// fatal error. See bug #1481383.
+			// fatal error. See bug #2595.
 			// The Macintosh version of Monkey Island 2 simply
 			// ignores these SysEx events too.
 			if (a == 0)
@@ -408,7 +419,7 @@ void Player::sysEx(const byte *p, uint16 len) {
 
 	if (!_scanning) {
 		for (a = 0; a < len + 1 && a < 19; ++a) {
-			snprintf((char *)&buf[a * 3], 3 * sizeof(char), " %02X", p[a]);
+			snprintf((char *)&buf[a * 3], 3 * sizeof(char) + 1, " %02X", (int)p[a]);
 		}
 		if (a < len + 1) {
 			buf[a * 3] = buf[a * 3 + 1] = buf[a * 3 + 2] = '.';
@@ -630,7 +641,7 @@ Part *Player::getActivePart(uint8 chan) {
 			return part;
 		part = part->_next;
 	}
-	return 0;
+	return nullptr;
 }
 
 Part *Player::getPart(uint8 chan) {
@@ -641,11 +652,11 @@ Part *Player::getPart(uint8 chan) {
 	part = _se->allocate_part(_priority, _midi);
 	if (!part) {
 		debug(1, "No parts available");
-		return NULL;
+		return nullptr;
 	}
 
 	// Insert part into front of parts list
-	part->_prev = NULL;
+	part->_prev = nullptr;
 	part->_next = _parts;
 	if (_parts)
 		_parts->_prev = part;
@@ -916,7 +927,7 @@ int Player::addParameterFader(int param, int target, int time) {
 	}
 
 	ParameterFader *ptr = &_parameterFaders[0];
-	ParameterFader *best = 0;
+	ParameterFader *best = nullptr;
 	int i;
 	for (i = ARRAYSIZE(_parameterFaders); i; --i, ++ptr) {
 		if (ptr->param == param) {
@@ -1002,14 +1013,14 @@ void Player::removePart(Part *part) {
 		part->_prev->_next = part->_next;
 	else
 		_parts = part->_next;
-	part->_next = part->_prev = 0;
+	part->_next = part->_prev = nullptr;
 }
 
 void Player::fixAfterLoad() {
 	_midi = _se->getBestMidiDriver(_id);
 	if (!_midi) {
 		clear();
-	} else {
+	} else {		
 		start_seq_sound(_id, false);
 		setSpeed(_speed);
 		if (_parser)
@@ -1044,7 +1055,8 @@ static void syncWithSerializer(Common::Serializer &s, ParameterFader &pf) {
 void Player::saveLoadWithSerializer(Common::Serializer &s) {
 	if (!s.isSaving() && _parser) {
 		delete _parser;
-		_parser = 0;
+		_parser = nullptr;
+		_parserType = kParserTypeNone;
 	}
 	_music_tick = _parser ? _parser->getTick() : 0;
 
@@ -1054,7 +1066,7 @@ void Player::saveLoadWithSerializer(Common::Serializer &s) {
 		s.syncAsUint16LE(num);
 	} else {
 		s.syncAsUint16LE(num);
-		_parts = (num ? &_se->_parts[num - 1] : 0);
+		_parts = (num ? &_se->_parts[num - 1] : nullptr);
 	}
 
 	s.syncAsByte(_active, VER(8));

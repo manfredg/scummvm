@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,13 +15,13 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "common/scummsys.h"
 #include "common/rect.h"
 #include "dragons/actor.h"
+#include "dragons/font.h"
 #include "dragons/minigame3.h"
 #include "dragons/dragonini.h"
 #include "dragons/inventory.h"
@@ -70,24 +70,24 @@ void Minigame3::run() {
 	int iVar4;
 	DragonINI *flicker;
 	uint16 origSceneId;
-	//byte auStack1584_palette [512]; //[126];
-	uint16 local_5b2;
-	//byte auStack1072_palette [512];
-	Actor *bunnyActorTbl [4];
-	uint16 local_228;
+	//byte auStack1584_palette[512]; //[126];
+	//uint16 local_5b2;
+	//byte auStack1072_palette[512];
+	Actor *bunnyActorTbl[4];
+	uint16 local_228 = 0;
 	//uint16 local_226;
 	int16 local_224;
-	Actor *tearActorTbl [8];
+	Actor *tearActorTbl[8];
 	uint16 local_210;
-	int16 local_208 [16];
+	int16 local_208[16];
 	uint local_1e8;
 	uint oldEngineFlags;
 	uint16 local_1e0;
 	uint16 local_1de;
-	Actor *tearBlinkActorTbl2 [4];
-	Actor *tearBlinkActorTbl [4];
-	int16 local_1c8;
-	int16 local_1c6;
+	Actor *tearBlinkActorTbl2[4];
+	Actor *tearBlinkActorTbl[4];
+	int16 local_1c8 = 0;
+	int16 local_1c6 = 0;
 	uint16 local_1c2;
 	int16 local_1c0;
 	int16 local_1be;
@@ -95,11 +95,11 @@ void Minigame3::run() {
 	int16 local_1ba;
 	uint16 local_1b8;
 	int16 eyeBgYOffsetTbl[21];
-	TearInfo tearInfo [30];
-	Common::Point bunnyPositionsTbl [4];
-	Common::Point handPositionsTbl [4];
-	uint16 goodRabbitPositionTbl [4];
-	uint16 bunnyPositionTbl [4];
+	TearInfo tearInfo[30];
+	Common::Point bunnyPositionsTbl[4];
+	Common::Point handPositionsTbl[4];
+	uint16 goodRabbitPositionTbl[4];
+	uint16 bunnyPositionTbl[4];
 	int16 currentState;
 	uint16 flags;
 	int16 local_5c;
@@ -107,13 +107,12 @@ void Minigame3::run() {
 	int16 local_58;
 	int16 local_56;
 	int16 hopCounter;
-	uint16 local_50;
-	BunnyStruct bunnyInfo [2];
-	uint16 local_20;
-	uint16 local_1e;
-	uint16 local_1c;
-	uint16 local_1a;
-	int16 local_16;
+	uint16 local_50 = 0;
+	BunnyStruct bunnyInfo[2];
+	uint16 local_20 = 0;
+	uint16 local_1e = 0;
+	uint16 local_1c = 0;
+	uint16 local_1a = 0;
 	int16 local_14;
 	InventoryState origInventoryType;
 	int16 local_10;
@@ -124,7 +123,7 @@ void Minigame3::run() {
 
 	Common::File *fd = new Common::File();
 	if (!fd->open("arc3.bin")) {
-		error("Failed to open arc1.bin");
+		error("Failed to open arc3.bin");
 	}
 
 	for (int i = 0; i < 21; i++) {
@@ -149,7 +148,7 @@ void Minigame3::run() {
 		handPositionsTbl[i].y = fd->readUint16LE();
 	}
 
-	fd->seek(0x4914);
+	fd->seek(_vm->getMiniGame3DataOffset());
 
 	for (int i = 0; i < 4; i++) {
 		UnkStruct_ARRAY_800931a0[i].position1 = fd->readUint16LE();
@@ -169,12 +168,12 @@ void Minigame3::run() {
 	delete fd;
 
 	origInventoryType = _vm->_inventory->getState();
-//	fade_related_calls_with_1f();
+	_vm->fadeToBlack();
 	_vm->_inventory->setState(Closed);
 	_vm->reset_screen_maybe();
 	flicker = _vm->_dragonINIResource->getFlickerRecord();
 	flicker->sceneId = 0;
-	_vm->_dragonINIResource->setFlickerRecord(NULL);
+	_vm->_dragonINIResource->setFlickerRecord(nullptr);
 	origSceneId = _vm->getCurrentSceneId();
 	_vm->_scene->setSceneId(6);
 	_vm->_scene->loadScene(6 | 0x8000, 0);
@@ -196,12 +195,12 @@ void Minigame3::run() {
 // TODO
 //	memcpy2(auStack1584_palette, scrFileData_maybe, 0x200);
 //	memcpy2(auStack1072_palette, scrFileData_maybe, 0x200);
-	local_5b2 = 0x7fff;
+//	local_5b2 = 0x7fff;
 //	DisableVSyncEvent();
 	int i = 0;
 	while ((int16)i < 4) {
 		bunnyActorTbl[(int16)i] = _vm->_actorManager->loadActor(0x15, 4, 0, 0);
-		if (bunnyActorTbl[(int16)i] == NULL) {
+		if (bunnyActorTbl[(int16)i] == nullptr) {
 			error("Couldn't_alloc_bunny");
 		}
 		bunnyActorTbl[(int16)i]->setFlag(ACTOR_FLAG_80);
@@ -217,7 +216,7 @@ void Minigame3::run() {
 	i = 0;
 	while ((int16)i < 8) {
 		tearActorTbl[(int16)i] = _vm->_actorManager->loadActor(0x15, 0x13, 0, 0);
-		if (tearActorTbl[(int16)i] == NULL) {
+		if (tearActorTbl[(int16)i] == nullptr) {
 			error("Couldn't alloc tear");
 		}
 		tearActorTbl[(int16)i]->_flags = tearActorTbl[(int16)i]->_flags | 0x380;
@@ -230,7 +229,7 @@ void Minigame3::run() {
 	local_1e0 = 0;
 	local_1e8 = 0;
 	handActorId = _vm->_actorManager->loadActor(0x19, 0, 0, 0);
-	if (handActorId == NULL) {
+	if (handActorId == nullptr) {
 		error("Couldn't alloc hand");
 	}
 	handActorId->setFlag(ACTOR_FLAG_80);
@@ -245,7 +244,7 @@ void Minigame3::run() {
 	i = 0;
 	while ((int16)i < 2) {
 		tearBlinkActorTbl[(int16)i] = _vm->_actorManager->loadActor(0x34, (uint)i, 0, 0);
-		if (tearBlinkActorTbl[(int16)i] == NULL) {
+		if (tearBlinkActorTbl[(int16)i] == nullptr) {
 			error("Couldn't alloc tear blink");
 		}
 		tearBlinkActorTbl[(int16)i]->_flags = tearBlinkActorTbl[(int16)i]->_flags | 0x4384;
@@ -256,7 +255,7 @@ void Minigame3::run() {
 	i = 0;
 	while ((int16)i < 2) {
 		tearBlinkActorTbl2[(int16)i] = _vm->_actorManager->loadActor(0x16, (uint)i, 0, 0);
-		if (tearBlinkActorTbl2[(int16)i] == NULL) {
+		if (tearBlinkActorTbl2[(int16)i] == nullptr) {
 			error("Couldn't alloc tear blink");
 		}
 		tearBlinkActorTbl2[(int16)i]->setFlag(ACTOR_FLAG_100);
@@ -279,8 +278,8 @@ void Minigame3::run() {
 		goodRabbitPositionTbl[(int16)i] = 0;
 		i = i + 1;
 	}
-	local_16 = _vm->getRand(4);
-	goodRabbitPositionTbl[(int16)local_16] = 1;
+	int16 goodRabbitStartingPosition = _vm->getRand(4);
+	goodRabbitPositionTbl[goodRabbitStartingPosition] = 1;
 	i = 0;
 	while ((int16)i < 4) {
 		bunnyPositionTbl[(int16)i] = i;
@@ -292,32 +291,23 @@ void Minigame3::run() {
 	updateBackgroundLayerOffset(2, 0x280, 0);
 	updateBackgroundLayerOffset(1, 0, 0);
 	updateBackgroundLayerOffset(0, 0, 0);
-//	call_fade_related_1f();
+	_vm->fadeFromBlack();
 	_vm->waitForFrames(0xf);
-	_vm->_talk->loadAndDisplayDialogAroundPoint(0x479A, 0x14, 3, 0x1e01, 0);
+	_vm->_talk->loadAndDisplayDialogAroundPoint(_vm->getMiniGame3StartingDialog(), 0x14, 3, 0x1e01, 0);
 	_vm->waitForFrames(0x1e);
 	// TODO clearTextDialog((uint)DAT_8008e7e8, (uint)DAT_8008e844, (uint)DAT_8008e848, (uint)DAT_8008e874);
 	i = 0;
 	while ((int16)i < 4) {
 		if (goodRabbitPositionTbl[(int16)i] == 0) {
 			bunnyActorTbl[(int16)i]->updateSequence(1);
-		} else {
-			local_16 = i;
 		}
 		i = i + 1;
 	}
-//TODO why doesn't this work?
-//	do {
-//		iVar3 = (int)(int16)local_16 + 1;
-//		iVar4 = iVar3;
-//		if (iVar3 < 0) {
-//			iVar4 = (int)(int16)local_16 + 4;
-//		}
-//	} while (!bunnyActorTbl[iVar3 + (iVar4 >> 2) * -4]->isFlagSet(ACTOR_FLAG_4));
-	bunnyActorTbl[local_16]->waitUntilFlag4IsSet();
 
-	bunnyActorTbl[(int16)local_16]->updateSequence(0);
-	bunnyActorTbl[(int16)local_16]->waitUntilFlag4IsSet();
+	bunnyActorTbl[(goodRabbitStartingPosition + 1) % 4]->waitUntilFlag4IsSet(); // wait for a rabid rabbit to complete its display sequence.
+
+	bunnyActorTbl[goodRabbitStartingPosition]->updateSequence(0);
+	bunnyActorTbl[goodRabbitStartingPosition]->waitUntilFlag4IsSet();
 	i = 0;
 	while ((int16)i < 4) {
 		bunnyActorTbl[(int16)i]->updateSequence(4);
@@ -380,8 +370,8 @@ void Minigame3::run() {
 						bunnyActorTbl[local_1a]->_y_pos = (int16)((int)bunnyInfo[local_1e].y >> 9);
 						if ((local_228 < 4) && unkXPosTbl[local_50 * 4 + local_228] < bunnyActorTbl[local_1a]->_x_pos) {
 							local_228 = local_228 + 1;
-							bunnyActorTbl[local_1a]->updateSequence((uint)local_228 + 6 & 0xffff);
-							bunnyActorTbl[local_1c]->updateSequence((uint)local_228 + 0xd & 0xffff);
+							bunnyActorTbl[local_1a]->updateSequence(((uint)local_228 + 6) & 0xffff);
+							bunnyActorTbl[local_1c]->updateSequence(((uint)local_228 + 0xd) & 0xffff);
 						}
 					}
 				}
@@ -617,7 +607,7 @@ void Minigame3::run() {
 					if ((tmpValue & 0xffff) == 0) {
 						local_1be = 1;
 					} else {
-						local_1be = 0xffff;
+						local_1be = -1;
 					}
 					local_1bc = _vm->getRand(3);
 					local_1bc = local_1bc + 3;
@@ -649,9 +639,9 @@ void Minigame3::run() {
 	_vm->waitForFrames(1);
 	i = 0;
 	while ((int16)i < 3) {
-		local_16 = 0;
-		while ((int16)local_16 < 3) {
-			updateBackgroundLayerOffset(2, ((int) (int16) local_16 * 0x140 + 0x640) * 0x10000 >> 0x10, 0);
+		int16 local_16 = 0;
+		while (local_16 < 3) {
+			updateBackgroundLayerOffset(2, ((int) local_16 * 0x140 + 0x640) * 0x10000 >> 0x10, 0);
 			_vm->waitForFrames(5);
 			local_16 = local_16 + 1;
 		}
@@ -670,8 +660,8 @@ void Minigame3::run() {
 		}
 		_vm->waitForFrames(0xf);
 		local_16 = 1;
-		while (-1 < (int16)local_16) {
-			updateBackgroundLayerOffset(2, ((int) (int16) local_16 * 0x140 + 0x640) * 0x10000 >> 0x10, 0);
+		while (-1 < local_16) {
+			updateBackgroundLayerOffset(2, ((int) local_16 * 0x140 + 0x640) * 0x10000 >> 0x10, 0);
 			_vm->waitForFrames(5);
 			local_16 = local_16 + -1;
 		}
@@ -688,7 +678,8 @@ void Minigame3::run() {
 	handActorId->_y_pos = handPositionsTbl[local_224].y;
 	handActorId->_priorityLayer = 2;
 	bVar1 = false;
-	_vm->_talk->loadAndDisplayDialogAroundPoint(0x2958A, 0x14, 3, 0x1e01, 0);
+	//pick a hat flicker.
+	_vm->_talk->loadAndDisplayDialogAroundPoint(_vm->getMiniGame3PickAHatDialog(), 0x14, 3, 0x1e01, 0);
 	while (_vm->isFlagSet(ENGINE_FLAG_8000)) {
 		_vm->waitForFrames(1);
 	}
@@ -731,8 +722,8 @@ void Minigame3::run() {
 		_vm->_dragonINIResource->getRecord(0x178)->objectState2 = 0;
 	}
 	_vm->waitForFrames(0x3c * 2);
-	_vm->_sound->PauseCDMusic();
-//	fade_related_calls_with_1f();
+	_vm->_sound->resumeMusic();
+	_vm->fadeToBlack();
 //	fun_80017f28_noop();
 //	DAT_80093234 = DAT_80093234 + 1;
 	_vm->_dragonINIResource->setFlickerRecord(flicker);

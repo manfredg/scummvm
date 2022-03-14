@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,18 +38,18 @@ END_MESSAGE_MAP()
 Ready::Ready(Ultima1Game *game) : FullScreenDialog(game), _mode(SELECT) {
 }
 
-bool Ready::ShowMsg(CShowMsg &msg) {
+bool Ready::ShowMsg(CShowMsg *msg) {
 	addInfoMsg(_game->_res->READY_WEAPON_armour_SPELL, false);
 	getKeypress();
 	return true;
 }
 
-bool Ready::CharacterInputMsg(CCharacterInputMsg &msg) {
+bool Ready::CharacterInputMsg(CCharacterInputMsg *msg) {
 	Shared::Character &c = *_game->_party;
 
 	switch (_mode) {
 	case SELECT:
-		switch (msg._keyState.keycode) {
+		switch (msg->_keyState.keycode) {
 		case Common::KEYCODE_w:
 			setMode(READY_WEAPON);
 			break;
@@ -68,8 +67,8 @@ bool Ready::CharacterInputMsg(CCharacterInputMsg &msg) {
 		break;
 
 	case READY_WEAPON:
-		if (msg._keyState.keycode >= Common::KEYCODE_a && msg._keyState.keycode < (Common::KEYCODE_a + (int)c._weapons.size())) {
-			int index = msg._keyState.keycode - Common::KEYCODE_a;
+		if (msg->_keyState.keycode >= Common::KEYCODE_a && msg->_keyState.keycode < (Common::KEYCODE_a + (int)c._weapons.size())) {
+			int index = msg->_keyState.keycode - Common::KEYCODE_a;
 			if (!c._weapons[index]->empty())
 				c._equippedWeapon = index;
 		}
@@ -81,8 +80,8 @@ bool Ready::CharacterInputMsg(CCharacterInputMsg &msg) {
 		break;
 
 	case READY_armour:
-		if (msg._keyState.keycode >= Common::KEYCODE_a && msg._keyState.keycode < (Common::KEYCODE_a + (int)c._armour.size())) {
-			int index = msg._keyState.keycode - Common::KEYCODE_a;
+		if (msg->_keyState.keycode >= Common::KEYCODE_a && msg->_keyState.keycode < (Common::KEYCODE_a + (int)c._armour.size())) {
+			int index = msg->_keyState.keycode - Common::KEYCODE_a;
 			if (!c._armour[index]->empty())
 				c._equippedArmour = index;
 		}
@@ -94,8 +93,8 @@ bool Ready::CharacterInputMsg(CCharacterInputMsg &msg) {
 		break;
 
 	case READY_SPELL:
-		if (msg._keyState.keycode >= Common::KEYCODE_a && msg._keyState.keycode < (Common::KEYCODE_a + (int)c._spells.size())) {
-			int index = msg._keyState.keycode - Common::KEYCODE_a;
+		if (msg->_keyState.keycode >= Common::KEYCODE_a && msg->_keyState.keycode < (Common::KEYCODE_a + (int)c._spells.size())) {
+			int index = msg->_keyState.keycode - Common::KEYCODE_a;
 			if (!c._spells[index]->empty())
 				c._equippedSpell = index;
 		}

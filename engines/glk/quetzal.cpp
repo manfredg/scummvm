@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,11 +47,11 @@ uint32 QuetzalBase::getInterpreterTag(InterpreterType interpType) {
 		return MKTAG('A', 'L', 'N', '3');
 	case INTERPRETER_ARCHETYPE:
 		return MKTAG('A', 'R', 'C', 'H');
-	case INTERPRETER_FROTZ:
-		return MKTAG('Z', 'C', 'O', 'D');
+	case INTERPRETER_COMPREHEND:
+		return MKTAG('C', 'O', 'M', 'P');
 	case INTERPRETER_GEAS:
 		return MKTAG('G', 'E', 'A', 'S');
-	case INTERPRETER_GLULXE:
+	case INTERPRETER_GLULX:
 		return MKTAG('G', 'L', 'U', 'L');
 	case INTERPRETER_HUGO:
 		return MKTAG('H', 'U', 'G', 'O');
@@ -72,6 +71,8 @@ uint32 QuetzalBase::getInterpreterTag(InterpreterType interpType) {
 		return MKTAG('T', 'A', 'D', '2');
 	case INTERPRETER_TADS3:
 		return MKTAG('T', 'A', 'D', '3');
+	case INTERPRETER_ZCODE:
+		return MKTAG('Z', 'C', 'O', 'D');
 	default:
 		error("Invalid interpreter type");
 	}
@@ -204,7 +205,7 @@ Common::WriteStream &QuetzalWriter::add(uint32 chunkId) {
 void QuetzalWriter::save(Common::WriteStream *out, const Common::String &saveName, uint32 formType) {
 	// Add chunks common to all Glk savegames
 	addCommonChunks(saveName);
-	
+
 	// Calculate the size of the chunks
 	uint size = 4;
 	for (uint idx = 0; idx < _chunks.size(); ++idx)
@@ -252,7 +253,11 @@ void QuetzalWriter::addCommonChunks(const Common::String &saveName) {
 		// Write out intrepreter type, language, and game Id
 		ws.writeUint32BE(getInterpreterTag(g_vm->getInterpreterType()));
 		const char *langCode = getLanguageCode(g_vm->getLanguage());
-		ws.write(langCode, strlen(langCode) + 1);
+		if (langCode)
+			ws.write(langCode, strlen(langCode) + 1);
+		else
+			ws.writeByte('\0');
+
 		Common::String md5 = g_vm->getGameMD5();
 		ws.write(md5.c_str(), md5.size());
 		ws.writeByte('\0');

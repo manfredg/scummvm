@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,12 +36,6 @@ namespace HDB {
 #define	CONFIG_SOUNDCACHE	"sound_cache_max"
 #define	CONFIG_GFXCACHE		"gfx_cache_max"
 #define	CONFIG_CHEAT		"hypercheat"
-
-#define	CONFIG_KEY_UP		"keyup"
-#define	CONFIG_KEY_DOWN		"keydown"
-#define	CONFIG_KEY_LEFT		"keyleft"
-#define	CONFIG_KEY_RIGHT	"keyright"
-#define	CONFIG_KEY_USE		"keyuse"
 #define	CONFIG_VOICES		"voices"
 
 #define	TITLE_DELAY1		2				// time to wait before OOH OOH
@@ -209,7 +202,6 @@ public:
 	int	_optionsScrollX, _optionsXV, _oBannerY;
 	int	_nextScreen;
 
-	Common::KeyCode _keyAssignUp, _keyAssignDown, _keyAssignLeft, _keyAssignRight, _keyAssignUse;
 	Picture	*_contArrowUp, *_contArrowDown, *_contArrowLeft, *_contArrowRight, *_contAssign, *_warpPlaque;
 
 	Picture	*_sliderLeft, *_sliderMid, *_sliderRight, *_sliderKnob;

@@ -2,12 +2,9 @@ MODULE := engines/sci
 
 MODULE_OBJS := \
 	console.o \
-	decompressor.o \
-	detection.o \
+	dialogs.o \
 	event.o \
-	resource.o \
-	resource_audio.o \
-	resource_patcher.o \
+	metaengine.o \
 	sci.o \
 	util.o \
 	engine/features.o \
@@ -40,6 +37,7 @@ MODULE_OBJS := \
 	engine/segment.o \
 	engine/state.o \
 	engine/static_selectors.o \
+	engine/tts.o \
 	engine/vm.o \
 	engine/vm_types.o \
 	engine/workarounds.o \
@@ -49,8 +47,8 @@ MODULE_OBJS := \
 	graphics/controls16.o \
 	graphics/coordadjuster.o \
 	graphics/cursor.o \
-	graphics/font.o \
 	graphics/fontsjis.o \
+	graphics/fontkorean.o \
 	graphics/maciconbar.o \
 	graphics/menu.o \
 	graphics/paint16.o \
@@ -59,6 +57,8 @@ MODULE_OBJS := \
 	graphics/portrait.o \
 	graphics/ports.o \
 	graphics/remap.o \
+	graphics/scifont.o \
+	graphics/scifx.o \
 	graphics/screen.o \
 	graphics/text16.o \
 	graphics/transitions.o \
@@ -66,13 +66,18 @@ MODULE_OBJS := \
 	parser/grammar.o \
 	parser/said.o \
 	parser/vocabulary.o \
+	resource/decompressor.o \
+	resource/resource.o \
+	resource/resource_audio.o \
+	resource/resource_patcher.o \
 	sound/audio.o \
 	sound/midiparser_sci.o \
 	sound/music.o \
 	sound/soundcmd.o \
 	sound/sync.o \
 	sound/drivers/adlib.o \
-	sound/drivers/amigamac.o \
+	sound/drivers/amigamac0.o \
+	sound/drivers/amigamac1.o \
 	sound/drivers/cms.o \
 	sound/drivers/fb01.o \
 	sound/drivers/fmtowns.o \
@@ -111,3 +116,6 @@ endif
 
 # Include common rules
 include $(srcdir)/rules.mk
+
+# Detection objects
+DETECT_OBJS += $(MODULE)/detection.o

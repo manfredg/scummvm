@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -59,14 +58,12 @@ struct PatchData {
 };
 
 struct ResourceData {
-	uint32 id;		// SAGA2
-	uint32 category;	// SAGA2
 	size_t offset;
 	size_t size;
 	PatchData *patchData;
 
 	ResourceData() :
-		id(0), category(0), offset(0), size(0), patchData(NULL) {
+		offset(0), size(0), patchData(NULL) {
 	}
 
 	~ResourceData() {
@@ -74,10 +71,6 @@ struct ResourceData {
 			delete patchData;
 			patchData = NULL;
 		}
-	}
-
-	bool isExternal() {	// SAGA2
-		return ((offset & (1L<<31)) != 0L);
 	}
 };
 
@@ -128,22 +121,6 @@ public:
 		return &_table[resourceId];
 	}
 
-	// SAGA 2
-	int32 getEntryNum(uint32 id) {
-		int32 num = 0;
-		uint32 miloCategory = MKTAG('M', 'I', 'L', 'O');
-
-		for (ResourceDataArray::const_iterator i = _table.begin(); i != _table.end(); ++i) {
-			//uint32 c = i->category;
-			//debug("%c%c%c%c, offset: %d, size: %d", (c >> 24),  (c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF, i->offset, i->size);
-			// Ignore low quality music resources (MILO)
-			if (i->id == id && i->category != miloCategory)
-				return num;
-
-			num++;
-		}
-		return -1;
-	}
 protected:
 	const char *_fileName;
 	uint16 _fileType;
@@ -275,38 +252,6 @@ protected:
 	}
 private:
 	MetaResource _metaResource;
-};
-#endif
-
-#ifdef ENABLE_SAGA2
-// DINO, FTA2
-class ResourceContext_HRS: public ResourceContext {
-protected:
-	ResourceDataArray _categories;
-
-	bool loadRes(uint32 contextOffset, uint32 contextSize) override {
-		return loadResV2(contextSize);
-	}
-	bool loadResV2(uint32 contextSize);
-
-	void readCategory(ResourceData &element);
-	void readEntry(ResourceData &element);
-	uint32 getCategory(uint32 resourceOffset);
-};
-
-class Resource_HRS : public Resource {
-public:
-	Resource_HRS(SagaEngine *vm) : Resource(vm) {}
-	uint32 convertResourceId(uint32 resourceId) override { return resourceId; }
-	void loadGlobalResources(int chapter, int actorsEntrance) override {}
-	MetaResource* getMetaResource() override {
-		MetaResource *dummy = 0;
-		return dummy;
-	}
-protected:
-	ResourceContext *createContext() override {
-		return new ResourceContext_HRS();
-	}
 };
 #endif
 

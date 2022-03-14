@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@ void SceneScriptTB02::InitializeScene() {
 		Setup_Scene_Information(-32.0f, 0.0f, 1578.0f, 639);
 	} else {
 		Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-		Ambient_Sounds_Remove_All_Looping_Sounds(1);
+		Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 		Outtake_Play(kOuttakeTyrellBuildingFly, false, -1); // TB_FLY_#.VQA Note: this is the only fly-through scene that is localized!
 		Setup_Scene_Information(-304.0f, -81.46f, 1434.0f, 250);
 	}
@@ -169,7 +168,7 @@ bool SceneScriptTB02::ClickedOnExit(int exitId) {
 	if (exitId == 0) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -152.0f, 0.0f, 1774.0f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			Game_Flag_Set(kFlagTB02toTB03);
 			Game_Flag_Reset(kFlagTB02ElevatorToTB05);
 			Set_Enter(kSetTB02_TB03, kSceneTB03);
@@ -181,7 +180,7 @@ bool SceneScriptTB02::ClickedOnExit(int exitId) {
 	if (exitId == 1) {
 		if (!Loop_Actor_Walk_To_XYZ(kActorMcCoy, -32.0f, 0.0f, 1578.0f, 0, true, false, false)) {
 			Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-			Ambient_Sounds_Remove_All_Looping_Sounds(1);
+			Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 			if (Global_Variable_Query(kVariableChapter) < 4) {
 				Game_Flag_Set(kFlagTB05Entered);
 				Game_Flag_Set(kFlagTB02toTB05);
@@ -304,7 +303,7 @@ void SceneScriptTB02::PlayerWalkedIn() {
 		if (Actor_Query_Goal_Number(kActorTyrellGuard) == kGoalTyrellGuardSleeping) {
 			Actor_Set_Goal_Number(kActorTyrellGuard, kGoalTyrellGuardWakeUp);
 		}
-		Music_Play(kMusicBatl226M, 50, 0, 2, -1, 0, 0);
+		Music_Play(kMusicBatl226M, 50, 0, 2, -1, kMusicLoopPlayOnce, 0);
 	} else {
 		Loop_Actor_Travel_Stairs(kActorMcCoy, 9, true, kAnimationModeIdle);
 		Loop_Actor_Walk_To_XYZ(kActorMcCoy, -140.0f, 0.79f, 1470.0f, 0, false, false, false);
@@ -326,6 +325,9 @@ void SceneScriptTB02::PlayerWalkedIn() {
 			Actor_Says(kActorMcCoy, 5140, 17);
 			Actor_Says(kActorTyrellGuard, 30, 14);
 			Actor_Says(kActorTyrellGuard, 40, 13);
+			if (_vm->_cutContent) {
+				Actor_Clue_Acquire(kActorMcCoy, kClueTyrellGuardInterview, true, kActorTyrellGuard);
+			}
 			Loop_Actor_Walk_To_XYZ(kActorMcCoy, -140.0f, 0.0f, 1586.0f, 12, false, false, false);
 			Loop_Actor_Walk_To_XYZ(kActorMcCoy, -112.0f, 0.0f, 1586.0f, 12, false, false, false);
 			Actor_Face_Actor(kActorMcCoy, kActorTyrellGuard, true);
@@ -382,7 +384,7 @@ void SceneScriptTB02::PlayerWalkedIn() {
 
 void SceneScriptTB02::PlayerWalkedOut() {
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 #if BLADERUNNER_ORIGINAL_BUGS
 #else
 	if (Global_Variable_Query(kVariableChapter) < 4

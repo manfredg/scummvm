@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,20 +54,14 @@
  * I don't know VC enough to be sure). And of course it must be robust enough
  * to properly work in exports (i.e. release tar balls etc.).
  */
-const char *gScummVMVersion = SCUMMVM_VERSION SCUMMVM_REVISION;
-#ifdef __amigaos4__
+const char gScummVMVersion[] = SCUMMVM_VERSION SCUMMVM_REVISION;
+#if defined(__amigaos4__) || defined(__MORPHOS__)
 static const char *version_cookie __attribute__((used)) = "$VER: ScummVM " SCUMMVM_VERSION SCUMMVM_REVISION " (" AMIGA_DATE ")";
 #endif
-#ifdef __PLAYSTATION2__
-const char *gScummVMBuildDate = "Git Master"; /* ScummVM Git Master */
-const char *gScummVMVersionDate = SCUMMVM_VERSION SCUMMVM_REVISION " - PlayStation2";
-const char *gScummVMFullVersion = "ScummVM " SCUMMVM_VERSION SCUMMVM_REVISION " - PlayStation2";
-#else
-const char *gScummVMBuildDate = __DATE__ " " __TIME__;
-const char *gScummVMVersionDate = SCUMMVM_VERSION SCUMMVM_REVISION " (" __DATE__ " " __TIME__ ")";
-const char *gScummVMFullVersion = "ScummVM " SCUMMVM_VERSION SCUMMVM_REVISION " (" __DATE__ " " __TIME__ ")";
-#endif
-const char *gScummVMFeatures = ""
+const char gScummVMBuildDate[] = __DATE__ " " __TIME__;
+const char gScummVMVersionDate[] = SCUMMVM_VERSION SCUMMVM_REVISION " (" __DATE__ " " __TIME__ ")";
+const char gScummVMFullVersion[] = "ScummVM " SCUMMVM_VERSION SCUMMVM_REVISION " (" __DATE__ " " __TIME__ ")";
+const char gScummVMFeatures[] = ""
 #ifdef TAINTED_BUILD
 	// TAINTED means the build contains engines/subengines not enabled by default
 	"TAINTED "
@@ -123,7 +116,9 @@ const char *gScummVMFeatures = ""
 	"MPEG2 "
 #endif
 
-#ifdef USE_FLUIDSYNTH
+#ifdef USE_FLUIDLITE
+	"FluidLite "
+#elif defined(USE_FLUIDSYNTH)
 	"FluidSynth "
 #endif
 
@@ -143,6 +138,10 @@ const char *gScummVMFeatures = ""
 	"FreeType2 "
 #endif
 
+#ifdef USE_FRIBIDI
+	"FriBiDi "
+#endif
+
 #ifdef USE_JPEG
 	"JPEG "
 #endif
@@ -151,8 +150,24 @@ const char *gScummVMFeatures = ""
 	"PNG "
 #endif
 
+#ifdef USE_GIF
+	"GIF "
+#endif
+
 #ifdef ENABLE_VKEYBD
-	"virtual keyboard "
+	"VirtualKeyboard "
+#endif
+
+#ifdef ENABLE_EVENTRECORDER
+	"EventRecorder "
+#endif
+
+#ifdef USE_TASKBAR
+	"taskbar "
+#endif
+
+#ifdef USE_TTS
+	"TTS "
 #endif
 
 #ifdef USE_CLOUD
@@ -174,5 +189,26 @@ const char *gScummVMFeatures = ""
 #ifdef USE_SDL_NET
 	"SDL_net "
 #endif
+#endif
+#ifdef USE_TINYGL
+	"TinyGL "
+#endif
+#ifdef USE_OPENGL
+	"OpenGL "
+#ifdef USE_OPENGL_SHADERS
+	"(with shaders) "
+#endif
+#endif
+#ifdef USE_GLES_MODE
+#if USE_GLES_MODE == 0
+	"OpenGL desktop only "
+#elif USE_GLES_MODE == 1
+	"OpenGL ES 1 only "
+#elif USE_GLES_MODE == 2
+	"OpenGL ES 2 only "
+#endif
+#endif
+#ifdef USE_RETROWAVE
+	"RetroWave "
 #endif
 	;

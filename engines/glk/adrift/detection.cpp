@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,6 +39,9 @@ enum {
 static const byte V500_SIGNATURE[VERSION_HEADER_SIZE] = {
 	0x3c, 0x42, 0x3f, 0xc9, 0x6a, 0x87, 0xc2, 0xcf, 0x92, 0x45, 0x3e, 0x61, 0x30, 0x30
 };
+static const byte V500_SIGNATURE_2[VERSION_HEADER_SIZE] = {
+	0x3c, 0x42, 0x3f, 0xc9, 0x6a, 0x87, 0xc2, 0xcf, 0x92, 0x45, 0x3e, 0x61, 0x51, 0x36
+};
 
 static const byte V400_SIGNATURE[VERSION_HEADER_SIZE] = {
 	0x3c, 0x42, 0x3f, 0xc9, 0x6a, 0x87, 0xc2, 0xcf, 0x93, 0x45, 0x3e, 0x61, 0x39, 0xfa
@@ -58,12 +60,24 @@ void AdriftMetaEngine::getSupportedGames(PlainGameList &games) {
 	for (const PlainGameDescriptor *pd = ADRIFT_GAME_LIST; pd->gameId; ++pd) {
 		games.push_back(*pd);
 	}
+
+	for (const PlainGameDescriptor *pd = ADRIFT5_GAME_LIST; pd->gameId; ++pd) {
+		games.push_back(*pd);
+	}
 }
 
 GameDescriptor AdriftMetaEngine::findGame(const char *gameId) {
 	for (const PlainGameDescriptor *pd = ADRIFT_GAME_LIST; pd->gameId; ++pd) {
 		if (!strcmp(gameId, pd->gameId))
 			return *pd;
+	}
+
+	for (const PlainGameDescriptor *pd = ADRIFT5_GAME_LIST; pd->gameId; ++pd) {
+		if (!strcmp(gameId, pd->gameId)) {
+			GameDescriptor gd = *pd;
+			gd._supportLevel = kUnstableGame;
+			return gd;
+		}
 	}
 
 	return PlainGameDescriptor();
@@ -128,10 +142,17 @@ void AdriftMetaEngine::detectClashes(Common::StringMap &map) {
 			error("Duplicate game Id found - %s", pd->gameId);
 		map[pd->gameId] = "";
 	}
+
+	for (const PlainGameDescriptor *pd = ADRIFT5_GAME_LIST; pd->gameId; ++pd) {
+		if (map.contains(pd->gameId))
+			error("Duplicate game Id found - %s", pd->gameId);
+		map[pd->gameId] = "";
+	}
 }
 
 int AdriftMetaEngine::detectGameVersion(const byte *header) {
-	if (memcmp(header, V500_SIGNATURE, VERSION_HEADER_SIZE) == 0) {
+	if (memcmp(header, V500_SIGNATURE, VERSION_HEADER_SIZE) == 0 ||
+		memcmp(header, V500_SIGNATURE_2, VERSION_HEADER_SIZE) == 0) {
 		return TAF_VERSION_500;
 
 	} else if (memcmp(header, V400_SIGNATURE, VERSION_HEADER_SIZE) == 0) {

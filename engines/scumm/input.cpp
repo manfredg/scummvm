@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -161,7 +160,7 @@ void ScummEngine::parseEvent(Common::Event event) {
 			// On most (all?) keyboards it is safe to assume that
 			// both upper and lower letters are unpressed on keyup event
 			//
-			// Fixes bug #1709430: "FT: CAPSLOCK + V enables cheating for all fights"
+			// Fixes bug #3173: "FT: CAPSLOCK + V enables cheating for all fights"
 			//
 			// Fingolfin remarks: This wouldn't be a problem if we used keycodes.
 			_keyDownMap[toupper(event.kbd.ascii)] = false;
@@ -185,7 +184,7 @@ void ScummEngine::parseEvent(Common::Event event) {
 			_mouse.x -= (kHercWidth - _screenWidth * 2) / 2;
 			_mouse.x >>= 1;
 			_mouse.y = _mouse.y * 4 / 7;
-		} else if (_useCJKMode && _textSurfaceMultiplier == 2) {
+		} else if (_macScreen || (_useCJKMode && _textSurfaceMultiplier == 2)) {
 			_mouse.x >>= 1;
 			_mouse.y >>= 1;
 		}
@@ -200,7 +199,7 @@ void ScummEngine::parseEvent(Common::Event event) {
 
 	// The following two cases enable dialog choices to be scrolled
 	// through in the SegaCD version of MI. Values are taken from script-14.
-	// See bug report #1193185 for details.
+	// See bug report #2013 for details.
 	case Common::EVENT_WHEELDOWN:
 		if (_game.id == GID_MONKEY && _game.platform == Common::kPlatformSegaCD)
 			_keyPressed = Common::KeyState(Common::KEYCODE_7, 55);	// '7'
@@ -391,7 +390,19 @@ void ScummEngine_v7::processKeyboard(Common::KeyState lastKeyHit) {
 				_insane->escapeKeyHandler();
 			else
 				_smushVideoShouldFinish = true;
-			_skipVideo = true;
+
+			// WORKAROUND bug #12022: For some reason, skipping the cutscene in which Ben fires up
+			// his bike (after retrieving the keys from the bartender), will outright skip the first
+			// bike fight sequence. Because of this, the script which handles playing ambient and wind SFX
+			// outside the bar is never stopped, so those SFX are unintentionally played throughout the
+			// rest of the game.
+			// This fix produces the intended behaviour from the original interpreter.
+			if (_game.id == GID_FT && _currentRoom == 6
+				&& (vm.slot[_currentScript].number == 65 || vm.slot[_currentScript].number == 64)) {
+				_skipVideo = false;
+			} else {
+				_skipVideo = true;
+			}
 		} else {
 			abortCutscene();
 		}
@@ -471,10 +482,10 @@ void ScummEngine_v2::processKeyboard(Common::KeyState lastKeyHit) {
 	if (lastKeyHit.keycode == Common::KEYCODE_F5 && lastKeyHit.hasFlags(Common::KBD_ALT)) {
 		prepareSavegame();
 		if (_game.id == GID_MANIAC && _game.version == 0) {
-			runScript(2, 0, 0, 0);
+			runScript(2, 0, 0, nullptr);
 		}
 		if (_game.id == GID_MANIAC &&_game.platform == Common::kPlatformNES) {
-			runScript(163, 0, 0, 0);
+			runScript(163, 0, 0, nullptr);
 		}
 	}
 
@@ -532,12 +543,12 @@ void ScummEngine::processKeyboard(Common::KeyState lastKeyHit) {
 
 	if (mainmenuKeyEnabled && (lastKeyHit.keycode == Common::KEYCODE_F5 && lastKeyHit.hasFlags(0))) {
 		if (VAR_SAVELOAD_SCRIPT != 0xFF && _currentRoom != 0)
-			runScript(VAR(VAR_SAVELOAD_SCRIPT), 0, 0, 0);
+			runScript(VAR(VAR_SAVELOAD_SCRIPT), 0, 0, nullptr);
 
 		openMainMenuDialog();		// Display global main menu
 
 		if (VAR_SAVELOAD_SCRIPT2 != 0xFF && _currentRoom != 0)
-			runScript(VAR(VAR_SAVELOAD_SCRIPT2), 0, 0, 0);
+			runScript(VAR(VAR_SAVELOAD_SCRIPT2), 0, 0, nullptr);
 
 	} else if (restartKeyEnabled && (lastKeyHit.keycode == Common::KEYCODE_F8 && lastKeyHit.hasFlags(0))) {
 		confirmRestartDialog();
@@ -607,6 +618,16 @@ void ScummEngine::processKeyboard(Common::KeyState lastKeyHit) {
 		    lastKeyHit.keycode <= Common::KEYCODE_F9) {
 			_mouseAndKeyboardStat = lastKeyHit.keycode - Common::KEYCODE_F1 + 315;
 
+		} else if (lastKeyHit.flags & Common::KBD_CTRL && _game.version >= 3 && _game.version <= 7 &&
+				   (lastKeyHit.keycode >= Common::KEYCODE_a && lastKeyHit.keycode <= Common::KEYCODE_z)) {
+			// Some games (at least their DOS variants)
+			// expect Ctrl+A, B, C, etc. to generate codes 1, 2, 3, etc.
+			//
+			// This is used for several settings in the "ultimate talkie" versions of
+			// Monkey Island 1 and 2. Monkey Island 1 also uses it for Ctrl+W to immediately
+			// win the game. On other games, Ctrl+I shows the inventory, Ctrl+V shows version
+			// information. On The Dig Ctrl+B makes Boston display his muscles.
+			_mouseAndKeyboardStat = lastKeyHit.keycode & 0x1f;
 		} else if (_game.id == GID_MONKEY2 && (lastKeyHit.flags & Common::KBD_ALT)) {
 			// Handle KBD_ALT combos in MI2. We know that the result must be 273 for Alt-W
 			// because that's what MI2 looks for in its "instant win" cheat.
@@ -616,7 +637,7 @@ void ScummEngine::processKeyboard(Common::KeyState lastKeyHit) {
 		          lastKeyHit.keycode <= Common::KEYCODE_LEFT) {
 			if (_game.id == GID_MONKEY && _game.platform == Common::kPlatformSegaCD) {
 				// Map arrow keys to number keys in the SEGA version of MI to support
-				// scrolling to conversation choices. See bug report #1193185 for details.
+				// scrolling to conversation choices. See bug report #2013 for details.
 				_mouseAndKeyboardStat = lastKeyHit.keycode - Common::KEYCODE_UP + 54;
 			} else if (_game.id == GID_LOOM && _game.platform == Common::kPlatformPCEngine) {
 				// Map arrow keys to number keys in the PCEngine version of Loom to support

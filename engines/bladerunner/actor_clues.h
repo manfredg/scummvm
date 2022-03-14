@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,13 +38,13 @@ class ActorClues {
 		int clueId;
 		int weight;
 		int fromActorId;
-		int field3;
-		int field4;
-		int field5;
-		int field6;
-		int field7;
-		int field8;
-		byte flags;
+		int field3; // unused (but stored/restored)
+		int field4; // Used in Restored Content. Original: unused (but stored/restored)
+		int field5; // unused (but stored/restored)
+		int field6; // unused (but stored/restored)
+		int field7; // unused (but stored/restored)
+		int field8; // unused (but stored/restored)
+		byte flags; // bit 0 (acquired), bit 1 (unknown), bit 2 (viewed), bit 3 (private)
 	};
 
 	BladeRunnerEngine *_vm;
@@ -86,7 +85,10 @@ public:
 	bool isPrivate(int clueId) const;
 	void setPrivate(int clueId, bool value);
 
-	int getField1(int clueId) const;
+	// Restored Content method - Checks whether a clue, that McCoy has, was shared with Mainframe
+	bool isSharedWithMainframe(int clueId) const;
+	// Restored Content method - Marks a clue, that McCoy has, as shared with Mainframe
+	void setSharedWithMainframe(int clueId, bool value);
 
 	int getCount() const;
 	int getClueIdByIndex(int index) const;

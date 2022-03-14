@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -481,7 +480,7 @@ void AgiEngine::setLoop(ScreenObjEntry *screenObj, int16 loopNr) {
 	}
 
 	if (loopNr >= screenObj->loopCount) {
-		// requested loop not existant
+		// requested loop not existent
 		// instead of error()ing out, we instead clip it
 		// At least required for possibly Manhunter 1 according to previous comment when leaving the arcade machine
 		// TODO: Check MH1
@@ -493,7 +492,7 @@ void AgiEngine::setLoop(ScreenObjEntry *screenObj, int16 loopNr) {
 
 		loopNr = screenObj->loopCount - 1;
 
-		warning("Non-existant loop requested for screen object %d", screenObj->objectNr);
+		warning("Non-existent loop requested for screen object %d", screenObj->objectNr);
 		warning("view %d, requested loop %d -> clipped to loop %d", screenObj->currentViewNr, requestedLoopNr, loopNr);
 	}
 
@@ -537,7 +536,7 @@ void AgiEngine::setCel(ScreenObjEntry *screenObj, int16 celNr) {
 	}
 
 	if (celNr >= screenObj->celCount) {
-		// requested cel not existant
+		// requested cel not existent
 		// instead of error()ing out, we instead clip it
 		// At least required for King's Quest 3 on Apple IIgs - walking the planks death cutscene
 		// see bug #5832, which is a game bug!
@@ -545,7 +544,7 @@ void AgiEngine::setCel(ScreenObjEntry *screenObj, int16 celNr) {
 
 		celNr = screenObj->celCount - 1;
 
-		warning("Non-existant cel requested for screen object %d", screenObj->objectNr);
+		warning("Non-existent cel requested for screen object %d", screenObj->objectNr);
 		warning("view %d, loop %d, requested cel %d -> clipped to cel %d", screenObj->currentViewNr, screenObj->currentLoopNr, requestedCelNr, celNr);
 	}
 

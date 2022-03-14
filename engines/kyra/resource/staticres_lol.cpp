@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -249,7 +248,7 @@ void LoLEngine::initStaticResource() {
 		_sound->initAudioResourceInfo(kMusicFinale, &resInfoFinale);
 	}
 
-	if (_flags.isDemo)
+	if (_flags.isDemo && !_flags.isTalkie)
 		return;
 
 	int tempSize;
@@ -307,11 +306,9 @@ void LoLEngine::initStaticResource() {
 
 	const char *const *tmpSndList = _staticres->loadStrings(kLoLIngameSfxFiles, _ingameSoundListSize);
 	if (tmpSndList) {
-		_ingameSoundList = new char*[_ingameSoundListSize];
-		for (int i = 0; i < _ingameSoundListSize; i++) {
-			_ingameSoundList[i] = new char[strlen(tmpSndList[i]) + 1];
-			strcpy(_ingameSoundList[i], tmpSndList[i]);
-		}
+		_ingameSoundList.reserve(_ingameSoundListSize);
+		for (int i = 0; i < _ingameSoundListSize; i++)
+			_ingameSoundList.push_back(Common::String(tmpSndList[i]));
 		_staticres->unloadId(kLoLIngameSfxFiles);
 	}
 
@@ -777,9 +774,18 @@ const int8 LoLEngine::_mapCoords[12][4] = {
 	{  3,  1,  3,  1 }, { -1,  6, -1, -8 }, { -7, -1,  5, -1 }
 };
 
+// Most of these settings won't get used in LOL, since the engine was already finished when these were introduced.
+// And it is hardly worth the time to add any usage for this, since the only significant version difference would
+// be the PC-98 16 color version. That said, I have filled all the unused parts of the struct with zeroes.
 const KyraRpgGUISettings LoLEngine::_guiSettings = {
-	{ 144, 254, 74, 9, 2, 80, { 0, 0 }, { 0, 0 }, { 0, 0 } },
-	{ 136, 251, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+	{ _dlgButtonPosX_Def, _dlgButtonPosY_Def, 144, 254, 74, 9, 2, 80, { 0, 0 }, { 0, 0 }, { 0, 0 } },
+	{ 136, 251, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+	{	{ 0, 0, 0 }, { 0, 0, 0 }, 0, 0,
+		{ 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 },
+		{ 0, 0, 0 }, { 0, 0, 0, 0, 0, 0 },
+		{ 0, 0, 0 }, { 0, 0, 0 }, 0, 0, { 0, 0, 0 }, { 0, 0, 0 }, 0, 0,
+		0, 0
+	}
 };
 
 const MistOfDoomAnimData LoLEngine::_mistAnimData[] = {

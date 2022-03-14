@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@
 namespace Saga {
 
 ActorData::ActorData() {
-	_frames = NULL;
+	_frames = nullptr;
 	_frameListResourceId = 0;
 	_speechColor = 0;
 	_inScene = false;
@@ -50,7 +49,7 @@ ActorData::ActorData() {
 	_actionDirection = 0;
 	_actionCycle = 0;
 	_targetObject = 0;
-	_lastZone = NULL;
+	_lastZone = nullptr;
 
 	_cycleFrameSequence = 0;
 	_cycleDelay = 0;
@@ -123,7 +122,7 @@ void ActorData::loadState(uint32 version, Common::InSaveFile *in) {
 	_actionCycle = in->readSint32LE();
 	_targetObject = in->readUint16LE();
 
-	_lastZone = NULL;
+	_lastZone = nullptr;
 	_cycleFrameSequence = in->readSint32LE();
 	_cycleDelay = in->readByte();
 	_cycleTimeCount = in->readByte();
@@ -222,7 +221,7 @@ Actor::Actor(SagaEngine *vm) : _vm(vm) {
 	_pathList.resize(600);
 	_pathListIndex = 0;
 
-	_centerActor = _protagonist = NULL;
+	_centerActor = _protagonist = nullptr;
 	_protagState = 0;
 	_lastTickMsec = 0;
 
@@ -238,7 +237,7 @@ Actor::Actor(SagaEngine *vm) : _vm(vm) {
 
 	// Get actor resource file context
 	_actorContext = _vm->_resource->getContext(GAME_RESOURCEFILE);
-	if (_actorContext == NULL) {
+	if (_actorContext == nullptr) {
 		error("Actor::Actor() resource context not found");
 	}
 
@@ -341,7 +340,7 @@ void Actor::loadActorSpriteList(ActorData *actor) {
 	uint curFrameIndex;
 	int resourceId = actor->_spriteListResourceId;
 
-	if (actor->_frames != NULL) {
+	if (actor->_frames != nullptr) {
 		for (ActorFrameSequences::const_iterator i = actor->_frames->begin(); i != actor->_frames->end(); ++i) {
 			for (int orient = 0; orient < ACTOR_DIRECTIONS_COUNT; orient++) {
 				curFrameIndex = i->directions[orient].frameIndex;
@@ -535,7 +534,7 @@ void Actor::loadObjList(int objectCount, int objectsResourceID) {
 void Actor::takeExit(uint16 actorId, const HitZone *hitZone) {
 	ActorData *actor;
 	actor = getActor(actorId);
-	actor->_lastZone = NULL;
+	actor->_lastZone = nullptr;
 
 	_vm->_scene->changeScene(hitZone->getSceneNumber(), hitZone->getActorsEntrance(), kTransitionNoFade);
 	if (_vm->_interface->getMode() != kPanelSceneSubstitute) {
@@ -601,7 +600,7 @@ ActorData *Actor::getActor(uint16 actorId) {
 	}
 
 	if (actorId == ID_PROTAG) {
-		if (_protagonist == NULL) {
+		if (_protagonist == nullptr) {
 			error("_protagonist == NULL");
 		}
 		return _protagonist;
@@ -715,7 +714,7 @@ ActorFrameRange *Actor::getActorFrameRange(uint16 actorId, int frameType) {
 	}
 #endif
 
-	return NULL;
+	return nullptr;
 }
 
 void Actor::handleSpeech(int msec) {
@@ -942,7 +941,7 @@ uint16 Actor::hitTest(const Point &testPoint, bool skipProtagonist) {
 	CommonObjectOrderList::iterator drawOrderIterator;
 	CommonObjectDataPointer drawObject;
 	int frameNumber = 0;
-	SpriteList *spriteList = NULL;
+	SpriteList *spriteList = nullptr;
 
 	createDrawOrderList();
 
@@ -977,7 +976,7 @@ void Actor::drawOrderListAdd(const CommonObjectDataPointer& element, CompareFunc
 }
 
 void Actor::createDrawOrderList() {
-	CompareFunction compareFunction = 0;
+	CompareFunction compareFunction = nullptr;
 
 	if (_vm->_scene->getFlags() & kSceneFlagISO) {
 		compareFunction = &tileCommonObjectCompare;
@@ -1055,13 +1054,8 @@ bool Actor::getSpriteParams(CommonObjectData *commonObjectData, int &frameNumber
 }
 
 void Actor::drawActors() {
-	// Do nothing for SAGA2 games for now
-	if (_vm->isSaga2()) {
-		return;
-	}
-
 	// WORKAROUND
-	// Bug #2928923: 'ITE: Graphic Glitches during racoon death "Cut Scene"'
+	// Bug #4746: 'ITE: Graphic Glitches during racoon death "Cut Scene"'
 	if (_vm->_anim->hasCutaway()  || _vm->_scene->currentSceneNumber() == 287 || _vm->_scene->currentSceneNumber() == 286) {
 		drawSpeech();
 		return;
@@ -1078,7 +1072,7 @@ void Actor::drawActors() {
 	CommonObjectOrderList::iterator drawOrderIterator;
 	CommonObjectDataPointer drawObject;
 	int frameNumber = 0;
-	SpriteList *spriteList = NULL;
+	SpriteList *spriteList = nullptr;
 
 	createDrawOrderList();
 
@@ -1136,7 +1130,11 @@ void Actor::drawSpeech() {
 				_activeSpeech.speechColor[i], _activeSpeech.outlineColor[i], _activeSpeech.getFontFlags(i));
 		}
 	} else {
-		_vm->_font->textDrawRect(kKnownFontScript, &outputString.front(), _activeSpeech.drawRect, _activeSpeech.speechColor[0],
+		Common::Rect drawRect(_activeSpeech.drawRect);
+		// The PC-98 version does a vertical center alignment which we have to imitate for pixel exact text output.
+		if (_vm->getPlatform() == Common::kPlatformPC98)
+			drawRect.top -= (_vm->_font->getHeight(kKnownFontScript, &outputString.front(), drawRect.width(), _activeSpeech.getFontFlags(0)) >> 1);
+		_vm->_font->textDrawRect(kKnownFontScript, &outputString.front(), drawRect, _activeSpeech.speechColor[0],
 			_activeSpeech.outlineColor[0], _activeSpeech.getFontFlags(0));
 	}
 }
@@ -1165,7 +1163,7 @@ void Actor::actorSpeech(uint16 actorId, const char **strings, int stringsCount, 
 	dist = MIN(actor->_screenPosition.x - 10, _vm->getDisplayInfo().width - 10 - actor->_screenPosition.x);
 
 	if (_vm->getGameId() == GID_ITE)
-		dist = CLIP<int16>(dist, 60, 150);
+		dist = (_vm->getPlatform() == Common::kPlatformPC98) ? CLIP<int16>(dist, 110, 200) : CLIP<int16>(dist, 60, 150);
 	else
 		dist = CLIP<int16>(dist, 120, 300);
 
@@ -1173,14 +1171,13 @@ void Actor::actorSpeech(uint16 actorId, const char **strings, int stringsCount, 
 	_activeSpeech.speechBox.right = actor->_screenPosition.x + dist;
 
 	if (_activeSpeech.speechBox.left < 10) {
-		_activeSpeech.speechBox.right += 10 - _activeSpeech.speechBox.left;
+		_activeSpeech.speechBox.right += (10 - _activeSpeech.speechBox.left);
 		_activeSpeech.speechBox.left = 10;
 	}
 	if (_activeSpeech.speechBox.right > _vm->getDisplayInfo().width - 10) {
-		_activeSpeech.speechBox.left -= _activeSpeech.speechBox.right - _vm->getDisplayInfo().width - 10;
+		_activeSpeech.speechBox.left -= _activeSpeech.speechBox.right - (_vm->getDisplayInfo().width - 10);
 		_activeSpeech.speechBox.right = _vm->getDisplayInfo().width - 10;
 	}
-
 }
 
 void Actor::nonActorSpeech(const Common::Rect &box, const char **strings, int stringsCount, int sampleResourceId, int speechFlags) {

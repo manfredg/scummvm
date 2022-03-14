@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -164,8 +163,8 @@ void Script::sfTakeObject(SCRIPTFUNC_PARAMS) {
 		// Normally, when objects are picked up, they should always have the same
 		// _spriteListResourceId as their _index value. Some don't in IHNM, so
 		// we fix their sprite here
-		// Fixes bugs #2057200 - "IHNM: Invisible inventory objects",
-		// #1861126 - "IHNM: Crash when Gorrister cuts sheet in the mooring ring"
+		// Fixes bugs #3873 - "IHNM: Invisible inventory objects",
+		// #3540 - "IHNM: Crash when Gorrister cuts sheet in the mooring ring"
 		// and some incorrect objects in the IHNM demo
 		if (_vm->getGameId() == GID_IHNM)
 			obj->_spriteListResourceId = obj->_index;
@@ -266,7 +265,7 @@ void Script::sfScriptDoAction(SCRIPTFUNC_PARAMS) {
 	// If the player uses an object and then immediately reuses that object
 	// (without it being shown in the verb area), the object returned is wrong (0),
 	// so we make it equal to the second object here.
-	// Fixes bug #1861863 - "ITE: Crash when using Eeah with Eeah"
+	// Fixes bug #3545 - "ITE: Crash when using Eeah with Eeah"
 	if (theObject == 0 && objectId == 0 && withObject > 0)
 		theObject = objectId = withObject;
 
@@ -302,7 +301,7 @@ void Script::sfScriptDoAction(SCRIPTFUNC_PARAMS) {
 			else
 				hitZone = _vm->_scene->_actionMap->getHitZone(objectIdToIndex(objectId));
 
-			if (hitZone == NULL)
+			if (hitZone == nullptr)
 				return;
 
 			scriptEntryPointNumber = hitZone->getScriptNumber();
@@ -628,14 +627,14 @@ void Script::sfEnableZone(SCRIPTFUNC_PARAMS) {
 	else
 		hitZone = _vm->_scene->_actionMap->getHitZone(objectIdToIndex(objectId));
 
-	if (hitZone == NULL)
+	if (hitZone == nullptr)
 		return;
 
 	if (flag) {
 		hitZone->setFlag(kHitZoneEnabled);
 	} else {
 		hitZone->clearFlag(kHitZoneEnabled);
-		_vm->_actor->_protagonist->_lastZone = NULL;
+		_vm->_actor->_protagonist->_lastZone = nullptr;
 	}
 }
 
@@ -1320,7 +1319,6 @@ void Script::sfPlayMusic(SCRIPTFUNC_PARAMS) {
 		int16 param = thread->pop() + 9;
 
 		if (param >= 9 && param <= 34) {
-			_vm->_music->setVolume(_vm->_musicVolume, 1);
 			_vm->_music->play(param);
 		} else {
 			_vm->_music->stop();
@@ -1338,7 +1336,6 @@ void Script::sfPlayMusic(SCRIPTFUNC_PARAMS) {
 		if (uint(param1) >= _vm->_music->_songTable.size()) {
 			warning("sfPlayMusic: Wrong song number (%d > %d)", param1, _vm->_music->_songTable.size() - 1);
 		} else {
-			_vm->_music->setVolume(_vm->_musicVolume, 1);
 			_vm->_music->play(_vm->_music->_songTable[param1], param2 ? MUSIC_LOOP : MUSIC_NORMAL);
 			if (!_vm->_scene->haveChapterPointsChanged()) {
 				_vm->_scene->setCurrentMusicTrack(param1);
@@ -1532,7 +1529,7 @@ void Script::finishDialog(int strID, int replyID, int flags, int bitOffset) {
 		}
 	}
 
-	_conversingThread = NULL;
+	_conversingThread = nullptr;
 	wakeUpThreads(kWaitTypeDialogBegin);
 }
 

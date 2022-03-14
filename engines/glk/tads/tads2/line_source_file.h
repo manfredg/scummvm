@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,51 +36,51 @@ struct tokpdef;
 /* maximum number of pages of debugging records we can keep */
 #define LINFPGMAX 128
 
-/* 
+/*
  *   executable line information structure: this record relates one
  *   executable line to the object containing the p-code, and the offset
- *   in the object of the p-code for the start of the line 
+ *   in the object of the p-code for the start of the line
  */
 struct linfinfo {
-    /* 
-     *   OPCLINE data (file seek position or line number, depending on how
-     *   the game was compiled: -ds -> file seek offset, -ds2 -> line
-     *   number) 
-     */
-    ulong fpos;
-    
-    /* object number */
-    objnum objn;
+	/*
+	 *   OPCLINE data (file seek position or line number, depending on how
+	 *   the game was compiled: -ds -> file seek offset, -ds2 -> line
+	 *   number)
+	 */
+	ulong fpos;
 
-    /* offset from start of code */
-    uint ofs;
+	/* object number */
+	objnum objn;
+
+	/* offset from start of code */
+	uint ofs;
 };
 
-/* 
- *   file line source 
+/*
+ *   file line source
  */
 struct linfdef {
-    lindef    linflin;                                   /* superclass data */
-    osfildef *linffp;                  /* file pointer for this line source */
-    char      linfbuf[100];                 /* buffer for the line contents */
-    int       linfbufnxt;         /* offset in buffer of start of next line */
-    int       linfnxtlen;                /* length of data after linfbufnxt */
-    ulong     linfnum;                               /* current line number */
-    ulong     linfseek;                    /* seek position of current line */
-    mcmcxdef *linfmem;                            /* memory manager context */
-    mcmon     linfpg[LINFPGMAX];             /* pages for debugging records */
-    ulong     linfcrec;        /* number of debugger records written so far */
-    char      linfnam[1];                        /* name of file being read */
+	lindef    linflin;                                   /* superclass data */
+	osfildef *linffp;                  /* file pointer for this line source */
+	char      linfbuf[100];                 /* buffer for the line contents */
+	int       linfbufnxt;         /* offset in buffer of start of next line */
+	int       linfnxtlen;                /* length of data after linfbufnxt */
+	ulong     linfnum;                               /* current line number */
+	ulong     linfseek;                    /* seek position of current line */
+	mcmcxdef *linfmem;                            /* memory manager context */
+	mcmon     linfpg[LINFPGMAX];             /* pages for debugging records */
+	ulong     linfcrec;        /* number of debugger records written so far */
+	char      linfnam[1];                        /* name of file being read */
 };
 
 /* initialize a file line source, opening the file for the line source */
 linfdef *linfini(mcmcxdef *mctx, errcxdef *errctx, const char *filename,
-                 int flen, tokpdef *path, int must_find_file,
-                 int new_line_records);
+				 int flen, tokpdef *path, int must_find_file,
+				 int new_line_records);
 
 /* initialize a pre-allocated linfdef, skipping debugger page setup */
 void linfini2(mcmcxdef *mctx, linfdef *linf,
-              const char *filename, int flen, osfildef *fp, int new_line_records);
+			  const char *filename, int flen, osfildef *fp, int new_line_records);
 
 /* get next line from line source */
 int linfget(lindef *lin);
@@ -103,7 +102,7 @@ int linfwrt(lindef *lin, osfildef *fp);
 
 /* load a file-line-source from binary (.gam) file */
 int linfload(osfildef *fp, dbgcxdef *dbgctx, errcxdef *ec,
-             tokpdef *path);
+			 tokpdef *path);
 
 /* add a debugger line record for the current line */
 void linfcmp(lindef *lin, uchar *buf);

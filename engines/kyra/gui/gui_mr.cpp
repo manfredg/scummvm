@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
 #include "kyra/resource/resource.h"
 #include "kyra/engine/timer.h"
 #include "kyra/sound/sound_digital_mr.h"
+#include "kyra/graphics/screen.h"
 
 #include "common/system.h"
 
@@ -35,7 +35,7 @@ namespace Kyra {
 
 void KyraEngine_MR::loadButtonShapes() {
 	_res->exists("BUTTONS.SHP", true);
-	uint8 *data = _res->fileData("BUTTONS.SHP", 0);
+	uint8 *data = _res->fileData("BUTTONS.SHP", nullptr);
 	assert(data);
 	for (int i = 0; i <= 10; ++i)
 		addShapeToPool(data, 0x1C7+i, i);
@@ -58,7 +58,7 @@ void KyraEngine_MR::loadButtonShapes() {
 }
 
 int KyraEngine_MR::callbackButton1(Button *button) {
-	const uint8 *shapePtr = 0;
+	const uint8 *shapePtr = nullptr;
 	if (button->index == 1)
 		shapePtr = getShapePtr(0x1CD);
 	else if (button->index == 22)
@@ -73,7 +73,7 @@ int KyraEngine_MR::callbackButton1(Button *button) {
 }
 
 int KyraEngine_MR::callbackButton2(Button *button) {
-	const uint8 *shapePtr = 0;
+	const uint8 *shapePtr = nullptr;
 	if (button->index == 1)
 		shapePtr = getShapePtr(0x1CE);
 	else if (button->index == 22)
@@ -88,7 +88,7 @@ int KyraEngine_MR::callbackButton2(Button *button) {
 }
 
 int KyraEngine_MR::callbackButton3(Button *button) {
-	const uint8 *shapePtr = 0;
+	const uint8 *shapePtr = nullptr;
 	if (button->index == 1)
 		shapePtr = getShapePtr(0x1CE);
 	else if (button->index == 22)
@@ -112,7 +112,20 @@ void KyraEngine_MR::showMessage(const char *string, uint8 c0, uint8 c1) {
 		int x = _text->getCenterStringX(string, 0, 320);
 		int pageBackUp = _screen->_curPage;
 		_screen->_curPage = 0;
-		_text->printText(string, x, _commandLineY, c0, c1, 0);
+		int y = _commandLineY;
+
+		if (_lang == 3) {
+			_screen->setFontStyles(_screen->_currentFont, Font::kStyleNone);
+			y -= 3;
+			_text->printText(string, x, y, 0, 0, 0);
+			x++;
+		}
+
+		_text->printText(string, x, y, c0, c1, 0);
+
+		if (_lang == 3)
+			_screen->setFontStyles(_screen->_currentFont, Font::kStyleBorder);
+
 		_screen->_curPage = pageBackUp;
 		_screen->updateScreen();
 		setCommandLineRestoreTimer(7);
@@ -127,14 +140,18 @@ void KyraEngine_MR::updateItemCommand(Item item, int str, uint8 c0) {
 	char buffer[100];
 	char *src = (char *)getTableEntry(_itemFile, item);
 
-	while (*src != ' ')
+	if (_lang != 3) {
+		while (*src != ' ')
+			++src;
 		++src;
-	++src;
-
-	*src = toupper(*src);
+		*src = toupper(*src);
+	}
 
 	strcpy(buffer, src);
-	strcat(buffer, " ");
+
+	if (_lang != 3)
+		strcat(buffer, " ");
+
 	strcat(buffer, (const char *)getTableEntry(_cCodeFile, str));
 
 	showMessage(buffer, c0, 0xF0);
@@ -148,8 +165,8 @@ void KyraEngine_MR::updateCommandLine() {
 }
 
 void KyraEngine_MR::restoreCommandLine() {
-	int y = _inventoryState ? 144 : 188;
-	_screen->copyBlockToPage(0, 0, y, 320, 12, _interfaceCommandLine);
+	int y = _inventoryState ? _interfaceCommandLineY2 : _interfaceCommandLineY1;
+	_screen->copyBlockToPage(0, 0, y, 320, _interfaceCommandLineH, _interfaceCommandLine);
 }
 
 void KyraEngine_MR::updateCLState() {
@@ -165,7 +182,7 @@ void KyraEngine_MR::showInventory() {
 	if (queryGameFlag(3))
 		return;
 
-	_screen->copyBlockToPage(3, 0, 0, 320, 56, _interface);
+	_screen->copyBlockToPage(3, 0, 0, 320, _interfaceH, _interface);
 	drawMalcolmsMoodText();
 
 	_inventoryState = true;
@@ -185,14 +202,14 @@ void KyraEngine_MR::showInventory() {
 		_screen->setMouseCursor(0, 0, getShapePtr(0));
 	}
 
-	_screen->copyRegion(0, 188, 0, 0, 320, 12, 0, 2, Screen::CR_NO_P_CHECK);
+	_screen->copyRegion(0, _interfaceCommandLineY1, 0, 0, 320, _interfaceCommandLineH, 0, 2, Screen::CR_NO_P_CHECK);
 
 	if (_inventoryScrollSpeed == -1) {
 		uint32 endTime = _system->getMillis() + _tickLength * 15;
 		int times = 0;
 		while (_system->getMillis() < endTime) {
-			_screen->copyRegion(0, 188, 0, 0, 320, 12, 0, 2, Screen::CR_NO_P_CHECK);
-			_screen->copyRegion(0, 188, 0, 0, 320, 12, 0, 2, Screen::CR_NO_P_CHECK);
+			_screen->copyRegion(0, _interfaceCommandLineY1, 0, 0, 320, _interfaceCommandLineH, 0, 2, Screen::CR_NO_P_CHECK);
+			_screen->copyRegion(0, _interfaceCommandLineY1, 0, 0, 320, _interfaceCommandLineH, 0, 2, Screen::CR_NO_P_CHECK);
 			++times;
 		}
 
@@ -207,16 +224,16 @@ void KyraEngine_MR::showInventory() {
 			_inventoryScrollSpeed = speed;
 	}
 
-	int height = 12;
-	int y = 188;
+	int height = _interfaceCommandLineH;
+	int y = _interfaceCommandLineY1;
 	int times = 0;
 	uint32 waitTill = _system->getMillis() + _tickLength;
 
-	while (y > 144) {
+	while (y > _interfaceCommandLineY2) {
 		_screen->copyRegion(0, 0, 0, y, 320, height, 2, 0, Screen::CR_NO_P_CHECK);
-		_screen->updateScreen();
-
-		++times;
+		if (times++ == 0)
+			_screen->updateScreen();
+	
 		if (_inventoryScrollSpeed == 1 && times == 3) {
 			while (waitTill > _system->getMillis())
 				_system->delayMillis(10);
@@ -228,7 +245,7 @@ void KyraEngine_MR::showInventory() {
 		y -= _inventoryScrollSpeed;
 	}
 
-	_screen->copyRegion(0, 0, 0, 144, 320, 56, 2, 0, Screen::CR_NO_P_CHECK);
+	_screen->copyRegion(0, 0, 0, _interfaceCommandLineY2, 320, _interfaceH, 2, 0, Screen::CR_NO_P_CHECK);
 	_screen->updateScreen();
 
 	initMainButtonList(false);
@@ -245,20 +262,20 @@ void KyraEngine_MR::hideInventory() {
 	updateCLState();
 	initMainButtonList(true);
 
-	_screen->copyBlockToPage(3, 0, 0, 320, 56, _interface);
+	_screen->copyBlockToPage(3, 0, 0, 320, _interfaceH, _interface);
 	_screen->hideMouse();
 
 	restorePage3();
 	flagAnimObjsForRefresh();
 	drawAnimObjects();
-	_screen->copyRegion(0, 144, 0, 0, 320, 56, 0, 2, Screen::CR_NO_P_CHECK);
+	_screen->copyRegion(0, _interfaceCommandLineY2, 0, 0, 320, _interfaceH, 0, 2, Screen::CR_NO_P_CHECK);
 
 	if (_inventoryScrollSpeed == -1) {
 		uint32 endTime = _system->getMillis() + _tickLength * 15;
 		int times = 0;
 		while (_system->getMillis() < endTime) {
-			_screen->copyRegion(0, 144, 0, 0, 320, 12, 0, 2, Screen::CR_NO_P_CHECK);
-			_screen->copyRegion(0, 144, 0, 0, 320, 12, 0, 2, Screen::CR_NO_P_CHECK);
+			_screen->copyRegion(0, _interfaceCommandLineY2, 0, 0, 320, _interfaceCommandLineH, 0, 2, Screen::CR_NO_P_CHECK);
+			_screen->copyRegion(0, _interfaceCommandLineY2, 0, 0, 320, _interfaceCommandLineH, 0, 2, Screen::CR_NO_P_CHECK);
 			++times;
 		}
 
@@ -273,17 +290,17 @@ void KyraEngine_MR::hideInventory() {
 			_inventoryScrollSpeed = speed;
 	}
 
-	int y = 144;
-	int y2 = 144 + _inventoryScrollSpeed;
+	int y = _interfaceCommandLineY2;
+	int y2 = _interfaceCommandLineY2 + _inventoryScrollSpeed;
 	uint32 waitTill = _system->getMillis() + _tickLength;
 	int times = 0;
 
-	while (y2 < 188) {
-		_screen->copyRegion(0, 0, 0, y2, 320, 56, 2, 0, Screen::CR_NO_P_CHECK);
+	while (y2 < _interfaceCommandLineY1) {
+		_screen->copyRegion(0, 0, 0, y2, 320, _interfaceH, 2, 0, Screen::CR_NO_P_CHECK);
 		_screen->copyRegion(0, y, 0, y, 320, _inventoryScrollSpeed, 2, 0, Screen::CR_NO_P_CHECK);
-		_screen->updateScreen();
+		if (times++ == 0)
+			_screen->updateScreen();
 
-		++times;
 		if (_inventoryScrollSpeed == 1 && times == 3) {
 			while (waitTill > _system->getMillis())
 				_system->delayMillis(10);
@@ -295,8 +312,8 @@ void KyraEngine_MR::hideInventory() {
 		y2 += _inventoryScrollSpeed;
 	}
 
-	_screen->copyRegion(0, 0, 0, 188, 320, 56, 2, 0, Screen::CR_NO_P_CHECK);
-	_screen->copyRegion(0, y, 0, y, 320, 188-y, 2, 0, Screen::CR_NO_P_CHECK);
+	_screen->copyRegion(0, 0, 0, _interfaceCommandLineY1, 320, _interfaceH, 2, 0, Screen::CR_NO_P_CHECK);
+	_screen->copyRegion(0, y, 0, y, 320, _interfaceCommandLineY1 - y, 2, 0, Screen::CR_NO_P_CHECK);
 	_screen->showMouse();
 }
 
@@ -308,27 +325,35 @@ void KyraEngine_MR::drawMalcolmsMoodText() {
 
 	const char *string = (const char *)getTableEntry(_cCodeFile, stringId[_malcolmsMood]);
 
-	Screen::FontId oldFont = _screen->setFont(Screen::FID_8_FNT);
-	_screen->_charWidth = -2;
+	Screen::FontId oldFont = _screen->setFont(_lang == 3 ? Screen::FID_CHINESE_FNT : Screen::FID_8_FNT);
+	_screen->_charSpacing = -2;
 
 	int width = _screen->getTextWidth(string);
 
-	_screen->_charWidth = 0;
+	_screen->_charSpacing = 0;
 	_screen->setFont(oldFont);
 
 	int pageBackUp = _screen->_curPage;
 	const int x = 280 - (width / 2);
 	int y = 0;
 	if (_inventoryState) {
-		y = 189;
+		y = _interfaceCommandLineY1 + 1;
 		_screen->_curPage = 0;
 	} else {
 		y = 45;
 		_screen->_curPage = 2;
 	}
 
-	_screen->drawShape(_screen->_curPage, getShapePtr(432), 244, 189, 0, 0);
-	_text->printText(string, x, y+1, 0xFF, 0xF0, 0x00);
+	_screen->drawShape(_screen->_curPage, getShapePtr(432), 244, _interfaceCommandLineY1 + 1, 0, 0);
+
+	if (_lang == 3) {
+		_screen->setFontStyles(_screen->_currentFont, Font::kStyleNone);
+		_text->printText(string, x, y, 0x00, 0x00, 0x00);
+		_text->printText(string, x + 1, y, 0xFF, 0x00, 0x00);
+		_screen->setFontStyles(_screen->_currentFont, Font::kStyleBorder);
+	} else {
+		_text->printText(string, x, y + (_flags.hasExtraLanguage ? 3 : 1), 0xFF, 0xF0, 0x00);
+	}
 	_screen->_curPage = pageBackUp;
 }
 
@@ -343,10 +368,10 @@ void KyraEngine_MR::drawMalcolmsMoodPointer(int frame, int page) {
 		frame = 13;
 
 	if (page == 0) {
-		_invWsa->displayFrame(frame, 0, 0, 0, 0, 0, 0);
+		_invWsa->displayFrame(frame, 0, 0, 0, 0, nullptr, nullptr);
 		_screen->updateScreen();
 	} else if (page == 30) {
-		_invWsa->displayFrame(frame, 2, 0, -144, 0, 0, 0);
+		_invWsa->displayFrame(frame, 2, 0, -_interfaceCommandLineY2, 0, nullptr, nullptr);
 	}
 
 	_invWsaFrame = frame;
@@ -356,7 +381,7 @@ void KyraEngine_MR::drawJestersStaff(int type, int page) {
 	int y = 155;
 	if (page == 30) {
 		page = 2;
-		y -= 144;
+		y -= _interfaceCommandLineY2;
 	}
 
 	int shape = (type != 0) ? 454 : 453;
@@ -366,18 +391,18 @@ void KyraEngine_MR::drawJestersStaff(int type, int page) {
 void KyraEngine_MR::drawScore(int page, int x, int y) {
 	if (page == 30) {
 		page = 2;
-		y -= 144;
+		y -= _interfaceCommandLineY2;
 	}
 
 	int shape1 = _score / 100;
 	int shape2 = (_score - shape1*100) / 10;
 	int shape3 = _score % 10;
 
-	_screen->drawShape(page, getShapePtr(shape1+433), x, y, 0, 0);
+	_screen->drawShape(page, getShapePtr(shape1 + 433), x, y, 0, 0);
 	x += 8;
-	_screen->drawShape(page, getShapePtr(shape2+433), x, y, 0, 0);
+	_screen->drawShape(page, getShapePtr(shape2 + 433), x, y, 0, 0);
 	x += 8;
-	_screen->drawShape(page, getShapePtr(shape3+433), x, y, 0, 0);
+	_screen->drawShape(page, getShapePtr(shape3 + 433), x, y, 0, 0);
 }
 
 void KyraEngine_MR::drawScoreCounting(int oldScore, int newScore, int drawOld, const int x) {
@@ -416,13 +441,13 @@ void KyraEngine_MR::drawScoreCounting(int oldScore, int newScore, int drawOld, c
 
 int KyraEngine_MR::getScoreX(const char *str) {
 	Screen::FontId oldFont = _screen->setFont(Screen::FID_8_FNT);
-	_screen->_charWidth = -2;
+	_screen->_charSpacing = -2;
 
 	int width = _screen->getTextWidth(str);
 	int x = 160 + (width / 2) - 32;
 
 	_screen->setFont(oldFont);
-	_screen->_charWidth = 0;
+	_screen->_charSpacing = 0;
 	return x;
 }
 
@@ -431,7 +456,7 @@ void KyraEngine_MR::redrawInventory(int page) {
 
 	if (page == 30) {
 		page = 2;
-		yOffset = -144;
+		yOffset = -_interfaceCommandLineY2;
 	}
 
 	int pageBackUp = _screen->_curPage;
@@ -455,7 +480,7 @@ void KyraEngine_MR::clearInventorySlot(int slot, int page) {
 	int yOffset = 0;
 	if (page == 30) {
 		page = 2;
-		yOffset = -144;
+		yOffset = -_interfaceCommandLineY2;
 	}
 
 	_screen->drawShape(page, getShapePtr(slot+422), _inventoryX[slot], _inventoryY[slot] + yOffset, 0, 0);
@@ -465,10 +490,10 @@ void KyraEngine_MR::drawInventorySlot(int page, Item item, int slot) {
 	int yOffset = 0;
 	if (page == 30) {
 		page = 2;
-		yOffset = -144;
+		yOffset = -_interfaceCommandLineY2;
 	}
 
-	_screen->drawShape(page, getShapePtr(item+248), _inventoryX[slot], _inventoryY[slot] + yOffset, 0, 0);
+	_screen->drawShape(page, getShapePtr(item + 248), _inventoryX[slot], _inventoryY[slot] + yOffset, 0, 0);
 }
 
 int KyraEngine_MR::buttonInventory(Button *button) {
@@ -489,7 +514,7 @@ int KyraEngine_MR::buttonInventory(Button *button) {
 		_itemInHand = slotItem;
 		_mainCharacter.inventory[slot] = kItemNone;
 	} else if (_itemInHand == 27) {
-		if (_chatText)
+		if (!_chatText.empty())
 			return 0;
 		return buttonJesterStaff(&_mainButtonData[3]);
 	} else {
@@ -643,7 +668,7 @@ void KyraEngine_MR::showAlbum() {
 		error("Couldn't load ALBUM");
 
 	if (!queryGameFlag(0x8B))
-		_album.wsa->open("ALBMGNTH.WSA", 1, 0);
+		_album.wsa->open("ALBMGNTH.WSA", 1, nullptr);
 	_album.backUpRect = new uint8[3100];
 	assert(_album.backUpRect);
 	_album.backUpPage = new uint8[64000];
@@ -664,10 +689,10 @@ void KyraEngine_MR::showAlbum() {
 	loadAlbumPageWSA();
 
 	if (_album.leftPage.wsa->opened())
-		_album.leftPage.wsa->displayFrame(_album.leftPage.curFrame, 2, _albumWSAX[_album.nextPage+0], _albumWSAY[_album.nextPage+0], 0x4000, 0, 0);
+		_album.leftPage.wsa->displayFrame(_album.leftPage.curFrame, 2, _albumWSAX[_album.nextPage+0], _albumWSAY[_album.nextPage+0], 0x4000, nullptr, nullptr);
 
 	if (_album.rightPage.wsa->opened())
-		_album.rightPage.wsa->displayFrame(_album.rightPage.curFrame, 2, _albumWSAX[_album.nextPage+1], _albumWSAY[_album.nextPage+1], 0x4000, 0, 0);
+		_album.rightPage.wsa->displayFrame(_album.rightPage.curFrame, 2, _albumWSAX[_album.nextPage+1], _albumWSAY[_album.nextPage+1], 0x4000, nullptr, nullptr);
 
 	printAlbumPageText();
 	_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0, Screen::CR_NO_P_CHECK);
@@ -690,11 +715,11 @@ void KyraEngine_MR::showAlbum() {
 	_screen->fadePalette(_screen->getPalette(0), 9);
 
 	delete[] _album.backUpRect;
-	_album.backUpRect = 0;
+	_album.backUpRect = nullptr;
 	delete[] _album.backUpPage;
-	_album.backUpPage = 0;
+	_album.backUpPage = nullptr;
 	delete[] _album.file;
-	_album.file = 0;
+	_album.file = nullptr;
 
 	_eventList.clear();
 }
@@ -714,7 +739,7 @@ void KyraEngine_MR::loadAlbumPage() {
 	}
 
 	_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 4, Screen::CR_NO_P_CHECK);
-	_screen->loadBitmap(filename.c_str(), 3, 3, 0);
+	_screen->loadBitmap(filename.c_str(), 3, 3, nullptr);
 }
 
 void KyraEngine_MR::loadAlbumPageWSA() {
@@ -730,13 +755,13 @@ void KyraEngine_MR::loadAlbumPageWSA() {
 
 	if (_album.curPage) {
 		filename = Common::String::format("PAGE%x.WSA", _album.curPage);
-		_album.leftPage.wsa->open(filename.c_str(), 1, 0);
+		_album.leftPage.wsa->open(filename.c_str(), 1, nullptr);
 		_album.leftPage.maxFrame = _album.leftPage.wsa->frames()-1;
 	}
 
 	if (_album.curPage != 14) {
 		filename = Common::String::format("PAGE%x.WSA", _album.curPage+1);
-		_album.rightPage.wsa->open(filename.c_str(), 1, 0);
+		_album.rightPage.wsa->open(filename.c_str(), 1, nullptr);
 		_album.rightPage.maxFrame = _album.rightPage.wsa->frames()-1;
 	}
 }
@@ -752,13 +777,13 @@ void KyraEngine_MR::printAlbumPageText() {
 
 	for (int i = 0; i < 5; ++i) {
 		const char *str = (const char *)getTableEntry(_album.file, _album.curPage*5+i);
-		int y = i * 10 + leftY + 20;
+		int y = i * (_screen->getFontHeight() + _screen->_lineSpacing) + leftY + 20;
 		printAlbumText(2, str, 20, y, 10);
 	}
 
 	for (int i = 0; i < 5; ++i) {
 		const char *str = (const char *)getTableEntry(_album.file, (_album.curPage+1)*5+i);
-		int y = i * 10 + rightY + 20;
+		int y = i * (_screen->getFontHeight() + _screen->_lineSpacing) + rightY + 20;
 		printAlbumText(2, str, 176, y, 10);
 	}
 
@@ -773,11 +798,16 @@ void KyraEngine_MR::printAlbumText(int page, const char *str, int x, int y, uint
 	_screen->setTextColor(colorMap, 0, 3);
 
 	Screen::FontId oldFont = _screen->setFont(Screen::FID_BOOKFONT_FNT);
-	_screen->_charWidth = -2;
+	_screen->_charSpacing = -2;
+	if (_lang == 3) {
+		_screen->setFont(Screen::FID_CHINESE_FNT);
+		_screen->setFontStyles(_screen->_currentFont, Font::kStyleNone);
+	}
 
 	_screen->printText(str, x, y, c0, 0);
 
-	_screen->_charWidth = 0;
+	_screen->setFontStyles(_screen->_currentFont, Font::kStyleBorder);
+	_screen->_charSpacing = 0;
 	_screen->setFont(oldFont);
 	_screen->_curPage = oldPage;
 }
@@ -796,7 +826,7 @@ void KyraEngine_MR::processAlbum() {
 	GUI_V2_BUTTON(albumButtons[4], 40, 0, 0, 1, 1, 1, 0x4487, 0, 170,   8, 142, 180, 0xFF, 0xF0, 0xFF, 0xF0, 0xFF, 0xF0, 0);
 	albumButtons[4].buttonCallback = BUTTON_FUNCTOR(KyraEngine_MR, this, &KyraEngine_MR::albumNextPage);
 
-	Button *buttonList = 0;
+	Button *buttonList = nullptr;
 	for (int i = 0; i < 5; ++i)
 		buttonList = _gui->addButtonToList(buttonList, &albumButtons[i]);
 
@@ -820,10 +850,10 @@ void KyraEngine_MR::processAlbum() {
 			loadAlbumPageWSA();
 
 			if (_album.leftPage.wsa->opened())
-				_album.leftPage.wsa->displayFrame(_album.leftPage.curFrame, 2, _albumWSAX[_album.nextPage+0], _albumWSAY[_album.nextPage+0], 0x4000, 0, 0);
+				_album.leftPage.wsa->displayFrame(_album.leftPage.curFrame, 2, _albumWSAX[_album.nextPage+0], _albumWSAY[_album.nextPage+0], 0x4000, nullptr, nullptr);
 
 			if (_album.rightPage.wsa->opened())
-				_album.rightPage.wsa->displayFrame(_album.rightPage.curFrame, 2, _albumWSAX[_album.nextPage+1], _albumWSAY[_album.nextPage+1], 0x4000, 0, 0);
+				_album.rightPage.wsa->displayFrame(_album.rightPage.curFrame, 2, _albumWSAX[_album.nextPage+1], _albumWSAY[_album.nextPage+1], 0x4000, nullptr, nullptr);
 
 			printAlbumPageText();
 
@@ -876,7 +906,7 @@ void KyraEngine_MR::albumUpdateAnims() {
 
 	nextRun = _album.leftPage.timer + 5 * _tickLength;
 	if (nextRun < _system->getMillis() && _album.leftPage.wsa->opened()) {
-		_album.leftPage.wsa->displayFrame(_album.leftPage.curFrame, 2, _albumWSAX[_album.nextPage+0], _albumWSAY[_album.nextPage+0], 0x4000, 0, 0);
+		_album.leftPage.wsa->displayFrame(_album.leftPage.curFrame, 2, _albumWSAX[_album.nextPage+0], _albumWSAY[_album.nextPage+0], 0x4000, nullptr, nullptr);
 		_screen->copyRegion(40, 17, 40, 17, 87, 73, 2, 0, Screen::CR_NO_P_CHECK);
 
 		++_album.leftPage.curFrame;
@@ -895,7 +925,7 @@ void KyraEngine_MR::albumUpdateAnims() {
 
 	nextRun = _album.rightPage.timer + 5 * _tickLength;
 	if (nextRun < _system->getMillis() && _album.rightPage.wsa->opened()) {
-		_album.rightPage.wsa->displayFrame(_album.rightPage.curFrame, 2, _albumWSAX[_album.nextPage+1], _albumWSAY[_album.nextPage+1], 0x4000, 0, 0);
+		_album.rightPage.wsa->displayFrame(_album.rightPage.curFrame, 2, _albumWSAX[_album.nextPage+1], _albumWSAY[_album.nextPage+1], 0x4000, nullptr, nullptr);
 		_screen->copyRegion(194, 20, 194, 20, 85, 69, 2, 0, Screen::CR_NO_P_CHECK);
 
 		++_album.rightPage.curFrame;
@@ -913,13 +943,13 @@ void KyraEngine_MR::albumUpdateAnims() {
 void KyraEngine_MR::albumAnim1() {
 	for (int i = 6; i >= 3; --i) {
 		albumRestoreRect();
-		_album.wsa->displayFrame(i, 2, -100, 90, 0x4000, 0, 0);
+		_album.wsa->displayFrame(i, 2, -100, 90, 0x4000, nullptr, nullptr);
 		albumUpdateRect();
 		delayWithTicks(1);
 	}
 
 	albumRestoreRect();
-	_album.wsa->displayFrame(14, 2, -100, 90, 0x4000, 0, 0);
+	_album.wsa->displayFrame(14, 2, -100, 90, 0x4000, nullptr, nullptr);
 	albumUpdateRect();
 	delayWithTicks(1);
 }
@@ -927,7 +957,7 @@ void KyraEngine_MR::albumAnim1() {
 void KyraEngine_MR::albumAnim2() {
 	for (int i = 3; i <= 6; ++i) {
 		albumRestoreRect();
-		_album.wsa->displayFrame(i, 2, -100, 90, 0x4000, 0, 0);
+		_album.wsa->displayFrame(i, 2, -100, 90, 0x4000, nullptr, nullptr);
 		albumUpdateRect();
 		delayWithTicks(1);
 	}
@@ -1062,29 +1092,32 @@ void GUI_MR::flagButtonDisable(Button *button) {
 	}
 }
 
-const char *GUI_MR::getMenuTitle(const Menu &menu) {
+Common::String GUI_MR::getMenuTitle(const Menu &menu) {
 	if (!menu.menuNameId)
-		return 0;
+		return Common::String();
 
 	return (const char *)_vm->getTableEntry(_vm->_optionsFile, menu.menuNameId);
 }
 
-const char *GUI_MR::getMenuItemTitle(const MenuItem &menuItem) {
+Common::String GUI_MR::getMenuItemTitle(const MenuItem &menuItem) {
+	if (menuItem.useItemString)
+		return menuItem.itemString;
+
 	if (!menuItem.itemId)
-		return 0;
+		return Common::String();
 
 	return (const char *)_vm->getTableEntry(_vm->_optionsFile, menuItem.itemId);
 }
 
-const char *GUI_MR::getMenuItemLabel(const MenuItem &menuItem) {
+Common::String GUI_MR::getMenuItemLabel(const MenuItem &menuItem) {
 	if (!menuItem.labelId)
-		return 0;
+		return Common::String();
 
 	return (const char *)_vm->getTableEntry(_vm->_optionsFile, menuItem.labelId);
 }
 
-char *GUI_MR::getTableString(int id) {
-	return (char *)_vm->getTableEntry(_vm->_optionsFile, id);
+Common::String GUI_MR::getTableString(int id, bool) {
+	return Common::String((char *)_vm->getTableEntry(_vm->_optionsFile, id));
 }
 
 int GUI_MR::redrawButtonCallback(Button *button) {
@@ -1152,7 +1185,9 @@ int GUI_MR::optionsButton(Button *button) {
 	if (!_screen->isMouseVisible() && button && !_vm->_menuDirectlyToLoad)
 		return 0;
 
-	_vm->showMessage(0, 0xF0, 0xF0);
+	_screen->setFontStyles(_screen->_currentFont, Font::kStyleNone);
+
+	_vm->showMessage(nullptr, 0xF0, 0xF0);
 
 	if (_vm->_mouseState < -1) {
 		_vm->_mouseState = -1;
@@ -1175,15 +1210,7 @@ int GUI_MR::optionsButton(Button *button) {
 		_menuButtons[i].data1Callback = _menuButtons[i].data2Callback = _redrawButtonFunctor;
 	}
 
-	initMenuLayout(_mainMenu);
-	initMenuLayout(_gameOptions);
-	initMenuLayout(_audioOptions);
-	initMenuLayout(_choiceMenu);
-	_loadMenu.numberOfItems = 6;
-	initMenuLayout(_loadMenu);
-	initMenuLayout(_saveMenu);
-	initMenuLayout(_savenameMenu);
-	initMenuLayout(_deathMenu);
+	fontBasedMenuResize();
 
 	_currentMenu = &_mainMenu;
 
@@ -1193,7 +1220,7 @@ int GUI_MR::optionsButton(Button *button) {
 		_loadedSave = false;
 
 		--_loadMenu.numberOfItems;
-		loadMenu(0);
+		loadMenu(nullptr);
 		++_loadMenu.numberOfItems;
 
 		if (_loadedSave) {
@@ -1341,6 +1368,15 @@ int GUI_MR::gameOptions(Button *caller) {
 		_vm->saveGameStateIntern(999, "Autosave", &thumb);
 		thumb.free();
 
+		if (_vm->_lang == 3) {
+			_screen->setFont(Screen::FID_CHINESE_FNT);
+			_screen->setFontStyles(Screen::FID_CHINESE_FNT, Font::kStyleNone);
+			_screen->_lineSpacing = 2;
+		} else {
+			_screen->setFont(Screen::FID_8_FNT);
+			_screen->_lineSpacing = 0;
+		}
+
 		if (!_vm->loadLanguageFile("ITEMS.", _vm->_itemFile))
 			error("Couldn't load ITEMS");
 		if (!_vm->loadLanguageFile("SCORE.", _vm->_scoreFile))
@@ -1353,6 +1389,9 @@ int GUI_MR::gameOptions(Button *caller) {
 			error("Couldn't load OPTIONS");
 		if (!_vm->loadLanguageFile("_ACTOR.", _vm->_actorFile))
 			error("couldn't load _ACTOR");
+
+		if (_vm->_lang == 3 || lang == 3)
+			fontBasedMenuResize();
 	}
 
 	_vm->writeSettings();
@@ -1386,6 +1425,10 @@ void GUI_MR::setupOptionsButtons() {
 		_gameOptions.item[1].itemId = 33;
 		break;
 
+	case 3:
+		_gameOptions.item[1].itemId = 48;
+		break;
+
 	default:
 		break;
 	}
@@ -1401,11 +1444,56 @@ void GUI_MR::setupOptionsButtons() {
 		_gameOptions.item[3].itemId = 17;
 }
 
+void GUI_MR::resizeMenu(Menu &menu, int menuHeight, int menuTitleY, int menuItemYstart, int menuItemYinc, int menuItemHeight, int menuItemYend, int labelYstart, int labelYend) {
+	menu.x = menu.y = -1;
+	menu.height = menuHeight;
+	menu.titleY = menuTitleY;
+	for (int i = 0; i < menu.numberOfItems - 1; ++i) {
+		menu.item[i].y = menuItemYstart + i * menuItemYinc;
+		menu.item[i].height = menuItemHeight;
+		menu.item[i].labelY = labelYstart ? (labelYstart + i * menuItemYinc) : 0;
+	}
+	menu.item[menu.numberOfItems - 1].y = menuItemYend;
+	menu.item[menu.numberOfItems - 1].height = menuItemHeight;
+	menu.item[menu.numberOfItems - 1].labelY = labelYend;
+	initMenuLayout(menu);
+}
+
+void GUI_MR::fontBasedMenuResize() {
+	if (_vm->_lang == 3) {
+		resizeMenu(_mainMenu, 192, 6, 26, 22, 20, 161, 0, 0);
+		resizeMenu(_gameOptions, 174, 8, 30, 22, 20, 145, 32, 0);
+		resizeMenu(_audioOptions, 140, 8, 28, 22, 20, 110, 30, 0);
+		_audioOptions.item[3].y = 81;
+		_audioOptions.item[1].labelY = 47;
+		_audioOptions.item[2].labelY = 64;
+		_audioOptions.item[3].labelY = 83;
+		resizeMenu(_choiceMenu, 56, 8, 30, 0, 20, 30, 0, 0);
+		_loadMenu.numberOfItems = 6;
+		resizeMenu(_loadMenu, 182, 6, 39, 22, 20, 155, 0, 0);
+		resizeMenu(_saveMenu, 182, 6, 39, 22, 20, 155, 0, 0);
+		_loadMenu.scrollDownButtonY = _saveMenu.scrollDownButtonY = 149;
+		resizeMenu(_savenameMenu, 72, 8, 44, 0, 20, 44, 0, 0);
+		resizeMenu(_deathMenu, 80, 8, 30, 0, 20, 52, 0, 0);
+	} else {
+		resizeMenu(_mainMenu, 172, 8, 30, 17, 15, 144, 0, 0);
+		resizeMenu(_gameOptions, 154, 8, 30, 17, 15, 127, 32, 0);
+		resizeMenu(_audioOptions, 136, 8, 30, 17, 15, 110, 32, 0);
+		resizeMenu(_choiceMenu, 56, 8, 30, 0, 15, 30, 0, 0);
+		_loadMenu.numberOfItems = 6;
+		resizeMenu(_loadMenu, 160, 8, 39, 17, 15, 134, 0, 0);
+		resizeMenu(_saveMenu, 160, 8, 39, 17, 15, 134, 0, 0);
+		_loadMenu.scrollDownButtonY = _saveMenu.scrollDownButtonY = 124;
+		resizeMenu(_savenameMenu, 67, 8, 44, 0, 15, 44, 0, 0);
+		resizeMenu(_deathMenu, 76, 8, 30, 0, 15, 47, 0, 0);
+	}
+}
+
 int GUI_MR::changeLanguage(Button *caller) {
 	updateMenuButton(caller);
 	if (!_vm->queryGameFlag(0x1B2)) {
 		++_vm->_lang;
-		_vm->_lang %= 3;
+		_vm->_lang %= _vm->_numLang;
 		setupOptionsButtons();
 		renewHighlight(_gameOptions);
 	}

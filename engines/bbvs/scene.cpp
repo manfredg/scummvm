@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,11 +24,18 @@
 #include "bbvs/graphics.h"
 #include "bbvs/sound.h"
 
+#include "engines/advancedDetector.h"
+
 namespace Bbvs {
 
 static const int kAfterVideoSceneNum[] = {
 	 0, 43, 23, 12,  4, 44,  2,
 	16,  4,  4,  4, 44, 12, 44
+};
+
+static const int kAfterVideoSceneNumDemo[] = {
+	 0, 32, 33, 23,  0,  0,  0,
+	 0,  0,  0,  0,  0,  0,  0
 };
 
 void BbvsEngine::loadScene(int sceneNum) {
@@ -84,17 +90,17 @@ void BbvsEngine::initScene(bool sounds) {
 	_currCameraNum = 0;
 	_walkMousePos.x = -1;
 	_walkMousePos.y = -1;
-	_currAction = 0;
+	_currAction = nullptr;
 	_currActionCommandIndex = -1;
 	_currActionCommandTimeStamp = 0;
 	_dialogSlotCount = 0;
-	_buttheadObject = 0;
-	_beavisObject = 0;
+	_buttheadObject = nullptr;
+	_beavisObject = nullptr;
 
 	memset(_backgroundSoundsActive, 0, sizeof(_backgroundSoundsActive));
 
-	memset(_sceneObjects, 0, sizeof(_sceneObjects));
 	for (int i = 0; i < kSceneObjectsCount; ++i) {
+		_sceneObjects[i].clear();
 		_sceneObjects[i].walkDestPt.x = -1;
 		_sceneObjects[i].walkDestPt.y = -1;
 	}
@@ -208,7 +214,10 @@ bool BbvsEngine::changeScene() {
 		_sceneVisited[_currSceneNum] = 1;
 		_playVideoNumber = _newSceneNum - 30;
 		_currSceneNum = _newSceneNum;
-		_newSceneNum = kAfterVideoSceneNum[_playVideoNumber];
+		if (isDemo())
+			_newSceneNum = kAfterVideoSceneNumDemo[_playVideoNumber];
+		else
+			_newSceneNum = kAfterVideoSceneNum[_playVideoNumber];
 	} else if (_newSceneNum >= 100 && _currSceneNum == kCredits) {
 		// Play secret video
 		stopSounds();

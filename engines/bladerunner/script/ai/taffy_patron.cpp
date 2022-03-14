@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -115,21 +114,22 @@ bool AIScriptTaffyPatron::GoalChanged(int currentGoalNumber, int newGoalNumber) 
 bool AIScriptTaffyPatron::UpdateAnimation(int *animation, int *frame) {
 	switch (_animationState) {
 	case 0:
-		*animation = 406;
+		// Dummy placeholder, kModelAnimationZubenIdle (406) is a Zuben animation
+		*animation = kModelAnimationZubenIdle;
 		_animationFrame = 0;
 		break;
 
 	case 1:
-		*animation = 918;
+		*animation = kModelAnimationTaffyPatronRunning;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(918) - 1) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationTaffyPatronRunning) - 1) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 2:
-		*animation = 919;
-		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(919) - 1) {
+		*animation = kModelAnimationTaffyPatronShotDead;
+		if (_animationFrame < Slice_Animation_Query_Number_Of_Frames(kModelAnimationTaffyPatronShotDead) - 1) {
 			++_animationFrame;
 		}
 		break;

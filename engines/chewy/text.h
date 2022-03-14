@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,11 +37,11 @@ namespace Chewy {
  * USE - use action texts, 100 entries max
  */
 enum MaxTextTypes {
-	kADSTextMax = 500,	//   0 - 499
-	kATSTextMax = 100,	// 500 - 599
-	kAADTextMax = 100,	// 600 - 699
-	kINVTextMax = 100,	// 700 - 799
-	kUSETextMax = 100	// 800 - 899
+	kADSTextMax = 500, //   0 - 499
+	kATSTextMax = 100, // 500 - 599
+	kAADTextMax = 100, // 600 - 699
+	kINVTextMax = 100, // 700 - 799
+	kUSETextMax = 100  // 800 - 899
 };
 
 /**
@@ -60,17 +59,16 @@ enum TextEntryMarkers {
 #define VOICE_OFFSET 20
 
 struct TextEntry {
-	int16 speechId;
-	Common::String text;
+	int16 _speechId;
+	Common::String _text;
 };
 
 typedef Common::List<TextEntry> TextEntryList;
 
-
 class Text : public Resource {
 public:
 	Text();
-	~Text() override;
+	~Text();
 
 	/**
 	 * Gets a list of lines for a specific dialog entry
@@ -85,29 +83,11 @@ public:
 	* - use text (USE) - 800 - 899
 	*/
 	TextEntry *getText(uint dialogNum, uint entryNum);
+
+	void crypt(char *txt, uint32 size);
+	char *strPos(char *txtAdr, int16 pos);
 };
 
-class ErrorMessage : public Resource {
-public:
-	ErrorMessage(Common::String filename) : Resource(filename) {}
-	~ErrorMessage() override {}
-
-	Common::String getErrorMessage(uint num);
-};
-
-class Font {
-public:
-	Font(Common::String filename);
-	virtual ~Font();
-
-	::Graphics::Surface *getLine(const Common::String &text);
-
-private:
-	uint16 _count, _first, _last, _width, _height;
-
-	::Graphics::Surface _fontSurface;
-};
-
-} // End of namespace Chewy
+} // namespace Chewy
 
 #endif

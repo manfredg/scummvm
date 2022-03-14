@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -229,7 +228,7 @@ const KeyTableEntry defaultKeys[] = {
 	{"LMETA",     KEYCODE_LMETA,     "Left "  META_KEY_NAME },
 	{"RMETA",     KEYCODE_RMETA,     "Right " META_KEY_NAME },
 
-	{0, KEYCODE_INVALID, 0}
+	{nullptr, KEYCODE_INVALID, nullptr}
 };
 
 // TODO: Add NUM_LOCK
@@ -242,43 +241,43 @@ const ModifierTableEntry defaultModifiers[] = {
 };
 
 const HardwareInputTableEntry defaultMouseButtons[] = {
-    { "MOUSE_LEFT",       MOUSE_BUTTON_LEFT,   _s("Left Mouse Button")   },
-    { "MOUSE_RIGHT",      MOUSE_BUTTON_RIGHT,  _s("Right Mouse Button")  },
-    { "MOUSE_MIDDLE",     MOUSE_BUTTON_MIDDLE, _s("Middle Mouse Button") },
-    { "MOUSE_WHEEL_UP",   MOUSE_WHEEL_UP,      _s("Mouse Wheel Up")      },
-    { "MOUSE_WHEEL_DOWN", MOUSE_WHEEL_DOWN,    _s("Mouse Wheel Down")    },
-    { "MOUSE_X1",         MOUSE_BUTTON_X1,     _s("X1 Mouse Button")     },
-    { "MOUSE_X2",         MOUSE_BUTTON_X2,     _s("X2 Mouse Button")     },
-    { nullptr,            0,                   nullptr                   }
+	{ "MOUSE_LEFT",       MOUSE_BUTTON_LEFT,   _s("Left Mouse Button")   },
+	{ "MOUSE_RIGHT",      MOUSE_BUTTON_RIGHT,  _s("Right Mouse Button")  },
+	{ "MOUSE_MIDDLE",     MOUSE_BUTTON_MIDDLE, _s("Middle Mouse Button") },
+	{ "MOUSE_WHEEL_UP",   MOUSE_WHEEL_UP,      _s("Mouse Wheel Up")      },
+	{ "MOUSE_WHEEL_DOWN", MOUSE_WHEEL_DOWN,    _s("Mouse Wheel Down")    },
+	{ "MOUSE_X1",         MOUSE_BUTTON_X1,     _s("X1 Mouse Button")     },
+	{ "MOUSE_X2",         MOUSE_BUTTON_X2,     _s("X2 Mouse Button")     },
+	{ nullptr,            0,                   nullptr                   }
 };
 
 const HardwareInputTableEntry defaultJoystickButtons[] = {
-    { "JOY_A",              JOYSTICK_BUTTON_A,              _s("Joy A")          },
-    { "JOY_B",              JOYSTICK_BUTTON_B,              _s("Joy B")          },
-    { "JOY_X",              JOYSTICK_BUTTON_X,              _s("Joy X")          },
-    { "JOY_Y",              JOYSTICK_BUTTON_Y,              _s("Joy Y")          },
-    { "JOY_BACK",           JOYSTICK_BUTTON_BACK,           _s("Joy Back")       },
-    { "JOY_GUIDE",          JOYSTICK_BUTTON_GUIDE,          _s("Joy Guide")      },
-    { "JOY_START",          JOYSTICK_BUTTON_START,          _s("Joy Start")      },
-    { "JOY_LEFT_STICK",     JOYSTICK_BUTTON_LEFT_STICK,     _s("Left Stick")     },
-    { "JOY_RIGHT_STICK",    JOYSTICK_BUTTON_RIGHT_STICK,    _s("Right Stick")    },
-    { "JOY_LEFT_SHOULDER",  JOYSTICK_BUTTON_LEFT_SHOULDER,  _s("Left Shoulder")  },
-    { "JOY_RIGHT_SHOULDER", JOYSTICK_BUTTON_RIGHT_SHOULDER, _s("Right Shoulder") },
-    { "JOY_UP",             JOYSTICK_BUTTON_DPAD_UP,        _s("D-pad Up")       },
-    { "JOY_DOWN",           JOYSTICK_BUTTON_DPAD_DOWN,      _s("D-pad Down")     },
-    { "JOY_LEFT",           JOYSTICK_BUTTON_DPAD_LEFT,      _s("D-pad Left")     },
-    { "JOY_RIGHT",          JOYSTICK_BUTTON_DPAD_RIGHT,     _s("D-pad Right")    },
-    { nullptr,              0,                              nullptr              }
+	{ "JOY_A",              JOYSTICK_BUTTON_A,              _s("Joy A")          },
+	{ "JOY_B",              JOYSTICK_BUTTON_B,              _s("Joy B")          },
+	{ "JOY_X",              JOYSTICK_BUTTON_X,              _s("Joy X")          },
+	{ "JOY_Y",              JOYSTICK_BUTTON_Y,              _s("Joy Y")          },
+	{ "JOY_BACK",           JOYSTICK_BUTTON_BACK,           _s("Joy Back")       },
+	{ "JOY_GUIDE",          JOYSTICK_BUTTON_GUIDE,          _s("Joy Guide")      },
+	{ "JOY_START",          JOYSTICK_BUTTON_START,          _s("Joy Start")      },
+	{ "JOY_LEFT_STICK",     JOYSTICK_BUTTON_LEFT_STICK,     _s("Left Stick")     },
+	{ "JOY_RIGHT_STICK",    JOYSTICK_BUTTON_RIGHT_STICK,    _s("Right Stick")    },
+	{ "JOY_LEFT_SHOULDER",  JOYSTICK_BUTTON_LEFT_SHOULDER,  _s("Left Shoulder")  },
+	{ "JOY_RIGHT_SHOULDER", JOYSTICK_BUTTON_RIGHT_SHOULDER, _s("Right Shoulder") },
+	{ "JOY_UP",             JOYSTICK_BUTTON_DPAD_UP,        _s("D-pad Up")       },
+	{ "JOY_DOWN",           JOYSTICK_BUTTON_DPAD_DOWN,      _s("D-pad Down")     },
+	{ "JOY_LEFT",           JOYSTICK_BUTTON_DPAD_LEFT,      _s("D-pad Left")     },
+	{ "JOY_RIGHT",          JOYSTICK_BUTTON_DPAD_RIGHT,     _s("D-pad Right")    },
+	{ nullptr,              0,                              nullptr              }
 };
 
 const AxisTableEntry defaultJoystickAxes[] = {
-    { "JOY_LEFT_TRIGGER",  JOYSTICK_AXIS_LEFT_TRIGGER,  kAxisTypeHalf, _s("Left Trigger")  },
-    { "JOY_RIGHT_TRIGGER", JOYSTICK_AXIS_RIGHT_TRIGGER, kAxisTypeHalf, _s("Right Trigger") },
-    { "JOY_LEFT_STICK_X",  JOYSTICK_AXIS_LEFT_STICK_X,  kAxisTypeFull, _s("Left Stick X")  },
-    { "JOY_LEFT_STICK_Y",  JOYSTICK_AXIS_LEFT_STICK_Y,  kAxisTypeFull, _s("Left Stick Y")  },
-    { "JOY_RIGHT_STICK_X", JOYSTICK_AXIS_RIGHT_STICK_X, kAxisTypeFull, _s("Right Stick X") },
-    { "JOY_RIGHT_STICK_Y", JOYSTICK_AXIS_RIGHT_STICK_Y, kAxisTypeFull, _s("Right Stick Y") },
-    { nullptr,             0,                           kAxisTypeFull, nullptr             }
+	{ "JOY_LEFT_TRIGGER",  JOYSTICK_AXIS_LEFT_TRIGGER,  kAxisTypeHalf, _s("Left Trigger")  },
+	{ "JOY_RIGHT_TRIGGER", JOYSTICK_AXIS_RIGHT_TRIGGER, kAxisTypeHalf, _s("Right Trigger") },
+	{ "JOY_LEFT_STICK_X",  JOYSTICK_AXIS_LEFT_STICK_X,  kAxisTypeFull, _s("Left Stick X")  },
+	{ "JOY_LEFT_STICK_Y",  JOYSTICK_AXIS_LEFT_STICK_Y,  kAxisTypeFull, _s("Left Stick Y")  },
+	{ "JOY_RIGHT_STICK_X", JOYSTICK_AXIS_RIGHT_STICK_X, kAxisTypeFull, _s("Right Stick X") },
+	{ "JOY_RIGHT_STICK_Y", JOYSTICK_AXIS_RIGHT_STICK_Y, kAxisTypeFull, _s("Right Stick Y") },
+	{ nullptr,             0,                           kAxisTypeFull, nullptr             }
 };
 
 HardwareInputSet::~HardwareInputSet() {
@@ -297,7 +296,7 @@ HardwareInput KeyboardHardwareInputSet::findHardwareInput(const String &id) cons
 	byte modifierFlags = 0;
 
 	// TODO: Normalize modifier order
-	String fullKeyDesc;
+	U32String fullKeyDesc;
 
 	String token;
 	while (!tokenizer.empty()) {
@@ -312,7 +311,7 @@ HardwareInput KeyboardHardwareInputSet::findHardwareInput(const String &id) cons
 
 		if (modifier && modifier->id) {
 			modifierFlags |= modifier->flag;
-			fullKeyDesc += modifier->desc;
+			fullKeyDesc += _(modifier->desc);
 		} else {
 			// We reached the end of the modifiers, the token is a keycode
 			break;
@@ -335,7 +334,7 @@ HardwareInput KeyboardHardwareInputSet::findHardwareInput(const String &id) cons
 	}
 
 	const KeyState keystate = KeyState(key->keycode, 0, modifierFlags);
-	return HardwareInput::createKeyboard(id, keystate, fullKeyDesc + key->desc);
+	return HardwareInput::createKeyboard(id, keystate, fullKeyDesc + _(key->desc));
 }
 
 HardwareInput KeyboardHardwareInputSet::findHardwareInput(const Event &event) const {
@@ -356,20 +355,20 @@ HardwareInput KeyboardHardwareInputSet::findHardwareInput(const Event &event) co
 		}
 
 		String id;
-		String fullKeyDesc;
+		U32String fullKeyDesc;
 		byte modifierFlags = 0;
 
 		for (const ModifierTableEntry *modifier = _modifiers;  modifier->id; modifier++) {
 			if (normalizedKeystate.flags & modifier->flag) {
 				id += modifier->id;
 				id += "+";
-				fullKeyDesc += modifier->desc;
+				fullKeyDesc += _(modifier->desc);
 				modifierFlags |= modifier->flag;
 			}
 		}
 
 		const KeyState keystate = KeyState(key->keycode, 0, modifierFlags);
-		return HardwareInput::createKeyboard(id + key->hwId, keystate, fullKeyDesc + key->desc);
+		return HardwareInput::createKeyboard(id + key->hwId, keystate, fullKeyDesc + _(key->desc));
 	}
 	default:
 		return HardwareInput();
@@ -431,7 +430,7 @@ HardwareInput MouseHardwareInputSet::findHardwareInput(const String &id) const {
 		return HardwareInput();
 	}
 
-	return HardwareInput::createMouse(hw->hwId, hw->code, hw->desc);
+	return HardwareInput::createMouse(hw->hwId, hw->code, _(hw->desc));
 }
 
 HardwareInput MouseHardwareInputSet::findHardwareInput(const Event &event) const {
@@ -477,7 +476,7 @@ HardwareInput MouseHardwareInputSet::findHardwareInput(const Event &event) const
 		return HardwareInput();
 	}
 
-	return HardwareInput::createMouse(hw->hwId, hw->code, hw->desc);
+	return HardwareInput::createMouse(hw->hwId, hw->code, _(hw->desc));
 }
 
 JoystickHardwareInputSet::JoystickHardwareInputSet(const HardwareInputTableEntry *buttonEntries, const AxisTableEntry *axisEntries) :
@@ -490,7 +489,7 @@ JoystickHardwareInputSet::JoystickHardwareInputSet(const HardwareInputTableEntry
 HardwareInput JoystickHardwareInputSet::findHardwareInput(const String &id) const {
 	const HardwareInputTableEntry *hw = HardwareInputTableEntry::findWithId(_buttonEntries, id);
 	if (hw && hw->hwId) {
-		return HardwareInput::createJoystickButton(hw->hwId, hw->code, hw->desc);
+		return HardwareInput::createJoystickButton(hw->hwId, hw->code, _(hw->desc));
 	}
 
 	bool hasHalfSuffix = id.lastChar() == '-' || id.lastChar() == '+';
@@ -504,10 +503,10 @@ HardwareInput JoystickHardwareInputSet::findHardwareInput(const String &id) cons
 		}
 
 		if (axis->type == kAxisTypeHalf) {
-			return HardwareInput::createJoystickHalfAxis(axis->hwId, axis->code, true, axis->desc);
+			return HardwareInput::createJoystickHalfAxis(axis->hwId, axis->code, true, _(axis->desc));
 		} else {
 			bool positiveHalf = id.lastChar() == '+';
-			Common::String desc = String::format("%s%c", axis->desc, id.lastChar());
+			Common::U32String desc = U32String::format("%S%c", _(axis->desc).c_str(), id.lastChar());
 			return HardwareInput::createJoystickHalfAxis(id, axis->code, positiveHalf, desc);
 		}
 	}
@@ -524,7 +523,7 @@ HardwareInput JoystickHardwareInputSet::findHardwareInput(const Event &event) co
 			return HardwareInput();
 		}
 
-		return HardwareInput::createJoystickButton(hw->hwId, hw->code, hw->desc);
+		return HardwareInput::createJoystickButton(hw->hwId, hw->code, _(hw->desc));
 	}
 	case EVENT_JOYAXIS_MOTION: {
 		if (ABS(event.joystick.position) < (JOYAXIS_MAX / 2)) {
@@ -537,12 +536,12 @@ HardwareInput JoystickHardwareInputSet::findHardwareInput(const Event &event) co
 		}
 
 		if (hw->type == kAxisTypeHalf) {
-			return HardwareInput::createJoystickHalfAxis(hw->hwId, hw->code, true, hw->desc);
+			return HardwareInput::createJoystickHalfAxis(hw->hwId, hw->code, true, _(hw->desc));
 		} else {
 			bool positiveHalf = event.joystick.position >= 0;
 			char halfSuffix = positiveHalf ? '+' : '-';
 			Common::String hwId = String::format("%s%c", hw->hwId, halfSuffix);
-			Common::String desc = String::format("%s%c", hw->desc, halfSuffix);
+			Common::U32String desc = U32String::format("%S%c", _(hw->desc).c_str(), halfSuffix);
 			return HardwareInput::createJoystickHalfAxis(hwId, hw->code, positiveHalf, desc);
 		}
 	}
@@ -563,7 +562,7 @@ HardwareInput CustomHardwareInputSet::findHardwareInput(const String &id) const 
 		return HardwareInput();
 	}
 
-	return HardwareInput::createCustom(hw->hwId, hw->code, hw->desc);
+	return HardwareInput::createCustom(hw->hwId, hw->code, _(hw->desc));
 }
 
 HardwareInput CustomHardwareInputSet::findHardwareInput(const Event &event) const {
@@ -574,7 +573,7 @@ HardwareInput CustomHardwareInputSet::findHardwareInput(const Event &event) cons
 			return HardwareInput();
 		}
 
-		return HardwareInput::createCustom(hw->hwId, hw->code, hw->desc);
+		return HardwareInput::createCustom(hw->hwId, hw->code, _(hw->desc));
 	}
 	default:
 		return HardwareInput();

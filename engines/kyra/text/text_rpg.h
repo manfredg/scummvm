@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,11 +38,12 @@ public:
 
 	void setupField(int dim, bool mode);
 
-	void printDialogueText(int stringId, const char *pageBreakString);
-	void printDialogueText(const char *str, bool wait = false);
+	virtual void printDialogueText(int stringId, const char *pageBreakString, const char *pageBreakString2 = 0);
+	virtual void printDialogueText(const char *str, bool wait = false);
 	void printMessage(const char *str, int textColor = -1, ...);
+	virtual void printShadedText(const char *str, int x = -1, int y = -1, int textColor = -1, int shadowColor = -1, int pitchW = -1, int pitchH = -1, int marginRight = 0, bool screenUpdate = true) {}
 
-	int clearDim(int dim);
+	virtual int clearDim(int dim);
 	void clearCurDim();
 
 	void resetDimTextPositions(int dim);
@@ -60,7 +60,7 @@ protected:
 	virtual KyraRpgEngine *vm() { return _vm; }
 	virtual Screen *screen() { return _screen; }
 
-	void displayText(char *str, ...);
+	virtual void displayText(char *str, ...);
 	char parseCommand();
 	void readNextPara();
 	void printLine(char *str);
@@ -103,9 +103,9 @@ protected:
 	};
 
 	TextDimData *_textDimData;
+	KyraRpgEngine *_vm;
 
 private:
-	KyraRpgEngine *_vm;
 	Screen *_screen;
 
 	char *_table1;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 #include "saga/saga.h"
@@ -39,6 +38,13 @@ int SagaEngine::processInput() {
 	Common::Event event;
 
 	while (_eventMan->pollEvent(event)) {
+		// Scale down mouse coordinates for the Japanese version which runs in double resolution internally.
+		if ((event.type == Common::EVENT_LBUTTONDOWN || event.type == Common::EVENT_RBUTTONDOWN ||
+			event.type == Common::EVENT_WHEELUP || event.type == Common::EVENT_WHEELDOWN) && getLanguage() == Common::JA_JPN) {
+				event.mouse.x >>= 1;
+				event.mouse.y >>= 1;
+		}
+
 		switch (event.type) {
 		case Common::EVENT_KEYDOWN:
 			if (_interface->_textInput || _interface->_statusTextInput) {
@@ -145,7 +151,14 @@ int SagaEngine::processInput() {
 }
 
 Point SagaEngine::mousePos() const {
-	return _eventMan->getMousePos();
+	Common::Point pos = _eventMan->getMousePos();
+	// Scale down mouse coordinates for the Japanese version which runs in double resolution internally.
+	if (getLanguage() == Common::JA_JPN) {
+		pos.x >>= 1;
+		pos.y >>= 1;
+	}
+
+	return pos;
 }
 
 } // End of namespace Saga

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -313,7 +312,7 @@ void RivenScript::applyCardPatches(MohawkEngine_Riven *vm, uint32 cardGlobalId, 
 	// switchCard(534);
 	// playSound(112, 256, 0);
 	if (cardGlobalId == 0x2E900 && scriptType == kMouseDownScript && hotspotId == 3
-			&& !(vm->getFeatures() & GF_DVD)) {
+			&& !vm->isGameVariant(GF_DVD)) {
 		shouldApplyPatches = true;
 		RivenSimpleCommand::ArgumentArray arguments;
 		arguments.push_back(112);
@@ -325,7 +324,7 @@ void RivenScript::applyCardPatches(MohawkEngine_Riven *vm, uint32 cardGlobalId, 
 
 	// Second part of the patch to fix the invalid card change when entering Gehn's office
 	// The first part is in the card patches.
-	if (cardGlobalId == 0x2E76 && scriptType == kCardUpdateScript && !(vm->getFeatures() & GF_DVD)) {
+	if (cardGlobalId == 0x2E76 && scriptType == kCardUpdateScript && !vm->isGameVariant(GF_DVD)) {
 		shouldApplyPatches = true;
 
 		for (uint i = 0; i < _commands.size(); i++) {
@@ -367,7 +366,7 @@ void RivenScript::applyCardPatches(MohawkEngine_Riven *vm, uint32 cardGlobalId, 
 	// Override the main menu new game script to call an external command.
 	// This way we can reset all the state when starting a new game while a game is already started.
 	if (cardGlobalId == 0xE2E && scriptType == kMouseDownScript && hotspotId == 16
-			&& (vm->getFeatures() & GF_25TH)) {
+			&& vm->isGameVariant(GF_25TH)) {
 		shouldApplyPatches = true;
 		_commands.clear();
 
@@ -919,7 +918,7 @@ void RivenSwitchCommand::applyCardPatches(uint32 globalId, int scriptType, uint1
 }
 
 RivenStackChangeCommand::RivenStackChangeCommand(MohawkEngine_Riven *vm, uint16 stackId, uint32 globalCardId,
-                                                 bool byStackId, bool byStackCardId) :
+												 bool byStackId, bool byStackCardId) :
 		RivenCommand(vm),
 		_stackId(stackId),
 		_cardId(globalCardId),

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,7 @@ const PlainGameDescriptor MAGNETIC_GAME_LIST[] = {
 	{ "corruption", "Corruption" },
 	{ "fish", "Fish!" },
 	{ "guild", "The Guild of Thieves" },
+	{ "jinxter", "Jinxter" },
 	{ "myth", "Myth" },
 	{ "pawn", "the Pawn" },
 	{ "wonderland", "Wonderland" },
@@ -47,10 +47,11 @@ const GlkDetectionEntry MAGNETIC_GAMES[] = {
 	DT_ENTRY1("fish", "Collection", "cfe333306597d36c8aa3fc64f6be94ba", 172517),
 	DT_ENTRY0("guild", "bab78740d39ee5e058faf4912fdbf33d", 130858),
 	DT_ENTRY1("guild", "Collection", "36af907a4ec9db909148f308287586f1", 141766),
+	DT_ENTRY0("jinxter", "998cf5c49a67409bd344e59307a5213e", 156458),
 	DT_ENTRY0("myth", "9c2a5272a9c0b1e173401ba4df32567a", 99370),
 	DT_ENTRY0("pawn", "4a7847980f9e942acd7aa51ea12a6586", 103466),
 	DT_ENTRY0("wonderland", "2cea8fccf42d570be8836416c2802613", 183916),
-	
+
 	DT_END_MARKER
 };
 

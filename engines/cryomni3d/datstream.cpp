@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 namespace CryOmni3D {
 
 DATSeekableStream *DATSeekableStream::getGame(Common::SeekableReadStream *stream,
-        uint32 gameId, uint16 version, Common::Language lang, Common::Platform platform) {
+		uint32 gameId, uint16 version, Common::Language lang, Common::Platform platform) {
 	if (stream == nullptr) {
 		return nullptr;
 	}
@@ -127,8 +126,14 @@ uint16 DATSeekableStream::translateLanguage(Common::Language lang) {
 		return MKTAG16('f', 'r');
 	case Common::IT_ITA:
 		return MKTAG16('i', 't');
+	case Common::JA_JPN:
+		return MKTAG16('j', 'a');
+	case Common::KO_KOR:
+		return MKTAG16('k', 'o');
 	case Common::PT_BRA:
 		return MKTAG16('b', 'r');
+	case Common::ZH_TWN:
+		return MKTAG16('z', 't');
 	default:
 		// Invalid language
 		return 0;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -53,6 +52,7 @@ public:
 
 	virtual const DataBlockPtr getDataBlock(const Common::String &filename, uint offset = 0) const = 0;
 	virtual Common::SeekableReadStream *createReadStream(const Common::String &filename, uint offset = 0) const = 0;
+	virtual bool exists(const Common::String &filename) const = 0;
 
 protected:
 	class DataBlock : public Adl::DataBlock {
@@ -126,6 +126,7 @@ class Files_Plain : public Files {
 public:
 	const DataBlockPtr getDataBlock(const Common::String &filename, uint offset = 0) const override;
 	Common::SeekableReadStream *createReadStream(const Common::String &filename, uint offset = 0) const override;
+	bool exists(const Common::String &filename) const override { return Common::File::exists(filename); }
 };
 
 // Data in files contained in Apple DOS 3.3 disk image
@@ -134,9 +135,10 @@ public:
 	Files_AppleDOS();
 	~Files_AppleDOS() override;
 
-	bool open(const Common::String &filename, uint trackVTOC = 17);
+	bool open(const Common::String &filename);
 	const DataBlockPtr getDataBlock(const Common::String &filename, uint offset = 0) const override;
 	Common::SeekableReadStream *createReadStream(const Common::String &filename, uint offset = 0) const override;
+	bool exists(const Common::String &filename) const override { return _toc.contains(filename); }
 
 private:
 	enum FileType {
@@ -161,7 +163,7 @@ private:
 		Common::Array<TrackSector> sectors;
 	};
 
-	void readVTOC(uint trackVTOC);
+	void readVTOC();
 	void readSectorList(TrackSector start, Common::Array<TrackSector> &list);
 	Common::SeekableReadStream *createReadStreamText(const TOCEntry &entry) const;
 	Common::SeekableReadStream *createReadStreamBinary(const TOCEntry &entry) const;
@@ -180,7 +182,7 @@ public:
 	DataBlock_PC(DiskImage *disk, byte track, byte sector, uint16 offset = 0) :
 			_disk(disk),
 			_track(track),
-			_sector(sector),	
+			_sector(sector),
 			_offset(offset) { }
 
 	~DataBlock_PC() override { }

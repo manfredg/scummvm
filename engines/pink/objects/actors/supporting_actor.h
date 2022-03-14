@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,15 +41,15 @@ public:
 	bool isLeftClickHandlers() const override;
 	bool isUseClickHandlers(InventoryItem *item) const override;
 
-	void onMouseOver(const Common::Point point, CursorMgr *mgr) override;
-	void onMouseOverWithItem(const Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr) override;
+	void onMouseOver(Common::Point point, CursorMgr *mgr) override;
+	void onMouseOverWithItem(Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr) override;
 
 	void onTimerMessage() override;
 	void onLeftClickMessage() override;
 	void onUseClickMessage(InventoryItem *item, InventoryMgr *mgr) override;
 
-	const Common::String &getPDALink() const override;
-	const Common::String &getLocation() const override;
+	Common::String getPDALink() const override;
+	Common::String getLocation() const override;
 
 private:
 	HandlerMgr _handlerMgr;

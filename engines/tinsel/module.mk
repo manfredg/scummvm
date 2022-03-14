@@ -1,6 +1,7 @@
 MODULE := engines/tinsel
 
 MODULE_OBJS := \
+    noir/lzss.o \
 	actors.o \
 	adpcm.o \
 	anim.o \
@@ -11,7 +12,6 @@ MODULE_OBJS := \
 	config.o \
 	cursor.o \
 	debugger.o \
-	detection.o \
 	dialogs.o \
 	drives.o \
 	effect.o \
@@ -22,7 +22,9 @@ MODULE_OBJS := \
 	handle.o \
 	heapmem.o \
 	mareels.o \
+	metaengine.o \
 	move.o \
+	movers.o \
 	multiobj.o \
 	music.o \
 	object.o \
@@ -31,7 +33,6 @@ MODULE_OBJS := \
 	pdisplay.o \
 	play.o \
 	polygons.o \
-	rince.o \
 	saveload.o \
 	savescn.o \
 	scene.o \
@@ -54,3 +55,6 @@ endif
 
 # Include common rules
 include $(srcdir)/rules.mk
+
+# Detection objects
+DETECT_OBJS += $(MODULE)/detection.o

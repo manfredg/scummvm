@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -103,25 +102,6 @@ static const gln_game_table_t GLN_GAME_TABLE[] = {
 	{0x63b6, 0x2e, 0xef38, "adventurequest", "Adventure Quest /JoD", "Commodore 64"},
 	{0x5b58, 0x50, 0x332e, "adventurequest", "Adventure Quest /JoD", "Atari"},
 	{0x5ace, 0x11, 0xdc12, "adventurequest", "Adventure Quest /JoD", "Spectrum 48"},
-
-	{0x3ebb, 0x00, 0xf6dc, "championraj", "Champion of the Raj", "English 1/2 GD/Amiga"},
-	{0x0fd8, 0x00, 0xf250, "championraj", "Champion of the Raj", "English 2/2 GD/Amiga"},
-
-	{0x3e8f, 0x00, 0x5599, "championraj", "Champion of the Raj", "English 1/2 GD/ST"},
-
-	{0x3e4f, 0x00, 0xb202, "championraj", "Champion of the Raj", "English 1/2 GD/PC"},
-	{0x14a3, 0x00, 0xa288, "championraj", "Champion of the Raj", "English 2/2 GD/PC"},
-
-	{0x1929, 0x00, 0xd4b2, "championraj", "Champion of the Raj", "demo, 1/2 GD/ST"},
-	{0x40e0, 0x02, 0x080d, "championraj", "Champion of the Raj", "demo, 2/2 GD/ST"},
-
-	{0x4872, 0x00, 0x9515, "championraj", "Champion of the Raj", "German 1/2 GD/Amiga"},
-	{0x11f5, 0x00, 0xbf39, "championraj", "Champion of the Raj", "German 2/2 GD/Amiga"},
-
-	{0x4846, 0x00, 0xd9c1, "championraj", "Champion of the Raj", "German 1/2 GD/ST"},
-	{0x11f5, 0x00, 0x7aa4, "championraj", "Champion of the Raj", "German 2/2 GD/ST"},
-
-	{0x110f, 0x00, 0x4b57, "championraj", "Champion of the Raj", "French 2/2 GD/ST"},
 
 	{0x76f4, 0x5e, 0x1fe5, "colossaladvjod", "Colossal Adventure /JoD", "Amiga/PC"},
 	{0x76f4, 0x5a, 0xcf4b, "colossaladvjod", "Colossal Adventure /JoD", "ST"},

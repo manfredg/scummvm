@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,7 +41,7 @@ SoundTowns_Darkmoon::SoundTowns_Darkmoon(KyraEngine_v1 *vm, Audio::Mixer *mixer)
 	_timerSwitch = 0;
 	memset(_resource, 0, sizeof(_resource));
 }
-	
+
 SoundTowns_Darkmoon::~SoundTowns_Darkmoon() {
 	for (int i = 0; i < 3; i++)
 		initAudioResourceInfo(i, 0);
@@ -100,7 +99,7 @@ void SoundTowns_Darkmoon::selectAudioResourceSet(int set) {
 	_fileListLen = _resource[set]->numFiles;
 
 	_pcmDataSize = _resource[kMusicIngame]->pcmDataSize;
-	_pcmData = new uint8[_pcmDataSize];	
+	_pcmData = new uint8[_pcmDataSize];
 	_pcmVol = _resource[set]->pcmVolume;
 	memcpy(_pcmData, _resource[kMusicIngame]->pcmData, _pcmDataSize);
 
@@ -141,7 +140,7 @@ void SoundTowns_Darkmoon::loadSoundFile(Common::String name) {
 		uint8 *src = pmb + 8;
 		for (int i = 0; i < 32; i++)
 			_intf->callback(5, 0x40, i, &src[i << 7]);
-		
+
 		_intf->callback(35, -1);
 		src += 0x1000;
 		bytesLeft -= 0x1008;
@@ -214,7 +213,7 @@ bool SoundTowns_Darkmoon::isPlaying() const {
 	return g_system->getAudioCDManager()->isPlaying();
 }
 
-void SoundTowns_Darkmoon::playSoundEffect(uint8 track, uint8 volume) {
+void SoundTowns_Darkmoon::playSoundEffect(uint16 track, uint8 volume) {
 	if (!_sfxEnabled)
 		return;
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,6 +48,7 @@ Dialog::Dialog(int x, int y, int w, int h)
 	// started a 640x480 game with a non 1x scaler.
 	g_gui.checkScreenChange();
 
+	_mouseUpdatedOnFocus = true;
 	_result = -1;
 }
 
@@ -62,10 +62,11 @@ Dialog::Dialog(const Common::String &name)
 	// resolution change, so widgets will be off screen. This forces it to
 	// recompute
 	//
-	// Fixes bug #1590596: "HE: When 3x graphics are choosen, F5 crashes game"
-	// and bug #1595627: "SCUMM: F5 crashes game (640x480)"
+	// Fixes bug #2892: "HE: When 3x graphics are choosen, F5 crashes game"
+	// and bug #2903: "SCUMM: F5 crashes game (640x480)"
 	g_gui.checkScreenChange();
 
+	_mouseUpdatedOnFocus = true;
 	_result = -1;
 }
 
@@ -172,6 +173,10 @@ void Dialog::drawDialog(DrawLayer layerToDraw) {
 	g_gui.theme()->drawDialogBackground(Common::Rect(_x, _y, _x + _w, _y + _h), _backgroundType);
 
 	markWidgetsAsDirty();
+
+#ifdef LAYOUT_DEBUG_DIALOG
+	return;
+#endif
 	drawWidgets();
 }
 
@@ -251,6 +256,11 @@ void Dialog::handleKeyDown(Common::KeyState state) {
 	}
 
 	// Hotkey handling
+
+	// Convert keypad Enter to Return key
+	if (state.keycode == Common::KEYCODE_KP_ENTER) {
+		state.ascii = Common::ASCII_RETURN;
+	}
 	if (state.ascii != 0) {
 		Widget *w = _firstWidget;
 		state.ascii = toupper(state.ascii);
@@ -356,6 +366,10 @@ void Dialog::handleTickle() {
 void Dialog::handleCommand(CommandSender *sender, uint32 cmd, uint32 data) {
 	switch (cmd) {
 	case kCloseCmd:
+		close();
+		break;
+	case kCloseWithResultCmd:
+		setResult(data);
 		close();
 		break;
 	default:

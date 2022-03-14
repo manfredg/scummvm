@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -418,7 +417,7 @@ void AGOSEngine_Simon1::handleMouseMoved() {
 
 		if (_rightButtonDown) {
 			_rightButtonDown = false;
-			setVerb(NULL);
+			setVerb(nullptr);
 		}
 	} else if (getGameType() == GType_SIMON2) {
 		if (getBitFlag(79)) {
@@ -451,7 +450,7 @@ void AGOSEngine_Simon1::handleMouseMoved() {
 	_leftButtonOld = _leftButton;
 
 	x = 0;
-	if (_lastHitArea3 == 0 && _leftButtonDown) {
+	if (_lastHitArea3 == nullptr && _leftButtonDown) {
 		_leftButtonDown = false;
 		x = 1;
 	} else {
@@ -461,7 +460,7 @@ void AGOSEngine_Simon1::handleMouseMoved() {
 
 	boxController(_mouse.x, _mouse.y, x);
 	_lastHitArea3 = _lastHitArea;
-	if (x == 1 && _lastHitArea == NULL)
+	if (x == 1 && _lastHitArea == nullptr)
 		_lastHitArea3 = (HitArea *) -1;
 
 get_out:
@@ -559,6 +558,10 @@ void AGOSEngine::handleMouseMoved() {
 			_needHitAreaRecalc++;
 		}
 	} else if (getGameType() == GType_ELVIRA1) {
+		if (getPlatform() == Common::kPlatformPC98) {
+			_mouse.x >>= 1;
+			_mouse.y >>= 1;
+		}
 		if (_mouseCursor != _variableArray[438]) {
 			_mouseCursor = _variableArray[438];
 			_needHitAreaRecalc++;
@@ -579,7 +582,7 @@ void AGOSEngine::handleMouseMoved() {
 		_needHitAreaRecalc++;
 
 	if (_leftButtonOld == 0 && _leftButton != 0) {
-		_lastClickRem = 0;
+		_lastClickRem = nullptr;
 		boxController(_mouse.x, _mouse.y, 3);
 	}
 	_leftButtonOld = _leftButton;
@@ -592,7 +595,7 @@ void AGOSEngine::handleMouseMoved() {
 			goto boxstuff;
 	}
 
-	if (_leftButton != 0 && _dragAccept && _lastClickRem != NULL) {
+	if (_leftButton != 0 && _dragAccept && _lastClickRem != nullptr) {
 		_dragCount++;
 		if (_dragCount == 20) {
 			_dragMode = true;
@@ -784,6 +787,12 @@ static const byte mouseCursorPalette[] = {
 void AGOSEngine::initMouse() {
 	_maxCursorWidth = 16;
 	_maxCursorHeight = 16;
+
+	if (getGameId() == GID_ELVIRA1 && getPlatform() == Common::kPlatformPC98) {
+		_maxCursorWidth <<= 1;
+		_maxCursorHeight <<= 1;
+	}
+
 	_mouseData = (byte *)calloc(_maxCursorWidth * _maxCursorHeight, 1);
 
 	memset(_mouseData, 0xFF, _maxCursorWidth * _maxCursorHeight);
@@ -864,7 +873,21 @@ void AGOSEngine::drawMousePointer() {
 			src += 2;
 		}
 
-		CursorMan.replaceCursor(_mouseData, 16, 16, 0, 0, 0xFF);
+		if (getGameId() == GID_ELVIRA1 && getPlatform() == Common::kPlatformPC98) {
+			// Simple 2x upscaling for the cursor in dual layer hi-res mode.
+			uint8 ptch = 16;
+			uint16 *dst1 = &((uint16*)_mouseData)[16 * 16 * 2 - 1];
+			uint16 *dst2 = dst1 - ptch;
+			for (const byte *pos = &_mouseData[16 * 16 - 1]; pos >= _mouseData; --pos) {
+				*dst1-- = *dst2-- = (*pos << 8) | *pos;
+				if (!(ptch = (ptch - 1) % 16)) {
+					dst1 -= 16;
+					dst2 -= 16;
+				}
+			}
+		}
+
+		CursorMan.replaceCursor(_mouseData, _maxCursorWidth, _maxCursorHeight, 0, 0, 0xFF);
 	}
 }
 

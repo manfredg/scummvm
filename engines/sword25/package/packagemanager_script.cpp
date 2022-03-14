@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -80,9 +79,9 @@ static void splitSearchPath(const Common::String &path, Common::String &director
 static void doSearch(lua_State *L, const Common::String &path, uint type) {
 	PackageManager *pPM = getPM();
 
-	// Der Packagemanager-Service muss den Suchstring und den Pfad getrennt übergeben bekommen.
-	// Um die Benutzbarkeit zu verbessern sollen Skriptprogrammierer dieses als ein Pfad übergeben können.
-	// Daher muss der übergebene Pfad am letzten Slash aufgesplittet werden.
+	// Der Packagemanager-Service muss den Suchstring und den Pfad getrennt Ã¼bergeben bekommen.
+	// Um die Benutzbarkeit zu verbessern sollen Skriptprogrammierer dieses als ein Pfad Ã¼bergeben kÃ¶nnen.
+	// Daher muss der Ã¼bergebene Pfad am letzten Slash aufgesplittet werden.
 	Common::String directory;
 	Common::String filter;
 	splitSearchPath(path, directory, filter);
@@ -90,7 +89,7 @@ static void doSearch(lua_State *L, const Common::String &path, uint type) {
 	// Ergebnistable auf dem Lua-Stack erstellen
 	lua_newtable(L);
 
-	// Suche durchführen und die Namen aller gefundenen Dateien in die Ergebnistabelle einfügen.
+	// Suche durchfÃ¼hren und die Namen aller gefundenen Dateien in die Ergebnistabelle einfÃ¼gen.
 	// Als Indizes werden fortlaufende Nummern verwandt.
 	uint resultNr = 1;
 	Common::ArchiveMemberList list;

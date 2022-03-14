@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,33 +15,26 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 
 #include "ultima/ultima8/world/actors/targeted_anim_process.h"
 #include "ultima/ultima8/world/actors/animation_tracker.h"
 
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
-
 namespace Ultima {
 namespace Ultima8 {
 
-// p_dynamic_cast stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE(TargetedAnimProcess, ActorAnimProcess)
+DEFINE_RUNTIME_CLASSTYPE_CODE(TargetedAnimProcess)
 
-TargetedAnimProcess::TargetedAnimProcess() : ActorAnimProcess() {
-
+TargetedAnimProcess::TargetedAnimProcess() : ActorAnimProcess(),
+		_x(0), _y(0), _z(0) {
 }
 
-TargetedAnimProcess::TargetedAnimProcess(Actor *actor_, Animation::Sequence action_, uint32 dir_, int32 coords[3]) : ActorAnimProcess(actor_, action_, dir_) {
-	_x = coords[0];
-	_y = coords[1];
-	_z = coords[2];
+TargetedAnimProcess::TargetedAnimProcess(Actor *actor, Animation::Sequence action, Direction dir, int32 coords[3]) :
+	ActorAnimProcess(actor, action, dir),
+	_x(coords[0]), _y(coords[1]), _z(coords[2]) {
 }
 
 bool TargetedAnimProcess::init() {
@@ -53,21 +46,21 @@ bool TargetedAnimProcess::init() {
 }
 
 
-void TargetedAnimProcess::saveData(ODataSource *ods) {
-	ActorAnimProcess::saveData(ods);
+void TargetedAnimProcess::saveData(Common::WriteStream *ws) {
+	ActorAnimProcess::saveData(ws);
 
-	ods->write4(static_cast<uint32>(_x));
-	ods->write4(static_cast<uint32>(_y));
-	ods->write4(static_cast<uint32>(_z));
+	ws->writeUint32LE(static_cast<uint32>(_x));
+	ws->writeUint32LE(static_cast<uint32>(_y));
+	ws->writeUint32LE(static_cast<uint32>(_z));
 
 }
 
-bool TargetedAnimProcess::loadData(IDataSource *ids, uint32 version) {
-	if (!ActorAnimProcess::loadData(ids, version)) return false;
+bool TargetedAnimProcess::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!ActorAnimProcess::loadData(rs, version)) return false;
 
-	_x = ids->read4();
-	_y = ids->read4();
-	_z = ids->read4();
+	_x = rs->readUint32LE();
+	_y = rs->readUint32LE();
+	_z = rs->readUint32LE();
 
 	return true;
 }

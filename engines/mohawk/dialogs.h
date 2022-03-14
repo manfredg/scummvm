@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,12 @@
 
 #include "common/events.h"
 #include "common/str.h"
+#include "common/ustr.h"
+
+#include "engines/dialogs.h"
+
 #include "gui/dialog.h"
+#include "gui/widget.h"
 
 namespace GUI {
 class SaveLoadChooser;
@@ -45,13 +49,13 @@ class MohawkEngine;
 class InfoDialog : public GUI::Dialog {
 protected:
 	MohawkEngine *_vm;
-	Common::String _message;
+	Common::U32String _message;
 	GUI::StaticTextWidget *_text;
 
 public:
-	InfoDialog(MohawkEngine *vm, const Common::String &message);
+	InfoDialog(MohawkEngine *vm, const Common::U32String &message);
 
-	void setInfoText(const Common::String &message);
+	void setInfoText(const Common::U32String &message);
 
 	void handleMouseDown(int x, int y, int button, int clickCount) override {
 		setResult(0);
@@ -68,107 +72,73 @@ public:
 
 class PauseDialog : public InfoDialog {
 public:
-	PauseDialog(MohawkEngine* vm, const Common::String &message);
+	PauseDialog(MohawkEngine* vm, const Common::U32String &message);
 	void handleKeyDown(Common::KeyState state) override;
 };
 
-#if defined(ENABLE_MYST) || defined(ENABLE_RIVEN)
-
-class MohawkOptionsDialog : public GUI::Dialog {
-public:
-	explicit MohawkOptionsDialog();
-	~MohawkOptionsDialog() override;
-
-	void reflowLayout() override;
-	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
-};
-
-#endif
-
 #ifdef ENABLE_MYST
 
-class MohawkEngine_Myst;
-
-class MystOptionsDialog : public MohawkOptionsDialog {
+class MystOptionsWidget : public GUI::OptionsContainerWidget {
 public:
-	explicit MystOptionsDialog(MohawkEngine_Myst *vm);
-	~MystOptionsDialog() override;
+	MystOptionsWidget(GuiObject *boss, const Common::String &name, const Common::String &domain);
+	~MystOptionsWidget() override;
 
-	enum ResultAction {
-		kActionSaveSettings = 1,
-		kActionDropPage,
-		kActionShowMap,
-		kActionGoToMenu,
-		kActionShowCredits
-	};
-
-	void setCanDropPage(bool canDropPage);
-	void setCanShowMap(bool canShowMap);
-	void setCanReturnToMenu(bool canReturnToMenu);
-
-	bool getZipMode() const;
-	void setZipMode(bool enabled);
-	bool getTransitions() const;
-	void setTransitions(bool enabled);
-
-	void open() override;
+	// Widget API
 	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
 
-	int getLoadSlot() const { return _loadSlot; }
-	int getSaveSlot() const { return _saveSlot; }
-	Common::String getSaveDescription() const { return _saveDescription; }
+	// OptionsContainerWidget API
+	void load() override;
+	bool save() override;
 
 private:
-	void save();
-	void load();
+	// OptionsContainerWidget API
+	void defineLayout(GUI::ThemeEval &layouts, const Common::String &layoutName, const Common::String &overlayedLayout) const override;
 
-	MohawkEngine_Myst *_vm;
-
-	GUI::ButtonWidget    *_loadButton;
-	GUI::ButtonWidget    *_saveButton;
-	GUI::ButtonWidget    *_quitButton;
-
-	GUI::SaveLoadChooser *_loadDialog;
-	GUI::SaveLoadChooser *_saveDialog;
-
-	int _loadSlot;
-	int _saveSlot;
-	Common::String _saveDescription;
-
-	bool _canDropPage;
-	bool _canShowMap;
-	bool _canReturnToMenu;
+	bool isInGame() const;
 
 	GUI::CheckboxWidget *_zipModeCheckbox;
 	GUI::CheckboxWidget *_transitionsCheckbox;
+	GUI::CheckboxWidget *_mystFlyByCheckbox;
+	GUI::CheckboxWidget *_spaceshipFuzzyLogicCheckbox;
+	GUI::CheckboxWidget *_addCdromDelayCheckbox;
+
+	GUI::PopUpWidget *_languagePopUp;
 
 	GUI::ButtonWidget *_dropPageButton;
 	GUI::ButtonWidget *_showMapButton;
 	GUI::ButtonWidget *_returnToMenuButton;
 };
 
+class MystMenuDialog : public MainMenuDialog {
+public:
+	MystMenuDialog(Engine *engine);
+	~MystMenuDialog() override;
+
+	// MainMenuDialog API
+	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
+};
+
 #endif
 
 #ifdef ENABLE_RIVEN
 
-class RivenOptionsDialog : public MohawkOptionsDialog {
+class RivenOptionsWidget : public GUI::OptionsContainerWidget {
 public:
-	explicit RivenOptionsDialog();
-	~RivenOptionsDialog() override;
+	explicit RivenOptionsWidget(GuiObject *boss, const Common::String &name, const Common::String &domain);
+	~RivenOptionsWidget() override;
 
-	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
+	// OptionsContainerWidget API
+	void load() override;
+	bool save() override;
 
-	bool getZipMode() const;
-	void setZipMode(bool enabled);
-	bool getWaterEffect() const;
-	void setWaterEffect(bool enabled);
-	uint32 getTransitions() const;
-	void setTransitions(uint32 mode);
 private:
+	// OptionsContainerWidget API
+	void defineLayout(GUI::ThemeEval &layouts, const Common::String &layoutName, const Common::String &overlayedLayout) const override;
+
 	GUI::CheckboxWidget *_zipModeCheckbox;
 	GUI::CheckboxWidget *_waterEffectCheckbox;
-	GUI::StaticTextWidget *_transitionModeCaption;
 	GUI::PopUpWidget *_transitionModePopUp;
+	GUI::PopUpWidget *_languagePopUp;
 };
 
 #endif

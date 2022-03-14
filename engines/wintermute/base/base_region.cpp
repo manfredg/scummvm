@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,6 +25,7 @@
  * Copyright (c) 2011 Jan Nedoma
  */
 
+#include "engines/wintermute/wintermute.h"
 #include "engines/wintermute/base/base_region.h"
 #include "engines/wintermute/base/base_parser.h"
 #include "engines/wintermute/base/base_dynamic_buffer.h"
@@ -35,7 +35,6 @@
 #include "engines/wintermute/base/scriptables/script_value.h"
 #include "engines/wintermute/base/base_file_manager.h"
 #include "engines/wintermute/platform_osystem.h"
-#include <limits.h>
 
 namespace Wintermute {
 
@@ -46,7 +45,7 @@ BaseRegion::BaseRegion(BaseGame *inGame) : BaseObject(inGame) {
 	_active = true;
 	_editorSelectedPoint = -1;
 	_lastMimicScale = -1;
-	_lastMimicX = _lastMimicY = INT_MIN;
+	_lastMimicX = _lastMimicY = INT_MIN_VALUE;
 
 	_rect.setEmpty();
 }
@@ -496,7 +495,7 @@ bool BaseRegion::getBoundingRect(Rect32 *rect) {
 	if (_points.size() == 0) {
 		rect->setEmpty();
 	} else {
-		int32 minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
+		int32 minX = INT_MAX_VALUE, minY = INT_MAX_VALUE, maxX = INT_MIN_VALUE, maxY = INT_MIN_VALUE;
 
 		for (uint32 i = 0; i < _points.size(); i++) {
 			minX = MIN(minX, _points[i]->x);

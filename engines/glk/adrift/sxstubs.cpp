@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,12 +40,12 @@ static sc_bool stub_trace = FALSE;
  * Input/output handler functions.  If assigned, calls to os_* functions are
  * routed here to allow the script runner to catch interpeter i/o.
  */
-static sc_bool(*stub_read_line)(sc_char *, sc_int) = NULL;
-static void (*stub_print_string)(const sc_char *) = NULL;
-static void *(*stub_open_file)(sc_bool) = NULL;
-static sc_int(*stub_read_file)(void *, sc_byte *, sc_int) = NULL;
-static void (*stub_write_file)(void *, const sc_byte *, sc_int) = NULL;
-static void (*stub_close_file)(void *) = NULL;
+static sc_bool(*stub_read_line)(sc_char *, sc_int) = nullptr;
+static void (*stub_print_string)(const sc_char *) = nullptr;
+static void *(*stub_open_file)(sc_bool) = nullptr;
+static sc_int(*stub_read_file)(void *, sc_byte *, sc_int) = nullptr;
+static void (*stub_write_file)(void *, const sc_byte *, sc_int) = nullptr;
+static void (*stub_close_file)(void *) = nullptr;
 
 /* Flags for whether to report tags and resources via stub_print_string(). */
 static sc_int stub_show_resources = 0;
@@ -61,11 +60,11 @@ static sc_int stub_show_tags = 0;
  */
 void
 stub_attach_handlers(sc_bool(*read_line)(sc_char *, sc_int),
-                     void (*print_string)(const sc_char *),
-                     void *(*open_file)(sc_bool),
-                     sc_int(*read_file)(void *, sc_byte *, sc_int),
-                     void (*write_file)(void *, const sc_byte *, sc_int),
-                     void (*close_file)(void *)) {
+					 void (*print_string)(const sc_char *),
+					 void *(*open_file)(sc_bool),
+					 sc_int(*read_file)(void *, sc_byte *, sc_int),
+					 void (*write_file)(void *, const sc_byte *, sc_int),
+					 void (*close_file)(void *)) {
 	stub_read_line = read_line;
 	stub_print_string = print_string;
 	stub_open_file = open_file;
@@ -79,12 +78,12 @@ stub_attach_handlers(sc_bool(*read_line)(sc_char *, sc_int),
 
 void
 stub_detach_handlers(void) {
-	stub_read_line = NULL;
-	stub_print_string = NULL;
-	stub_open_file = NULL;
-	stub_read_file = NULL;
-	stub_write_file = NULL;
-	stub_close_file = NULL;
+	stub_read_line = nullptr;
+	stub_print_string = nullptr;
+	stub_open_file = nullptr;
+	stub_read_file = nullptr;
+	stub_write_file = nullptr;
+	stub_close_file = nullptr;
 
 	stub_show_resources = 0;
 	stub_show_tags = 0;
@@ -183,7 +182,7 @@ os_print_string_debug(const sc_char *string) {
 
 void
 os_play_sound(const sc_char *filepath,
-              sc_int offset, sc_int length, sc_bool is_looping) {
+			  sc_int offset, sc_int length, sc_bool is_looping) {
 	if (stub_trace)
 		sx_trace("os_play_sound (\"%s\", %ld, %ld, %s)\n",
 		         stub_notnull(filepath), offset, length,
@@ -282,7 +281,7 @@ os_open_file(sc_bool is_save) {
 	if (stub_open_file)
 		opaque = stub_open_file(is_save);
 	else
-		opaque = NULL;
+		opaque = nullptr;
 
 	if (stub_trace) {
 		if (opaque)

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -126,32 +125,26 @@ bool IllusionsEngine::loadgame(const char *filename) {
 
 Common::Error IllusionsEngine::loadGameState(int slot) {
 	_resumeFromSavegameRequested = false;
-	const char *fileName = getSavegameFilename(slot);
-	if (!loadgame(fileName))
+	Common::String fileName = getSavegameFilename(_targetName, slot);
+	if (!loadgame(fileName.c_str()))
 		return Common::kReadingFailed;
 	_resumeFromSavegameRequested = true;
 	_savegameSlotNum = slot;
 	return Common::kNoError;
 }
- 
+
 Common::Error IllusionsEngine::saveGameState(int slot, const Common::String &description, bool isAutosave) {
-	const char *fileName = getSavegameFilename(slot);
-	if (!savegame(fileName, description.c_str()))
+	Common::String fileName = getSavegameFilename(_targetName, slot);
+	if (!savegame(fileName.c_str(), description.c_str()))
 		return Common::kWritingFailed;
 	return Common::kNoError;
 }
 
 Common::Error IllusionsEngine::removeGameState(int slot) {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::String filename = Illusions::IllusionsEngine::getSavegameFilename(_targetName, slot);
+	Common::String filename = getSavegameFilename(_targetName, slot);
 	saveFileMan->removeSavefile(filename.c_str());
 	return Common::kNoError;
-}
-
-const char *IllusionsEngine::getSavegameFilename(int num) {
-	static Common::String filename;
-	filename = getSavegameFilename(_targetName, num);
-	return filename.c_str();
 }
 
 Common::String IllusionsEngine::getSavegameFilename(const Common::String &target, int num) {

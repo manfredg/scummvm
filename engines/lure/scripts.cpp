@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,9 +45,9 @@ static const uint16 *hotspot_dealloc_set[4] = {&dealloc_list_1[0], &dealloc_list
 
 // Details used for co-ordination of sounds during the endgame sequence
 static const AnimSoundSequence soundList[] = {
-	{9, 0x45, 2, 0}, {27, 0x48, 5, 0}, {24, 0x46, 3, 0}, {24, 0x37, 1, 0}, {3, 0x37, 1, 1},
-	{3, 0x37, 1, 2}, {3, 0x37, 1, 3}, {3, 0x37, 1, 4}, {4, 0x37, 1, 5}, {7, 0x47, 4, 6},
-	{31, 0x00, 6, 0}, {0, 0, 0, 0}
+	{9, 0xFF, 0xFF, 0, false}, {27, 0x45, 2, 0, true}, {24, 0x48, 5, 0, false}, {24, 0x46, 3, 2, false}, {3, 0x37, 1, 0, true},
+	{3, 0x37, 1, 1, true}, {3, 0x37, 1, 2, true}, {3, 0x37, 1, 3, true}, {4, 0x37, 1, 4, true}, {7, 0x37, 1, 5, true},
+	{31, 0x47, 4, 6, false}, {0, 0, 0, 0, false}
 };
 
 /*------------------------------------------------------------------------*/
@@ -71,7 +70,7 @@ void Script::setHotspotScript(uint16 hotspotId, uint16 scriptIndex, uint16 v3) {
 	uint16 offset = res.getHotspotScript(scriptIndex);
 	Hotspot *hotspot = res.getActiveHotspot(hotspotId);
 
-	if (hotspot != NULL) {
+	if (hotspot != nullptr) {
 		hotspot->setHotspotScript(offset);
 	} else {
 		HotspotData *hs = res.getHotspot(hotspotId);
@@ -95,7 +94,7 @@ void Script::setHotspotFlagMask(uint16 maskVal, uint16 v2, uint16 v3) {
 // Clears the sequence delay list
 
 void Script::clearSequenceDelayList(uint16 v1, uint16 scriptIndex, uint16 v3) {
-	Resources::getReference().delayList().clear();
+	Resources::getReference().delayList().clear(true);
 }
 
 // Deactivates a set of predefined of hotspots in a given list index
@@ -194,38 +193,58 @@ void Script::endgameSequence(uint16 v1, uint16 v2, uint16 v3) {
 	Events &events = Events::getReference();
 	AnimationSequence *anim;
 
-	screen.paletteFadeOut();
+	if (!engine.isEGA())
+		screen.paletteFadeOut();
 	mouse.cursorOff();
 
 	Sound.killSounds();
 	if (Sound.isRoland())
+		// MT-32 has the sound effects for the endgame animation
+		// defined in a separate sound resource. AdLib only has
+		// the music defined in its endgame resource, so it uses
+		// sounds from the main sound resource.
 		Sound.loadSection(ROLAND_ENDGAME_SOUND_RESOURCE_ID);
 
 	Palette p(ENDGAME_PALETTE_ID);
 	anim = new AnimationSequence(ENDGAME_ANIM_ID, p, true, 9, soundList);
-	anim->show();
-	delete anim;
+	AnimAbortType animResult = anim->show();
 
 	Sound.killSounds();
-	Sound.musicInterface_Play(6, 0);
-
-	anim = new AnimationSequence(ENDGAME_ANIM_ID + 2, p, false);
-	anim->show();
-	events.interruptableDelay(13000);
-	delete anim;
-
-	anim = new AnimationSequence(ENDGAME_ANIM_ID + 4, p, false);
-	anim->show();
-	if (!events.interruptableDelay(30000)) {
-		// No key yet pressed, so keep waiting
-		while (Sound.musicInterface_CheckPlaying(6) && !engine.shouldQuit()) {
-			if (events.interruptableDelay(20))
-				break;
-		}
+	if (animResult == ABORT_NONE) {
+		Sound.musicInterface_Play(Sound.isRoland() ? 0 : 0x28, false);
+		events.interruptableDelay(5500);
 	}
 	delete anim;
 
-	screen.paletteFadeOut();
+	Sound.killSounds();
+
+	if (engine.shouldQuit())
+		return;
+
+	if (!Sound.isRoland())
+		Sound.loadSection(ADLIB_ENDGAME_SOUND_RESOURCE_ID);
+	Sound.musicInterface_Play(Sound.isRoland() ? 6 : 0, true);
+
+	anim = new AnimationSequence(ENDGAME_ANIM_ID + 2, p, false);
+	anim->show();
+	events.interruptableDelay(30500);
+	delete anim;
+
+	if (engine.shouldQuit())
+		return;
+
+	anim = new AnimationSequence(ENDGAME_ANIM_ID + 4, p, false);
+	anim->show();
+	// Wait until a key is pressed
+	while (!engine.shouldQuit()) {
+		if (events.interruptableDelay(20))
+			break;
+	}
+	delete anim;
+
+	if (!engine.shouldQuit() && !engine.isEGA())
+		screen.paletteFadeOut();
+
 	engine.quitGame();
 }
 
@@ -541,7 +560,7 @@ void Script::checkWakeBrenda(uint16 v1, uint16 v2, uint16 v3) {
 
 void Script::displayMessage(uint16 messageId, uint16 characterId, uint16 destCharacterId) {
 	Hotspot *hotspot = Resources::getReference().getActiveHotspot(characterId);
-	if (hotspot != NULL)
+	if (hotspot != nullptr)
 		hotspot->showMessage(messageId, destCharacterId);
 }
 
@@ -569,7 +588,7 @@ void Script::setSupportData(uint16 hotspotId, uint16 index, uint16 v3) {
 
 	uint16 dataId = res.getCharOffset(index);
 	CharacterScheduleEntry *entry = res.charSchedules().getEntry(dataId);
-	assert(entry != NULL);
+	assert(entry != nullptr);
 
 	Hotspot *h = res.getActiveHotspot(hotspotId);
 	assert(h);
@@ -755,7 +774,7 @@ void Script::checkSound(uint16 soundNumber, uint16 v2, uint16 v3) {
 	Sound.tidySounds();
 
 	SoundDescResource *rec = Sound.findSound(soundNumber);
-	Resources::getReference().fieldList().setField(GENERAL, (rec != NULL) ? 1 : 0);
+	Resources::getReference().fieldList().setField(GENERAL, (rec != nullptr) ? 1 : 0);
 }
 
 typedef void(*SequenceMethodPtr)(uint16, uint16, uint16);
@@ -833,7 +852,7 @@ static const SequenceMethodRecord scriptMethods[] = {
 	{64, Script::randomToGeneral},
 	{65, Script::checkCellDoor},
 	{66, Script::checkSound},
-	{0xff, NULL}};
+	{0xff, nullptr}};
 
 static const char *scriptOpcodes[] = {
 	"ABORT", "ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "EQUALS", "NOT_EQUALS",
@@ -1084,7 +1103,7 @@ uint16 Script::execute(uint16 startOffset) {
 			if (gDebugLevel >= ERROR_DETAILED) {
 				// Set up the debug string for the method call
 				if (rec->methodIndex == 0xff) strcat(debugInfo, " INVALID INDEX");
-				else if (scriptMethodNames[param] == NULL) strcat(debugInfo, " UNKNOWN METHOD");
+				else if (scriptMethodNames[param] == nullptr) strcat(debugInfo, " UNKNOWN METHOD");
 				else {
 					strcat(debugInfo, " ");
 					Common::strlcat(debugInfo, scriptMethodNames[param], MAX_DESC_SIZE);
@@ -1220,6 +1239,19 @@ bool HotspotScript::execute(Hotspot *h) {
 		h->hotspotId(), offset);
 
 	while (!breakFlag) {
+		// WORKAROUND In the castle cellar, when you pull the bung out of the
+		// wine cask, a running wine sound is started. However, when the cask
+		// runs empty, the sound is not stopped. Also, when the Skorl starts
+		// drinking the wine, the sound is not restarted when you enter the
+		// room, and it also is not stopped when the wine runs out.
+		if (room.roomNumber() == 0x002A) {
+			if (offset == 0x0CA2)		 // start of drinking Skorl script
+				Sound.addSound2(0x2B);
+			else if (offset == 0x0D12	 // end of cask script
+					|| offset == 0x0CC4) // wine running out in drinking Skorl script
+				Sound.stopSound(0x2B);
+		}
+
 		opcode = nextVal(scriptData, offset);
 
 		switch (opcode) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 /*
  * This code is based on original Sfinx source code
- * Copyright (c) 1994-1997 Janus B. Wisniewski and L.K. Avalon
+ * Copyright (c) 1994-1997 Janusz B. Wisniewski and L.K. Avalon
  */
 
 #include "cge2/snail.h"
@@ -31,6 +30,7 @@
 #include "cge2/text.h"
 #include "cge2/sound.h"
 #include "cge2/events.h"
+#include "common/config-manager.h"
 
 namespace CGE2 {
 
@@ -45,8 +45,8 @@ const char *CommandHandler::_commandText[] = {
 
 CommandHandler::CommandHandler(CGE2Engine *vm, bool turbo)
 	: _turbo(turbo), _textDelay(false), _timerExpiry(0), _talkEnable(true),
-      _head(0), _tail(0), _commandList((Command *)malloc(sizeof(Command)* 256)),
-      _vm(vm) {
+	  _head(0), _tail(0), _commandList((Command *)malloc(sizeof(Command)* 256)),
+	  _vm(vm) {
 }
 
 CommandHandler::~CommandHandler() {
@@ -62,7 +62,7 @@ void CommandHandler::runCommand() {
 		if (_vm->_fx->exist(_vm->_soundStat._ref[1], _vm->_soundStat._ref[0])) {
 			int16 oldRepeat = _vm->_sound->getRepeat();
 			_vm->_sound->setRepeat(1);
-			_vm->_sound->play(Audio::Mixer::kSpeechSoundType, _vm->_fx->load(_vm->_soundStat._ref[1], _vm->_soundStat._ref[0]), _vm->_sound->_smpinf._span);
+			_vm->_sound->play(Audio::Mixer::kSpeechSoundType, _vm->_soundStat._ref[1], _vm->_soundStat._ref[0], _vm->_sound->_smpinf._span);
 			_vm->_sound->setRepeat(oldRepeat);
 			return;
 		}
@@ -103,7 +103,7 @@ void CommandHandler::runCommand() {
 			spr = (tailCmd._ref < 0) ? ((Sprite *)tailCmd._spritePtr) : _vm->locate(tailCmd._ref);
 
 		Common::String sprStr;
-		if (spr && *spr->_file && (tailCmd._commandType != kCmdGhost))
+		if (tailCmd._commandType != kCmdGhost && spr && *spr->_file)
 			// In case of kCmdGhost _spritePtr stores a pointer to a Bitmap, not to a Sprite...
 			sprStr = Common::String(spr->_file);
 		else
@@ -606,7 +606,7 @@ void CGE2Engine::snSound(Sprite *spr, int wav, Audio::Mixer::SoundType soundType
 
 		_soundStat._ref[1] = wav;
 		_soundStat._ref[0] = !_fx->exist(_soundStat._ref[1]);
-		_sound->play(soundType, _fx->load(_soundStat._ref[1], _soundStat._ref[0]),
+		_sound->play(soundType, _soundStat._ref[1], _soundStat._ref[0],
 			(spr) ? (spr->_pos2D.x / (kScrWidth / 16)) : 8);
 	}
 }
@@ -656,7 +656,8 @@ void CGE2Engine::snSay(Sprite *spr, int val) {
 				i -= 100;
 			int16 oldRepeat = _sound->getRepeat();
 			_sound->setRepeat(1);
-			snSound(spr, i, Audio::Mixer::kSpeechSoundType);
+			if (!ConfMan.getBool("tts_enabled_speech") || getLanguage() == Common::PL_POL)
+				snSound(spr, i, Audio::Mixer::kSpeechSoundType);
 			_sound->setRepeat(oldRepeat);
 			_soundStat._wait = &_sound->_smpinf._counter;
 		}

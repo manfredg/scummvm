@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -78,15 +77,15 @@ static const Graphics::MacMenuData menuSubItems[] = {
 	//{ kMenuAbout,		"About",			kMenuActionAbout, 0, true},
 
 	{ kMenuFile,		"New",				kMenuActionNew, 0, true },
-	{ kMenuFile,		NULL,				0, 0, false },
+	{ kMenuFile,		nullptr,				0, 0, false },
 	{ kMenuFile,		"Open...",			kMenuActionOpen, 0, true },
 	{ kMenuFile,		"Save",				kMenuActionSave, 0, true },
 	{ kMenuFile,		"Save as...",		kMenuActionSaveAs, 0, true },
-	{ kMenuFile,		NULL,				0, 0, false },
+	{ kMenuFile,		nullptr,				0, 0, false },
 	{ kMenuFile,		"Quit",				kMenuActionQuit, 0, true },
 
 	{ kMenuEdit,		"Undo",				kMenuActionUndo, 'Z', false },
-	{ kMenuEdit,		NULL,				0, 0, false },
+	{ kMenuEdit,		nullptr,				0, 0, false },
 	{ kMenuEdit,		"Cut",				kMenuActionCut, 'K', false },
 	{ kMenuEdit,		"Copy",				kMenuActionCopy, 'C', false },
 	{ kMenuEdit,		"Paste",			kMenuActionPaste, 'V', false },
@@ -95,7 +94,7 @@ static const Graphics::MacMenuData menuSubItems[] = {
 	{ kMenuSpecial,		"Clean Up",			kMenuActionCleanUp, 0, false },
 	{ kMenuSpecial,		"Mess Up",			kMenuActionMessUp, 0, false },
 
-	{ 0,				NULL,				0, 0, false }
+	{ 0,				nullptr,				0, 0, false }
 };
 
 
@@ -112,16 +111,16 @@ void menuCommandsCallback(int action, Common::String &text, void *data);
 Gui::Gui(MacVentureEngine *engine, Common::MacResManager *resman) {
 	_engine = engine;
 	_resourceManager = resman;
-	_windowData = NULL;
-	_controlData = NULL;
+	_windowData = nullptr;
+	_controlData = nullptr;
 	_draggedObj.id = 0;
 	_draggedObj.pos = Common::Point(0, 0);
-	_dialog = NULL;
+	_dialog = nullptr;
 
 	_cursor = new Cursor(this);
 
 	_consoleText = new ConsoleText(this);
-	_graphics = NULL;
+	_graphics = nullptr;
 
 	initGUI();
 }
@@ -195,7 +194,7 @@ void Gui::draw() {
 	drawDraggedObject();
 	drawDialog();
 	// TODO: When window titles with custom borders are in MacGui, this should be used.
-	//drawWindowTitle(kMainGameWindow, _mainGameWindow->getSurface());
+	//drawWindowTitle(kMainGameWindow, _mainGameWindow->getWindowSurface());
 }
 
 void Gui::drawMenu() {
@@ -217,49 +216,72 @@ void Gui::clearControls() {
 }
 
 void Gui::initWindows() {
+	Common::Rect bounds;
+	BorderBounds bbs(0 , 0, 0, 0, 0, 0);
 	// Game Controls Window
 	_controlsWindow = _wm.addWindow(false, false, false);
-	_controlsWindow->setDimensions(getWindowData(kCommandsWindow).bounds);
+
+
+	bounds = getWindowData(kCommandsWindow).bounds;
+	bbs = borderBounds(findWindowData(kCommandsWindow).type);
+	loadBorders(_controlsWindow, findWindowData(kCommandsWindow).type);
+	_controlsWindow->resize(bounds.width(), bounds.height(), true);
+	_controlsWindow->move(bounds.left - bbs.leftOffset, bounds.top - bbs.topOffset);
+
 	_controlsWindow->setActive(false);
 	_controlsWindow->setCallback(commandsWindowCallback, this);
-	loadBorders(_controlsWindow, findWindowData(kCommandsWindow).type);
 
 	// Main Game Window
 	_mainGameWindow = _wm.addWindow(false, false, false);
-	_mainGameWindow->setDimensions(getWindowData(kMainGameWindow).bounds);
+	bounds = getWindowData(kMainGameWindow).bounds;
+	bbs = borderBounds(findWindowData(kMainGameWindow).type);
+
+	loadBorders(_mainGameWindow, findWindowData(kMainGameWindow).type);
+	_mainGameWindow->resize(bounds.width(), bounds.height(), true);
+	_mainGameWindow->move(bounds.left - bbs.leftOffset, bounds.top - bbs.topOffset);
+
 	_mainGameWindow->setActive(false);
 	_mainGameWindow->setCallback(mainGameWindowCallback, this);
-	loadBorders(_mainGameWindow, findWindowData(kMainGameWindow).type);
 
 	// In-game Output Console
 	_outConsoleWindow = _wm.addWindow(true, true, false);
-	// HACK We have to hand-create the dimensions, otherwise they don't fit
-	const WindowData &wd = getWindowData(kOutConsoleWindow);
-	Common::Rect dimensions = wd.bounds;
-	dimensions.setWidth(dimensions.width() - borderBounds(wd.type).rightOffset);
-	_outConsoleWindow->setDimensions(dimensions);
+
+	bounds = getWindowData(kOutConsoleWindow).bounds;
+	bbs = borderBounds(findWindowData(kOutConsoleWindow).type);
+	loadBorders(_outConsoleWindow, findWindowData(kOutConsoleWindow).type);
+	_outConsoleWindow->resize(bounds.width() - bbs.rightScrollbarWidth, bounds.height() - bbs.bottomScrollbarHeight, true);
+	_outConsoleWindow->move(bounds.left - bbs.leftOffset, bounds.top - bbs.topOffset);
 	_outConsoleWindow->setActive(false);
 	_outConsoleWindow->setCallback(outConsoleWindowCallback, this);
-	loadBorders(_outConsoleWindow, findWindowData(kOutConsoleWindow).type);
-
+	_outConsoleWindow->setTitle("Untitled");
 	// Self Window
 	_selfWindow = _wm.addWindow(false, true, false);
-	_selfWindow->setDimensions(getWindowData(kSelfWindow).bounds);
+
+	bounds = getWindowData(kSelfWindow).bounds;
+	bbs = borderBounds(findWindowData(kSelfWindow).type);
+	loadBorders(_selfWindow, findWindowData(kSelfWindow).type);
+	_selfWindow->resize(bounds.width(), bounds.height(), true);
+	_selfWindow->move(bounds.left - bbs.leftOffset, bounds.top - bbs.topOffset);
+
 	_selfWindow->setActive(false);
 	_selfWindow->setCallback(selfWindowCallback, this);
-	loadBorders(_selfWindow, findWindowData(kSelfWindow).type);
 
 	// Exits Window
 	_exitsWindow = _wm.addWindow(false, false, false);
-	_exitsWindow->setDimensions(getWindowData(kExitsWindow).bounds);
+
+	bounds = getWindowData(kExitsWindow).bounds;
+	bbs = borderBounds(findWindowData(kExitsWindow).type);
+	loadBorders(_exitsWindow, findWindowData(kExitsWindow).type);
+	_exitsWindow->resize(bounds.width(), bounds.height(), true);
+	_exitsWindow->move(bounds.left - bbs.leftOffset, bounds.top - bbs.topOffset);
+
 	_exitsWindow->setActive(false);
 	_exitsWindow->setCallback(exitsWindowCallback, this);
-
+	_exitsWindow->setTitle(findWindowData(kExitsWindow).title);
 	// TODO: In the original, the background is actually a clickable
 	// object that can be used to refer to the room itself. In that case,
 	// the background should be kPatternDarkGray.
 	_exitsWindow->setBackgroundPattern(kPatternLightGray);
-	loadBorders(_exitsWindow, findWindowData(kExitsWindow).type);
 }
 
 const WindowData &Gui::getWindowData(WindowReference reference) {
@@ -271,12 +293,13 @@ const Graphics::Font &Gui::getCurrentFont() {
 }
 
 void Gui::bringToFront(WindowReference winID) {
-	findWindow(winID)->setActive(true);
+	_wm.setActiveWindow(findWindow(winID)->getId());
 }
 
-void Gui::setWindowTitle(WindowReference winID, Common::String string) {
+void Gui::setWindowTitle(WindowReference winID, const Common::String &string) {
 	findWindowData(winID).title = string;
 	findWindowData(winID).titleLength = string.size();
+	findWindow(winID)->setTitle(string);
 }
 
 void Gui::updateWindowInfo(WindowReference ref, ObjID objID, const Common::Array<ObjID> &children) {
@@ -332,7 +355,7 @@ void Gui::assignObjReferences() {
 }
 
 WindowReference Gui::createInventoryWindow(ObjID objRef) {
-	Graphics::MacWindow *newWindow = _wm.addWindow(true, true, true);
+	Graphics::MacWindow *newWindow = _wm.addWindow(true, true, false);
 	WindowData newData;
 	GlobalSettings settings = _engine->getGlobalSettings();
 	newData.refcon = (WindowReference)(_inventoryWindows.size() + kInventoryStart); // This is a HACK
@@ -341,12 +364,12 @@ WindowReference Gui::createInventoryWindow(ObjID objRef) {
 		newData.bounds = _windowData->back().bounds; // Inventory windows are always last
 		newData.bounds.translate(newData.bounds.left + settings._invOffsetX, newData.bounds.top + settings._invOffsetY);
 	} else {
-		BorderBounds bbs = borderBounds(kInvWindow);
 		newData.bounds = Common::Rect(
-			settings._invLeft - bbs.leftOffset,
-			settings._invTop - bbs.topOffset,
+			settings._invLeft,
+			settings._invTop,
 			settings._invLeft + settings._invWidth,
-			settings._invTop + settings._invHeight);
+			settings._invTop + settings._invHeight
+		);
 	}
 	newData.type = kInvWindow;
 	newData.hasCloseBox = true;
@@ -354,10 +377,15 @@ WindowReference Gui::createInventoryWindow(ObjID objRef) {
 	newData.objRef = objRef;
 	_windowData->push_back(newData);
 
-	newWindow->setDimensions(newData.bounds);
-	newWindow->setCallback(inventoryWindowCallback, this);
-	newWindow->setCloseable(true);
+	BorderBounds bbs = borderBounds(newData.type);
+	//newWindow->setDimensions(newData.bounds);
+	//newWindow->setActive(false);
 	loadBorders(newWindow, newData.type);
+	newWindow->resize(newData.bounds.width() - bbs.rightScrollbarWidth, newData.bounds.height() - bbs.bottomScrollbarHeight, true);
+	newWindow->move(newData.bounds.left - bbs.leftOffset, newData.bounds.top - bbs.topOffset);
+	newWindow->setCallback(inventoryWindowCallback, this);
+	//newWindow->setCloseable(true);
+
 	_inventoryWindows.push_back(newWindow);
 
 	debugC(1, kMVDebugGUI, "Create new inventory window. Reference: %d", newData.refcon);
@@ -370,15 +398,48 @@ void Gui::loadBorders(Graphics::MacWindow *target, MVWindowType type) {
 }
 
 void Gui::loadBorder(Graphics::MacWindow *target, MVWindowType type, bool active) {
+	Common::SeekableReadStream *stream;
 
-	Common::SeekableReadStream *stream = _engine->getBorderFile(type, active);
+	uint32 activeFlag = (active ? Graphics::kWindowBorderActive : 0);
+	bool canHaveTitle = false;
+	bool canHaveScrollbar = false;
+
+	if (type == MacVenture::kInvWindow || type == MacVenture::kZoomDoc) {
+		canHaveScrollbar = true;
+	}
+
+	if (type == MacVenture::kInvWindow || type == MacVenture::kZoomDoc || type == MacVenture::kNoGrowDoc || type == MacVenture::kRDoc4) {
+		canHaveTitle = true;
+	}
+
+	Graphics::BorderOffsets offsets = borderOffsets(type);
+	stream = _engine->getBorderFile(type, active);
 
 	if (stream) {
-		BorderBounds bbs = borderBounds(type);
-		target->loadBorder(*stream, active, bbs.leftOffset, bbs.rightOffset, bbs.topOffset, bbs.bottomOffset);
-
-		delete stream;
+		target->loadBorder(*stream, activeFlag, offsets);
 	}
+
+	if (canHaveTitle) {
+		if (stream) {
+			stream->seek(0);
+			target->loadBorder(*stream, activeFlag | Graphics::kWindowBorderTitle, offsets);
+		}
+	}
+
+	if (canHaveScrollbar) {
+		if (stream) {
+			stream->seek(0);
+			target->loadBorder(*stream, activeFlag | Graphics::kWindowBorderScrollbar, offsets);
+		}
+	}
+
+	if (canHaveTitle && canHaveScrollbar) {
+		if (stream) {
+			stream->seek(0);
+			target->loadBorder(*stream, activeFlag | Graphics::kWindowBorderTitle | Graphics::kWindowBorderScrollbar, offsets);
+		}
+	}
+	delete stream;
 }
 
 void Gui::loadGraphics() {
@@ -477,13 +538,12 @@ bool Gui::loadWindows() {
 		bottom = res->readUint16BE();
 		right = res->readUint16BE();
 		data.type = (MVWindowType)res->readUint16BE();
-		BorderBounds bbs = borderBounds(data.type);
 		data.bounds = Common::Rect(
-			left - bbs.leftOffset,
-			top - bbs.topOffset,
-			right + bbs.rightOffset,
-			bottom + bbs.bottomOffset);
-
+			left,
+			top,
+			right,
+			bottom
+		);
 		data.visible = res->readUint16BE();
 		data.hasCloseBox = res->readUint16BE();
 		data.refcon = (WindowReference)id; id++;
@@ -544,17 +604,8 @@ bool Gui::loadControls() {
 			data.title = Common::String(title);
 			delete[] title;
 		}
-		if (data.type != kControlExitBox) {
-			BorderBounds bbs = borderBounds(getWindowData(kCommandsWindow).type);
-			// We just want to move the button, not change it's size
-			data.bounds = Common::Rect(left + bbs.leftOffset, top + bbs.topOffset, right + bbs.leftOffset, bottom + bbs.topOffset);
-		} else {
-			data.bounds = Common::Rect(left, top, right, bottom);
-		}
-
-
+		data.bounds = Common::Rect(left, top, right, bottom);
 		_controlData->push_back(CommandButton(data, this));
-
 		delete res;
 	}
 
@@ -574,7 +625,7 @@ void Gui::drawWindows() {
 
 void Gui::drawCommandsWindow() {
 	if (_engine->needsClickToContinue()) {
-		Graphics::ManagedSurface *srf = _controlsWindow->getSurface();
+		Graphics::ManagedSurface *srf = _controlsWindow->getWindowSurface();
 		WindowData data = getWindowData(kCommandsWindow);
 		srf->fillRect(Common::Rect(0, 0, srf->w, srf->h), kColorWhite);
 		getCurrentFont().drawString(
@@ -590,14 +641,13 @@ void Gui::drawCommandsWindow() {
 		for (; it != _controlData->end(); ++it) {
 			CommandButton button = *it;
 			if (button.getData().type != kControlExitBox)
-				button.draw(*_controlsWindow->getSurface());
+				button.draw(*_controlsWindow->getWindowSurface());
 		}
 	}
 }
 
 void Gui::drawMainGameWindow() {
 	const WindowData &data = getWindowData(kMainGameWindow);
-	BorderBounds border = borderBounds(data.type);
 	ObjID objRef = data.objRef;
 
 	_mainGameWindow->setDirty(true);
@@ -606,28 +656,26 @@ void Gui::drawMainGameWindow() {
 		ensureAssetLoaded(objRef);
 
 		_assets[objRef]->blitInto(
-			_mainGameWindow->getSurface(),
-			border.leftOffset,
-			border.topOffset,
+			_mainGameWindow->getWindowSurface(),
+			0,
+			0,
 			kBlitDirect);
 	}
 
-	drawObjectsInWindow(data, _mainGameWindow->getSurface());
+	drawObjectsInWindow(data, _mainGameWindow->getWindowSurface());
 
 	if (DebugMan.isDebugChannelEnabled(kMVDebugGUI)) {
 		Graphics::MacWindow *win = findWindow(data.refcon);
 		Common::Rect innerDims = win->getInnerDimensions();
-		int x = win->getDimensions().left;
-		int y = win->getDimensions().top;
-		innerDims.translate(-x, -y);
-		win->getSurface()->frameRect(innerDims, kColorGreen);
+		innerDims.translate(-innerDims.left, -innerDims.top);
+		win->getWindowSurface()->frameRect(innerDims, kColorGreen);
 	}
 
 	findWindow(kMainGameWindow)->setDirty(true);
 }
 
 void Gui::drawSelfWindow() {
-	drawObjectsInWindow(getWindowData(kSelfWindow), _selfWindow->getSurface());
+	drawObjectsInWindow(getWindowData(kSelfWindow), _selfWindow->getWindowSurface());
 	if (_engine->isObjSelected(1)) {
 		invertWindowColors(kSelfWindow);
 	}
@@ -640,16 +688,14 @@ void Gui::drawInventories() {
 	for (uint i = 0; i < _inventoryWindows.size(); i++) {
 		const WindowData &data = getWindowData((WindowReference)(kInventoryStart + i));
 		Graphics::MacWindow *win = findWindow(data.refcon);
-		srf = win->getSurface();
+		srf = win->getWindowSurface();
 		srf->clear(kColorGreen);
 		srf->fillRect(srf->getBounds(), kColorWhite);
 		drawObjectsInWindow(data, srf);
 
 		if (DebugMan.isDebugChannelEnabled(kMVDebugGUI)) {
 			Common::Rect innerDims = win->getInnerDimensions();
-			int x = win->getDimensions().left;
-			int y = win->getDimensions().top;
-			innerDims.translate(-x, -y);
+			innerDims.translate(-innerDims.left, -innerDims.top);
 			srf->frameRect(innerDims, kColorGreen);
 		}
 
@@ -661,7 +707,7 @@ void Gui::drawInventories() {
 void Gui::drawExitsWindow() {
 	_exitsWindow->setBackgroundPattern(kPatternLightGray);
 
-	Graphics::ManagedSurface *srf = _exitsWindow->getSurface();
+	Graphics::ManagedSurface *srf = _exitsWindow->getWindowSurface();
 
 	Common::Array<CommandButton>::const_iterator it = _exitsData->begin();
 	for (; it != _exitsData->end(); ++it) {
@@ -674,7 +720,7 @@ void Gui::drawExitsWindow() {
 
 void Gui::drawConsoleWindow() {
 
-	Graphics::ManagedSurface *srf = _outConsoleWindow->getSurface();
+	Graphics::ManagedSurface *srf = _outConsoleWindow->getWindowSurface();
 	BorderBounds bounds = borderBounds(getWindowData(kOutConsoleWindow).type);
 	_consoleText->renderInto(srf, bounds, kConsoleLeftOffset);
 }
@@ -723,7 +769,7 @@ void Gui::drawObjectsInWindow(const WindowData &targetData, Graphics::ManagedSur
 			surface->frameRect(testBounds, kColorGreen);
 		}
 	}
-	Common::Point composePosition = Common::Point(border.leftOffset, border.topOffset);
+	Common::Point composePosition = Common::Point(0, 0);
 	surface->transBlitFrom(composeSurface, composePosition, kColorGreen);
 }
 
@@ -820,7 +866,7 @@ void Gui::updateWindow(WindowReference winID, bool containerOpen) {
 			drawMainGameWindow();
 		} else {
 			Graphics::MacWindow *winRef = findWindow(winID);
-			winRef->getSurface()->fillRect(data.bounds, kColorGray);
+			winRef->getWindowSurface()->fillRect(data.bounds, kColorGray80);
 		}
 		if (data.type == kZoomDoc && data.updateScroll) {
 			warning("Unimplemented: update scroll");
@@ -844,7 +890,6 @@ void Gui::updateExit(ObjID obj) {
 	if (!_engine->isObjExit(obj)) {
 		return;
 	}
-	BorderBounds border = borderBounds(getWindowData(kExitsWindow).type);
 
 	int ctl = -1;
 	int i = 0;
@@ -865,8 +910,8 @@ void Gui::updateExit(ObjID obj) {
 		data.titleLength = 0;
 		data.refcon = (ControlAction)obj; // Objects can be exits (actions)
 		Common::Point pos = _engine->getObjExitPosition(obj);
-		pos.x += border.leftOffset;
-		pos.y += border.topOffset;
+		//pos.x += border.leftOffset;
+		//pos.y += border.topOffset;
 		data.bounds = Common::Rect(pos.x, pos.y, pos.x + kExitButtonWidth, pos.y + kExitButtonHeight);
 		data.visible = true;
 
@@ -876,7 +921,7 @@ void Gui::updateExit(ObjID obj) {
 
 void Gui::printText(const Common::String &text) {
 	debugC(1, kMVDebugGUI, "Print Text: %s", text.c_str());
-	_consoleText->printLine(text, _outConsoleWindow->getDimensions().width());
+	_consoleText->printLine(text, _outConsoleWindow->getInnerDimensions().width());
 }
 
 void Gui::showPrebuiltDialog(PrebuiltDialogs type) {
@@ -885,17 +930,16 @@ void Gui::showPrebuiltDialog(PrebuiltDialogs type) {
 }
 
 bool Gui::isDialogOpen() {
-	return _dialog != NULL;
+	return _dialog != nullptr;
 }
 
-void Gui::setTextInput(Common::String str) {
+void Gui::setTextInput(const Common::String &str) {
 	_engine->setTextInput(str);
 }
 
-
 void Gui::closeDialog() {
 	delete _dialog;
-	_dialog = NULL;
+	_dialog = nullptr;
 }
 
 void Gui::getTextFromUser() {
@@ -923,8 +967,8 @@ void Gui::quitGame() {
 
 void Gui::createInnerSurface(Graphics::ManagedSurface *innerSurface, Graphics::ManagedSurface *outerSurface, const BorderBounds &borders) {
 	innerSurface->create(
-		outerSurface->w - borders.leftOffset - borders.rightOffset,
-		outerSurface->h - borders.topOffset - borders.bottomOffset,
+		outerSurface->w,// - borders.leftOffset - borders.rightOffset,
+		outerSurface->h,// - borders.topOffset - borders.bottomOffset,
 		outerSurface->format);
 }
 
@@ -947,12 +991,13 @@ void Gui::moveDraggedObject(Common::Point target) {
 
 WindowReference Gui::findWindowAtPoint(Common::Point point) {
 	Common::List<WindowData>::iterator it;
-	Graphics::MacWindow *win;
-	for (it = _windowData->begin(); it != _windowData->end(); it++) {
-		win = findWindow(it->refcon);
-		if (win && it->refcon != kDiplomaWindow) { //HACK, diploma should be cosnidered
-			if (win->getDimensions().contains(point)) {
-				return it->refcon;
+	Graphics::MacWindow *win = _wm.findWindowAtPoint(point);
+	if (win != nullptr) {
+		for (it = _windowData->begin(); it != _windowData->end(); it++) {
+			if (win == findWindow(it->refcon) && it->refcon != kDiplomaWindow) { //HACK, diploma should be considered
+				if (win->getDimensions().contains(point)) {
+					return it->refcon;
+				}
 			}
 		}
 	}
@@ -961,14 +1006,14 @@ WindowReference Gui::findWindowAtPoint(Common::Point point) {
 
 Common::Point Gui::getGlobalScrolledSurfacePosition(WindowReference reference) {
 	const WindowData &data = getWindowData(reference);
-	BorderBounds border = borderBounds(data.type);
+	//BorderBounds border = borderBounds(data.type);
 	Graphics::MacWindow *win = findWindow(reference);
 	if (!win) {
 		return Common::Point(0, 0);
 	}
 	return Common::Point(
-		win->getDimensions().left + border.leftOffset - data.scrollPos.x,
-		win->getDimensions().top + border.topOffset - data.scrollPos.y);
+		win->getInnerDimensions().left - data.scrollPos.x,
+		win->getInnerDimensions().top - data.scrollPos.y);
 }
 
 WindowData &Gui::findWindowData(WindowReference reference) {
@@ -991,7 +1036,7 @@ Graphics::MacWindow *Gui::findWindow(WindowReference reference) {
 	}
 	switch (reference) {
 	case MacVenture::kNoWindow:
-		return NULL;
+		return nullptr;
 	case MacVenture::kCommandsWindow:
 		return _controlsWindow;
 	case MacVenture::kMainGameWindow:
@@ -1005,9 +1050,9 @@ Graphics::MacWindow *Gui::findWindow(WindowReference reference) {
 	case MacVenture::kDiplomaWindow:
 		return _diplomaWindow;
 	default:
-		return NULL;
+		return nullptr;
 	}
-	return NULL;
+	return nullptr;
 }
 
 void Gui::ensureInventoryOpen(WindowReference reference, ObjID id) {
@@ -1092,7 +1137,7 @@ void Gui::selectDraggable(ObjID child, WindowReference origin, Common::Point cli
 
 void Gui::handleDragRelease(bool shiftPressed, bool isDoubleClick) {
 	if (_draggedObj.id != 0) {
-		WindowReference destinationWindow = findWindowAtPoint(_draggedObj.pos);
+		WindowReference destinationWindow = findWindowAtPoint(_draggedObj.pos - _draggedObj.mouseOffset);
 		if (destinationWindow == kNoWindow) {
 			return;
 		}
@@ -1240,12 +1285,12 @@ void menuCommandsCallback(int action, Common::String &text, void *data) {
 
 
 void Gui::invertWindowColors(WindowReference winID) {
-	Graphics::ManagedSurface *srf = findWindow(winID)->getSurface();
-	for (uint y = 0; y < srf->h; y++) {
-		for (uint x = 0; x < srf->w; x++) {
+	Graphics::ManagedSurface *srf = findWindow(winID)->getWindowSurface();
+	for (int y = 0; y < srf->h; y++) {
+		for (int x = 0; x < srf->w; x++) {
 			byte p = *(byte *)srf->getBasePtr(x, y);
 			*(byte *)srf->getBasePtr(x, y) =
-				(p == kColorWhite) ? kColorBlack : kColorGray;
+				(p == kColorWhite) ? kColorBlack : kColorGray80;
 		}
 	}
 }
@@ -1293,26 +1338,28 @@ bool Gui::processCommandEvents(WindowClick click, Common::Event &event) {
 			_engine->selectControl(kClickToContinue);
 			return true;
 		}
-
+		BorderBounds bbs = borderBounds(findWindowData(kCommandsWindow).type);
 		Common::Point position(
-			event.mouse.x - _controlsWindow->getDimensions().left,
-			event.mouse.y - _controlsWindow->getDimensions().top);
+			event.mouse.x - bbs.leftOffset,
+			event.mouse.y - bbs.topOffset
+		);
 
 		CommandButton data;
 		if (!_controlData)
 			return false;
-
+		bool flag = false;
 		Common::Array<CommandButton>::iterator it = _controlData->begin();
 		for (; it != _controlData->end(); ++it) {
 			if (it->isInsideBounds(position)) {
 				it->select();
 				data = *it;
+				flag = true;
 			} else {
 				it->unselect();
 			}
 		}
-
-		_engine->selectControl(data.getData().refcon);
+		if (flag)
+			_engine->selectControl(data.getData().refcon);
 		_engine->refreshReady();
 		_engine->preparedToRun();
 	}
@@ -1358,9 +1405,10 @@ bool MacVenture::Gui::processExitsEvents(WindowClick click, Common::Event &event
 			return true;
 		}
 
+		BorderBounds bbs = borderBounds(findWindowData(kExitsWindow).type);
 		Common::Point position(
-			event.mouse.x - _exitsWindow->getDimensions().left,
-			event.mouse.y - _exitsWindow->getDimensions().top);
+			event.mouse.x - bbs.leftOffset,
+			event.mouse.y - bbs.topOffset);
 
 		CommandButton button;
 		if (!_exitsData)
@@ -1435,11 +1483,13 @@ void Gui::selectForDrag(Common::Point cursorPosition) {
 	if (ref == kNoWindow) {
 		return;
 	}
+	if (_engine->needsClickToContinue())
+		return;
 
 	Graphics::MacWindow *win = findWindow(ref);
-	WindowData &data = findWindowData((WindowReference) ref);
+	WindowData &data = findWindowData((WindowReference)ref);
 
-	Common::Rect clickRect = calculateClickRect(cursorPosition + data.scrollPos, win->getDimensions());
+	Common::Rect clickRect = calculateClickRect(cursorPosition + data.scrollPos, win->getInnerDimensions());
 	checkSelect(data, cursorPosition, clickRect, (WindowReference)ref);
 }
 

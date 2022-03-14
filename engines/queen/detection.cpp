@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,27 +23,16 @@
 
 #include "engines/advancedDetector.h"
 
-#include "common/config-manager.h"
-#include "common/file.h"
 #include "common/gui_options.h"
-#include "common/savefile.h"
-#include "common/system.h"
+#include "common/file.h"
 #include "common/translation.h"
 
-#include "queen/queen.h"
+#include "queen/detection.h"
 #include "queen/resource.h"
-
-namespace Queen {
-
-struct QueenGameDescription {
-	ADGameDescription desc;
-};
-
-} // End of namespace Queen
 
 static const PlainGameDescriptor queenGames[] = {
 	{"queen", "Flight of the Amazon Queen"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
 #define GAMEOPTION_ALT_INTRO  GUIO_GAMEOPTIONS1
@@ -170,6 +158,19 @@ static const QueenGameDescription gameDescriptions[] = {
 		},
 	},
 
+	// Amiga Floppy - German. Bugreport #12313
+	{
+		{
+			"queen",
+			"Floppy",
+			AD_ENTRY1s("queen.1", "b545c73010236dc022bad51c59120a75", 344575),
+			Common::DE_DEU,
+			Common::kPlatformAmiga,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOSPEECH)
+		},
+	},
+
 	// DOS Floppy - English
 	{
 		{
@@ -261,20 +262,18 @@ static const QueenGameDescription gameDescriptions[] = {
 		},
 	},
 
-#if 0
 	// DOS CD - Hebrew
 	{
 		{
 			"queen",
 			"Talkie",
-			AD_ENTRY1s("queen.1", NULL, 190705558), // TODO: Fill in correct MD5
+			AD_ENTRY1s("queen.1", "b6302bccf70463de3d5faf0f0628f742", 190705558),
 			Common::HE_ISR,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
 			GUIO1(GAMEOPTION_ALT_INTRO)
 		},
 	},
-#endif
 
 	// DOS Floppy - Italian
 	{
@@ -479,9 +478,9 @@ static const QueenGameDescription gameDescriptions[] = {
 
 } // End of namespace Queen
 
-class QueenMetaEngine : public AdvancedMetaEngine {
+class QueenMetaEngineDetection : public AdvancedMetaEngineDetection {
 public:
-	QueenMetaEngine() : AdvancedMetaEngine(Queen::gameDescriptions, sizeof(Queen::QueenGameDescription), queenGames, optionsList) {
+	QueenMetaEngineDetection() : AdvancedMetaEngineDetection(Queen::gameDescriptions, sizeof(Queen::QueenGameDescription), queenGames, optionsList) {
 	}
 
 	const char *getEngineId() const override {
@@ -496,24 +495,10 @@ public:
 		return "Flight of the Amazon Queen (C) John Passfield and Steve Stamatiadis";
 	}
 
-	bool hasFeature(MetaEngineFeature f) const override;
-	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
-	SaveStateList listSaves(const char *target) const override;
-	int getMaximumSaveSlot() const override { return 99; }
-	void removeSaveState(const char *target, int slot) const override;
-	int getAutosaveSlot() const override { return 99; }
-
-	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const override;
+	ADDetectedGame fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist, ADDetectedGameExtraInfo **extra) const override;
 };
 
-bool QueenMetaEngine::hasFeature(MetaEngineFeature f) const {
-	return
-		(f == kSupportsListSaves) ||
-		(f == kSupportsLoadingDuringStartup) ||
-		(f == kSupportsDeleteSave);
-}
-
-ADDetectedGame QueenMetaEngine::fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist) const {
+ADDetectedGame QueenMetaEngineDetection::fallbackDetect(const FileMap &allFiles, const Common::FSList &fslist, ADDetectedGameExtraInfo **extra) const {
 	static ADGameDescription desc;
 
 	// Iterate over all files in the given directory
@@ -557,53 +542,4 @@ ADDetectedGame QueenMetaEngine::fallbackDetect(const FileMap &allFiles, const Co
 	return ADDetectedGame();
 }
 
-SaveStateList QueenMetaEngine::listSaves(const char *target) const {
-	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::StringArray filenames;
-	char saveDesc[32];
-	Common::String pattern("queen.s##");
-
-	filenames = saveFileMan->listSavefiles(pattern);
-
-	SaveStateList saveList;
-	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
-		// Obtain the last 2 digits of the filename, since they correspond to the save slot
-		int slotNum = atoi(file->c_str() + file->size() - 2);
-
-		if (slotNum >= 0 && slotNum <= 99) {
-			Common::InSaveFile *in = saveFileMan->openForLoading(*file);
-			if (in) {
-				for (int i = 0; i < 4; i++)
-					in->readUint32BE();
-				in->read(saveDesc, 32);
-				saveList.push_back(SaveStateDescriptor(slotNum, saveDesc));
-				delete in;
-			}
-		}
-	}
-
-	// Sort saves based on slot number.
-	Common::sort(saveList.begin(), saveList.end(), SaveStateDescriptorSlotComparator());
-	return saveList;
-}
-
-void QueenMetaEngine::removeSaveState(const char *target, int slot) const {
-	Common::String filename = Common::String::format("queen.s%02d", slot);
-
-	g_system->getSavefileManager()->removeSavefile(filename);
-}
-
-bool QueenMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	const Queen::QueenGameDescription *gd = (const Queen::QueenGameDescription *)desc;
-
-	if (gd)
-		*engine = new Queen::QueenEngine(syst); //FIXME , gd);
-
-	return (gd != 0);
-}
-
-#if PLUGIN_ENABLED_DYNAMIC(QUEEN)
-	REGISTER_PLUGIN_DYNAMIC(QUEEN, PLUGIN_TYPE_ENGINE, QueenMetaEngine);
-#else
-	REGISTER_PLUGIN_STATIC(QUEEN, PLUGIN_TYPE_ENGINE, QueenMetaEngine);
-#endif
+REGISTER_PLUGIN_STATIC(QUEEN_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, QueenMetaEngineDetection);

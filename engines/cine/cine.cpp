@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,18 +40,14 @@
 
 namespace Cine {
 
-Sound *g_sound = 0;
+Sound *g_sound = nullptr;
 
-CineEngine *g_cine = 0;
+CineEngine *g_cine = nullptr;
 
 CineEngine::CineEngine(OSystem *syst, const CINEGameDescription *gameDesc)
 	: Engine(syst),
 	_gameDescription(gameDesc),
 	_rnd("cine") {
-	DebugMan.addDebugChannel(kCineDebugScript,    "Script",    "Script debug level");
-	DebugMan.addDebugChannel(kCineDebugPart,      "Part",      "Part debug level");
-	DebugMan.addDebugChannel(kCineDebugSound,     "Sound",     "Sound debug level");
-	DebugMan.addDebugChannel(kCineDebugCollision, "Collision", "Collision debug level");
 
 	// Setup mixer
 	syncSoundSettings();
@@ -67,15 +62,13 @@ CineEngine::CineEngine(OSystem *syst, const CINEGameDescription *gameDesc)
 	}
 	_restartRequested = false;
 	_preLoad = false;
-	_timerDelayMultiplier = 12;
+	setDefaultGameSpeed();
 }
 
 CineEngine::~CineEngine() {
 	if (getGameType() == Cine::GType_OS) {
 		freeErrmessDat();
 	}
-
-	DebugMan.clearAllDebugChannels();
 }
 
 void CineEngine::syncSoundSettings() {
@@ -106,8 +99,12 @@ Common::Error CineEngine::run() {
 	// Initialize backend
 	initGraphics(320, 200);
 
-	if (g_cine->getGameType() == GType_FW && (g_cine->getFeatures() & GF_CD))
-		checkCD();
+	if (g_cine->getGameType() == GType_FW && (g_cine->getFeatures() & GF_CD)) {
+		if (!existExtractedCDAudioFiles()
+		    && !isDataAndCDAudioReadFromSameCD()) {
+			warnMissingExtractedCDAudio();
+		}
+	}
 
 	if (getPlatform() == Common::kPlatformDOS) {
 		g_sound = new PCSound(_mixer, this);
@@ -124,10 +121,11 @@ Common::Error CineEngine::run() {
 		_restartRequested = false;
 
 		CursorMan.showMouse(true);
-		mainLoop(1);
+		mainLoop(BOOT_SCRIPT_INDEX);
 
 		delete renderer;
 		delete[] collisionPage;
+		delete _scriptInfo;
 	} while (_restartRequested);
 
 	delete g_sound;
@@ -135,7 +133,7 @@ Common::Error CineEngine::run() {
 	return Common::kNoError;
 }
 
-int CineEngine::getTimerDelay() const {
+uint32 CineEngine::getTimerDelay() const {
 	return (10923000 * _timerDelayMultiplier) / 1193180;
 }
 
@@ -150,7 +148,12 @@ int CineEngine::modifyGameSpeed(int speedChange) {
 	return _timerDelayMultiplier;
 }
 
+void CineEngine::setDefaultGameSpeed() {
+	_timerDelayMultiplier = 12;
+}
+
 void CineEngine::initialize() {
+	setTotalPlayTime(0); // Reset total play time
 	_globalVars.reinit(NUM_MAX_VAR + 1);
 
 	// Initialize all savegames' descriptions to empty strings
@@ -172,8 +175,8 @@ void CineEngine::initialize() {
 	g_cine->_zoneQuery.resize(NUM_MAX_ZONE);
 	Common::fill(g_cine->_zoneQuery.begin(), g_cine->_zoneQuery.end(), 0);
 
-	_timerDelayMultiplier = 12; // Set default speed
-	setupOpcodes();
+	setDefaultGameSpeed();
+	_scriptInfo = setupOpcodes();
 
 	initLanguage(getLanguage());
 
@@ -184,9 +187,15 @@ void CineEngine::initialize() {
 	}
 
 	renderer->initialize();
+	forbidBgPalReload = 0;
+	reloadBgPalOnNextFlip = 0;
+	gfxFadeOutCompleted = 0;
+	gfxFadeInRequested = 0;
+	safeControlsLastAccessedMs = 0;
+	lastSafeControlObjIdx = -1;
+	currentDisk = 1;
 
-	collisionPage = new byte[320 * 200];
-	memset(collisionPage, 0, 320 * 200);
+	collisionPage = new byte[320 * 200]();
 
 	// Clear part buffer as there's nothing loaded into it yet.
 	// Its size will change when loading data into it with the loadPart function.
@@ -213,6 +222,7 @@ void CineEngine::initialize() {
 	g_cine->_overlayList.clear();
 	g_cine->_messageTable.clear();
 	resetObjectTable();
+	g_cine->_seqList.clear();
 
 	if (getGameType() == Cine::GType_OS) {
 		disableSystemMenu = 1;
@@ -224,25 +234,46 @@ void CineEngine::initialize() {
 		// A proper fix here would be to save this variable in FW's saves.
 		// Since it seems these are unversioned so far, there would be need
 		// to properly add versioning to them first.
+		//
+		// Adding versioning to FW saves didn't solve this problem. Setting
+		// disableSystemMenu according to the saved value still caused the
+		// action menu (EXAMINE, TAKE, INVENTORY, ...) sometimes to be
+		// disabled when it wasn't supposed to be disabled when
+		// loading from the launcher or command line.
 		disableSystemMenu = 0;
 	}
 
 	var8 = 0;
-
-	var2 = var3 = var4 = var5 = 0;
-
+	bgVar0 = 0;
+	var2 = var3 = var4 = lastType20OverlayBgIdx = 0;
 	musicIsPlaying = 0;
 	currentDatName[0] = 0;
+	_keyInputList.clear();
+
+	// Used for making sound effects work using Roland MT-32 and AdLib in
+	// Operation Stealth after loading a savegame. The sound effects are loaded
+	// in AUTO00.PRC using a combination of o2_loadAbs and o2_playSample(1, ...)
+	// before o1_freePartRange(0, 200). In the original game AUTO00.PRC
+	// was run when starting or restarting the game and one could not load a savegame
+	// before passing the copy protection. Thus, we try to emulate that behaviour by
+	// running at least part of AUTO00.PRC before loading a savegame.
+	//
+	// Confirmed that DOS and Atari ST versions do have these commands in their AUTO00.PRC files.
+	// Confirmed that Amiga and demo versions do not have these commands in their AUTO00.PRC files.
+	if (getGameType() == Cine::GType_OS && !(getFeatures() & GF_DEMO) &&
+		(getPlatform() == Common::kPlatformDOS || getPlatform() == Common::kPlatformAtariST)) {
+		loadPrc(BOOT_PRC_NAME);
+		strcpy(currentPrcName, BOOT_PRC_NAME);
+		addScriptToGlobalScripts(BOOT_SCRIPT_INDEX);
+		runOnlyUntilFreePartRangeFirst200 = true;
+		executeGlobalScripts();
+	}
 
 	_preLoad = false;
 	if (ConfMan.hasKey("save_slot") && !_restartRequested) {
-		char saveNameBuffer[256];
+		Common::Error loadError = loadGameState(ConfMan.getInt("save_slot"));
 
-		sprintf(saveNameBuffer, "%s.%1d", _targetName.c_str(), ConfMan.getInt("save_slot"));
-
-		bool res = makeLoad(saveNameBuffer);
-
-		if (res)
+		if (loadError.getCode() == Common::kNoError)
 			_preLoad = true;
 	}
 

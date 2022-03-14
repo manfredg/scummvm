@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -98,6 +97,29 @@ bool PtcArchive::openTranslation(const Common::String &filename) {
 		_items[translationNames[i]] = item;
 	}
 
+	if ((int32)_items[translationNames[0]]._offset == _stream->pos()) {
+		warning("v0 translation file detected, update is needed");
+
+		return true;
+	}
+
+	// We have latter versions of the file
+	if (_stream->readByte() != '\n') {
+		error("Malformed prince_translation.dat file");
+	}
+
+	Common::String version = _stream->readLine();
+	Common::String stamp = _stream->readLine();
+
+	warning("%s translation file detected, built on %s", version.c_str(), stamp.c_str());
+
+	if (version.equals("v1.0")) {
+		// No more data, we all fine
+		return true;
+	}
+
+	// Here we have format extension data
+
 	return true;
 }
 
@@ -107,7 +129,8 @@ void PtcArchive::close() {
 	_items.clear();
 }
 
-bool PtcArchive::hasFile(const Common::String &name) const {
+bool PtcArchive::hasFile(const Common::Path &path) const {
+	Common::String name = path.toString();
 	// TODO: check if path matching should be added
 	return _items.contains(name);
 }
@@ -123,16 +146,18 @@ int PtcArchive::listMembers(Common::ArchiveMemberList &list) const {
 	return matches;
 }
 
-const Common::ArchiveMemberPtr PtcArchive::getMember(const Common::String &name) const {
+const Common::ArchiveMemberPtr PtcArchive::getMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	if (!_items.contains(name)) {
 		Common::ArchiveMemberPtr();
 	}
 	return Common::ArchiveMemberList::value_type(new Common::GenericArchiveMember(name, this));
 }
 
-Common::SeekableReadStream *PtcArchive::createReadStreamForMember(const Common::String &name) const {
+Common::SeekableReadStream *PtcArchive::createReadStreamForMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	if (!_items.contains(name)) {
-		return 0;
+		return nullptr;
 	}
 
 	debug(8, "PtcArchive::createReadStreamForMember(%s)", name.c_str());
@@ -140,7 +165,7 @@ Common::SeekableReadStream *PtcArchive::createReadStreamForMember(const Common::
 	const FileEntry &entryHeader = _items[name];
 
 	if (entryHeader._size < 4)
-		return 0;
+		return nullptr;
 
 	uint32 size = entryHeader._size;
 

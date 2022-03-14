@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -78,8 +77,8 @@ Common::String getDisplayPath(Common::String s) {
 bool FilesPageHandler::listDirectory(Common::String path, Common::String &content, const Common::String &itemTemplate) {
 	if (path == "" || path == "/") {
 		if (ConfMan.hasKey("rootpath", "cloud"))
-			addItem(content, itemTemplate, IT_DIRECTORY, "/root/", HandlerUtils::toUtf8(_("File system root")));
-		addItem(content, itemTemplate, IT_DIRECTORY, "/saves/", HandlerUtils::toUtf8(_("Saved games")));
+			addItem(content, itemTemplate, IT_DIRECTORY, "/root/", Common::convertFromU32String(_("File system root")));
+		addItem(content, itemTemplate, IT_DIRECTORY, "/saves/", Common::convertFromU32String(_("Saved games")));
 		return true;
 	}
 
@@ -116,12 +115,12 @@ bool FilesPageHandler::listDirectory(Common::String path, Common::String &conten
 			filePath = "/";
 		else
 			filePath = parentPath(prefixToAdd + filePath);
-		addItem(content, itemTemplate, IT_PARENT_DIRECTORY, filePath, HandlerUtils::toUtf8(_("Parent directory")));
+		addItem(content, itemTemplate, IT_PARENT_DIRECTORY, filePath, Common::convertFromU32String(_("Parent directory")));
 	}
 
 	// fill the content
 	for (Common::FSList::iterator i = _nodeContent.begin(); i != _nodeContent.end(); ++i) {
-		Common::String name = i->getDisplayName();
+		Common::String name = i->getName();
 		if (i->isDirectory())
 			name += "/";
 
@@ -215,21 +214,21 @@ void FilesPageHandler::handle(Client &client) {
 
 	// show an error message if failed to list directory
 	if (!listDirectory(path, content, itemTemplate)) {
-		HandlerUtils::setFilesManagerErrorMessageHandler(client, HandlerUtils::toUtf8(_("ScummVM couldn't list the directory you specified.")));
+		HandlerUtils::setFilesManagerErrorMessageHandler(client, Common::convertFromU32String(_("ScummVM couldn't list the directory you specified.")).c_str());
 		return;
 	}
 
 	//these occur twice:
-	replace(response, "{create_directory_button}", HandlerUtils::toUtf8(_("Create directory")));
-	replace(response, "{create_directory_button}", HandlerUtils::toUtf8(_("Create directory")));
+	replace(response, "{create_directory_button}", _("Create directory").encode());
+	replace(response, "{create_directory_button}", _("Create directory").encode());
 	replace(response, "{path}", encodeDoubleQuotes(client.queryParameter("path")));
 	replace(response, "{path}", encodeDoubleQuotes(client.queryParameter("path")));
-	replace(response, "{upload_files_button}", HandlerUtils::toUtf8(_("Upload files"))); //tab
-	replace(response, "{upload_file_button}", HandlerUtils::toUtf8(_("Upload files"))); //button in the tab
-	replace(response, "{create_directory_desc}", HandlerUtils::toUtf8(_("Type new directory name:")));
-	replace(response, "{upload_file_desc}", HandlerUtils::toUtf8(_("Select a file to upload:")));
-	replace(response, "{or_upload_directory_desc}", HandlerUtils::toUtf8(_("Or select a directory (works in Chrome only):")));
-	replace(response, "{index_of_directory}", Common::String::format("%s %s", HandlerUtils::toUtf8(_("Index of")).c_str(), encodeHtmlEntities(getDisplayPath(client.queryParameter("path"))).c_str()));
+	replace(response, "{upload_files_button}", _("Upload files").encode()); //tab
+	replace(response, "{upload_file_button}", _("Upload files").encode()); //button in the tab
+	replace(response, "{create_directory_desc}", _("Type new directory name:").encode());
+	replace(response, "{upload_file_desc}", _("Select a file to upload:").encode());
+	replace(response, "{or_upload_directory_desc}", _("Or select a directory (works in Chrome only):").encode());
+	replace(response, "{index_of_directory}", Common::String::format("%s %s", _("Index of").encode().c_str(), encodeHtmlEntities(getDisplayPath(client.queryParameter("path"))).c_str()));
 	replace(response, "{content}", content);
 	LocalWebserver::setClientGetHandler(client, response);
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -391,7 +390,7 @@ bool Route::findRoute(const int16 cx, const int16 cy) {
 	// Look in segments[] for straight lines from destination to hero
 	for (i = 0, _routeListIndex = 0; i < _segmentNumb - 1; i++) {
 		Common::Point *routeNode;                   // Ptr to route node
-		if ((routeNode = newNode()) == 0)           // New node for new segment
+		if ((routeNode = newNode()) == nullptr)           // New node for new segment
 			return false;                           // Too many nodes
 		routeNode->y = _segment[i]._y;
 
@@ -403,7 +402,7 @@ bool Route::findRoute(const int16 cx, const int16 cy) {
 				routeNode->y = segPtr->_y;          // Yes, keep updating node
 			} else {
 				// No, create another node on previous segment to reach it
-				if ((routeNode = newNode()) == 0)   // Add new route node
+				if ((routeNode = newNode()) == nullptr)   // Add new route node
 					return false;                   // Too many nodes
 
 				// Find overlap between old and new segments

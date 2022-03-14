@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -151,7 +150,7 @@ bool CmidPlayer::load(Std::string &filename, int song_index) {
 	if (good != 0)
 		subsongs = 1;
 	else {
-		delete data;
+		delete [] data;
 		data = NULL;
 		return false;
 	}
@@ -223,7 +222,7 @@ bool CmidPlayer::update() {
 				//  This is to do implied MIDI events. aka 'Running Status'
 				if (v < 0x80) {
 					v = track[curtrack].pv;
-					debug("Running status [%2X]\n", (unsigned int)v);
+					debug("Running status [%2X]", (unsigned int)v);
 					pos--;
 				} else {
 					if (v >= 0xf0 && v < 0xf9) {
@@ -373,12 +372,12 @@ bool CmidPlayer::update() {
 							for (i = 0; i < l; i++)
 								midiprintf("%c", (unsigned char)getnext(1));
 						} else if (v == 0x6) {
-							debug("Marker: ");
+							debugN("Marker: ");
 							for (i = 0; i < l; i++) {
 								//midiprintf ("%c",(unsigned char)getnext(1));
-								debug("%c", (unsigned char)getnext(1));
+								debugN("%c", (unsigned char)getnext(1));
 							}
-							debug("\n");
+							debug("%s", "");
 						} else {
 							for (i = 0; i < l; i++)
 								midiprintf("%2X ", (unsigned int)getnext(1));

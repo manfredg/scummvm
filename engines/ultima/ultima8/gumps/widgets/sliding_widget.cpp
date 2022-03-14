@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,29 +15,22 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/gumps/widgets/sliding_widget.h"
-#include "ultima/ultima8/graphics/shape_frame.h"
-#include "ultima/ultima8/graphics/shape.h"
-
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(SlidingWidget, Gump)
+DEFINE_RUNTIME_CLASSTYPE_CODE(SlidingWidget)
 
 SlidingWidget::SlidingWidget()
 	: Gump() {
 }
 
-SlidingWidget::SlidingWidget(int x, int y, Shape *shape, uint32 frameNum)
+SlidingWidget::SlidingWidget(int x, int y, const Shape *shape, uint32 frameNum)
 	: Gump(x, y, 5, 5, 0, FLAG_DRAGGABLE) {
 	_shape = shape;
 	_frameNum = frameNum;
@@ -49,11 +42,7 @@ SlidingWidget::~SlidingWidget() {
 void SlidingWidget::InitGump(Gump *newparent, bool take_focus) {
 	Gump::InitGump(newparent, take_focus);
 
-	ShapeFrame *sf = _shape->getFrame(_frameNum);
-	assert(sf);
-
-	_dims.w = sf->_width;
-	_dims.h = sf->_height;
+	UpdateDimsFromShape();
 }
 
 uint16 SlidingWidget::TraceObjId(int32 mx, int32 my) {
@@ -63,12 +52,12 @@ uint16 SlidingWidget::TraceObjId(int32 mx, int32 my) {
 		return 0;
 }
 
-void SlidingWidget::saveData(ODataSource *ods) {
-	Gump::saveData(ods);
+void SlidingWidget::saveData(Common::WriteStream *ws) {
+	Gump::saveData(ws);
 }
 
-bool SlidingWidget::loadData(IDataSource *ids, uint32 version) {
-	if (!Gump::loadData(ids, version)) return false;
+bool SlidingWidget::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Gump::loadData(rs, version)) return false;
 
 	return true;
 }

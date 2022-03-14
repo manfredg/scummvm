@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -245,7 +244,7 @@ void Screen::fnDrawScreen(uint32 palette, uint32 scroll) {
 }
 
 void Screen::fnFadeDown(uint32 scroll) {
-	if (((scroll != 123) && (scroll != 321)) || (SkyEngine::_systemVars.systemFlags & SF_NO_SCROLL)) {
+	if (((scroll != 123) && (scroll != 321)) || (SkyEngine::_systemVars->systemFlags & SF_NO_SCROLL)) {
 		uint32 delayTime = _system->getMillis();
 		for (uint8 cnt = 0; cnt < 32; cnt++) {
 			delayTime += 20;
@@ -328,7 +327,7 @@ void Screen::fnFadeUp(uint32 palNum, uint32 scroll) {
 	if ((scroll != 123) && (scroll != 321))
 		scroll = 0;
 
-	if ((scroll == 0) || (SkyEngine::_systemVars.systemFlags & SF_NO_SCROLL)) {
+	if ((scroll == 0) || (SkyEngine::_systemVars->systemFlags & SF_NO_SCROLL)) {
 		uint8 *palette = (uint8 *)_skyCompact->fetchCpt(palNum);
 		if (palette == NULL)
 			error("Screen::fnFadeUp: can't fetch compact %X", palNum);

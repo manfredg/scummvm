@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -499,9 +498,8 @@ bool Scene::loadScene(const Common::String &filename) {
 					rrmStream->readStream(animSize * bgHeader._numcAnimations);
 
 				// Load cAnim offset table as well
-				uint32 *cAnimOffsetTablePtr = new uint32[bgHeader._numcAnimations];
+				uint32 *cAnimOffsetTablePtr = new uint32[bgHeader._numcAnimations]();
 				uint32 *cAnimOffsetPtr = cAnimOffsetTablePtr;
-				memset(cAnimOffsetTablePtr, 0, bgHeader._numcAnimations * sizeof(uint32));
  				if (IS_SERRATED_SCALPEL) {
 					// Save current stream offset
 					int32 curOffset = rrmStream->pos();
@@ -836,10 +834,9 @@ bool Scene::loadScene(const Common::String &filename) {
 			roomStream->seek(header3DO_cAnim_offset);
 			Common::SeekableReadStream *cAnimStream = roomStream->readStream(header3DO_cAnim_size);
 
-			uint32 *cAnimOffsetTablePtr = new uint32[header3DO_numAnimations];
+			uint32 *cAnimOffsetTablePtr = new uint32[header3DO_numAnimations]();
 			uint32 *cAnimOffsetPtr = cAnimOffsetTablePtr;
 			uint32 cAnimOffset = 0;
-			memset(cAnimOffsetTablePtr, 0, header3DO_numAnimations * sizeof(uint32));
 
 			// Seek to end of graphics data and load cAnim offset table from there
 			roomStream->seek(header3DO_bgGraphicData_offset + header3DO_bgGraphicData_size);
@@ -966,8 +963,8 @@ bool Scene::loadScene(const Common::String &filename) {
 			error("Could not open file - %s", roomBackgroundFilename.c_str());
 
 		int totalPixelCount = SHERLOCK_SCREEN_WIDTH * SHERLOCK_SCENE_HEIGHT;
-		uint16 *roomBackgroundDataPtr = NULL;
-		uint16 *pixelSourcePtr = NULL;
+		uint16 *roomBackgroundDataPtr = nullptr;
+		uint16 *pixelSourcePtr = nullptr;
 		uint16 *pixelDestPtr = (uint16 *)screen._backBuffer1.getPixels();
 		uint16  curPixel = 0;
 		uint32  roomBackgroundStreamSize = roomBackgroundStream.size();

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,14 @@
 #include "audio/mixer.h"
 
 namespace Audio {
+
+/**
+ * @defgroup audio_mixer_intern Mixer implementation
+ * @ingroup audio
+ *
+ * @brief The (default) implementation of the ScummVM audio mixing subsystem.
+ * @{
+ */
 
 /**
  * The (default) implementation of the ScummVM audio mixing subsystem.
@@ -51,12 +58,13 @@ namespace Audio {
 class MixerImpl : public Mixer {
 private:
 	enum {
-		NUM_CHANNELS = 16
+		NUM_CHANNELS = 32
 	};
 
 	Common::Mutex _mutex;
 
 	const uint _sampleRate;
+	const uint _outBufSize;
 	bool _mixerReady;
 	uint32 _handleSeed;
 
@@ -73,10 +81,12 @@ private:
 
 public:
 
-	MixerImpl(uint sampleRate);
+	MixerImpl(uint sampleRate, uint outBufSize = 0);
 	~MixerImpl();
 
-	virtual bool isReady() const { return _mixerReady; }
+	virtual bool isReady() const { Common::StackLock lock(_mutex); return _mixerReady; }
+
+	virtual Common::Mutex &mutex() { return _mutex; }
 
 	virtual void playStream(
 		SoundType type,
@@ -111,12 +121,15 @@ public:
 	virtual uint32 getSoundElapsedTime(SoundHandle handle);
 	virtual Timestamp getElapsedTime(SoundHandle handle);
 
+	virtual void loopChannel(SoundHandle handle);
+
 	virtual bool hasActiveChannelOfType(SoundType type);
 
 	virtual void setVolumeForSoundType(SoundType type, int volume);
 	virtual int getVolumeForSoundType(SoundType type) const;
 
 	virtual uint getOutputRate() const;
+	virtual uint getOutputBufSize() const;
 
 protected:
 	void insertChannel(SoundHandle *handle, Channel *chan);
@@ -141,7 +154,7 @@ public:
 	void setReady(bool ready);
 };
 
-
+/** @} */
 } // End of namespace Audio
 
 #endif

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@ namespace BladeRunner {
 void SceneScriptNR09::InitializeScene() {
 	if (Game_Flag_Query(kFlagNR10toNR09)) {
 		if (!Game_Flag_Query(kFlagNR10CameraDestroyed)) {
-			Ambient_Sounds_Adjust_Looping_Sound(kSfx35MM, 22, 100, 2);
+			Ambient_Sounds_Adjust_Looping_Sound(kSfx35MM, 22, 100, 2u);
 		}
 		Game_Flag_Reset(kFlagNR10toNR09);
 		Setup_Scene_Information(-556.07f, 0.35f, 399.04f, 440);
@@ -84,7 +83,7 @@ bool SceneScriptNR09::ClickedOnExit(int exitId) {
 
 	if (exitId == 1) {
 		Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-		Ambient_Sounds_Remove_All_Looping_Sounds(1);
+		Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 		int v1 = Loop_Actor_Walk_To_XYZ(kActorMcCoy, -704.07f, 0.35f, 663.04f, 0, true, false, false);
 		if (!v1) {
 			Game_Flag_Set(kFlagNR09toNR08);
@@ -118,7 +117,7 @@ void SceneScriptNR09::PlayerWalkedIn() {
 
 void SceneScriptNR09::PlayerWalkedOut() {
 	if (Game_Flag_Query(kFlagNR09toNR10)) {
-		Music_Stop(2);
+		Music_Stop(2u);
 	}
 }
 
@@ -127,15 +126,19 @@ void SceneScriptNR09::DialogueQueueFlushed(int a1) {
 
 void SceneScriptNR09::playNextMusic() {
 	if (Music_Is_Playing()) {
-		Music_Adjust(31, -80, 2);
+		Music_Adjust(31, -80, 2u);
 	} else {
 		int track = Global_Variable_Query(kVariableEarlyQBackMusic);
+		int loop = kMusicLoopPlayOnce;
+		if (_vm->_cutContent && Random_Query(0, 2) == 1) {
+			loop = kMusicLoopPlayOnceRandomStart;
+		}
 		if (track == 0) {
-			Music_Play(kMusicDkoDnce1, 61, -80, 2, -1, 0, 0);
+			Music_Play(kMusicDkoDnce1, 61, -80, 2, -1, loop, 0);
 		} else if (track == 1) {
-			Music_Play(kMusicStrip1, 41, -80, 2, -1, 0, 0);
+			Music_Play(kMusicStrip1, 41, -80, 2, -1, loop, 0);
 		} else if (track == 2) {
-			Music_Play(kMusicArkDnce1, 41, -80, 2, -1, 0, 0);
+			Music_Play(kMusicArkDnce1, 41, -80, 2, -1, loop, 0);
 		}
 		++track;
 		if (track > 2) {

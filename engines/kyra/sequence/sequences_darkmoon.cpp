@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -71,7 +70,7 @@ private:
 	OSystem *_system;
 	DarkMoonEngine *_vm;
 	Screen_EoB *_screen;
-	
+
 	struct Config {
 		Config(const char *const *str, const char *const *cpsfiles, const uint8 **cpsdata, const char *const *pal, const DarkMoonShapeDef **shp, const DarkMoonAnimCommand **anim, bool loadScenePalette, bool paletteFading, bool animCmdRestorePalette, bool shapeBackgroundFading, int animPalOffset, int animType1ShapeDim, bool animCmd5SetPalette, int animCmd5ExtraPage) : strings(str), cpsFiles(cpsfiles), cpsData(cpsdata), palFiles(pal), shapeDefs(shp), animData(anim), loadScenePal(loadScenePalette), palFading(paletteFading), animCmdRestorePal(animCmdRestorePalette), shpBackgroundFading(shapeBackgroundFading), animPalOffs(animPalOffset), animCmd1ShapeFrame(animType1ShapeDim), animCmd5SetPal(animCmd5SetPalette), animCmd5AltPage(animCmd5ExtraPage) {}
 		const char *const *strings;
@@ -89,7 +88,7 @@ private:
 		bool animCmd5SetPal;
 		int animCmd5AltPage;
 	};
-	
+
 	const Config *_config;
 
 	Palette *_palettes[13];
@@ -206,7 +205,8 @@ int DarkMoonEngine::mainMenuLoop() {
 	int sel = -1;
 	do {
 		_screen->setScreenDim(6);
-		_gui->simpleMenu_setup(6, 0, _mainMenuStrings, -1, 0, 0);
+		_gui->simpleMenu_setup(6, 0, _mainMenuStrings, -1, 0, 0, _configRenderMode == Common::kRenderCGA ? 1 : guiSettings()->colors.guiColorWhite, guiSettings()->colors.guiColorLightRed, guiSettings()->colors.guiColorBlack);
+		_screen->updateScreen();
 
 		while (sel == -1 && !shouldQuit())
 			sel = _gui->simpleMenu_process(6, _mainMenuStrings, 0, -1, 0);
@@ -224,7 +224,8 @@ void DarkMoonEngine::townsUtilitiesMenu() {
 	_screen->copyRegion(78, 99, 78, 99, 172, 43, 2, 0, Screen::CR_NO_P_CHECK);
 	int sel = -1;
 	do {
-		_gui->simpleMenu_setup(8, 0, _utilMenuStrings, -1, 0, 0);
+		_gui->simpleMenu_setup(8, 0, _utilMenuStrings, -1, 0, 0, _configRenderMode == Common::kRenderCGA ? 1 : guiSettings()->colors.guiColorWhite, guiSettings()->colors.guiColorLightRed, guiSettings()->colors.guiColorBlack);
+		_screen->updateScreen();
 		while (sel == -1 && !shouldQuit())
 			sel = _gui->simpleMenu_process(8, _utilMenuStrings, 0, -1, 0);
 		if (sel == 0) {
@@ -298,7 +299,7 @@ void DarkMoonEngine::seq_playIntro() {
 	_screen->setCurPage(2);
 	_screen->setClearScreenDim(17);
 	_screen->setCurPage(0);
-	
+
 	sq.animCommand(_flags.platform == Common::kPlatformAmiga ? 38 : (_configRenderMode == Common::kRenderEGA ? 41 : 40));
 	sq.animCommand(7, 18);
 
@@ -373,7 +374,7 @@ void DarkMoonEngine::seq_playIntro() {
 	sq.animCommand(_flags.platform == Common::kPlatformAmiga ? 12 : 13);
 	_screen->copyRegion(104, 16, 96, 8, 120, 100, 0, 2, Screen::CR_NO_P_CHECK);
 	sq.fadeText();
-	
+
 	if (_flags.platform == Common::kPlatformAmiga)
 		sq.animCommand(9);
 
@@ -827,6 +828,8 @@ void DarkMoonEngine::seq_playFinale() {
 	sq.printText(15, textColor1);           // The temple ceases to exist
 	if (_flags.platform != Common::kPlatformAmiga) {
 		sq.initDelayedPaletteFade(6, 1);
+	} else if (skipFlag()) {
+		_screen->fadeToBlack();
 	} else {
 		_screen->fadePalette(_screen->getPalette(5), 127);
 		sq.copyPalette(5, 0);
@@ -839,7 +842,7 @@ void DarkMoonEngine::seq_playFinale() {
 	sq.delay(54);
 	sq.fadeText();
 	sq.loadScene(12, 2);
-	
+
 	sq.waitForSongNotifier(5);
 
 	if (!skipFlag() && !shouldQuit())
@@ -940,9 +943,9 @@ void DarkMoonEngine::seq_playFinale() {
 
 	int temp = 0;
 	const uint8 *creditsData = (_flags.platform != Common::kPlatformDOS) ? _res->fileData("CREDITS.TXT", 0) : _staticres->loadRawData(kEoB2CreditsData, temp);
-	
+
 	seq_playCredits(&sq, creditsData, 18, 2, 6, 2);
-	
+
 	if (_flags.platform != Common::kPlatformDOS)
 		delete[] creditsData;
 
@@ -1029,7 +1032,7 @@ void DarkMoonEngine::seq_playCredits(DarkmoonSequenceHelper *sq, const uint8 *da
 			delay(MIN<uint32>(_tickLength, end - cur));
 		}
 
-		end = _system->getMillis() + speed * _tickLength;
+		end = _system->getMillis() + ((speed * _tickLength) >> 1);
 
 		for (; i < 35 && *pos; i++) {
 			int16 nextY = i ? items[i].y + items[i].size + (items[i].size >> 2) : dm->h;
@@ -1098,7 +1101,7 @@ void DarkMoonEngine::seq_playCredits(DarkmoonSequenceHelper *sq, const uint8 *da
 				}
 			}
 
-			items[h + 1].y -= 2;
+			items[h + 1].y -= MAX<int>(1, speed >> 1);
 		}
 
 		_screen->copyRegion(dm->sx << 3, dm->sy, dm->sx << 3, dm->sy, dm->w << 3, dm->h, tempPage, 0, Screen::CR_NO_P_CHECK);
@@ -1139,7 +1142,7 @@ DarkmoonSequenceHelper::~DarkmoonSequenceHelper() {
 	for (int i = 0; i < 7; i++)
 		delete[] _fadingTables[i];
 
-	for (int i = 0; i < 30; i++)
+	for (int i = 0; i < 54; i++)
 		delete[] _shapes[i];
 	delete[] _shapes;
 
@@ -1168,7 +1171,7 @@ void DarkmoonSequenceHelper::loadScene(int index, int pageNum, bool ignorePalett
 		file = _config->cpsFiles[index];
 		s = _vm->resource()->createReadStream(file);
 	}
-	
+
 	if (s) {
 		chunkID = s->readUint32LE();
 		s->seek(0);
@@ -1178,7 +1181,7 @@ void DarkmoonSequenceHelper::loadScene(int index, int pageNum, bool ignorePalett
 		// Tolerance for diffenrences up to 2 bytes is needed in some cases
 		if ((((int32)(chunkID & 0xFFFF) + 5) & ~3) != (((s->size()) + 3) & ~3))
 			isRawData = true;
-	} else if (file.firstChar() == 'X') {
+	} else if (file.firstChar() == 'X' && _vm->gameFlags().lang == Common::DE_DEU) {
 		isRawData = true;
 	}
 
@@ -1453,12 +1456,17 @@ void DarkmoonSequenceHelper::printText(int index, int color) {
 }
 
 void DarkmoonSequenceHelper::fadeText() {
-	int rate = _vm->skipFlag() || _vm->shouldQuit() ? 16 : 8;
-	if (_vm->gameFlags().platform == Common::kPlatformAmiga)
-		_screen->fadeTextColor(_palettes[0], 31, rate);
-	else if (_vm->_configRenderMode != Common::kRenderEGA)
-		_screen->fadeTextColor(_palettes[0], 255, rate);
-	
+	uint8 col = _vm->gameFlags().platform == Common::kPlatformAmiga ? 31 : 255;
+
+	if (_vm->skipFlag() || _vm->shouldQuit()) {
+		_screen->clearCurDim();
+		_screen->setPaletteIndex(col, 0, 0, 0);
+		return;
+	}
+
+	if (_vm->_configRenderMode != Common::kRenderEGA)
+		_screen->fadeTextColor(_palettes[0], col, 8);
+
 	memset(_textColor, 0, 3);
 	_screen->clearCurDim();
 }
@@ -1615,7 +1623,7 @@ void DarkmoonSequenceHelper::init(DarkmoonSequenceHelper::Mode mode) {
 	delete[] fadeData;
 
 	_shapes = new const uint8*[54];
-	memset(_shapes, 0, 54 * sizeof(uint8 *));
+	memset(_shapes, 0, 54 * sizeof(uint8*));
 
 	_fadePalTimer = 0;
 	_fadePalRate = 0;

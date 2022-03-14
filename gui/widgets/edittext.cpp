@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 
 namespace GUI {
 
-EditTextWidget::EditTextWidget(GuiObject *boss, int x, int y, int w, int h, const String &text, const char *tooltip, uint32 cmd, uint32 finishCmd, ThemeEngine::FontStyle font)
+EditTextWidget::EditTextWidget(GuiObject *boss, int x, int y, int w, int h, const Common::U32String &text, const Common::U32String &tooltip, uint32 cmd, uint32 finishCmd, ThemeEngine::FontStyle font)
 	: EditableWidget(boss, x, y - 1, w, h + 2, tooltip, cmd) {
 	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG | WIDGET_RETAIN_FOCUS | WIDGET_WANT_TICKLE);
 	_type = kEditTextWidget;
@@ -40,7 +39,7 @@ EditTextWidget::EditTextWidget(GuiObject *boss, int x, int y, int w, int h, cons
 	_leftPadding = _rightPadding = 0;
 }
 
-EditTextWidget::EditTextWidget(GuiObject *boss, const String &name, const String &text, const char *tooltip, uint32 cmd, uint32 finishCmd, ThemeEngine::FontStyle font)
+EditTextWidget::EditTextWidget(GuiObject *boss, const Common::String &name, const Common::U32String &text, const Common::U32String &tooltip, uint32 cmd, uint32 finishCmd, ThemeEngine::FontStyle font)
 	: EditableWidget(boss, name, tooltip, cmd) {
 	setFlags(WIDGET_ENABLED | WIDGET_CLEARBG | WIDGET_RETAIN_FOCUS | WIDGET_WANT_TICKLE);
 	_type = kEditTextWidget;
@@ -52,7 +51,7 @@ EditTextWidget::EditTextWidget(GuiObject *boss, const String &name, const String
 	_leftPadding = _rightPadding = 0;
 }
 
-void EditTextWidget::setEditString(const String &str) {
+void EditTextWidget::setEditString(const Common::U32String &str) {
 	EditableWidget::setEditString(str);
 	_backupString = str;
 }
@@ -72,21 +71,28 @@ void EditTextWidget::handleMouseDown(int x, int y, int button, int clickCount) {
 	if (_caretVisible)
 		drawCaret(true);
 
-	x += _editScrollOffset;
+	if (g_gui.useRTL()) {
+		x = _w - x;
+	}
 
+	x += _editScrollOffset;
 	int width = 0;
+	if (_drawAlign == Graphics::kTextAlignRight)
+		width = _editScrollOffset + getEditRect().width() - g_gui.getStringWidth(_editString, _font);
+
 	uint i;
 
 	uint last = 0;
 	for (i = 0; i < _editString.size(); ++i) {
 		const uint cur = _editString[i];
 		width += g_gui.getCharWidth(cur, _font) + g_gui.getKerningOffset(last, cur, _font);
-		if (width >= x)
+		if (width >= x && width > _editScrollOffset + _leftPadding)
 			break;
 		last = cur;
 	}
-	if (setCaretPos(i))
-		markAsDirty();
+
+	setCaretPos(i);
+	markAsDirty();
 }
 
 void EditTextWidget::drawWidget() {
@@ -95,18 +101,25 @@ void EditTextWidget::drawWidget() {
 
 	// Draw the text
 	adjustOffset();
-
-	const Common::Rect &r = Common::Rect(_x + 2 + _leftPadding, _y + 2, _x + _leftPadding + getEditRect().width() + 8, _y + _h);
-	setTextDrawableArea(r);
+	Common::Rect drawRect = getEditRect();
+	drawRect.translate(_x, _y);
+	setTextDrawableArea(drawRect);
 
 	g_gui.theme()->drawText(
-			Common::Rect(_x + 2 + _leftPadding, _y + 1, _x + _leftPadding + getEditRect().width() + 2, _y + _h),
-			_editString, _state, Graphics::kTextAlignLeft, ThemeEngine::kTextInversionNone,
+			drawRect,
+			_editString, _state, _drawAlign, ThemeEngine::kTextInversionNone,
 			-_editScrollOffset, false, _font, ThemeEngine::kFontColorNormal, true, _textDrawableArea);
 }
 
 Common::Rect EditTextWidget::getEditRect() const {
-	Common::Rect r(2 + _leftPadding, 2, _w - 2 - _leftPadding - _rightPadding, _h);
+	// Calculate (right - left) difference for editRect's X-axis coordinates:
+	// (_w - 1 - _rightPadding) - (2 + _leftPadding)
+	int editWidth = _w - _rightPadding - _leftPadding - 3;
+	// Ensure r will always be a valid rect
+	if (editWidth < 0) {
+		editWidth = 0;
+	}
+	Common::Rect r(2 + _leftPadding, 1, 2 + _leftPadding + editWidth, _h);
 
 	return r;
 }

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,24 +15,24 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-// This file is included in CryOmni3D namespace
+namespace CryOmni3D {
 
 #define GUI_OPTIONS_VERSAILLES                   GUIO3(GUIO_NOMIDI, GUIO_NOSFX, GUIO_NOASPECT)
+#define GUI_OPTIONS_HNM_PLAYER                   GUIO4(GUIO_NOMIDI, GUIO_NOSFX, GUIO_NOSPEECH, GUIO_NOASPECT)
 
 // To correctly detect root we need files from various places: CD1, CD2, HDD, on-CD install files
 // We use files common to all installations except the documentation links and the binary
 // We only check the file presence to simplify and use program to discriminate the version
 #define VERSAILLES_ENTRY(f, x, s, lien_doc_ext) { \
-    { "11D_LEB1.HNM", 0, nullptr, -1}, \
-    { "COFBOUM.HNM", 0, nullptr, -1}, \
-    { "lien_doc." lien_doc_ext, 0, nullptr, -1}, \
-    { f, 0, x, s}, \
-    AD_LISTEND}
+	{ "11D_LEB1.HNM", 0, nullptr, -1}, \
+	{ "COFBOUM.HNM", 0, nullptr, -1}, \
+	{ "lien_doc." lien_doc_ext, 0, nullptr, -1}, \
+	{ f, 0, x, s}, \
+	AD_LISTEND}
 
 #define VERSAILLES_ENTRY_DEF(f, x, s) VERSAILLES_ENTRY(f, x, s, "txt")
 
@@ -316,6 +316,23 @@ static const CryOmni3DGameDescription gameDescriptions[] = {
 
 	// Versailles 1685
 	// German Windows compressed from DVD
+	// From laenion, ticket #11963
+	{
+		{
+			"versailles",
+			"",
+			VERSAILLES_ENTRY("PROGRAM.Z", "cdd35a623d1ed05d1dc3248735cea868", 236363, "ALM"),
+			Common::DE_DEU,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_VERSAILLES
+		},
+		GType_VERSAILLES,
+		GF_VERSAILLES_FONTS_NUMERIC | GF_VERSAILLES_AUDIOPADDING_YES | GF_VERSAILLES_LINK_LOCALIZED,
+	},
+
+	// Versailles 1685
+	// German Windows compressed from DVD
 	// From Uka in forum
 	{
 		{
@@ -415,6 +432,141 @@ static const CryOmni3DGameDescription gameDescriptions[] = {
 		GType_VERSAILLES,
 		GF_VERSAILLES_FONTS_NUMERIC | GF_VERSAILLES_AUDIOPADDING_YES | GF_VERSAILLES_LINK_STANDARD,
 	},
+
+	// Versailles 1685
+	// Chinese Windows compressed from DVD
+	// From lePhilousophe
+	{
+		{
+			"versailles",
+			"",
+			VERSAILLES_ENTRY_DEF("PROGRAM.Z", "37f3d691e90e17b78050d6a91f7e0377", 242583),
+			Common::ZH_TWN,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_VERSAILLES
+		},
+		GType_VERSAILLES,
+		/* GF_VERSAILLES_FONTS_ | */ GF_VERSAILLES_AUDIOPADDING_YES,
+	},
+
+	// Versailles 1685
+	// Chinese Windows from DVD
+	// From lePhilousophe
+	{
+		{
+			"versailles",
+			"",
+			VERSAILLES_ENTRY_DEF("VERSAILL.EXE", "5209e7c9b20612467af7e9745758ee72", 352256),
+			Common::ZH_TWN,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_VERSAILLES
+		},
+		GType_VERSAILLES,
+		/* GF_VERSAILLES_FONTS_ | */ GF_VERSAILLES_AUDIOPADDING_YES,
+	},
+
+	// Versailles 1685
+	// Korean Windows compressed from DVD
+	// From lePhilousophe
+	{
+		{
+			"versailles",
+			"",
+			VERSAILLES_ENTRY_DEF("PROGRAM.Z", "ffb7599d042fb71f22ab4d76a2e0147f", 244155),
+			Common::KO_KOR,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_VERSAILLES
+		},
+		GType_VERSAILLES,
+		/* GF_VERSAILLES_FONTS_ | */ GF_VERSAILLES_AUDIOPADDING_YES,
+	},
+
+	// Versailles 1685
+	// Korean Windows from DVD
+	// From lePhilousophe
+	{
+		{
+			"versailles",
+			"",
+			VERSAILLES_ENTRY_DEF("VERSAILL.EXE", "549c588e05df8d42b531ffc9b2796303", 355840),
+			Common::KO_KOR,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_VERSAILLES
+		},
+		GType_VERSAILLES,
+		/* GF_VERSAILLES_FONTS_ | */ GF_VERSAILLES_AUDIOPADDING_YES,
+	},
+
+	// Versailles 1685
+	// Japanese Windows compressed from DVD
+	// From lePhilousophe
+	{
+		{
+			"versailles",
+			"",
+			VERSAILLES_ENTRY_DEF("PROGRAM.Z", "1944d7c30dbb25ab10f684422e196c16", 248700),
+			Common::JA_JPN,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_VERSAILLES
+		},
+		GType_VERSAILLES,
+		/* GF_VERSAILLES_FONTS_ | */ GF_VERSAILLES_AUDIOPADDING_YES,
+	},
+
+	// Versailles 1685
+	// Japanese Windows from DVD
+	// From lePhilousophe
+	{
+		{
+			"versailles",
+			"",
+			VERSAILLES_ENTRY_DEF("VERSAILL.EXE", "b7dadaf14cc5783e235125f9d6f6adea", 358912),
+			Common::JA_JPN,
+			Common::kPlatformWindows,
+			ADGF_NO_FLAGS,
+			GUI_OPTIONS_VERSAILLES
+		},
+		GType_VERSAILLES,
+		/* GF_VERSAILLES_FONTS_ | */ GF_VERSAILLES_AUDIOPADDING_YES,
+	},
+
+	// Versailles 1685
+	// English DOS Non-interactive Demo (US)
+	{
+		{
+			"versailles",
+			"Demo",
+			AD_ENTRY1s("DEMO_US.HNS", "3a65a984353fec354dd26a62ca2cd3fb", 68462303),
+			Common::EN_ANY,
+			Common::kPlatformDOS,
+			ADGF_DEMO,
+			GUI_OPTIONS_HNM_PLAYER
+		},
+		GType_HNM_PLAYER,
+		0,
+	},
+
+	// Atlantis: The Lost Tales
+	// English DOS Non-interactive Demo
+	{
+		{
+			"atlantis",
+			"Demo",
+			AD_ENTRY1s("ATLANTIS.UBB", "f5b41b857678a61d7f9bd6eb41916ce5", 106611456),
+			Common::EN_ANY,
+			Common::kPlatformDOS,
+			ADGF_DEMO,
+			GUI_OPTIONS_HNM_PLAYER
+		},
+		GType_HNM_PLAYER,
+		0,
+	},
+
 	{ AD_TABLE_END_MARKER, 0, 0 }
 };
 
@@ -476,3 +628,5 @@ static const ADFileBasedFallback fileBased[] = {
 	{ &fallbackDescs[0].desc,  { "11D_LEB1.HNM", "COFBOUM.HNM", "Versailles", 0 } },
 	{ 0, { 0 } }
 };
+
+} // End of namespace CryOmni3D

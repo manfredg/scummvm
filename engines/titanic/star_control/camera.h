@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,7 +53,7 @@ private:
 private:
 	/**
 	 * Creates a motion controller for the camera. This needs to be recreated
-	 * when the number of locked stars changes. 
+	 * when the number of locked stars changes.
 	 * @param src	Contains characteristics to set for the motion
 	 */
 	bool createMotionControl(const CNavigationInfo *src);
@@ -88,7 +87,7 @@ public:
 
 	/**
 	 * The mover/view is not currently homing in on a new star
-	 * This can mean it is unmarked, or that it is fully locked 
+	 * This can mean it is unmarked, or that it is fully locked
 	 * onto one star or more (but not in the process of doing so)
 	 */
 	bool isNotInLockingProcess();
@@ -221,7 +220,7 @@ public:
 	 * Second is the x center coordinate relative to z
 	 * Third is the first x center pixel offset
 	 * Fourth is the second x center pixel offset
-	 */	
+	 */
 	virtual void getRelativeXCenterPixels(double *v1, double *v2, double *v3, double *v4);
 
 	/**
@@ -236,7 +235,7 @@ public:
 
 	/**
 	 * Calculates the angle of rotation of y that achieves
-	 * the minimum distance to x. 
+	 * the minimum distance to x.
 	 * The angle is in degrees.
 	 * Also returns the minimum distance calculated
 	 */

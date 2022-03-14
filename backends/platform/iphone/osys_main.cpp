@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,6 @@
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
 
 #include <unistd.h>
-#include <pthread.h>
 
 #include <sys/time.h>
 
@@ -38,17 +36,12 @@
 
 #include "backends/saves/default/default-saves.h"
 #include "backends/timer/default/default-timer.h"
+#include "backends/mutex/pthread/pthread-mutex.h"
 #include "audio/mixer.h"
 #include "audio/mixer_intern.h"
 
 #include "backends/platform/iphone/osys_main.h"
 
-
-const OSystem::GraphicsMode OSystem_IPHONE::s_supportedGraphicsModes[] = {
-	{ "linear", "Linear filtering", kGraphicsModeLinear },
-	{ "none", "No filtering", kGraphicsModeNone },
-	{ 0, 0, 0 }
-};
 
 AQCallbackStruct OSystem_IPHONE::s_AudioQueue;
 SoundProc OSystem_IPHONE::s_soundCallback = NULL;
@@ -110,6 +103,8 @@ void OSystem_IPHONE::initBackend() {
 bool OSystem_IPHONE::hasFeature(Feature f) {
 	switch (f) {
 	case kFeatureCursorPalette:
+	case kFeatureFilteringMode:
+	case kFeatureNoQuit:
 		return true;
 
 	default:
@@ -126,6 +121,9 @@ void OSystem_IPHONE::setFeatureState(Feature f, bool enable) {
 			_mouseCursorPaletteEnabled = enable;
 		}
 		break;
+	case kFeatureFilteringMode:
+		_videoContext->filtering = enable;
+		break;
 	case kFeatureAspectRatioCorrection:
 		_videoContext->asprectRatioCorrection = enable;
 		break;
@@ -139,6 +137,8 @@ bool OSystem_IPHONE::getFeatureState(Feature f) {
 	switch (f) {
 	case kFeatureCursorPalette:
 		return _mouseCursorPaletteEnabled;
+	case kFeatureFilteringMode:
+		return _videoContext->filtering;
 	case kFeatureAspectRatioCorrection:
 		return _videoContext->asprectRatioCorrection;
 
@@ -180,41 +180,6 @@ void OSystem_IPHONE::delayMillis(uint msecs) {
 	usleep(msecs * 1000);
 }
 
-OSystem::MutexRef OSystem_IPHONE::createMutex(void) {
-	pthread_mutexattr_t attr;
-	pthread_mutexattr_init(&attr);
-	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-
-	pthread_mutex_t *mutex = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
-	if (pthread_mutex_init(mutex, &attr) != 0) {
-		printf("pthread_mutex_init() failed!\n");
-		free(mutex);
-		return NULL;
-	}
-
-	return (MutexRef)mutex;
-}
-
-void OSystem_IPHONE::lockMutex(MutexRef mutex) {
-	if (pthread_mutex_lock((pthread_mutex_t *) mutex) != 0) {
-		printf("pthread_mutex_lock() failed!\n");
-	}
-}
-
-void OSystem_IPHONE::unlockMutex(MutexRef mutex) {
-	if (pthread_mutex_unlock((pthread_mutex_t *) mutex) != 0) {
-		printf("pthread_mutex_unlock() failed!\n");
-	}
-}
-
-void OSystem_IPHONE::deleteMutex(MutexRef mutex) {
-	if (pthread_mutex_destroy((pthread_mutex_t *) mutex) != 0) {
-		printf("pthread_mutex_destroy() failed!\n");
-	} else {
-		free(mutex);
-	}
-}
-
 
 void OSystem_IPHONE::setTimerCallback(TimerProc callback, int interval) {
 	//printf("setTimerCallback()\n");
@@ -227,10 +192,14 @@ void OSystem_IPHONE::setTimerCallback(TimerProc callback, int interval) {
 		_timerCallback = NULL;
 }
 
+Common::MutexInternal *OSystem_IPHONE::createMutex() {
+	return createPthreadMutexInternal();
+}
+
 void OSystem_IPHONE::quit() {
 }
 
-void OSystem_IPHONE::getTimeAndDate(TimeDate &td) const {
+void OSystem_IPHONE::getTimeAndDate(TimeDate &td, bool skipRecord) const {
 	time_t curTime = time(0);
 	struct tm t = *localtime(&curTime);
 	td.tm_sec = t.tm_sec;

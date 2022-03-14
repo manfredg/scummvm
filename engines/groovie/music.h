@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,14 +24,18 @@
 
 #include "common/array.h"
 #include "common/mutex.h"
+#include "common/file.h"
 #include "audio/mididrv.h"
+#include "audio/mididrv_ms.h"
 #include "audio/mixer.h"
+#include "audio/miles.h"
 
 class MidiParser;
 
 namespace Groovie {
 
 class GroovieEngine;
+class TlcGame;
 
 class MusicPlayer {
 public:
@@ -40,15 +43,28 @@ public:
 	virtual ~MusicPlayer();
 
 	void playSong(uint32 fileref);
+	// Stops all music playback. Clears the current
+	// background song.
+	void stop();
 	void setBackgroundSong(uint32 fileref);
 	void playCD(uint8 track);
 	void startBackground();
+	bool isPlaying() { return _isPlaying; }
+	// Pause or resume the music. Note that digital music
+	// already pauses when the ScummVM menu is open, so
+	// it does not seem to need an implementation.
+	virtual void pause(bool pause) { }
+
+	// Set the MIDI initialization state
+	void setMidiInit(bool midiInit) { _midiInit = midiInit; }
+	// Returns true if MIDI has been fully initialized
+	bool isMidiInit() { return _midiInit; }
 
 	void frameTick();
 	void setBackgroundDelay(uint16 delay);
 
 	// Volume
-	void setUserVolume(uint16 volume);
+	virtual void setUserVolume(uint16 volume);
 	void setGameVolume(uint16 volume, uint16 time);
 
 private:
@@ -75,6 +91,9 @@ private:
 protected:
 	GroovieEngine *_vm;
 
+	// True if the MIDI initialization has completed
+	bool _midiInit;
+
 	// Callback
 	static void onTimer(void *data);
 	virtual void onTimerInternal() {}
@@ -88,7 +107,7 @@ protected:
 	// These are specific for each type of music
 	virtual void updateVolume() = 0;
 	virtual bool load(uint32 fileref, bool loop) = 0;
-	virtual void unload();
+	virtual void unload(bool updateState = true);
 };
 
 class MusicPlayerMidi : public MusicPlayer, public MidiDriver_BASE {
@@ -98,14 +117,16 @@ public:
 
 	// MidiDriver_BASE interface
 	void send(uint32 b) override;
+	void sysEx(const byte* msg, uint16 length) override;
+	uint16 sysExNoDelay(const byte *msg, uint16 length) override;
 	void metaEvent(byte type, byte *data, uint16 length) override;
+
+	void pause(bool pause) override;
 
 private:
 	// Channel volumes
 	byte _chanVolumes[0x10];
 	void updateChanVolume(byte channel);
-
-	void endTrack();
 
 protected:
 	byte *_data;
@@ -114,44 +135,41 @@ protected:
 
 	void onTimerInternal() override;
 	void updateVolume() override;
-	void unload() override;
+	void unload(bool updateState = true) override;
+	void endTrack();
 
 	bool loadParser(Common::SeekableReadStream *stream, bool loop);
 };
 
-class MusicPlayerXMI : public MusicPlayerMidi {
+class MusicPlayerXMI : public MusicPlayerMidi, public Audio::MidiDriver_Miles_Xmidi_Timbres {
 public:
 	MusicPlayerXMI(GroovieEngine *vm, const Common::String &gtlName);
-	~MusicPlayerXMI() override;
+	~MusicPlayerXMI();
 
-	void send(uint32 b) override;
+	using MusicPlayerMidi::send;
+	void send(int8 source, uint32 b) override;
+	using MusicPlayerMidi::metaEvent;
+	void metaEvent(int8 source, byte type, byte *data, uint16 length) override;
+	void stopAllNotes(bool stopSustainedNotes) override;
+	void processXMIDITimbreChunk(const byte *timbreListPtr, uint32 timbreListSize) override {
+		if (_milesXmidiTimbres)
+			_milesXmidiTimbres->processXMIDITimbreChunk(timbreListPtr, timbreListSize);
+	};
+	bool isReady() override;
+
+	void setUserVolume(uint16 volume) override;
 
 protected:
+	void updateVolume() override;
 	bool load(uint32 fileref, bool loop) override;
+	void unload(bool updateState = true) override;
 
 private:
-	// Channel banks
-	byte _chanBanks[0x10];
-
 	// Output music type
 	uint8 _musicType;
 
-	bool _milesAudioMode;
-
-	// Timbres
-	class Timbre {
-	public:
-		Timbre() : data(NULL), patch(0), bank(0), size(0) {}
-		byte patch;
-		byte bank;
-		uint32 size;
-		byte *data;
-	};
-	Common::Array<Timbre> _timbres;
-	void loadTimbres(const Common::String &filename);
-	void clearTimbres();
-	void setTimbreAD(byte channel, const Timbre &timbre);
-	void setTimbreMT(byte channel, const Timbre &timbre);
+	MidiDriver_Multisource *_multisourceDriver;
+	MidiDriver_Miles_Xmidi_Timbres *_milesXmidiTimbres;
 };
 
 class MusicPlayerMac_t7g : public MusicPlayerMidi {
@@ -181,10 +199,34 @@ public:
 protected:
 	void updateVolume() override;
 	bool load(uint32 fileref, bool loop) override;
-	void unload() override;
+	void unload(bool updateState = true) override;
 
 private:
 	Audio::SoundHandle _handle;
+};
+
+class MusicPlayerTlc : public MusicPlayer {
+public:
+	MusicPlayerTlc(GroovieEngine *vm);
+	~MusicPlayerTlc();
+
+protected:
+	virtual Common::String getFilename(uint32 fileref);
+	void updateVolume() override;
+	bool load(uint32 fileref, bool loop) override;
+	void unload(bool updateState = true) override;
+
+private:
+	Audio::SoundHandle _handle;
+	Common::File *_file;
+};
+
+class MusicPlayerClan : public MusicPlayerTlc {
+public:
+	MusicPlayerClan(GroovieEngine *vm) : MusicPlayerTlc(vm) {}
+
+protected:
+	Common::String getFilename(uint32 fileref) override;
 };
 
 } // End of Groovie namespace

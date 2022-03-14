@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -109,7 +108,7 @@ void BobSlot::moveOneStep() {
 }
 
 void BobSlot::animOneStep() {
-	if (anim.string.buffer != NULL) {
+	if (anim.string.buffer != nullptr) {
 		--anim.speed;
 		if (anim.speed <= 0) {
 			// jump to next entry
@@ -157,7 +156,7 @@ void BobSlot::animNormal(uint16 firstFrame, uint16 lastFrame, uint16 spd, bool r
 	frameNum = firstFrame;
 	anim.speed = spd;
 	anim.speedBak = spd;
-	anim.string.buffer = NULL;
+	anim.string.buffer = nullptr;
 	anim.normal.firstFrame = firstFrame;
 	anim.normal.lastFrame = lastFrame;
 	anim.normal.rebound = rebound;
@@ -175,11 +174,42 @@ void BobSlot::scaleWalkSpeed(uint16 ms) {
 	}
 }
 
+void BobSlot::clear() {
+	active = false;
+	x = 0;
+	y = 0;
+	box = Box();
+	xflip = false;
+	scale = 0;
+	frameNum = 0;
+	frameDir = 0;
+
+	animating = false;
+	anim.speed = 0;
+	anim.speedBak = 0;
+	anim.string.buffer = nullptr;
+	anim.string.curPos = nullptr;
+	anim.normal.rebound = false;
+	anim.normal.firstFrame = 0;
+	anim.normal.lastFrame = 0;
+
+	moving = false;
+	speed = 0;
+	xmajor = false;
+	xdir = 0;
+	ydir = 0;
+	endx = 0;
+	endy = 0;
+	dx = 0;
+	dy = 0;
+	total = 0;
+}
+
 void BobSlot::clear(const Box *defaultBox) {
 	active = false;
 	xflip = false;
 	animating = false;
-	anim.string.buffer = NULL;
+	anim.string.buffer = nullptr;
 	moving = false;
 	scale = 100;
 	box = *defaultBox;
@@ -203,8 +233,12 @@ Graphics::Graphics(QueenEngine *vm)
 	_defaultBox(-1, -1, -1, -1),
 	_gameScreenBox(0, 0, GAME_SCREEN_WIDTH - 1, ROOM_ZONE_HEIGHT - 1),
 	_fullScreenBox(0, 0, GAME_SCREEN_WIDTH - 1, GAME_SCREEN_HEIGHT - 1) {
-	memset(_bobs, 0, sizeof(_bobs));
-	memset(_sortedBobs, 0, sizeof(_sortedBobs));
+	for (uint i = 0; i < ARRAYSIZE(_bobs); i++) {
+		_bobs[i].clear();
+	}
+	for (uint i = 0; i < ARRAYSIZE(_sortedBobs); i++) {
+		_sortedBobs[i] = nullptr;
+	}
 	_sortedBobsCount = 0;
 	_shrinkBuffer.data = new uint8[ BOB_SHRINK_BUF_SIZE ];
 }
@@ -347,7 +381,7 @@ void Graphics::drawInventoryItem(uint32 frameNum, uint16 x, uint16 y) {
 		BobFrame *bf = _vm->bankMan()->fetchFrame(frameNum);
 		_vm->display()->drawInventoryItem(bf->data, x, y, bf->width, bf->height);
 	} else {
-		_vm->display()->drawInventoryItem(NULL, x, y, 32, 32);
+		_vm->display()->drawInventoryItem(nullptr, x, y, 32, 32);
 	}
 }
 
@@ -823,7 +857,7 @@ void Graphics::erasePersonAnim(uint16 bobNum) {
 	_newAnim[bobNum][0].frame = 0;
 	BobSlot *pbs = bob(bobNum);
 	pbs->animating = false;
-	pbs->anim.string.buffer = NULL;
+	pbs->anim.string.buffer = nullptr;
 }
 
 void Graphics::eraseAllAnims() {
@@ -1113,7 +1147,7 @@ uint16 Graphics::setupPerson(uint16 noun, uint16 curImage) {
 
 	debug(6, "Graphics::setupPerson(%d, %d) - bob = %d name = %s", noun, curImage, pad->bobNum, p.name);
 
-	if (p.anim != NULL) {
+	if (p.anim != nullptr) {
 		curImage = setupPersonAnim(pad, p.anim, curImage);
 	} else {
 		erasePersonAnim(pad->bobNum);
@@ -1123,7 +1157,7 @@ uint16 Graphics::setupPerson(uint16 noun, uint16 curImage) {
 
 uint16 Graphics::allocPerson(uint16 noun, uint16 curImage) {
 	Person p;
-	if (_vm->logic()->initPerson(noun, "", false, &p) && p.anim != NULL) {
+	if (_vm->logic()->initPerson(noun, "", false, &p) && p.anim != nullptr) {
 		curImage += countAnimFrames(p.anim);
 		_personFrames[p.actor->bobNum] = curImage + 1;
 	}

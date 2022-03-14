@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -302,7 +301,8 @@ private:
 	void writeSettings() override;
 	void readSettings() override;
 
-	static const char *const kKeymapName;
+	static const char *const kMouseKeymapName;
+	static const char *const kKeyboardKeymapName;
 
 	const char *const *_pakFileList;
 	int _pakFileListSize;
@@ -311,6 +311,7 @@ private:
 	int _monsterDifficulty;
 	bool _smoothScrollingEnabled;
 	bool _floatingCursorsEnabled;
+	bool _autoSaveNamesEnabled;
 
 	// main loop
 	void runLoop();
@@ -462,7 +463,7 @@ private:
 
 	int _curTlkFile;
 
-	char **_ingameSoundList;
+	Common::StringArray _ingameSoundList;
 	int _ingameSoundListSize;
 
 	const uint8 *_musicTrackMap;
@@ -928,10 +929,10 @@ private:
 	bool testWallFlag(int block, int direction, int flag);
 	bool testWallInvisibility(int block, int direction);
 
-	void drawScene(int pageNum) override;
+	void drawScene(int pageNum);
+	void drawSceneShapes(int start = 0);
+	void drawDecorations(int index);
 
-	void drawSceneShapes(int start = 0) override;
-	void drawDecorations(int index) override;
 	void drawBlockEffects(int index, int type);
 	void drawSpecialGuiShape(int pageNum);
 	void setWallType(int block, int wall, int val);
@@ -986,7 +987,7 @@ private:
 	int _lvlShapeIndex;
 	bool _partyAwake;
 
-	uint8 *_specialGuiShape;
+	const uint8 *_specialGuiShape;
 	uint16 _specialGuiShapeX;
 	uint16 _specialGuiShapeY;
 	uint16 _specialGuiShapeMirrorFlag;
@@ -1217,7 +1218,6 @@ private:
 	int8 _availableSpells[8];
 	int _selectedSpell;
 	const SpellProperty *_spellProperties;
-	//int _spellPropertiesSize;
 	int _subMenuIndex;
 
 	LightningProperty *_lightningProps;

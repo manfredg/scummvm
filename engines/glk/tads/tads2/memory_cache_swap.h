@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,17 +45,17 @@ struct mcmcx1def;
  * swap segment descriptor
  */
 struct mcsdsdef {
-    ulong    mcsdsptr;                         /* seek pointer in swap file */
-    ushort   mcsdssiz;                         /* size of this swap segment */
-    ushort   mcsdsosz;                 /* size of object written to segment */
-    uint     mcsdsobj;                                  /* client object ID */
-    ushort   mcsdsflg;                                             /* flags */
+	ulong    mcsdsptr;                         /* seek pointer in swap file */
+	ushort   mcsdssiz;                         /* size of this swap segment */
+	ushort   mcsdsosz;                 /* size of object written to segment */
+	uint     mcsdsobj;                                  /* client object ID */
+	ushort   mcsdsflg;                                             /* flags */
 #define      MCSDSFINUSE   0x01                        /* segment is in use */
 };
 
 /**
  * mcsseg - swap segment handle.  All swap-file segments are addressed
- * through this handle type.  
+ * through this handle type.
  */
 typedef ushort mcsseg;
 
@@ -64,21 +63,21 @@ typedef ushort mcsseg;
  * Swap manager context
  */
 struct mcscxdef {
-    osfildef   *mcscxfp;                                /* swap file handle */
-    char       *mcscxfname;                            /* name of swap file */
-    errcxdef   *mcscxerr;                         /* error handling context */
-    ulong       mcscxtop;              /* top of swap file allocated so far */
-    ulong       mcscxmax;        /* maximum size of swap file we're allowed */
-    mcsdsdef  **mcscxtab;                     /* swap descriptor page table */
-    mcsseg      mcscxmsg;               /* maximum segment allocated so far */
-    mcmcx1def *mcscxmem;                   /* memory manager context */
+	osfildef   *mcscxfp;                                /* swap file handle */
+	char       *mcscxfname;                            /* name of swap file */
+	errcxdef   *mcscxerr;                         /* error handling context */
+	ulong       mcscxtop;              /* top of swap file allocated so far */
+	ulong       mcscxmax;        /* maximum size of swap file we're allowed */
+	mcsdsdef  **mcscxtab;                     /* swap descriptor page table */
+	mcsseg      mcscxmsg;               /* maximum segment allocated so far */
+	mcmcx1def *mcscxmem;                   /* memory manager context */
 };
 
 #define MCSSEGINV ((mcsseg)~0)      /* invalid segment ID - error indicator */
 
 /* initialize swapper - returns 0 for success, other for error */
 void mcsini(struct mcscxdef *ctx, struct mcmcx1def *gmemctx, ulong maxsiz,
-            osfildef *fp, char *swapfilename, struct errcxdef *errctx);
+			osfildef *fp, char *swapfilename, struct errcxdef *errctx);
 
 /* close swapper (release memory areas) */
 void mcsclose(struct mcscxdef *ctx);
@@ -97,8 +96,8 @@ void mcsclose(struct mcscxdef *ctx);
  *   dirty == TRUE, which will force a write regardless of the object ID.
  */
 mcsseg mcsout(struct mcscxdef *ctx, uint objid, uchar *objptr,
-              ushort objsize, mcsseg oldswapseg, int dirty);
-            
+			  ushort objsize, mcsseg oldswapseg, int dirty);
+
 /* Swap an object in */
 void mcsin(struct mcscxdef *ctx, mcsseg swapseg, uchar *objptr, ushort size);
 

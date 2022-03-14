@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,8 +27,6 @@
 
 namespace Ultima {
 namespace Ultima8 {
-
-class ODataSource;
 
 class Game {
 public:
@@ -50,16 +47,19 @@ public:
 	virtual bool startInitialUsecode(int saveSlot = -1) = 0;
 
 	//! write game-specific savegame info (avatar stats, equipment, ...)
-	virtual void writeSaveInfo(ODataSource *ods) = 0;
+	virtual void writeSaveInfo(Common::WriteStream *ws) = 0;
 
-	virtual ProcId playIntroMovie() = 0;
-	virtual ProcId playEndgameMovie() = 0;
+	virtual ProcId playIntroMovie(bool fade) = 0;
+	virtual ProcId playEndgameMovie(bool fade) = 0;
 	virtual void playCredits() = 0;
 	virtual void playQuotes() = 0;
+	virtual void playDemoScreen() = 0;
 
-	static Game *createGame(GameInfo *info);
+	static Game *createGame(const GameInfo *info);
 
 	INTRINSIC(I_playEndgame);
+	INTRINSIC(I_playCredits);
+	INTRINSIC(I_playDemoScreen);
 
 protected:
 	static Game *_game;

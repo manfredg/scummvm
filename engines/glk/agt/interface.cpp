@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,25 +33,6 @@ namespace AGT {
 /* --yesno() and wait_return() */
 /* --Some lower level file stuff */
 /* --main() and command line parseing stuff */
-
-#ifdef _DOS
-#ifdef UNIX_IO
-#undef UNIX_IO
-#endif
-#endif
-
-#ifndef REPLACE_GETFILE
-#ifdef UNIX_IO
-#include <dirent.h>
-#endif
-#endif
-
-
-#ifdef UNIX
-/* Needed because we are compiling with ANSI set */
-FILE *popen(const char *, const char *);
-int pclose(FILE *);
-#endif
 
 #ifndef REPLACE_BNW
 
@@ -170,12 +150,6 @@ static rbool savenl = 0;
 static rbool needfill; /* Used for paragraph filling */
 static rbool quotemode = 0;
 
-#ifdef UNIX
-static rbool ispipe[3] = {0, 0, 0}; /* script, log_in, log_out */
-#endif
-
-
-
 void debugout(const char *s) {
 	int i;
 
@@ -243,7 +217,7 @@ static char *get_log(void)
 			writeln("");
 			writeln("ERROR: Unexpected end of log file.");
 			agt_quit(); /* This doesn't actually quit; it just sets things
-             up so we *will* quit. */
+			 up so we *will* quit. */
 			dead_log = 0;
 		} else {
 			logflag &= ~2;
@@ -531,7 +505,7 @@ void print_statline(void)
 		s[j++] = ' ';
 		i -= 2;
 	}  /* If statline is wide enough, put a
-                       space on each side */
+					   space on each side */
 
 	if ((int)strlen(l_stat) < status_width)  /* Copy left side of status line into s*/
 		for (t = l_stat; *t != 0; t++) s[j++] = fixstatchar(*t);
@@ -588,7 +562,7 @@ void textbox(char *(txt[]), int len, unsigned long flags)
 
 	agt_makebox(width, len, flags & ~(TB_BOLD | TB_CENTER));
 	quotemode = 1;  /* So newlines will cause truncation rather than a
-           real newline */
+		   real newline */
 	for (i = 0; i < len; i++) {
 		padwidth = width - linewidth[i]; /* Amount of padding we need */
 		if (flags & TB_CENTER) {
@@ -655,7 +629,7 @@ void prompt_out(int n)
 	if (PURE_INPUT && n == 1) agt_textcolor(-1);
 	if (n == 1) {
 		agt_newline();
-		gen_sysmsg(1, ">", MSG_MAIN, NULL);
+		gen_sysmsg(1, ">", MSG_MAIN, nullptr);
 	}
 	if (n == 2) agt_puts("? ");
 	agt_textcolor(7);
@@ -697,100 +671,28 @@ void set_test_mode(fc_type fc) {
 	log_in = readopen(fc, fLOG, &errstr);
 
 	if (make_test) {
-		if (errstr == NULL)
+		if (errstr == nullptr)
 			fatal("Log file already exists.");
-		log_out = writeopen(fc, fLOG, NULL, &errstr);
-		if (errstr != NULL)
+		log_out = writeopen(fc, fLOG, nullptr, &errstr);
+		if (errstr != nullptr)
 			fatal("Couldn't create log file.");
 		logflag = 1;
 		return;
 	}
 
 	logdelay = 0;
-	if (errstr != NULL)
+	if (errstr != nullptr)
 		fatal("Couldn't open log file.");
 	logflag = 2;
 
 	script_on = 1;
-	scriptfile = writeopen(fc, fSCR, NULL, &errstr);
-	if (errstr != NULL)
+	scriptfile = writeopen(fc, fSCR, nullptr, &errstr);
+	if (errstr != nullptr)
 		fatal("Couldn't open script file.");
 }
 
 
 #ifndef REPLACE_GETFILE
-
-
-#ifdef UNIX_IO
-
-extern const char *extname[]; /* From filename.c */
-
-static rbool check_fname(char *name, filetype ext) {
-	return 0 == strcmp(name + strlen(name) - strlen(extname[ext]), extname[ext]);
-}
-
-
-static void list_files(char *type, filetype ext) {
-	DIR *currdir;
-	struct dirent *entry;
-	char **filelist;
-	int filecnt, listsize;
-	int maxleng; /* Longest filename; used for formatting */
-	int i, j;
-	int numcols, height;
-
-	filelist = NULL;
-	filecnt = listsize = 0;
-	maxleng = 0;
-	currdir = opendir(".");
-	if (currdir == NULL) return; /* Nothing we can do except give up */
-	do {
-		entry = readdir(currdir);
-		if (entry != NULL && check_fname(entry->d_name, ext)) {
-			/* It has the right extension; add it to our list of files */
-			if (filecnt >= listsize) {
-				listsize += 5;
-				filelist = rrealloc(filelist, listsize * sizeof(char *));
-			}
-			filelist[filecnt] = rstrdup(entry->d_name);
-			i = strlen(entry->d_name);
-			if (i > screen_width - 1) {
-				filelist[filecnt][screen_width - 1] = 0;
-				i = screen_width - 1;
-			}
-			if (i > maxleng) maxleng = i;
-			filecnt++;
-		}
-	} while (entry != NULL);
-	closedir(currdir);
-	if (filecnt == 0) return; /* No files */
-
-	numcols = (screen_width - 1) / (maxleng + 2); /* Two spaces between columns */
-	if (numcols < 1)
-		numcols = 1;
-	height = (filecnt + numcols - 1) / numcols; /* Height, rounded up. */
-
-	writeln("");
-	writestr("Existing ");
-	writestr(type);
-	writestr("files:");
-	for (i = 0; i < height; i++) {
-		writeln("");
-		for (j = 0; j < numcols; j++)
-			if (i + j * height < filecnt) {
-				if (maxleng + 2 <= screen_width - 1) writestr("  ");
-				writestr(filelist[i + j * height]);
-				padout(maxleng - strlen(filelist[i + j * height]));
-				rfree(filelist[i + j * height]);
-			}
-	}
-	writeln("");
-	rfree(filelist);
-}
-#endif /* UNIX_IO */
-
-
-
 
 /* This opens the file refered to by fname and returns it */
 static genfile uf_open(fc_type fc, filetype ext, rbool rw) {
@@ -798,19 +700,12 @@ static genfile uf_open(fc_type fc, filetype ext, rbool rw) {
 	genfile f;
 
 	if (rw) { /* Check to see if we are overwriting... */
-#ifdef UNIX
-		if (fc->special)
-			f = writeopen(fc, ext, NULL, &errstr);
-		else
-#endif
-		{
-			if (fileexist(fc, ext) && ext != fSCR) {
-				if (!yesno("This file already exists; overwrite?"))
-					/* That is, DON'T overwrite */
-					return badfile(ext);
-			}
-			f = writeopen(fc, ext, NULL, &errstr);
+		if (fileexist(fc, ext) && ext != fSCR) {
+			if (!yesno("This file already exists; overwrite?"))
+				/* That is, DON'T overwrite */
+				return badfile(ext);
 		}
+		f = writeopen(fc, ext, NULL, &errstr);
 	} else
 		f = readopen(fc, ext, &errstr);
 	if (errstr != NULL) writeln(errstr);
@@ -871,15 +766,9 @@ genfile get_user_file(int ft)
 		writeln("<INTERNAL ERROR: invalid file type>");
 		return badfile(fSAV);
 	}
-#ifdef UNIX_IO
-	if (!rw) { /* List available files. */
-		list_files(ftype, ext);
-		ftype = NULL;
-	} else
-#else
+
 	writestr(" ");
-#endif
-		writestr("Enter ");
+	writestr("Enter ");
 	if (ftype != NULL) writestr(ftype);
 	writestr("file name");
 	if (def_fc != NULL) {
@@ -1076,11 +965,7 @@ static rbool setarg(char **optptr) {
 }
 #endif
 
-#ifdef UNIX
-#define fixcase(c) (c)
-#else
 #define fixcase(c) tolower(c)
-#endif
 
 #if 0
 void parse_options(char *opt, char *next) {
@@ -1116,17 +1001,9 @@ void parse_options(char *opt, char *next) {
 
 #ifndef REPLACE_MAIN
 
-#ifdef MSDOS
-extern rbool use_bios;
-#endif
-
-
 int main(int argc, char *argv[]) {
 	int i;
 	char *gamefile;
-#ifdef MSDOS
-	rbool biosvar = 0;
-#endif
 
 	set_default_options();
 	end_cmd_options = 0;
@@ -1134,11 +1011,6 @@ int main(int argc, char *argv[]) {
 	for (i = 1; i < argc; i++)
 		if (argv[i][0] == '-' && !end_cmd_options)
 			parse_options(argv[i] + 1, argv[i + 1]);
-#ifdef MSDOS  /* For backward compatibility w/ original AGT interpreters */
-		else if (argv[i][0] == '/' && tolower(argv[i][1]) == 'b'
-		         && argv[i][2] == 0)
-			biosvar = 1;
-#endif
 		else if (gamefile == NULL)
 			gamefile = argv[i];
 		else fatal("Please specify only one game\n");
@@ -1151,9 +1023,7 @@ int main(int argc, char *argv[]) {
 	/* From this point on, MUST use writestr/writeln or may
 	   cause problems w/ the interfaces on some platforms
 	   that have to keep track of cursor position */
-#ifdef MSDOS
-	use_bios = biosvar;
-#endif
+
 	run_game(init_file_context(gamefile, fDA1));
 	return EXIT_SUCCESS;
 }

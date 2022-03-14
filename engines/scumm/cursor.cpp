@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/system.h"
+#include "common/macresman.h"
 #include "common/util.h"
 #include "graphics/cursorman.h"
+#include "graphics/maccursor.h"
 #ifdef ENABLE_HE
 #include "graphics/wincursor.h"
 #endif
@@ -134,7 +135,7 @@ void ScummEngine::updateCursor() {
 void ScummEngine_v6::grabCursor(int x, int y, int w, int h) {
 	VirtScreen *vs = findVirtScreen(y);
 
-	if (vs == NULL) {
+	if (vs == nullptr) {
 		debug(0, "grabCursor: invalid Y %d", y);
 		return;
 	}
@@ -313,7 +314,7 @@ void ScummEngine_v6::setCursorFromImg(uint img, uint room, uint imgindex) {
 		bomp = findResource(MKTAG('B','O','M','P'), dataptr);
 	}
 
-	if (bomp != NULL)
+	if (bomp != nullptr)
 		useBompCursor(bomp, w, h);
 	else
 		useIm01Cursor(dataptr, w, h);
@@ -389,6 +390,9 @@ void ScummEngine_v6::useBompCursor(const byte *im, int width, int height) {
 }
 
 void ScummEngine_v5::redefineBuiltinCursorFromChar(int index, int chr) {
+	if (!_macCursorFile.empty())
+		return;
+
 	// Cursor image in both Loom versions are based on images from charset.
 	// This function is *only* supported for Loom!
 	assert(_game.id == GID_LOOM);
@@ -419,13 +423,17 @@ void ScummEngine_v5::redefineBuiltinCursorFromChar(int index, int chr) {
 		Graphics::Surface s;
 		byte buf[16*17];
 		memset(buf, 123, 16*17);
+		// For correct rendering, we need to use original (non-CJK) fonts
+		bool oldCJKMode = _useCJKMode;
+		_useCJKMode = false;
 		s.init(_charset->getCharWidth(chr), _charset->getFontHeight(),
 		       _charset->getCharWidth(chr), buf,
 		       Graphics::PixelFormat::createFormatCLUT8());
-		// s.h = 17 for FM-TOWNS Loom Japanese. Fixes bug #1166917
+		// s.h = 17 for FM-TOWNS Loom Japanese. Fixes bug #1964
 		assert(s.w <= 16 && s.h <= 17);
 
 		_charset->drawChar(chr, s, 0, 0);
+		_useCJKMode = oldCJKMode;
 
 		memset(ptr, 0, 17 * sizeof(uint16));
 		for (h = 0; h < s.h; h++) {
@@ -588,6 +596,46 @@ void ScummEngine_v5::resetCursors() {
 }
 
 void ScummEngine_v5::setBuiltinCursor(int idx) {
+	if (!_macCursorFile.empty()) {
+		Common::MacResManager resource;
+		if (resource.open(_macCursorFile)) {
+			Common::MacResIDArray resArray = resource.getResIDArray(MKTAG('C', 'U', 'R', 'S'));
+			Common::SeekableReadStream *curs = resource.getResource(MKTAG('C', 'U', 'R', 'S'), resArray[0]);
+			Graphics::MacCursor macCursor;
+			if (macCursor.readFromStream(*curs)) {
+				_cursor.animate = 0;
+				CursorMan.replaceCursor(&macCursor);
+				delete curs;
+				return;
+			}
+			delete curs;
+		}
+	}
+
+	if (_game.id == GID_INDY3 && _macScreen) {
+		const byte buf[15 * 15] = {
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x00, 0xFF, 0x00, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+			0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x0F, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+		};
+
+		_cursor.animate = 0;
+		CursorMan.replaceCursor(buf, 15, 15, 7, 7, 0xFF);
+		return;
+	}
+
 	int i, j;
 	uint16 color;
 	const uint16 *src = _cursorImages[_currentCursor];

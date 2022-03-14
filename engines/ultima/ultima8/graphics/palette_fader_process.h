@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,11 +25,12 @@
 #include "ultima/ultima8/kernel/process.h"
 #include "ultima/ultima8/graphics/palette_manager.h"
 #include "ultima/ultima8/usecode/intrinsics.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
+#include "ultima/ultima8/misc/classtype.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
+/** A process to fade the palette from one transform matrix to another */
 class PaletteFaderProcess : public Process {
 	int                         _priority;
 	int32                       _counter;
@@ -45,7 +45,7 @@ public:
 	PaletteFaderProcess();
 	PaletteFaderProcess(PalTransforms trans, int priority, int frames);
 	PaletteFaderProcess(uint32 rgba, bool from, int priority, int frames, bool current);
-	PaletteFaderProcess(int16 from[12], int16 to[12], int priority, int frames);
+	PaletteFaderProcess(const int16 from[12], const int16 to[12], int priority, int frames);
 	~PaletteFaderProcess(void) override;
 
 	void run() override;
@@ -56,10 +56,17 @@ public:
 	INTRINSIC(I_fadeToWhite);
 	INTRINSIC(I_fadeFromBlack);
 	INTRINSIC(I_lightningBolt);
+	INTRINSIC(I_fadeToGreyScale);
+	INTRINSIC(I_fadeToGivenColor);
+	INTRINSIC(I_fadeToGamePal);
+	INTRINSIC(I_jumpToGreyScale);
+	INTRINSIC(I_jumpToAllBlack);
+	INTRINSIC(I_jumpToAllWhite);
+	INTRINSIC(I_jumpToAllGivenColor);
+	INTRINSIC(I_jumpToNormalPalette);
 
-	bool loadData(IDataSource *ids, uint32 version);
-protected:
-	void saveData(ODataSource *ods) override;
+	bool loadData(Common::ReadStream *rs, uint32 version);
+	void saveData(Common::WriteStream *ws) override;
 };
 
 } // End of namespace Ultima8

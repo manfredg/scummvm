@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,9 +51,23 @@
 	[self setAutocorrectionType:UITextAutocorrectionTypeNo];
 	[self setAutocapitalizationType:UITextAutocapitalizationTypeNone];
 	[self setEnablesReturnKeyAutomatically:NO];
-	//UITextInputAssistantItem* item = [self inputAssistantItem];
-	//item.leadingBarButtonGroups = @[];
-	//item.trailingBarButtonGroups = @[];
+
+	// Hide the input assistent bar. The API is only available since IOS 9.0.
+	// The code only compils with the iOS 9.0+ SDK, and only works on iOS 9.0
+	// or above.
+#ifdef __IPHONE_9_0
+#if __has_builtin(__builtin_available)
+	if ( @available(iOS 9,*) ) {
+#else
+	if ( [self respondsToSelector:@selector(inputAssistantItem)] ) {
+#endif
+		UITextInputAssistantItem* item = [self inputAssistantItem];
+		if (item) {
+			item.leadingBarButtonGroups = @[];
+			item.trailingBarButtonGroups = @[];
+		}
+	}
+#endif
 
 	toolbar = [[UIToolbar alloc] initWithFrame:CGRectMake(0.0f, 0.0f, 0.0f, 0.0f)];
 	toolbar.barTintColor = keyboard.backgroundColor;
@@ -132,12 +145,25 @@
 //	[self reloadInputViews];
 }
 
+- (void) setWantsPriority: (UIKeyCommand*) keyCommand {
+	// In iOS 15 the UIKeyCommand has a new property wantsPriorityOverSystemBehavior that is needed to
+	// receive some keys (such as the arrow keys).
+	if ([keyCommand respondsToSelector:@selector(setWantsPriorityOverSystemBehavior:)]) {
+		[keyCommand setValue:[NSNumber numberWithBool:YES] forKey:@"wantsPriorityOverSystemBehavior"];
+	}
+}
+
 - (NSArray *)keyCommands {
 	UIKeyCommand *upArrow = [UIKeyCommand keyCommandWithInput: UIKeyInputUpArrow modifierFlags: 0 action: @selector(upArrow:)];
+	[self setWantsPriority: upArrow];
 	UIKeyCommand *downArrow = [UIKeyCommand keyCommandWithInput: UIKeyInputDownArrow modifierFlags: 0 action: @selector(downArrow:)];
+	[self setWantsPriority: downArrow];
 	UIKeyCommand *leftArrow = [UIKeyCommand keyCommandWithInput: UIKeyInputLeftArrow modifierFlags: 0 action: @selector(leftArrow:)];
+	[self setWantsPriority: leftArrow];
 	UIKeyCommand *rightArrow = [UIKeyCommand keyCommandWithInput: UIKeyInputRightArrow modifierFlags: 0 action: @selector(rightArrow:)];
-	return [[NSArray alloc] initWithObjects: upArrow, downArrow, leftArrow, rightArrow, nil];
+	[self setWantsPriority: rightArrow];
+	UIKeyCommand *escapeKey = [UIKeyCommand keyCommandWithInput: UIKeyInputEscape modifierFlags: 0 action: @selector(escapeKey:)];
+	return [[NSArray alloc] initWithObjects: upArrow, downArrow, leftArrow, rightArrow, escapeKey, nil];
 }
 
 - (void) upArrow: (UIKeyCommand *) keyCommand {
@@ -154,6 +180,10 @@
 
 - (void) rightArrow: (UIKeyCommand *) keyCommand {
 	[softKeyboard handleKeyPress:Common::KEYCODE_RIGHT];
+}
+
+- (void) escapeKey: (UIKeyCommand *) keyCommand {
+	[softKeyboard handleKeyPress:Common::KEYCODE_ESCAPE];
 }
 
 - (void) mainMenuKey {

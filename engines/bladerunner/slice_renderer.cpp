@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -582,9 +581,8 @@ void SliceRenderer::drawSlice(int slice, bool advanced, int y, Graphics::Surface
 						color.r = ((int)(_setEffectColor.r + _lightsColor.r * color.r) / 65536) + aescColor.r;
 						color.g = ((int)(_setEffectColor.g + _lightsColor.g * color.g) / 65536) + aescColor.g;
 						color.b = ((int)(_setEffectColor.b + _lightsColor.b * color.b) / 65536) + aescColor.b;
-
-						int bladeToScummVmConstant = 256 / 32;
-						outColor = _pixelFormat.RGBToColor(CLIP(color.r * bladeToScummVmConstant, 0, 255), CLIP(color.g * bladeToScummVmConstant, 0, 255), CLIP(color.b * bladeToScummVmConstant, 0, 255));
+						// We need to convert from 5 bits per channel (r,g,b) to 8 bits
+						outColor = _pixelFormat.RGBToColor(Color::get8BitColorFrom5Bit(color.r), Color::get8BitColorFrom5Bit(color.g), Color::get8BitColorFrom5Bit(color.b));
 					}
 
 					for (int x = previousVertexX; x != vertexX; ++x) {

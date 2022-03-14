@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,36 +23,26 @@
 
 #include "engines/advancedDetector.h"
 
-#include "common/system.h"
-#include "common/textconsole.h"
 #include "common/translation.h"
 
+#include "cine/detection.h"
 #include "cine/cine.h"
-#include "cine/various.h"
-
-namespace Cine {
-
-struct CINEGameDescription {
-	ADGameDescription desc;
-
-	int gameType;
-	uint32 features;
-};
-
-int CineEngine::getGameType() const { return _gameDescription->gameType; }
-uint32 CineEngine::getFeatures() const { return _gameDescription->features; }
-Common::Language CineEngine::getLanguage() const { return _gameDescription->desc.language; }
-Common::Platform CineEngine::getPlatform() const { return _gameDescription->desc.platform; }
-
-} // End of namespace Cine
 
 static const PlainGameDescriptor cineGames[] = {
 	{"fw", "Future Wars"},
 	{"os", "Operation Stealth"},
-	{0, 0}
+	{nullptr, nullptr}
 };
 
 #include "cine/detection_tables.h"
+
+static const DebugChannelDef debugFlagList[] = {
+	{Cine::kCineDebugScript,    "Script",    "Script debug level"},
+	{Cine::kCineDebugPart,      "Part",      "Part debug level"},
+	{Cine::kCineDebugSound,     "Sound",     "Sound debug level"},
+	{Cine::kCineDebugCollision, "Collision", "Collision debug level"},
+	DEBUG_CHANNEL_END
+};
 
 static const ADExtraGuiOptionsMap optionsList[] = {
 	{
@@ -65,14 +54,23 @@ static const ADExtraGuiOptionsMap optionsList[] = {
 			false
 		}
 	},
+	{
+		GAMEOPTION_TRANSPARENT_DIALOG_BOXES,
+		{
+			_s("Use transparent dialog boxes in 16 color scenes"),
+			_s("Use transparent dialog boxes in 16 color scenes even if the original game version did not support them"),
+			"transparentdialogboxes",
+			false
+		}
+	},
 
 	AD_EXTRA_GUI_OPTIONS_TERMINATOR
 };
 
-class CineMetaEngine : public AdvancedMetaEngine {
+class CineMetaEngineDetection : public AdvancedMetaEngineDetection {
 public:
-	CineMetaEngine() : AdvancedMetaEngine(Cine::gameDescriptions, sizeof(Cine::CINEGameDescription), cineGames, optionsList) {
-		_guiOptions = GUIO2(GUIO_NOSPEECH, GAMEOPTION_ORIGINAL_SAVELOAD);
+	CineMetaEngineDetection() : AdvancedMetaEngineDetection(Cine::gameDescriptions, sizeof(Cine::CINEGameDescription), cineGames, optionsList) {
+		_guiOptions = GUIO3(GUIO_NOSPEECH, GAMEOPTION_ORIGINAL_SAVELOAD, GAMEOPTION_TRANSPARENT_DIALOG_BOXES);
 	}
 
 	const char *getEngineId() const override {
@@ -87,178 +85,9 @@ public:
 		return "Cinematique evo 1 (C) Delphine Software";
 	}
 
-	Common::Error createInstance(OSystem *syst, Engine **engine) const override {
-		return AdvancedMetaEngine::createInstance(syst, engine);
+	const DebugChannelDef *getDebugChannels() const override {
+		return debugFlagList;
 	}
-	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
-
-	bool hasFeature(MetaEngineFeature f) const override;
-	SaveStateList listSaves(const char *target) const override;
-	int getMaximumSaveSlot() const override;
-	void removeSaveState(const char *target, int slot) const override;
 };
 
-bool CineMetaEngine::hasFeature(MetaEngineFeature f) const {
-	return
-		(f == kSupportsListSaves) ||
-		(f == kSupportsLoadingDuringStartup) ||
-		(f == kSupportsDeleteSave);
-}
-
-bool Cine::CineEngine::hasFeature(EngineFeature f) const {
-	return
-		(f == kSupportsRTL) ||
-		(f == kSupportsLoadingDuringRuntime) ||
-		(f == kSupportsSavingDuringRuntime);
-}
-
-bool CineMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	const Cine::CINEGameDescription *gd = (const Cine::CINEGameDescription *)desc;
-	if (gd) {
-		*engine = new Cine::CineEngine(syst, gd);
-	}
-	return gd != 0;
-}
-
-SaveStateList CineMetaEngine::listSaves(const char *target) const {
-	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	SaveStateList saveList;
-
-	Common::String pattern = target;
-	pattern += ".#";
-	Common::StringArray filenames = saveFileMan->listSavefiles(pattern);
-	Common::StringArray::const_iterator file;
-
-	Common::String filename = target;
-	filename += ".dir";
-	Common::InSaveFile *in = saveFileMan->openForLoading(filename);
-	if (in) {
-		typedef char CommandeType[20];
-		CommandeType saveNames[10];
-
-		// Initialize all savegames' descriptions to empty strings
-		// so that if the savegames' descriptions can only be partially read from file
-		// then the missing ones are correctly set to empty strings.
-		memset(saveNames, 0, sizeof(saveNames));
-
-		in->read(saveNames, 10 * 20);
-		CommandeType saveDesc;
-
-		for (file = filenames.begin(); file != filenames.end(); ++file) {
-			// Obtain the last digit of the filename, since they correspond to the save slot
-			int slotNum = atoi(file->c_str() + file->size() - 1);
-
-			// Copy the savegame description making sure it ends with a trailing zero
-			strncpy(saveDesc, saveNames[slotNum], 20);
-			saveDesc[sizeof(CommandeType) - 1] = 0;
-
-			saveList.push_back(SaveStateDescriptor(slotNum, saveDesc));
-		}
-	}
-
-	delete in;
-
-	// Sort saves based on slot number.
-	Common::sort(saveList.begin(), saveList.end(), SaveStateDescriptorSlotComparator());
-	return saveList;
-}
-
-int CineMetaEngine::getMaximumSaveSlot() const { return 9; }
-
-void CineMetaEngine::removeSaveState(const char *target, int slot) const {
-	// Load savegame descriptions from index file
-	typedef char CommandeType[20];
-	CommandeType saveNames[10];
-
-	// Initialize all savegames' descriptions to empty strings
-	// so that if the savegames' descriptions can only be partially read from file
-	// then the missing ones are correctly set to empty strings.
-	memset(saveNames, 0, sizeof(saveNames));
-
-	Common::InSaveFile *in;
-	in = g_system->getSavefileManager()->openForLoading(Common::String::format("%s.dir", target));
-
-	if (!in)
-		return;
-
-	in->read(saveNames, 10 * 20);
-	delete in;
-
-	// Set description for selected slot
-	char slotName[20];
-	slotName[0] = 0;
-	Common::strlcpy(saveNames[slot], slotName, 20);
-
-	// Update savegame descriptions
-	Common::String indexFile = Common::String::format("%s.dir", target);
-	Common::OutSaveFile *out = g_system->getSavefileManager()->openForSaving(indexFile);
-	if (!out) {
-		warning("Unable to open file %s for saving", indexFile.c_str());
-		return;
-	}
-
-	out->write(saveNames, 10 * 20);
-	delete out;
-
-	// Delete save file
-	char saveFileName[256];
-	sprintf(saveFileName, "%s.%1d", target, slot);
-
-	g_system->getSavefileManager()->removeSavefile(saveFileName);
-}
-
-#if PLUGIN_ENABLED_DYNAMIC(CINE)
-	REGISTER_PLUGIN_DYNAMIC(CINE, PLUGIN_TYPE_ENGINE, CineMetaEngine);
-#else
-	REGISTER_PLUGIN_STATIC(CINE, PLUGIN_TYPE_ENGINE, CineMetaEngine);
-#endif
-
-namespace Cine {
-
-Common::Error CineEngine::loadGameState(int slot) {
-	bool gameLoaded = makeLoad(getSaveStateName(slot));
-
-	return gameLoaded ? Common::kNoError : Common::kUnknownError;
-}
-
-Common::Error CineEngine::saveGameState(int slot, const Common::String &desc, bool isAutosave) {
-	// Load savegame descriptions from index file
-	loadSaveDirectory();
-
-	// Set description for selected slot making sure it ends with a trailing zero
-	strncpy(currentSaveName[slot], desc.c_str(), 20);
-	currentSaveName[slot][sizeof(CommandeType) - 1] = 0;
-
-	// Update savegame descriptions
-	Common::String indexFile = _targetName + ".dir";
-
-	Common::OutSaveFile *fHandle = _saveFileMan->openForSaving(indexFile);
-	if (!fHandle) {
-		warning("Unable to open file %s for saving", indexFile.c_str());
-		return Common::kUnknownError;
-	}
-
-	fHandle->write(currentSaveName, 10 * 20);
-	delete fHandle;
-
-	// Save game
-	makeSave(getSaveStateName(slot));
-
-	checkDataDisk(-1);
-
-	return Common::kNoError;
-}
-
-Common::String CineEngine::getSaveStateName(int slot) const {
-	return Common::String::format("%s.%1d", _targetName.c_str(), slot);
-}
-
-bool CineEngine::canLoadGameStateCurrently() {
-	return (!disableSystemMenu && !inMenu);
-}
-
-bool CineEngine::canSaveGameStateCurrently() {
-	return (allowPlayerInput && !disableSystemMenu && !inMenu);
-}
-
-} // End of namespace Cine
+REGISTER_PLUGIN_STATIC(CINE_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, CineMetaEngineDetection);

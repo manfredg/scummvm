@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -133,7 +132,7 @@ byte ClassicCostumeRenderer::mainRoutine(int xmoveCur, int ymoveCur) {
 		// It's possible that the scale indexes will overflow and wrap
 		// around to zero, so it's important that we use the same
 		// method of accessing it both when calculating the size of the
-		// scaled costume, and when drawing it. See bug #1519667.
+		// scaled costume, and when drawing it. See bug #2729.
 
 		if (_mirror) {
 			/* Adjust X position */
@@ -300,6 +299,8 @@ byte ClassicCostumeRenderer::mainRoutine(int xmoveCur, int ymoveCur) {
 		return 2;
 	}
 
+	v1.width = _out.w;
+	v1.height = _out.h;
 	v1.destptr = (byte *)_out.getBasePtr(v1.x, v1.y);
 
 	v1.mask_ptr = _vm->getMaskBuffer(0, v1.y, _zbuf);
@@ -421,16 +422,16 @@ void ClassicCostumeRenderer::procC64(Codec1 &v1, int actor) {
 #endif
 
 extern "C" int ClassicProc3RendererShadowARM(int _scaleY,
-                                        ClassicCostumeRenderer::Codec1 *v1,
-                                        Graphics::Surface *_out,
-                                        const byte *src,
-                                        int   height,
-                                        int _scaleX,
-                                        int _scaleIndexX,
-                                        byte *_shadow_table,
-                                        uint16 _palette[32],
-                                        int32 _numStrips,
-                                        int _scaleIndexY);
+										ClassicCostumeRenderer::Codec1 *v1,
+										int pitch,
+										const byte *src,
+										int   height,
+										int _scaleX,
+										int _scaleIndexX,
+										byte *_shadow_table,
+										uint16 _palette[32],
+										int32 _numStrips,
+										int _scaleIndexY);
 #endif
 
 void ClassicCostumeRenderer::proc3(Codec1 &v1) {
@@ -449,7 +450,7 @@ void ClassicCostumeRenderer::proc3(Codec1 &v1) {
 	{
 		_scaleIndexX = ClassicProc3RendererShadowARM(_scaleY,
 		                                             &v1,
-		                                             &_out,
+		                                             _out.pitch,
 		                                             _srcptr,
 		                                             _height,
 		                                             _scaleX,
@@ -547,7 +548,7 @@ void ClassicCostumeRenderer::proc3_ami(Codec1 &v1) {
 	// Indy4 Amiga always uses the room map to match colors to the currently
 	// setup palette in the actor code in the original, thus we need to do this
 	// mapping over here too.
-	byte *amigaMap = 0;
+	byte *amigaMap = nullptr;
 	if (_vm->_game.platform == Common::kPlatformAmiga && _vm->_game.id == GID_INDY4)
 		amigaMap = _vm->_roomPalette;
 
@@ -757,7 +758,7 @@ void ClassicCostumeLoader::loadCostume(int id) {
 }
 
 byte NESCostumeRenderer::drawLimb(const Actor *a, int limb) {
-	const byte darkpalette[16] = {0x00,0x00,0x2D,0x3D,0x00,0x00,0x2D,0x3D,0x00,0x00,0x2D,0x3D,0x00,0x00,0x2D,0x3D};
+	const byte darkpalette[16] = { 0x2d,0x1d,0x2d,0x3d, 0x2d,0x1d,0x2d,0x3d, 0x2d,0x1d,0x2d,0x3d, 0x2d,0x1d,0x2d,0x3d };
 	const CostumeData &cost = a->_cost;
 	const byte *palette, *src, *sprdata;
 	int anim, frameNum, frame, offset, numSprites;
@@ -937,9 +938,21 @@ void PCEngineCostumeRenderer::setPalette(uint16 *palette) {
 	byte *rgbPtr = rgb;
 	_vm->readPCEPalette(&ptr, &rgbPtr, 15);
 
+	// Normally, palette is filled with 0xFF and can be ignored. But this
+	// can be changed through scripting, and when entering the darkened
+	// tent in Loom certain colors are set to 0. These should be black.
+	//
+	// There are several other cases where other colors are set, but in my
+	// playthrough I couldn't see any case where honoring these would make
+	// any improvements. Quite the contrary in fact, since it would
+	// introduce numerous glitches comparing to what I've seen of the
+	// original behavior.
+
 	_palette[0] = 0;
-	for (int i = 0; i < 15; ++i)
-		_palette[i + 1] = _vm->get16BitColor(rgb[i * 3 + 0], rgb[i * 3 + 1], rgb[i * 3 + 2]);
+	for (int i = 0; i < 15; ++i) {
+		int c = (palette[i + 1] != 0) ? i : 0;
+		_palette[i + 1] = _vm->get16BitColor(rgb[c * 3 + 0], rgb[c * 3 + 1], rgb[c * 3 + 2]);
+	}
 }
 #endif
 

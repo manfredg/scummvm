@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,38 +15,35 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/gumps/minimap_gump.h"
-#include "ultima/ultima8/ultima8.h"
 #include "ultima/ultima8/world/world.h"
-#include "ultima/ultima8/world/current_map.h"
 #include "ultima/ultima8/graphics/shape.h"
 #include "ultima/ultima8/graphics/shape_frame.h"
 #include "ultima/ultima8/world/actors/main_actor.h"
 #include "ultima/ultima8/graphics/render_surface.h"
-#include "ultima/ultima8/graphics/shape_info.h"
 #include "ultima/ultima8/graphics/palette.h"
 #include "ultima/ultima8/world/get_object.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(MiniMapGump, Gump)
+DEFINE_RUNTIME_CLASSTYPE_CODE(MiniMapGump)
+
+
+static const int MINMAPGUMP_SCALE = 8;
 
 MiniMapGump::MiniMapGump(int x, int y) :
 	Gump(x, y, MAP_NUM_CHUNKS * 2 + 2, MAP_NUM_CHUNKS * 2 + 2, 0,
 	     FLAG_DRAGGABLE, LAYER_NORMAL), _minimap(), _lastMapNum(0) {
-	_minimap._format = TEX_FMT_NATIVE;
-	_minimap.create((MAP_NUM_CHUNKS * MINMAPGUMP_SCALE), (MAP_NUM_CHUNKS * MINMAPGUMP_SCALE),
-		TEX_FMT_NATIVE);
+	_minimap = Graphics::ManagedSurface((MAP_NUM_CHUNKS * MINMAPGUMP_SCALE), (MAP_NUM_CHUNKS * MINMAPGUMP_SCALE),
+										RenderSurface::getPixelFormat());
 }
 
-MiniMapGump::MiniMapGump() : Gump() {
+MiniMapGump::MiniMapGump() : Gump() , _lastMapNum(0){
 }
 
 MiniMapGump::~MiniMapGump(void) {
@@ -62,12 +59,12 @@ void MiniMapGump::setPixelAt(int x, int y, uint32 pixel) {
 	}
 }
 
-uint32 MiniMapGump::getPixelAt(int x, int y) {
+uint32 MiniMapGump::getPixelAt(int x, int y) const {
 	if (_minimap.format.bytesPerPixel == 2) {
-		uint16 *buf = (uint16 *)_minimap.getBasePtr(x, y);
+		const uint16 *buf = (const uint16 *)_minimap.getBasePtr(x, y);
 		return *buf;
 	} else {
-		uint32 *buf = (uint32 *)_minimap.getBasePtr(x, y);
+		const uint32 *buf = (const uint32 *)_minimap.getBasePtr(x, y);
 		return *buf;
 	}
 }
@@ -82,11 +79,13 @@ void MiniMapGump::PaintThis(RenderSurface *surf, int32 lerp_factor, bool scaled)
 		_lastMapNum = currentmap->getNum();
 	}
 
+	// Draw the yellow border
 	surf->Fill32(0xFFFFAF00, 0, 0, MAP_NUM_CHUNKS * 2 + 3, 1);
 	surf->Fill32(0xFFFFAF00, 0, 1, 1, MAP_NUM_CHUNKS * 2 + 1);
 	surf->Fill32(0xFFFFAF00, 1, MAP_NUM_CHUNKS * 2 + 1, MAP_NUM_CHUNKS * 2 + 1, 1);
 	surf->Fill32(0xFFFFAF00, MAP_NUM_CHUNKS * 2 + 1, 1, 1, MAP_NUM_CHUNKS * 2 + 1);
 
+	// Draw into the map surface
 	for (int yv = 0; yv < MAP_NUM_CHUNKS; yv++) {
 		for (int xv = 0; xv < MAP_NUM_CHUNKS; xv++) {
 			if (currentmap->isChunkFast(xv, yv)) {
@@ -144,7 +143,7 @@ void MiniMapGump::PaintThis(RenderSurface *surf, int32 lerp_factor, bool scaled)
 }
 
 uint32 MiniMapGump::sampleAtPoint(int x, int y, CurrentMap *currentmap) {
-	Item *item = currentmap->traceTopItem(x, y, 1 << 15, -1, 0, ShapeInfo::SI_ROOF | ShapeInfo::SI_OCCL | ShapeInfo::SI_LAND | ShapeInfo::SI_SEA);
+	const Item *item = currentmap->traceTopItem(x, y, 1 << 15, -1, 0, ShapeInfo::SI_ROOF | ShapeInfo::SI_OCCL | ShapeInfo::SI_LAND | ShapeInfo::SI_SEA);
 
 	if (item) {
 		int32 ix, iy, iz, idx, idy, idz;
@@ -154,11 +153,11 @@ uint32 MiniMapGump::sampleAtPoint(int x, int y, CurrentMap *currentmap) {
 		ix -= x;
 		iy -= y;
 
-		Shape *sh = item->getShapeObject();
+		const Shape *sh = item->getShapeObject();
 		if (!sh)
 			return 0;
 
-		ShapeFrame *frame = sh->getFrame(item->getFrame());
+		const ShapeFrame *frame = sh->getFrame(item->getFrame());
 		if (!frame)
 			return 0;
 
@@ -195,16 +194,16 @@ uint32 MiniMapGump::sampleAtPoint(int x, int y, CurrentMap *currentmap) {
 	}
 }
 
-void MiniMapGump::saveData(ODataSource *ods) {
-	Gump::saveData(ods);
+void MiniMapGump::saveData(Common::WriteStream *ws) {
+	Gump::saveData(ws);
 }
 
-bool MiniMapGump::loadData(IDataSource *ids, uint32 version) {
-	if (!Gump::loadData(ids, version))
+bool MiniMapGump::loadData(Common::ReadStream *rs, uint32 version) {
+	if (!Gump::loadData(rs, version))
 		return false;
 
 	_lastMapNum = 0;
-	_minimap.create(MAP_NUM_CHUNKS * MINMAPGUMP_SCALE, MAP_NUM_CHUNKS * MINMAPGUMP_SCALE, TEX_FMT_NATIVE);
+	_minimap.create(MAP_NUM_CHUNKS * MINMAPGUMP_SCALE, MAP_NUM_CHUNKS * MINMAPGUMP_SCALE, RenderSurface::getPixelFormat());
 
 	return true;
 }

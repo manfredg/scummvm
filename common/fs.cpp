@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/system.h"
+#include "common/punycode.h"
 #include "common/textconsole.h"
 #include "backends/fs/abstract-fs.h"
 #include "backends/fs/fs-factory.h"
@@ -34,15 +34,15 @@ FSNode::FSNode(AbstractFSNode *realNode)
 	: _realNode(realNode) {
 }
 
-FSNode::FSNode(const String &p) {
+FSNode::FSNode(const Path &p) {
 	assert(g_system);
 	FilesystemFactory *factory = g_system->getFilesystemFactory();
 	AbstractFSNode *tmp = nullptr;
 
-	if (p.empty() || p == ".")
+	if (p.empty() || p == Path("."))
 		tmp = factory->makeCurrentDirectoryFileNode();
 	else
-		tmp = factory->makeFileNodePath(p);
+		tmp = factory->makeFileNodePath(p.toString());
 	_realNode = SharedPtr<AbstractFSNode>(tmp);
 }
 
@@ -53,7 +53,7 @@ bool FSNode::operator<(const FSNode& node) const {
 
 	// If both nodes are of the same type (two files or two dirs),
 	// then sort by name, ignoring case.
-	return getDisplayName().compareToIgnoreCase(node.getDisplayName()) < 0;
+	return getName().compareToIgnoreCase(node.getName()) < 0;
 }
 
 bool FSNode::exists() const {
@@ -86,14 +86,15 @@ bool FSNode::getChildren(FSList &fslist, ListMode mode, bool hidden) const {
 	return true;
 }
 
-String FSNode::getDisplayName() const {
+U32String FSNode::getDisplayName() const {
 	assert(_realNode);
 	return _realNode->getDisplayName();
 }
 
 String FSNode::getName() const {
 	assert(_realNode);
-	return _realNode->getName();
+	// We transparently decode any punycode-named files
+	return punycode_decodefilename(_realNode->getName());
 }
 
 FSNode FSNode::getParent() const {
@@ -140,7 +141,7 @@ SeekableReadStream *FSNode::createReadStream() const {
 	return _realNode->createReadStream();
 }
 
-WriteStream *FSNode::createWriteStream() const {
+SeekableWriteStream *FSNode::createWriteStream() const {
 	if (_realNode == nullptr)
 		return nullptr;
 
@@ -168,26 +169,30 @@ bool FSNode::createDirectory() const {
 	return _realNode->createDirectory();
 }
 
-FSDirectory::FSDirectory(const FSNode &node, int depth, bool flat, bool ignoreClashes)
-  : _node(node), _cached(false), _depth(depth), _flat(flat), _ignoreClashes(ignoreClashes) {
+FSDirectory::FSDirectory(const FSNode &node, int depth, bool flat, bool ignoreClashes, bool includeDirectories)
+  : _node(node), _cached(false), _depth(depth), _flat(flat), _ignoreClashes(ignoreClashes),
+	_includeDirectories(includeDirectories) {
 }
 
-FSDirectory::FSDirectory(const String &prefix, const FSNode &node, int depth, bool flat,
-                         bool ignoreClashes)
-  : _node(node), _cached(false), _depth(depth), _flat(flat), _ignoreClashes(ignoreClashes) {
+FSDirectory::FSDirectory(const Path &prefix, const FSNode &node, int depth, bool flat,
+						 bool ignoreClashes, bool includeDirectories)
+  : _node(node), _cached(false), _depth(depth), _flat(flat), _ignoreClashes(ignoreClashes),
+	_includeDirectories(includeDirectories) {
 
-	setPrefix(prefix);
+	setPrefix(prefix.rawString());
 }
 
-FSDirectory::FSDirectory(const String &name, int depth, bool flat, bool ignoreClashes)
-  : _node(name), _cached(false), _depth(depth), _flat(flat), _ignoreClashes(ignoreClashes) {
+FSDirectory::FSDirectory(const Path &name, int depth, bool flat, bool ignoreClashes, bool includeDirectories)
+  : _node(name), _cached(false), _depth(depth), _flat(flat), _ignoreClashes(ignoreClashes),
+	_includeDirectories(includeDirectories) {
 }
 
-FSDirectory::FSDirectory(const String &prefix, const String &name, int depth, bool flat,
-                         bool ignoreClashes)
-  : _node(name), _cached(false), _depth(depth), _flat(flat), _ignoreClashes(ignoreClashes) {
+FSDirectory::FSDirectory(const Path &prefix, const Path &name, int depth, bool flat,
+						 bool ignoreClashes, bool includeDirectories)
+  : _node(name), _cached(false), _depth(depth), _flat(flat), _ignoreClashes(ignoreClashes),
+	_includeDirectories(includeDirectories) {
 
-	setPrefix(prefix);
+	setPrefix(prefix.rawString());
 }
 
 FSDirectory::~FSDirectory() {
@@ -196,8 +201,8 @@ FSDirectory::~FSDirectory() {
 void FSDirectory::setPrefix(const String &prefix) {
 	_prefix = prefix;
 
-	if (!_prefix.empty() && !_prefix.hasSuffix("/"))
-		_prefix += "/";
+	if (!_prefix.empty() && _prefix.lastChar() != DIR_SEPARATOR)
+		_prefix += DIR_SEPARATOR;
 }
 
 FSNode FSDirectory::getFSNode() const {
@@ -216,7 +221,8 @@ FSNode *FSDirectory::lookupCache(NodeCache &cache, const String &name) const {
 	return nullptr;
 }
 
-bool FSDirectory::hasFile(const String &name) const {
+bool FSDirectory::hasFile(const Path &path) const {
+	String name = path.rawString();
 	if (name.empty() || !_node.isDirectory())
 		return false;
 
@@ -224,24 +230,26 @@ bool FSDirectory::hasFile(const String &name) const {
 	return node && node->exists();
 }
 
-const ArchiveMemberPtr FSDirectory::getMember(const String &name) const {
+const ArchiveMemberPtr FSDirectory::getMember(const Path &path) const {
+	String name = path.rawString();
 	if (name.empty() || !_node.isDirectory())
 		return ArchiveMemberPtr();
 
 	FSNode *node = lookupCache(_fileCache, name);
 
 	if (!node || !node->exists()) {
-		warning("FSDirectory::getMember: '%s' does not exist", name.c_str());
+		warning("FSDirectory::getMember: '%s' does not exist", Common::toPrintable(name).c_str());
 		return ArchiveMemberPtr();
 	} else if (node->isDirectory()) {
-		warning("FSDirectory::getMember: '%s' is a directory", name.c_str());
+		warning("FSDirectory::getMember: '%s' is a directory", Common::toPrintable(name).c_str());
 		return ArchiveMemberPtr();
 	}
 
 	return ArchiveMemberPtr(new FSNode(*node));
 }
 
-SeekableReadStream *FSDirectory::createReadStreamForMember(const String &name) const {
+SeekableReadStream *FSDirectory::createReadStreamForMember(const Path &path) const {
+	String name = path.rawString();
 	if (name.empty() || !_node.isDirectory())
 		return nullptr;
 
@@ -250,28 +258,29 @@ SeekableReadStream *FSDirectory::createReadStreamForMember(const String &name) c
 		return nullptr;
 	SeekableReadStream *stream = node->createReadStream();
 	if (!stream)
-		warning("FSDirectory::createReadStreamForMember: Can't create stream for file '%s'", name.c_str());
+		warning("FSDirectory::createReadStreamForMember: Can't create stream for file '%s'", Common::toPrintable(name).c_str());
 
 	return stream;
 }
 
-FSDirectory *FSDirectory::getSubDirectory(const String &name, int depth, bool flat, bool ignoreClashes) {
-	return getSubDirectory(String(), name, depth, flat, ignoreClashes);
+FSDirectory *FSDirectory::getSubDirectory(const Path &name, int depth, bool flat, bool ignoreClashes) {
+	return getSubDirectory(Path(), name, depth, flat, ignoreClashes);
 }
 
-FSDirectory *FSDirectory::getSubDirectory(const String &prefix, const String &name, int depth,
-        bool flat, bool ignoreClashes) {
-	if (name.empty() || !_node.isDirectory())
+FSDirectory *FSDirectory::getSubDirectory(const Path &prefix, const Path &name, int depth,
+		bool flat, bool ignoreClashes) {
+	String rawName = name.rawString();
+	if (rawName.empty() || !_node.isDirectory())
 		return nullptr;
 
-	FSNode *node = lookupCache(_subDirCache, name);
+	FSNode *node = lookupCache(_subDirCache, rawName);
 	if (!node)
 		return nullptr;
 
 	return new FSDirectory(prefix, *node, depth, flat, ignoreClashes);
 }
 
-void FSDirectory::cacheDirectoryRecursive(FSNode node, int depth, const String& prefix) const {
+void FSDirectory::cacheDirectoryRecursive(FSNode node, int depth, const Path& prefix) const {
 	if (depth <= 0)
 		return;
 
@@ -280,7 +289,7 @@ void FSDirectory::cacheDirectoryRecursive(FSNode node, int depth, const String& 
 
 	FSList::iterator it = list.begin();
 	for ( ; it != list.end(); ++it) {
-		String name = prefix + it->getName();
+		String name = prefix.rawString() + it->getName();
 
 		// don't touch name as it might be used for warning messages
 		String lowercaseName = name;
@@ -292,22 +301,22 @@ void FSDirectory::cacheDirectoryRecursive(FSNode node, int depth, const String& 
 				// Always warn in this case as it's when there are 2 directories at the same place with different case
 				// That means a problem in user installation as lookups are always done case insensitive
 				warning("FSDirectory::cacheDirectory: name clash when building cache, ignoring sub-directory '%s'",
-				        name.c_str());
+				        Common::toPrintable(name).c_str());
 			} else {
 				if (_subDirCache.contains(lowercaseName)) {
 					if (!_ignoreClashes) {
 						warning("FSDirectory::cacheDirectory: name clash when building subDirCache with subdirectory '%s'",
-						        name.c_str());
+						        Common::toPrintable(name).c_str());
 					}
 				}
-				cacheDirectoryRecursive(*it, depth - 1, _flat ? prefix : lowercaseName + "/");
+				cacheDirectoryRecursive(*it, depth - 1, _flat ? prefix : lowercaseName + DIR_SEPARATOR);
 				_subDirCache[lowercaseName] = *it;
 			}
 		} else {
 			if (_fileCache.contains(lowercaseName)) {
 				if (!_ignoreClashes) {
 					warning("FSDirectory::cacheDirectory: name clash when building cache, ignoring file '%s'",
-					        name.c_str());
+					        Common::toPrintable(name).c_str());
 				}
 			} else {
 				_fileCache[lowercaseName] = *it;
@@ -324,7 +333,7 @@ void FSDirectory::ensureCached() const  {
 	_cached = true;
 }
 
-int FSDirectory::listMatchingMembers(ArchiveMemberList &list, const String &pattern) const {
+int FSDirectory::listMatchingMembers(ArchiveMemberList &list, const Path &pattern) const {
 	if (!_node.isDirectory())
 		return 0;
 
@@ -333,17 +342,28 @@ int FSDirectory::listMatchingMembers(ArchiveMemberList &list, const String &patt
 
 	// need to match lowercase key, since all entries in our file cache are
 	// stored as lowercase.
-	String lowercasePattern(pattern);
+	String lowercasePattern(pattern.rawString());
 	lowercasePattern.toLowercase();
 
+	// Prevent wildcards from matching the directory separator.
+	const char wildcardExclusions[] = { DIR_SEPARATOR, '\0' };
+
 	int matches = 0;
-	NodeCache::const_iterator it = _fileCache.begin();
-	for ( ; it != _fileCache.end(); ++it) {
-		if (it->_key.matchString(lowercasePattern, false, true)) {
+	for (NodeCache::const_iterator it = _fileCache.begin(); it != _fileCache.end(); ++it) {
+		if (it->_key.matchString(lowercasePattern, false, wildcardExclusions)) {
 			list.push_back(ArchiveMemberPtr(new FSNode(it->_value)));
 			matches++;
 		}
 	}
+	if (_includeDirectories) {
+		for (NodeCache::const_iterator it = _subDirCache.begin(); it != _subDirCache.end(); ++it) {
+			if (it->_key.matchString(lowercasePattern, false, wildcardExclusions)) {
+				list.push_back(ArchiveMemberPtr(new FSNode(it->_value)));
+				matches++;
+			}
+		}
+	}
+
 	return matches;
 }
 
@@ -358,6 +378,13 @@ int FSDirectory::listMembers(ArchiveMemberList &list) const {
 	for (NodeCache::const_iterator it = _fileCache.begin(); it != _fileCache.end(); ++it) {
 		list.push_back(ArchiveMemberPtr(new FSNode(it->_value)));
 		++files;
+	}
+
+	if (_includeDirectories) {
+		for (NodeCache::const_iterator it = _subDirCache.begin(); it != _subDirCache.end(); ++it) {
+			list.push_back(ArchiveMemberPtr(new FSNode(it->_value)));
+			++files;
+		}
 	}
 
 	return files;

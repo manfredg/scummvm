@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -56,10 +55,10 @@ void SceneScriptDR04::InitializeScene() {
 	Ambient_Sounds_Add_Looping_Sound(kSfxCTRAIN1, 50,    1,   1);
 	Ambient_Sounds_Add_Looping_Sound(kSfxFIREBD1, 55, -100,   1);
 	Ambient_Sounds_Add_Looping_Sound(kSfxHUMMER1, 28, -100, 100);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy,  0, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 20, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 40, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 50, 10, 260, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy,  0, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 20, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 40, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorBlimpGuy, 50, 10u, 260u, 17, 24, -100, 100, -101, -101, 1, 1);
 	Ambient_Sounds_Add_Sound(kSfxSPIN2A, 40, 180,  16,  25, 0, 0, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxSPIN1A, 40, 180,  16,  25, 0, 0, -101, -101, 0, 0);
 	Ambient_Sounds_Add_Sound(kSfxTHNDR1,  5,  80,  50, 100, 0, 0, -101, -101, 0, 0);
@@ -229,7 +228,7 @@ void SceneScriptDR04::SceneFrameAdvanced(int frame) {
 		Game_Flag_Reset(kFlagDR05BombWillExplode);
 		Scene_Loop_Set_Default(kDR04LoopMainPostExplosion);
 		Scene_Loop_Start_Special(kSceneLoopModeOnce, kDR04LoopDR04Explosion, true);
-		Music_Stop(4);
+		Music_Stop(4u);
 		Actor_Set_Goal_Number(kActorMoraji, kGoalMorajiPerished);
 	} else {
 		if (Game_Flag_Query(kFlagDR05BombWillExplode)) {
@@ -311,9 +310,9 @@ void SceneScriptDR04::PlayerWalkedIn() {
 }
 
 void SceneScriptDR04::PlayerWalkedOut() {
-	Music_Stop(2);
+	Music_Stop(2u);
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 }
 
 void SceneScriptDR04::DialogueQueueFlushed(int a1) {

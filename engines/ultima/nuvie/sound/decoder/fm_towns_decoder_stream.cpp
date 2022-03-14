@@ -1,10 +1,10 @@
 /* Created by Eric Fry
  * Copyright (C) 2011 The Nuvie Team
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -12,7 +12,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
  */
@@ -75,7 +75,7 @@ int FMtownsDecoderStream::readBuffer(sint16 *buffer, const int numSamples) {
 	//DEBUG(0,LEVEL_INFORMATIONAL, "numSamples = %d. buf_pos = %d, buf_len = %d\n", numSamples, buf_pos, buf_len);
 
 	for (; j < numSamples && i < buf_len;) {
-		buffer[j] = convert_sample(raw_audio_buf[i]);
+		buffer[j] = convertSample(READ_LE_UINT16(&raw_audio_buf[i]));
 		j++;
 		i++;
 	}
@@ -86,22 +86,13 @@ int FMtownsDecoderStream::readBuffer(sint16 *buffer, const int numSamples) {
 	return j;
 }
 
-inline sint16 convert_sample(uint16 raw_sample) {
+inline sint16 FMtownsDecoderStream::convertSample(uint16 rawSample) const {
 	sint16 sample;
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	sint16 temp_sample;
-#endif
 
-	if (raw_sample & 128)
-		sample = ((sint16)(abs(128 - raw_sample) * 256) ^ 0xffff)  + 1;
+	if (rawSample & 128)
+		sample = ((sint16)(ABS(128 - rawSample) * 256) ^ 0xffff)  + 1;
 	else
-		sample = raw_sample * 256;
-
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	temp_sample = sample >> 8;
-	temp_sample |= (sample & 0xff) << 8;
-	sample = temp_sample;
-#endif
+		sample = rawSample * 256;
 
 	return sample;
 }

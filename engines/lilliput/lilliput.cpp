@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,7 +37,7 @@
 
 namespace Lilliput {
 
-LilliputEngine *LilliputEngine::s_Engine = 0;
+LilliputEngine *LilliputEngine::s_Engine = nullptr;
 
 static const byte _basisPalette[768] = {
 	0,  0,  0,  0,  0,  42, 0,  42, 0,  0,  42, 42,
@@ -110,14 +109,9 @@ static const byte _basisPalette[768] = {
 
 LilliputEngine::LilliputEngine(OSystem *syst, const LilliputGameDescription *gd) : Engine(syst), _gameDescription(gd) {
 	_system = syst;
-	DebugMan.addDebugChannel(kDebugEngine, "Engine", "Engine debug level");
-	DebugMan.addDebugChannel(kDebugScript, "Script", "Script debug level");
-	DebugMan.addDebugChannel(kDebugSound,  "Sound",  "Sound debug level");
-	DebugMan.addDebugChannel(kDebugEngineTBC, "EngineTBC", "Engine debug level");
-	DebugMan.addDebugChannel(kDebugScriptTBC, "ScriptTBC", "Script debug level");
 
 	setDebugger(new LilliputConsole(this));
-	_rnd = 0;
+	_rnd = nullptr;
 	_mousePos = Common::Point(0, 0);
 	_oldMousePos = Common::Point(0, 0);
 	_mouseDisplayPos = Common::Point(0, 0);
@@ -213,13 +207,13 @@ LilliputEngine::LilliputEngine(OSystem *syst, const LilliputGameDescription *gd)
 		_characterVariables[i] = 0;
 	}
 
-	_currentCharacterAttributes = NULL;
-	_bufferIdeogram = NULL;
-	_bufferMen = NULL;
-	_bufferMen2 = NULL;
-	_bufferIsoChars = NULL;
-	_bufferIsoMap = NULL;
-	_bufferCubegfx = NULL;
+	_currentCharacterAttributes = nullptr;
+	_bufferIdeogram = nullptr;
+	_bufferMen = nullptr;
+	_bufferMen2 = nullptr;
+	_bufferIsoChars = nullptr;
+	_bufferIsoMap = nullptr;
+	_bufferCubegfx = nullptr;
 
 	_sequencesArr = nullptr;
 	_packedStringIndex = nullptr;
@@ -262,7 +256,6 @@ LilliputEngine::LilliputEngine(OSystem *syst, const LilliputGameDescription *gd)
 }
 
 LilliputEngine::~LilliputEngine() {
-	DebugMan.clearAllDebugChannels();
 	delete _soundHandler;
 	delete _scriptHandler;
 	delete _rnd;
@@ -305,7 +298,7 @@ void LilliputEngine::newInt8() {
 }
 
 bool LilliputEngine::hasFeature(EngineFeature f) const {
-	return (f == kSupportsRTL) || (f == kSupportsLoadingDuringRuntime) || (f == kSupportsSavingDuringRuntime);
+	return (f == kSupportsReturnToLauncher) || (f == kSupportsLoadingDuringRuntime) || (f == kSupportsSavingDuringRuntime);
 }
 
 const char *LilliputEngine::getCopyrightString() const {
@@ -2253,7 +2246,7 @@ void LilliputEngine::checkInterfaceActivationDelay() {
 void LilliputEngine::displayHeroismIndicator() {
 	debugC(2, kDebugEngine, "displayHeroismIndicator()");
 
-	if (_scriptHandler->_barAttrPtr == NULL)
+	if (_scriptHandler->_barAttrPtr == nullptr)
 		return;
 
 	int var1 = (_scriptHandler->_barAttrPtr[0] * 25) >> 8;

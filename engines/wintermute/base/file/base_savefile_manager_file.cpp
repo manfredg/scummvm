@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,6 +41,9 @@ Common::String makeSfmFilename(const Common::String &filename) {
 			smFilename.setChar('_', i);
 		}
 	}
+	while (smFilename.hasPrefix("._")) {
+		smFilename = smFilename.substr(2);
+	}
 	return BaseEngine::instance().getGameTargetName() + "." + smFilename;
 }
 
@@ -58,6 +60,16 @@ Common::SeekableReadStream *openSfmFile(const Common::String &filename) {
 Common::WriteStream *openSfmFileForWrite(const Common::String &filename) {
 	Common::String smFilename = makeSfmFilename(filename);
 	return g_system->getSavefileManager()->openForSaving(smFilename, false);
+}
+
+Common::StringArray sfmFileList(const Common::String &mask) {
+	Common::String prefix = BaseEngine::instance().getGameTargetName() + ".";
+	Common::String smMask = makeSfmFilename(mask);
+	Common::StringArray array = g_system->getSavefileManager()->listSavefiles(smMask);
+	for (uint32 i = 0; i < array.size(); i++) {
+		array[i] = array[i].substr(prefix.size());
+	}
+	return array;
 }
 
 } // End of namespace Wintermute

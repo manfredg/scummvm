@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,22 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 /**
- * @file
- * Macintosh cursor decoding used in engines:
+ * @defgroup graphics_maccursor Mac cursor
+ * @ingroup graphics
+ *
+ * @brief Macintosh cursor decoding.
+ *
+ * Used in engines:
  * - mohawk
  * - sci
  * - scumm
+ *
+ * @{
  */
 
 #ifndef GRAPHICS_MACCURSOR_H
@@ -54,18 +59,18 @@ public:
 	/** Return the cursor's hotspot's y coordinate. */
 	uint16 getHotspotY() const { return _hotspotY; }
 	/** Return the cursor's transparent key. */
-	byte getKeyColor() const { return 0xFF; }
+	virtual byte getKeyColor() const { return 0xFF; }
 
 	const byte *getSurface() const { return _surface; }
 
-	const byte *getPalette() const { return _palette; }
+	virtual const byte *getPalette() const { return _palette; }
 	byte getPaletteStartIndex() const { return 0; }
 	uint16 getPaletteCount() const { return 256; }
 
 	/** Read the cursor's data out of a stream. */
 	bool readFromStream(Common::SeekableReadStream &stream, bool forceMonochrome = false, byte monochromeInvertedPixelColor = 0xff);
 
-private:
+protected:
 	bool readFromCURS(Common::SeekableReadStream &stream, byte monochromeInvertedPixelColor);
 	bool readFromCRSR(Common::SeekableReadStream &stream, bool forceMonochrome, byte monochromeInvertedPixelColor);
 
@@ -78,7 +83,7 @@ private:
 	/** Clear the cursor. */
 	void clear();
 };
-
+ /** @} */
 } // End of namespace Graphics
 
 #endif

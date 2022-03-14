@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "backends/cloud/dropbox/dropboxcreatedirectoryrequest.h"
+#include "backends/cloud/dropbox/dropboxstorage.h"
+#include "backends/cloud/dropbox/dropboxtokenrefresher.h"
 #include "backends/cloud/storage.h"
 #include "backends/networking/curl/connectionmanager.h"
 #include "backends/networking/curl/curljsonrequest.h"
@@ -32,8 +33,8 @@ namespace Dropbox {
 
 #define DROPBOX_API_CREATE_FOLDER "https://api.dropboxapi.com/2/files/create_folder"
 
-DropboxCreateDirectoryRequest::DropboxCreateDirectoryRequest(Common::String token, Common::String path, Storage::BoolCallback cb, Networking::ErrorCallback ecb):
-	Networking::Request(nullptr, ecb), _token(token), _path(path), _boolCallback(cb),
+DropboxCreateDirectoryRequest::DropboxCreateDirectoryRequest(DropboxStorage *storage, Common::String path, Storage::BoolCallback cb, Networking::ErrorCallback ecb):
+	Networking::Request(nullptr, ecb), _storage(storage), _path(path), _boolCallback(cb),
 	_workingRequest(nullptr), _ignoreCallback(false) {
 	start();
 }
@@ -53,8 +54,8 @@ void DropboxCreateDirectoryRequest::start() {
 
 	Networking::JsonCallback innerCallback = new Common::Callback<DropboxCreateDirectoryRequest, Networking::JsonResponse>(this, &DropboxCreateDirectoryRequest::responseCallback);
 	Networking::ErrorCallback errorResponseCallback = new Common::Callback<DropboxCreateDirectoryRequest, Networking::ErrorResponse>(this, &DropboxCreateDirectoryRequest::errorCallback);
-	Networking::CurlJsonRequest *request = new Networking::CurlJsonRequest(innerCallback, errorResponseCallback, DROPBOX_API_CREATE_FOLDER);
-	request->addHeader("Authorization: Bearer " + _token);
+	Networking::CurlJsonRequest *request = new DropboxTokenRefresher(_storage, innerCallback, errorResponseCallback, DROPBOX_API_CREATE_FOLDER);
+	request->addHeader("Authorization: Bearer " + _storage->accessToken());
 	request->addHeader("Content-Type: application/json");
 
 	Common::JSONObject jsonRequestParameters;

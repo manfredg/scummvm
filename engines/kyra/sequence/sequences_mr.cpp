@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -62,7 +61,7 @@ void KyraEngine_MR::showBadConscience() {
 		"GUNFR00.WSA", "GUNFR01.WSA", "GUNFR02.WSA", "GUNFR03.WSA", "GUNFR04.WSA", "GUNFR05.WSA", "GUNFR06.WSA", "GUNFR07.WSA"
 	};
 
-	setupSceneAnimObject(0x0E, 9, 0, 187, -1, -1, -1, -1, 0, 0, 0, -1, animFilenames[anim]);
+	setupSceneAnimObject(0x0E, 9, 0, _interfaceCommandLineY1 - 1, -1, -1, -1, -1, 0, 0, 0, -1, animFilenames[anim]);
 	for (uint i = 0; i <= _badConscienceFrameTable[_badConscienceAnim]; ++i) {
 		if (i == 8)
 			snd_playSoundEffect(0x1B, 0xC8);
@@ -178,7 +177,7 @@ void KyraEngine_MR::hideGoodConscience() {
 }
 
 void KyraEngine_MR::eelScript() {
-	if (_chatText)
+	if (!_chatText.empty())
 		return;
 	_screen->hideMouse();
 

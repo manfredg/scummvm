@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,27 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 
 #include "ultima/ultima8/world/glob_egg.h"
 #include "ultima/ultima8/world/map_glob.h"
 #include "ultima/ultima8/games/game_data.h"
 #include "ultima/ultima8/world/item_factory.h"
-#include "ultima/ultima8/world/current_map.h"
-#include "ultima/ultima8/kernel/core_app.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
+#include "ultima/ultima8/ultima8.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-// p_dynamic_cast stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE(GlobEgg, Item)
+DEFINE_RUNTIME_CLASSTYPE_CODE(GlobEgg)
 
 GlobEgg::GlobEgg() {
 }
@@ -45,22 +39,24 @@ GlobEgg::~GlobEgg() {
 
 
 // Called when an item has entered the fast area
-void GlobEgg::enterFastArea() {
+uint32 GlobEgg::enterFastArea() {
 	uint32 coordmask = ~0x1FFU;
 	unsigned int coordshift = 1;
+	unsigned int offset = 1;
 	if (GAME_IS_CRUSADER) {
 		coordmask = ~0x3FFU;
 		coordshift = 2;
+		offset = 2;
 	}
 
 	// Expand it
-	if (!(_flags & FLG_FASTAREA)) {
-		MapGlob *glob = GameData::get_instance()->getGlob(_quality);
-		if (!glob) return;
+	if (!hasFlags(FLG_FASTAREA)) {
+		const MapGlob *glob = GameData::get_instance()->getGlob(_quality);
+		if (!glob) return 0;
 
-		Std::vector<GlobItem>::iterator iter;
+		Std::vector<GlobItem>::const_iterator iter;
 		for (iter = glob->_contents.begin(); iter != glob->_contents.end(); ++iter) {
-			GlobItem &globitem = *iter;
+			const GlobItem &globitem = *iter;
 			Item *item = ItemFactory::createItem(globitem.shape, globitem.frame,
 			                                     0,
 			                                     FLG_DISPOSABLE | FLG_FAST_ONLY,
@@ -68,25 +64,23 @@ void GlobEgg::enterFastArea() {
 
 
 			// calculate object's world position
-			int32 itemx = (_x & coordmask) + (globitem.x << coordshift) + 1;
-			int32 itemy = (_y & coordmask) + (globitem.y << coordshift) + 1;
+			int32 itemx = (_x & coordmask) + (globitem.x << coordshift) + offset;
+			int32 itemy = (_y & coordmask) + (globitem.y << coordshift) + offset;
 			int32 itemz = _z + globitem.z;
 
 			item->move(itemx, itemy, itemz);
 		}
 	}
 
-	Item::enterFastArea();
+	return Item::enterFastArea();
 }
 
-void GlobEgg::saveData(ODataSource *ods) {
-	Item::saveData(ods);
+void GlobEgg::saveData(Common::WriteStream *ws) {
+	Item::saveData(ws);
 }
 
-bool GlobEgg::loadData(IDataSource *ids, uint32 version) {
-	if (!Item::loadData(ids, version)) return false;
-
-	return true;
+bool GlobEgg::loadData(Common::ReadStream *rs, uint32 version) {
+	return Item::loadData(rs, version);
 }
 
 } // End of namespace Ultima8

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "common/list.h"
 #include "common/hash-str.h"
 #include "common/hashmap.h"
+#include "common/macresman.h"
 #include "common/stream.h"
 #include "common/ptr.h"
 #include "common/archive.h"
@@ -74,9 +74,19 @@ public:
 	uint32 getFileSize(const char *file);
 	uint8 *fileData(const char *file, uint32 *size);
 	Common::SeekableReadStream *createReadStream(const Common::String &file);
-	Common::SeekableReadStreamEndian *createEndianAwareReadStream(const Common::String &file);
+
+	enum Endianness {
+		kPlatformEndianness = 0,
+		kForceLE,
+		kForceBE
+	};
+
+	Common::SeekableReadStreamEndian *createEndianAwareReadStream(const Common::String &file, int endianness = kPlatformEndianness);
 
 	bool loadFileToBuf(const char *file, void *buf, uint32 maxSize);
+
+	Common::Archive *getCachedArchive(const Common::String &file) const;
+
 protected:
 	typedef Common::HashMap<Common::String, Common::Archive *, Common::CaseSensitiveString_Hash, Common::CaseSensitiveString_EqualTo> ArchiveMap;
 	ArchiveMap _archiveCache;
@@ -85,8 +95,11 @@ protected:
 	Common::SearchSet _archiveFiles;
 	Common::SearchSet _protectedFiles;
 
+	Common::MacResManager *_macResMan;
+
 	Common::Archive *loadArchive(const Common::String &name, Common::ArchiveMemberPtr member);
 	Common::Archive *loadInstallerArchive(const Common::String &file, const Common::String &ext, const uint8 offset);
+	Common::Archive *loadStuffItArchive(const Common::String &file);
 
 	bool loadProtectedFiles(const char *const * list);
 
@@ -95,6 +108,7 @@ protected:
 	typedef Common::List<Common::SharedPtr<ResArchiveLoader> > LoaderList;
 	LoaderList _loaders;
 
+	const bool _bigEndianPlatForm;
 	KyraEngine_v1 *_vm;
 };
 
@@ -202,6 +216,7 @@ enum KyraResources {
 
 	k1GUIStrings,
 	k1ConfigStrings,
+	k1ConfigStrings2,
 
 	k1AudioTracks,
 	k1AudioTracksIntro,
@@ -218,6 +233,8 @@ enum KyraResources {
 
 	k1AmigaIntroSFXTable,
 	k1AmigaGameSFXTable,
+
+	k1TwoByteFontLookupTable,
 
 	k2SeqplayPakFiles,
 	k2SeqplayCredits,
@@ -241,6 +258,7 @@ enum KyraResources {
 	k2IngameTimJpStrings,
 	k2IngameShapeAnimData,
 	k2IngameTlkDemoStrings,
+	k2FontData,
 
 	k3MainMenuStrings,
 	k3MusicFiles,
@@ -250,6 +268,9 @@ enum KyraResources {
 	k3ItemAnimData,
 	k3ItemMagicTable,
 	k3ItemStringMap,
+
+	k3VqaSubtitlesIntro,
+	k3VqaSubtitlesBoat,
 
 #if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	kRpgCommonMoreStrings,
@@ -396,7 +417,30 @@ enum KyraResources {
 	kEoBBaseMonsterDistAttStrings,
 
 	kEoBBaseEncodeMonsterDefs,
+	kEoBBaseEncodeMonsterDefs00,
+	kEoBBaseEncodeMonsterDefs01,
+	kEoBBaseEncodeMonsterDefs02,
+	kEoBBaseEncodeMonsterDefs03,
+	kEoBBaseEncodeMonsterDefs04,
+	kEoBBaseEncodeMonsterDefs05,
+	kEoBBaseEncodeMonsterDefs06,
+	kEoBBaseEncodeMonsterDefs07,
+	kEoBBaseEncodeMonsterDefs08,
+	kEoBBaseEncodeMonsterDefs09,
+	kEoBBaseEncodeMonsterDefs10,
+	kEoBBaseEncodeMonsterDefs11,
+	kEoBBaseEncodeMonsterDefs12,
+	kEoBBaseEncodeMonsterDefs13,
+	kEoBBaseEncodeMonsterDefs14,
+	kEoBBaseEncodeMonsterDefs15,
+	kEoBBaseEncodeMonsterDefs16,
+	kEoBBaseEncodeMonsterDefs17,
+	kEoBBaseEncodeMonsterDefs18,
+	kEoBBaseEncodeMonsterDefs19,
+	kEoBBaseEncodeMonsterDefs20,
+	kEoBBaseEncodeMonsterDefs21,
 	kEoBBaseNpcPresets,
+	kEoBBaseNpcPresetsNames,
 
 	kEoBBaseWllFlagPreset,
 	kEoBBaseDscShapeCoords,
@@ -448,6 +492,8 @@ enum KyraResources {
 	kEoBBaseBookNumbers,
 	kEoBBaseMageSpellsList,
 	kEoBBaseClericSpellsList,
+	kEoBBaseMageSpellsList2,
+	kEoBBaseClericSpellsList2,
 	kEoBBaseSpellNames,
 	kEoBBaseMagicStrings1,
 	kEoBBaseMagicStrings2,
@@ -495,6 +541,13 @@ enum KyraResources {
 	kEoBBaseLevelSounds1,
 	kEoBBaseLevelSounds2,
 
+	kEoBBaseTextInputCharacterLines,
+	kEoBBaseTextInputSelectStrings,
+
+	kEoBBaseSaveNamePatterns,
+
+	kEoB1DefaultPartyStats,
+	kEoB1DefaultPartyNames,
 	kEoB1MainMenuStrings,
 	kEoB1BonusStrings,
 
@@ -543,6 +596,9 @@ enum KyraResources {
 	kEoB1CreditsStrings,
 	kEoB1CreditsCharWdth,
 
+	kEoB1CreditsStrings2,
+	kEoB1CreditsTileGrid,
+
 	kEoB1DoorShapeDefs,
 	kEoB1DoorSwitchShapeDefs,
 	kEoB1DoorSwitchCoords,
@@ -573,6 +629,126 @@ enum KyraResources {
 	kEoB1PalCycleData,
 	kEoB1PalCycleStyle1,
 	kEoB1PalCycleStyle2,
+	kEoB1PalettesSega,
+	kEoB1PatternTable0,
+	kEoB1PatternTable1,
+	kEoB1PatternTable2,
+	kEoB1PatternTable3,
+	kEoB1PatternTable4,
+	kEoB1PatternTable5,
+	kEoB1PatternAddTable1,
+	kEoB1PatternAddTable2,
+
+	kEoB1MonsterAnimFrames00,
+	kEoB1MonsterAnimFrames01,
+	kEoB1MonsterAnimFrames02,
+	kEoB1MonsterAnimFrames03,
+	kEoB1MonsterAnimFrames04,
+	kEoB1MonsterAnimFrames05,
+	kEoB1MonsterAnimFrames06,
+	kEoB1MonsterAnimFrames07,
+	kEoB1MonsterAnimFrames08,
+	kEoB1MonsterAnimFrames09,
+	kEoB1MonsterAnimFrames10,
+	kEoB1MonsterAnimFrames11,
+	kEoB1MonsterAnimFrames12,
+	kEoB1MonsterAnimFrames13,
+	kEoB1MonsterAnimFrames14,
+	kEoB1MonsterAnimFrames15,
+	kEoB1MonsterAnimFrames16,
+	kEoB1MonsterAnimFrames17,
+	kEoB1MonsterAnimFrames18,
+	kEoB1MonsterAnimFrames19,
+	kEoB1MonsterAnimFrames20,
+	kEoB1MonsterAnimFrames21,
+	kEoB1MonsterAnimFrames22,
+	kEoB1MonsterAnimFrames23,
+	kEoB1MonsterAnimFrames24,
+	kEoB1MonsterAnimFrames25,
+	kEoB1MonsterAnimFrames26,
+	kEoB1MonsterAnimFrames27,
+	kEoB1MonsterAnimFrames28,
+	kEoB1MonsterAnimFrames29,
+	kEoB1MonsterAnimFrames30,
+	kEoB1MonsterAnimFrames31,
+	kEoB1MonsterAnimFrames32,
+	kEoB1MonsterAnimFrames33,
+	kEoB1MonsterAnimFrames34,
+	kEoB1MonsterAnimFrames35,
+	kEoB1MonsterAnimFrames36,
+	kEoB1MonsterAnimFrames37,
+	kEoB1MonsterAnimFrames38,
+	kEoB1MonsterAnimFrames39,
+	kEoB1MonsterAnimFrames40,
+	kEoB1MonsterAnimFrames41,
+	kEoB1MonsterAnimFrames42,
+	kEoB1MonsterAnimFrames43,
+	kEoB1MonsterAnimFrames44,
+	kEoB1MonsterAnimFrames45,
+	kEoB1MonsterAnimFrames46,
+	kEoB1MonsterAnimFrames47,
+	kEoB1MonsterAnimFrames48,
+	kEoB1MonsterAnimFrames49,
+	kEoB1MonsterAnimFrames50,
+	kEoB1MonsterAnimFrames51,
+	kEoB1MonsterAnimFrames52,
+	kEoB1MonsterAnimFrames53,
+	kEoB1MonsterAnimFrames54,
+	kEoB1MonsterAnimFrames55,
+	kEoB1MonsterAnimFrames56,
+	kEoB1MonsterAnimFrames57,
+	kEoB1MonsterAnimFrames58,
+	kEoB1MonsterAnimFrames59,
+	kEoB1MonsterAnimFrames60,
+	kEoB1MonsterAnimFrames61,
+	kEoB1MonsterAnimFrames62,
+	kEoB1MonsterAnimFrames63,
+	kEoB1MonsterAnimFrames64,
+	kEoB1MonsterAnimFrames65,
+	kEoB1MonsterAnimFrames66,
+	kEoB1MonsterAnimFrames67,
+	kEoB1MonsterAnimFrames68,
+	kEoB1MonsterAnimFrames69,
+	kEoB1MonsterAnimFrames70,
+	kEoB1MonsterAnimFrames71,
+	kEoB1MonsterAnimFrames72,
+	kEoB1MonsterAnimFrames73,
+	kEoB1MonsterAnimFrames74,
+	kEoB1MonsterAnimFrames75,
+	kEoB1MonsterAnimFrames76,
+	kEoB1MonsterAnimFrames77,
+	kEoB1MonsterAnimFrames78,
+	kEoB1MonsterAnimFrames79,
+	kEoB1MonsterAnimFrames80,
+	kEoB1MonsterAnimFrames81,
+	kEoB1MonsterAnimFrames82,
+	kEoB1MonsterAnimFrames83,
+	kEoB1MonsterAnimFrames84,
+	kEoB1MonsterAnimFrames85,
+	kEoB1MonsterAnimFrames86,
+	kEoB1MonsterAnimFrames87,
+	kEoB1MonsterAnimFrames88,
+	kEoB1MonsterAnimFrames89,
+	kEoB1MonsterAnimFrames90,
+	kEoB1MonsterAnimFrames91,
+	kEoB1MonsterAnimFrames92,
+	kEoB1MonsterAnimFrames93,
+	kEoB1MonsterAnimFrames94,
+	kEoB1MonsterAnimFrames95,
+	kEoB1MonsterAnimFrames96,
+	kEoB1MonsterAnimFrames97,
+	kEoB1MonsterAnimFrames98,
+	kEoB1MonsterAnimFrames99,
+	kEoB1MonsterAnimFrames100,
+	kEoB1MonsterAnimFrames101,
+	kEoB1MonsterAnimFrames102,
+	kEoB1MonsterAnimFrames103,
+	kEoB1MonsterAnimFrames104,
+	kEoB1MonsterAnimFrames105,
+	kEoB1MonsterAnimFrames106,
+	kEoB1MonsterAnimFrames107,
+	kEoB1MonsterAnimFrames108,
+	kEoB1MonsterAnimFrames109,
 
 	kEoB1NpcShpData,
 	kEoB1NpcSubShpIndex1,
@@ -590,10 +766,24 @@ enum KyraResources {
 	kEoB1Npc6Strings,
 	kEoB1Npc7Strings,
 
+	kEoB1ParchmentStrings,
 	kEoB1ItemNames,
+	kEoB1SpeechAnimData,
+	kEoB1WdAnimSprites,
+	kEoB1SequenceTrackMap,
+
+	kEoB1MapStrings1,
+	kEoB1MapStrings2,
+	kEoB1MapStrings3,
+	kEoB1MapLevelData,
+
 	kEoB1Ascii2SjisTable1,
 	kEoB1Ascii2SjisTable2,
 	kEoB1FontLookupTable,
+	kEoB1CharWidthTable1,
+	kEoB1CharWidthTable2,
+	kEoB1CharWidthTable3,
+	kEoB1CharTilesTable,
 
 	kEoB2MainMenuStrings,
 	kEoB2MainMenuUtilStrings,
@@ -948,12 +1138,9 @@ enum KyraResources {
 
 	kEoB2UtilMenuStrings,
 	kEoB2Config2431Strings,
-	kEoB2KatakanaLines,
-	kEoB2KanaSelectStrings,
 	kEoB2FontDmpSearchTbl,
 	kEoB2Ascii2SjisTables,
 	kEoB2Ascii2SjisTables2,
-	kEoB2SaveNamePatterns,
 	kEoB2PcmSoundEffectsIngame,
 	kEoB2PcmSoundEffectsIntro,
 	kEoB2PcmSoundEffectsFinale,
@@ -1071,8 +1258,8 @@ public:
 	const HoFSeqData *loadHoFSequenceData(int id, int &entries);
 	const HoFSeqItemAnimData *loadHoFSeqItemAnimData(int id, int &entries);
 	const ItemAnimDefinition *loadItemAnimDefinition(int id, int &entries);
-#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	const uint16 *loadRawDataBe16(int id, int &entries);
+#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	const uint32 *loadRawDataBe32(int id, int &entries);
 #endif // (ENABLE_EOB || ENABLE_LOL)
 #ifdef ENABLE_LOL
@@ -1114,8 +1301,8 @@ private:
 	bool loadHoFSequenceData(Common::SeekableReadStream &stream, void *&ptr, int &size);
 	bool loadHoFSeqItemAnimData(Common::SeekableReadStream &stream, void *&ptr, int &size);
 	bool loadItemAnimDefinition(Common::SeekableReadStream &stream, void *&ptr, int &size);
-#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	bool loadRawDataBe16(Common::SeekableReadStream &stream, void *&ptr, int &size);
+#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	bool loadRawDataBe32(Common::SeekableReadStream &stream, void *&ptr, int &size);
 #endif // (ENABLE_LOL || ENABLE_EOB)
 #ifdef ENABLE_LOL
@@ -1140,8 +1327,8 @@ private:
 	void freeHoFSequenceData(void *&ptr, int &size);
 	void freeHoFSeqItemAnimData(void *&ptr, int &size);
 	void freeItemAnimDefinition(void *&ptr, int &size);
-#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	void freeRawDataBe16(void *&ptr, int &size);
+#if defined(ENABLE_EOB) || defined(ENABLE_LOL)
 	void freeRawDataBe32(void *&ptr, int &size);
 #endif // (ENABLE_EOB || ENABLE_LOL)
 #ifdef ENABLE_LOL

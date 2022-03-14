@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -357,7 +356,7 @@ void Util::getMouseState(int16 *pX, int16 *pY, MouseButtons *pButtons) {
 	*pX = mouse.x + _vm->_video->_scrollOffsetX - _vm->_video->_screenDeltaX;
 	*pY = mouse.y + _vm->_video->_scrollOffsetY - _vm->_video->_screenDeltaY;
 
-	if (pButtons != 0)
+	if (pButtons != nullptr)
 		*pButtons = _mouseButtons;
 }
 
@@ -517,6 +516,7 @@ void Util::cutFromStr(char *str, int16 from, int16 cutlen) {
 	} while (str[i] != 0);
 }
 
+// A copy of this utility function is used by fileio.cpp.
 void Util::replaceChar(char *str, char c1, char c2) {
 	while ((str = strchr(str, c1)))
 		*str = c2;
@@ -559,7 +559,7 @@ void Util::cleanupStr(char *str) {
 		}
 
 		end = strchr(start + 1, ' ');
-		start = end ? end + 1 : 0;
+		start = end ? end + 1 : nullptr;
 	}
 }
 
@@ -570,23 +570,23 @@ void Util::listInsertFront(List *list, void *data) {
 	if (list->pHead) {
 		node->pData = data;
 		node->pNext = list->pHead;
-		node->pPrev = 0;
+		node->pPrev = nullptr;
 		list->pHead->pPrev = node;
 		list->pHead = node;
 	} else {
 		list->pHead = node;
 		list->pTail = node;
 		node->pData = data;
-		node->pNext = 0;
-		node->pPrev = 0;
+		node->pNext = nullptr;
+		node->pPrev = nullptr;
 	}
 }
 
 void Util::listInsertBack(List *list, void *data) {
 	ListNode *node;
 
-	if (list->pHead != 0) {
-		if (list->pTail == 0) {
+	if (list->pHead != nullptr) {
+		if (list->pTail == nullptr) {
 			list->pTail = list->pHead;
 			warning("Util::listInsertBack(): Broken list");
 		}
@@ -594,7 +594,7 @@ void Util::listInsertBack(List *list, void *data) {
 		node = new ListNode;
 		node->pData = data;
 		node->pPrev = list->pTail;
-		node->pNext = 0;
+		node->pNext = nullptr;
 		list->pTail->pNext = node;
 		list->pTail = node;
 	} else
@@ -602,14 +602,14 @@ void Util::listInsertBack(List *list, void *data) {
 }
 
 void Util::listDropFront(List *list) {
-	if (list->pHead->pNext == 0) {
+	if (list->pHead->pNext == nullptr) {
 		delete list->pHead;
-		list->pHead = 0;
-		list->pTail = 0;
+		list->pHead = nullptr;
+		list->pTail = nullptr;
 	} else {
 		list->pHead = list->pHead->pNext;
 		delete list->pHead->pPrev;
-		list->pHead->pPrev = 0;
+		list->pHead->pPrev = nullptr;
 	}
 }
 

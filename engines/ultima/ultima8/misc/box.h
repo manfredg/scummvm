@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,7 +34,6 @@ struct Box {
 	Box() : _x(0), _y(0), _z(0), _xd(0), _yd(0), _zd(0) {}
 	Box(int nx, int ny, int nz, int nxd, int nyd, int nzd)
 		: _x(nx), _y(ny), _z(nz), _xd(nxd), _yd(nyd), _zd(nzd) {}
-	Box(const Box &o) : _x(o._x), _y(o._y), _z(o._z), _xd(o._xd), _yd(o._yd), _zd(o._zd) {}
 
 	void    Set(int nx, int ny, int nz, int nxd, int nyd, int nzd) {
 		_x = nx;
@@ -56,8 +54,8 @@ struct Box {
 
 	// Check to see if a point is within the Box
 	bool    InBox(int px, int py, int pz) const {
-		return (px >= (_x - _xd) && py >= (_y - _yd) && pz >= _z &&
-		        px < _x && py < _y && pz < (_z + _zd));
+		return (px > (_x - _xd) && py > (_y - _yd) && pz >= _z &&
+		        px <= _x && py <= _y && pz < (_z + _zd));
 	}
 
 	// Move the Box (Relative)
@@ -99,6 +97,7 @@ struct Box {
 		return (_x == o._x && _y == o._y && _z == o._z &&
 		        _xd == o._xd && _yd == o._yd && _zd == o._zd);
 	}
+
 };
 
 } // End of namespace Ultima8

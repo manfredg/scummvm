@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -193,10 +192,10 @@ void EoBCoreEngine::advanceTimers(uint32 millis) {
 		for (int ii = 0; ii < 10; ii++) {
 			if (c->timers[ii] > ct) {
 				uint32 chrt = c->timers[ii] - ct;
-                c->timers[ii] = chrt > millis ? ct + chrt - millis : 1;
+				c->timers[ii] = chrt > millis ? ct + chrt - millis : 1;
 			} else if (c->timers[ii]) {
-                c->timers[ii] = 1;
-            }
+				c->timers[ii] = 1;
+			}
 		}
 	}
 
@@ -212,9 +211,9 @@ void EoBCoreEngine::advanceTimers(uint32 millis) {
 				_scriptTimers[i].next = chrt > millis ? ct + chrt - millis : 1;
 				debugC(3, kDebugLevelTimer, "EoBCoreEngine::advanceTimers()      - CTIME: %08d   SCRIPT TIMER[%02d].NEXT: %08d", ct, i, _scriptTimers[i].next);
 			} else if (_scriptTimers[i].next) {
-                _scriptTimers[i].next = 1;
+				_scriptTimers[i].next = 1;
 				debugC(3, kDebugLevelTimer, "EoBCoreEngine::advanceTimers()      - CTIME: %08d   SCRIPT TIMER[%02d].NEXT: %08d", ct, i, _scriptTimers[i].next);
-            }			
+			}
 		}
 	}
 
@@ -225,8 +224,8 @@ void EoBCoreEngine::advanceTimers(uint32 millis) {
 			uint32 chrt = _wallsOfForce[i].duration - ct;
 			_wallsOfForce[i].duration = chrt > millis ? ct + chrt - millis : 1;
 		} else {
-            _wallsOfForce[i].duration = 1;
-        }
+			_wallsOfForce[i].duration = 1;
+		}
 	}
 }
 
@@ -305,7 +304,7 @@ void EoBCoreEngine::timerSpecialCharacterUpdate(int timerNum) {
 		}
 
 		int od = _screen->curDimIndex();
-		Screen::FontId of = _screen->setFont(_flags.use16ColorMode ? Screen::FID_SJIS_FNT : Screen::FID_6_FNT);
+		Screen::FontId of = _screen->setFont(_conFont);
 		_screen->setScreenDim(7);
 
 		switch (evt) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -125,22 +124,22 @@ static char *gettoken(char *tokBuf) {
 	static char *marker;
 	static char oldch;
 
-	if (tokBuf == NULL)
+	if (tokBuf == nullptr)
 		*marker = oldch;
 	else
 		marker = tokBuf;
 	while (*marker != '\0' && isSpace(*marker) && *marker != '\n') marker++;
 	tokBuf = marker;
 	if (isISOLetter(*marker))
-		while (*marker && (isISOLetter(*marker) || isdigit(*marker) || *marker == '\'')) marker++;
-	else if (isdigit(*marker))
-		while (isdigit(*marker)) marker++;
+		while (*marker && (isISOLetter(*marker) || Common::isDigit(*marker) || *marker == '\'')) marker++;
+	else if (Common::isDigit(*marker))
+		while (Common::isDigit(*marker)) marker++;
 	else if (*marker == '\"') {
 		marker++;
 		while (*marker != '\"') marker++;
 		marker++;
 	} else if (*marker == '\0' || *marker == '\n')
-		return NULL;
+		return nullptr;
 	else
 		marker++;
 	oldch = *marker;
@@ -171,12 +170,12 @@ static void agetline(CONTEXT) {
 		strcpy(isobuf, buf);
 
 		token = gettoken(isobuf);
-		if (token != NULL && strcmp("debug", token) == 0 && header->debug) {
+		if (token != nullptr && strcmp("debug", token) == 0 && header->debug) {
 			dbgflg = TRUE;
 			debug();
-			token = NULL;
+			token = nullptr;
 		}
-	} while (token == NULL);
+	} while (token == nullptr);
 	eol = FALSE;
 	lin = 1;
 }
@@ -203,7 +202,7 @@ static void scan(CONTEXT) {
 
 			if (!isNoise(w))
 				wrds[i++] = w;
-		} else if (isdigit(token[0])) {
+		} else if (Common::isDigit(token[0])) {
 			if (litCount > MAXPARAMS)
 				syserr("Too many parameters.");
 			wrds[i++] = dictsize + litCount; /* Word outside dictionary = literal */
@@ -215,7 +214,7 @@ static void scan(CONTEXT) {
 			wrds[i++] = dictsize + litCount; /* Word outside dictionary = literal */
 			litValues[litCount].type = TYPSTR;
 			/* Remove the string quotes while copying */
-			str = strdup(&token[1]);
+			str = scumm_strdup(&token[1]);
 			str[strlen(token) - 2] = '\0';
 			litValues[litCount++].value = (Aptr) str;
 		} else if (token[0] == ',') {
@@ -224,7 +223,7 @@ static void scan(CONTEXT) {
 			CALL1(unknown, token)
 		}
 		wrds[i] = EOD;
-		eol = (token = gettoken(NULL)) == NULL;
+		eol = (token = gettoken(nullptr)) == nullptr;
 	} while (!eol);
 }
 
@@ -287,10 +286,10 @@ static void unambig(CONTEXT, ParamElem plst[]) {
 	static ParamElem *savlst; /* Saved list for backup at EOD */
 	int firstWord, lastWord;  /* The words the player used */
 
-	if (refs == NULL)
+	if (refs == nullptr)
 		refs = (ParamElem *)allocate((MAXENTITY + 1) * sizeof(ParamElem));
 
-	if (savlst == NULL)
+	if (savlst == nullptr)
 		savlst = (ParamElem *)allocate((MAXENTITY + 1) * sizeof(ParamElem));
 
 	if (isLiteral(wrds[wrdidx])) {
@@ -388,12 +387,12 @@ static void unambig(CONTEXT, ParamElem plst[]) {
 }
 
 static void simple(CONTEXT, ParamElem olst[]) {
-	static ParamElem *tlst = NULL;
+	static ParamElem *tlst = nullptr;
 	int savidx = wrdidx;
 	Boolean savplur = FALSE;
 	int i;
 
-	if (tlst == NULL)
+	if (tlst == nullptr)
 		tlst = (ParamElem *) allocate(sizeof(ParamElem) * (MAXENTITY + 1));
 	tlst[0].code = EOD;
 
@@ -448,15 +447,15 @@ static void simple(CONTEXT, ParamElem olst[]) {
 
 */
 static void complex(CONTEXT, ParamElem olst[]) {
-	static ParamElem *alst = NULL;
+	static ParamElem *alst = nullptr;
 
-	if (alst == NULL)
+	if (alst == nullptr)
 		alst = (ParamElem *) allocate((MAXENTITY + 1) * sizeof(ParamElem));
 
 	if (isAll(wrds[wrdidx])) {
 		plural = TRUE;
 		// Build list of all objects
-		CALL1(buildall, alst)     
+		CALL1(buildall, alst)
 		wrdidx++;
 		if (wrds[wrdidx] != EOD && isBut(wrds[wrdidx])) {
 			wrdidx++;
@@ -526,10 +525,10 @@ static void tryMatch(CONTEXT, ParamElem matchLst[]) {
 	ClaElem *cla;         /* Pointer to class definitions */
 	Boolean anyPlural = FALSE;    /* Any parameter that was plural? */
 	int i, p;
-	static ParamElem *tlst = NULL; /* List of params found by complex() */
-	static Boolean *checked = NULL; /* Corresponding parameter checked? */
+	static ParamElem *tlst = nullptr; /* List of params found by complex() */
+	static Boolean *checked = nullptr; /* Corresponding parameter checked? */
 
-	if (tlst == NULL) {
+	if (tlst == nullptr) {
 		tlst = (ParamElem *) allocate((MAXENTITY + 1) * sizeof(ParamElem));
 		checked = (Boolean *) allocate((MAXENTITY + 1) * sizeof(Boolean));
 	}
@@ -695,7 +694,7 @@ static void match(CONTEXT, ParamElem *matchLst) {
 }
 
 void parse(CONTEXT) {
-	if (mlst == NULL) {       /* Allocate large enough paramlists */
+	if (mlst == nullptr) {       /* Allocate large enough paramlists */
 		mlst = (ParamElem *) allocate(sizeof(ParamElem) * (MAXENTITY + 1));
 		mlst[0].code = EOD;
 		pmlst = (ParamElem *) allocate(sizeof(ParamElem) * (MAXENTITY + 1));

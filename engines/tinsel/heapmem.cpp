@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * This file contains the handle based Memory Manager code.
  */
@@ -52,10 +51,9 @@ struct MEM_NODE {
 // Currently this is set at 5MB for the DW1 demo and DW1 and 10MB for DW2
 // This could probably be reduced somewhat
 // If the memory is not enough, the engine throws an "Out of memory" error in handle.cpp inside LockMem()
-static const uint32 MemoryPoolSize[3] = {5 * 1024 * 1024, 5 * 1024 * 1024, 10 * 1024 * 1024};
+static const uint32 MemoryPoolSize[4] = {5 * 1024 * 1024, 5 * 1024 * 1024, 10 * 1024 * 1024, 512 * 1024 * 1024};
 
-// FIXME: Avoid non-const global vars
-
+// These vars are reset upon engine destruction
 
 // list of all memory nodes
 MEM_NODE g_mnodeList[NUM_MNODES];
@@ -129,6 +127,10 @@ void MemoryInit() {
 	uint32 size = MemoryPoolSize[0];
 	if (TinselVersion == TINSEL_V1) size = MemoryPoolSize[1];
 	else if (TinselVersion == TINSEL_V2) size = MemoryPoolSize[2];
+	else if (TinselVersion == TINSEL_V3) {
+		warning("TODO: Find the correct memory pool size for Noir, using 512 MiB for now");
+		size = MemoryPoolSize[3];
+	}
 	g_heapSentinel.size = size;
 }
 
@@ -149,6 +151,10 @@ void MemoryDeinit() {
 		free(pCur->pBaseAddr);
 		pCur->pBaseAddr = 0;
 	}
+
+	memset(g_mnodeList, 0, sizeof(g_mnodeList));
+	memset(g_s_fixedMnodesList, 0, sizeof(g_s_fixedMnodesList));
+	g_pFreeMemNodes = nullptr;
 }
 
 

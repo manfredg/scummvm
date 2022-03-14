@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,27 +15,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "sludge/allfiles.h"
-#include "sludge/backdrop.h"
 #include "sludge/cursors.h"
 #include "sludge/event.h"
-#include "sludge/fonttext.h"
-#include "sludge/freeze.h"
 #include "sludge/graphics.h"
+#include "sludge/freeze.h"
 #include "sludge/newfatal.h"
-#include "sludge/objtypes.h"
 #include "sludge/people.h"
 #include "sludge/region.h"
 #include "sludge/sludge.h"
 #include "sludge/sludger.h"
 #include "sludge/speech.h"
-#include "sludge/sprites.h"
-#include "sludge/sprbanks.h"
 #include "sludge/statusba.h"
 #include "sludge/zbuffer.h"
 
@@ -69,8 +62,9 @@ bool GraphicsManager::freeze() {
 	newFreezer->lightMapSurface.copyFrom(_lightMap);
 	newFreezer->lightMapNumber = _lightMapNumber;
 
-	newFreezer->parallaxStuff = _parallaxStuff;
-	_parallaxStuff = NULL;
+	newFreezer->parallaxLayers = _parallaxLayers;
+	_parallaxLayers = NULL;
+
 	newFreezer->zBufferSprites = _zBuffer->sprites;
 	newFreezer->zBufferNumber = _zBuffer->originalNum;
 	newFreezer->zPanels = _zBuffer->numPanels;
@@ -88,7 +82,7 @@ bool GraphicsManager::freeze() {
 	StatusStuff *newStatusStuff = new StatusStuff;
 	if (!checkNew(newStatusStuff))
 		return false;
-	newFreezer->frozenStatus = copyStatusBarStuff(newStatusStuff);
+	newFreezer->frozenStatus = _vm->_statusBar->copyStatusBarStuff(newStatusStuff);
 
 	_vm->_regionMan->freeze(newFreezer);
 	_vm->_cursorMan->freeze(newFreezer);
@@ -153,9 +147,10 @@ void GraphicsManager::unfreeze(bool killImage) {
 	}
 
 	killParallax();
-	_parallaxStuff = _frozenStuff->parallaxStuff;
+	_parallaxLayers = _frozenStuff->parallaxLayers;
+
 	_vm->_cursorMan->resotre(_frozenStuff);
-	restoreBarStuff(_frozenStuff->frozenStatus);
+	_vm->_statusBar->restoreBarStuff(_frozenStuff->frozenStatus);
 	_vm->_evtMan->restore(_frozenStuff);
 	_vm->_speechMan->restore(_frozenStuff);
 

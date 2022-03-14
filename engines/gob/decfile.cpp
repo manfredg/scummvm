@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,8 +34,8 @@
 namespace Gob {
 
 DECFile::DECFile(GobEngine *vm, const Common::String &fileName,
-                 uint16 width, uint16 height, uint8 bpp) : _vm(vm),
-	_width(width), _height(height), _bpp(bpp), _hasPadding(false), _backdrop(0) {
+				 uint16 width, uint16 height, uint8 bpp) : _vm(vm),
+	_width(width), _height(height), _bpp(bpp), _hasPadding(false), _backdrop(nullptr) {
 
 	bool bigEndian = false;
 	Common::String endianFileName = fileName;
@@ -171,7 +170,7 @@ void DECFile::drawBackdrop(Surface &dest) const {
 }
 
 void DECFile::drawLayer(Surface &dest, uint16 layer, uint16 part,
-                        uint16 x, uint16 y, int32 transp) const {
+						uint16 x, uint16 y, int32 transp) const {
 
 	if (layer >= _layers.size())
 		return;

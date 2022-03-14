@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,8 +35,7 @@ TextDisplayer_LoL::TextDisplayer_LoL(LoLEngine *engine, Screen_LoL *screenLoL) :
 	_vm(engine), _screen(screenLoL), _scriptTextParameter(0) {
 
 	memset(_stringParameters, 0, 15 * sizeof(char *));
-	_buffer = new char[600];
-	memset(_buffer, 0, 600);
+	_buffer = new char[600]();
 
 	_waitButtonSpace = 0;
 }
@@ -133,7 +131,7 @@ void TextDisplayer_LoL::expandField() {
 	}
 }
 
-void TextDisplayer_LoL::printDialogueText(int dim, char *str, EMCState *script, const uint16 *paramList, int16 paramIndex) {
+void TextDisplayer_LoL::printDialogueText2(int dim, char *str, EMCState *script, const uint16 *paramList, int16 paramIndex) {
 	int oldDim = 0;
 
 	if (dim == 3) {

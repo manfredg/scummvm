@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -195,6 +194,7 @@ static const HotSpotID kCaldoriaRoofElevatorSpotID = 5065;
 static const HotSpotID kCaldoriaRoofDoorSpotID = 5066;
 static const HotSpotID kCaldoriaRoofCardDropSpotID = 5067;
 static const HotSpotID kCaldoria53EastSinclairTargetSpotID = 5068;
+static const HotSpotID kCaldoriaCornbread = 5069;
 
 // Extra sequence IDs.
 
@@ -383,6 +383,9 @@ static const DisplayElementID kCaldoriaUtilityID = kCaldoriaMessagesID + 1;
 static const DisplayElementID kCaldoriaBombGridID = kCaldoriaUtilityID + 1;
 static const DisplayElementID kCaldoriaBombTimerID = kCaldoriaBombGridID + 1;
 
+static const TimeValue kCaldoria4DInstructionsIn = 28013;
+static const TimeValue kCaldoria4DInstructionsOut = 29730;
+
 static const TimeValue kCaldoria4DBlankChoiceIn = 29730;
 static const TimeValue kCaldoria4DBlankChoiceOut = 33910;
 
@@ -422,6 +425,8 @@ public:
 
 	void checkContinuePoint(const RoomID, const DirectionConstant) override;
 
+	void setSoundFXLevel(const uint16) override;
+
 protected:
 	enum {
 		kCaldoriaPrivate4DSystemOpenFlag,
@@ -445,6 +450,7 @@ protected:
 
 	void init() override;
 	void start() override;
+	void throwAwayInterface() override;
 
 	void setUpRoofTop();
 
@@ -472,7 +478,10 @@ protected:
 	void arriveAtCaldoriaDeath();
 	void turnTo(const DirectionConstant) override;
 	void zoomTo(const Hotspot *) override;
+	void leftButton(const Input &) override;
+	void rightButton(const Input &) override;
 	void downButton(const Input &) override;
+	void startExtraSequence(const ExtraID, const NotificationFlags, const InputBits) override;
 	void receiveNotification(Notification *, const NotificationFlags) override;
 	InputBits getInputFilter() override;
 	void activateHotspots() override;
@@ -483,6 +492,7 @@ protected:
 
 	Hotspot *getItemScreenSpot(Item *, DisplayElement *) override;
 	void dropItemIntoRoom(Item *, Hotspot *) override;
+	void playMissingFloorSound();
 	void takeElevator(uint, uint);
 	void updateElevatorMovie();
 	void openElevatorMovie();
@@ -495,7 +505,9 @@ protected:
 	void zoomToSinclair();
 	void playEndMessage();
 	void checkInterruptSinclair();
+	void doArthurJoyride();
 
+	void cantMoveThatWay(CanMoveForwardReason) override;
 	CanOpenDoorReason canOpenDoor(DoorTable::Entry &) override;
 	void doorOpened() override;
 
@@ -504,6 +516,15 @@ protected:
 	FlagsArray<uint16, kNumCaldoriaPrivateFlags> _privateFlags;
 
 	const Hotspot *_zoomOutSpot;
+
+	Hotspot _laundryZoomInSpot;
+	Hotspot _laundryZoomOutSpot;
+	Hotspot _cornbreadSpot;
+
+	Movie _extraMovie;
+	NotificationCallBack _extraMovieCallBack;
+
+	bool _lookingAtLaundry;
 
 	FuseFunction _utilityFuse;
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
 #include "kyra/sound/sound_pc_v1.h"
 
 #include "audio/midiparser.h"
+#include "audio/miles.h"
 #include "audio/softsynth/emumidi.h"
 #include "audio/softsynth/fmtowns_pc98/towns_audio.h"
 
@@ -40,6 +40,10 @@ namespace Audio {
 class PCSpeaker;
 class MaxTrax;
 } // End of namespace Audio
+
+namespace Common {
+class MacResManager;
+} // End of namespace Common
 
 namespace Kyra {
 
@@ -73,7 +77,7 @@ public:
 	void haltTrack() override;
 	bool isPlaying() const override;
 
-	void playSoundEffect(uint8 track, uint8 volume = 0xFF) override;
+	void playSoundEffect(uint16 track, uint8 volume = 0xFF) override;
 	void stopAllSoundEffects() override;
 
 	void beginFadeOut() override;
@@ -105,7 +109,7 @@ private:
 
 	bool _nativeMT32;
 	MidiDriver *_driver;
-	MidiOutput *_output;
+	Audio::MidiDriver_Miles_Midi *_output;
 
 	Common::Mutex _mutex;
 };
@@ -129,12 +133,13 @@ public:
 	void playTrack(uint8 track) override;
 	void haltTrack() override;
 
-	void playSoundEffect(uint8 track, uint8 volume = 0xFF) override;
+	void playSoundEffect(uint16 track, uint8 volume = 0xFF) override;
 	void stopAllSoundEffects() override;
 
 	void beginFadeOut() override;
 
 	void updateVolumeSettings() override;
+	void enableMusic(int enable) override;
 
 private:
 	bool loadInstruments();
@@ -184,7 +189,7 @@ public:
 	void beginFadeOut() override;
 
 	int32 voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volume, uint8 priority, bool isSfx) override { return -1; }
-	void playSoundEffect(uint8 track, uint8 volume = 0xFF) override;
+	void playSoundEffect(uint16 track, uint8 volume = 0xFF) override;
 
 	void updateVolumeSettings() override;
 
@@ -220,7 +225,7 @@ public:
 	void beginFadeOut() override;
 
 	int32 voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volume = 255, uint8 priority = 255, bool isSfx = true) override;
-	void playSoundEffect(uint8 track, uint8 volume = 0xFF) override;
+	void playSoundEffect(uint16 track, uint8 volume = 0xFF) override;
 
 	void updateVolumeSettings() override;
 
@@ -335,7 +340,7 @@ public:
 	void beginFadeOut() override;
 
 	int32 voicePlay(const char *file, Audio::SoundHandle *handle, uint8 volume, uint8 priority, bool isSfx) override { return -1; }
-	void playSoundEffect(uint8 track, uint8 volume = 0xFF) override;
+	void playSoundEffect(uint16 track, uint8 volume = 0xFF) override;
 
 protected:
 	Audio::MaxTrax *_driver;
@@ -347,6 +352,57 @@ protected:
 
 	const AmigaSfxTable *_tableSfxGame;
 	int _tableSfxGame_Size;
+};
+
+class SoundMacRes;
+class HalestormDriver;
+class SoundMac : public Sound {
+public:
+	SoundMac(KyraEngine_v1 *vm, Audio::Mixer *mixer);
+	~SoundMac() override;
+
+	kType getMusicType() const override;
+
+	bool init() override { return init(musicEnabled() == 1); }
+	bool init(bool hiQuality);
+	void initAudioResourceInfo(int, void*) override {}
+	void selectAudioResourceSet(int set) override;
+	bool hasSoundFile(uint) const override { return true; }
+	void loadSoundFile(uint) override {}
+	void loadSoundFile(Common::String) override {}
+	void playTrack(uint8 track) override;
+	void haltTrack() override;
+	void playSoundEffect(uint16 track, uint8) override;
+	bool isPlaying() const override;
+	void beginFadeOut() override;
+	void updateVolumeSettings() override;
+	void enableMusic(int enable) override;
+
+private:
+	void setQuality(bool hi);
+
+	SoundMacRes *_res;
+	HalestormDriver *_driver;
+	bool _ready;
+
+	const uint16 *_resIDMusic;
+	int _currentResourceSet;
+
+	static const uint16 _resIDMusicIntro[4];
+	static const uint16 _resIDMusicIngame[35];
+	static const uint8 _musicLoopTable[35];
+	static const uint16 _resIDSfxIntro[39];
+	static const uint16 _resIDSfxIngame[39];
+
+	struct SoundEffectDef {
+		uint8 note;
+		uint8 number;
+		uint16 rate;
+		uint8 unk;
+	};
+
+	static const SoundEffectDef _soundEffectDefsIntro[16];
+	static const SoundEffectDef _soundEffectDefsIngame[120];
 };
 
 #ifdef ENABLE_EOB
@@ -372,7 +428,7 @@ public:
 	void haltTrack() override;
 	bool isPlaying() const override;
 
-	void playSoundEffect(uint8 track, uint8 volume = 0xFF) override;
+	void playSoundEffect(uint16 track, uint8 volume = 0xFF) override;
 	void stopAllSoundEffects() override;
 
 	void beginFadeOut() override;
@@ -424,7 +480,7 @@ public:
 	void unloadSoundFile(Common::String file) override;
 	void playTrack(uint8 track) override;
 	void haltTrack() override;
-	void playSoundEffect(uint8 track, uint8 volume = 0xFF) override;
+	void playSoundEffect(uint16 track, uint8 volume = 0xFF) override;
 	void beginFadeOut() override { beginFadeOut(160); }
 	void beginFadeOut(int delay) override;
 	void updateVolumeSettings() override;
@@ -460,7 +516,7 @@ public:
 	void loadSfxFile(Common::String file) override;
 	void playTrack(uint8 track) override;
 	void haltTrack() override;
-	void playSoundEffect(uint8 track, uint8) override;
+	void playSoundEffect(uint16 track, uint8) override;
 	void beginFadeOut() override {}
 	void updateVolumeSettings() override;
 
@@ -474,6 +530,43 @@ private:
 	uint32 _sfxDelay;
 
 	bool _ready;
+};
+
+class SegaAudioDriver;
+class SoundSegaCD_EoB : public Sound {
+public:
+	SoundSegaCD_EoB(KyraEngine_v1 *vm, Audio::Mixer *mixer);
+	~SoundSegaCD_EoB() override;
+
+	kType getMusicType() const override;
+
+	bool init() override;
+	void initAudioResourceInfo(int, void*) override {}
+	void selectAudioResourceSet(int) override {}
+	bool hasSoundFile(uint file) const override { return false; }
+	void loadSoundFile(uint file) override {}
+	void loadSoundFile(Common::String file) override {}
+	void playTrack(uint8 track) override;
+	void haltTrack() override;
+	void playSoundEffect(uint16 track, uint8 volume) override;
+	bool isPlaying() const override;
+	void beginFadeOut() override {}
+	void updateVolumeSettings() override;
+
+private:
+	void loadPCMData();
+	void loadFMData();
+
+	KyraEngine_v1 *_vm;
+	SegaAudioDriver *_driver;
+
+	uint8 _pcmOffsets[8];
+	uint16 _fmOffsets[140];
+	const uint8 *_fmData;
+	int _lastSoundEffect;
+	bool _ready;
+
+	static const uint8 _fmTrackMap[140];
 };
 
 #endif

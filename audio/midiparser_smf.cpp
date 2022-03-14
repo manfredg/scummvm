@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,11 +15,11 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
+#include "audio/mididrv.h"
 #include "audio/midiparser.h"
 #include "common/textconsole.h"
 #include "common/util.h"
@@ -31,17 +31,28 @@ class MidiParser_SMF : public MidiParser {
 protected:
 	byte *_buffer;
 	bool _malformedPitchBends;
+	/**
+	 * The source number to use when sending MIDI messages to the driver.
+	 * When using multiple sources, use source 0 and higher. This must be
+	 * used when source volume or channel locking is used.
+	 * By default this is -1, which means the parser is the only source
+	 * of MIDI messages and multiple source functionality is disabled.
+	 */
+	int8 _source;
 
 protected:
 	void compressToType0();
-	void parseNextEvent(EventInfo &info);
+	void parseNextEvent(EventInfo &info) override;
+
+	void sendToDriver(uint32 b) override;
+	void sendMetaEventToDriver(byte type, byte *data, uint16 length) override;
 
 public:
-	MidiParser_SMF() : _buffer(0), _malformedPitchBends(false) {}
+	MidiParser_SMF(int8 source = -1) : _buffer(nullptr), _malformedPitchBends(false), _source(source) { }
 	~MidiParser_SMF();
 
-	bool loadMusic(byte *data, uint32 size);
-	void property(int property, int value);
+	bool loadMusic(byte *data, uint32 size) override;
+	void property(int property, int value) override;
 };
 
 
@@ -154,7 +165,6 @@ void MidiParser_SMF::parseNextEvent(EventInfo &info) {
 bool MidiParser_SMF::loadMusic(byte *data, uint32 size) {
 	uint32 len;
 	byte midiType;
-	uint32 totalSize;
 	bool isGMF;
 
 	unloadMusic();
@@ -205,7 +215,6 @@ bool MidiParser_SMF::loadMusic(byte *data, uint32 size) {
 		return false;
 	}
 
-	totalSize = 0;
 	int tracksRead = 0;
 	while (tracksRead < _numTracks) {
 		if (memcmp(pos, "MTrk", 4) && !isGMF) {
@@ -219,7 +228,6 @@ bool MidiParser_SMF::loadMusic(byte *data, uint32 size) {
 		if (!isGMF) {
 			pos += 4;
 			len = read4high(pos);
-			totalSize += len;
 			pos += len;
 		} else {
 			// An SMF End of Track meta event must be placed
@@ -235,7 +243,7 @@ bool MidiParser_SMF::loadMusic(byte *data, uint32 size) {
 	// If this is a Type 1 MIDI, we need to now compress
 	// our tracks down into a single Type 0 track.
 	free(_buffer);
-	_buffer = 0;
+	_buffer = nullptr;
 
 	if (midiType == 1) {
 		// FIXME: Doubled the buffer size to prevent crashes with the
@@ -333,7 +341,7 @@ void MidiParser_SMF::compressToType0() {
 			// META
 			event = *(pos++);
 			if (event == 0x2F && activeTracks > 1) {
-				trackPos[bestTrack] = 0;
+				trackPos[bestTrack] = nullptr;
 				write = false;
 			} else {
 				pos2 = pos;
@@ -344,7 +352,7 @@ void MidiParser_SMF::compressToType0() {
 				--activeTracks;
 		} else {
 			warning("Bad MIDI command %02X", (int)event);
-			trackPos[bestTrack] = 0;
+			trackPos[bestTrack] = nullptr;
 		}
 
 		// Update all tracks' deltas
@@ -385,4 +393,20 @@ void MidiParser_SMF::compressToType0() {
 	*output++ = 0x00;
 }
 
-MidiParser *MidiParser::createParser_SMF() { return new MidiParser_SMF; }
+void MidiParser_SMF::sendToDriver(uint32 b) {
+	if (_source < 0) {
+		MidiParser::sendToDriver(b);
+	} else {
+		_driver->send(_source, b);
+	}
+}
+
+void MidiParser_SMF::sendMetaEventToDriver(byte type, byte *data, uint16 length) {
+	if (_source < 0) {
+		MidiParser::sendMetaEventToDriver(type, data, length);
+	} else {
+		_driver->metaEvent(_source, type, data, length);
+	}
+}
+
+MidiParser *MidiParser::createParser_SMF(int8 source) { return new MidiParser_SMF(source); }

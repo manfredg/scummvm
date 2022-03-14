@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,7 +63,7 @@ bool VideoDialog::init() {
 	int buttonY = 9;
 	uint8 textY = 11;
 	uint8 row_h = 13;
-	last_index = 0;;
+	last_index = 0;
 	b_index_num = -1;
 	bool no_fullscreen = false; // no compatible fullscreen setting found
 	GUI_Widget *widget;
@@ -435,7 +434,9 @@ GUI_status VideoDialog::callback(uint16 msg, GUI_CallBack *caller, void *data) {
 		config->set("config/video/scale_factor", scale);
 #endif
 		// fullscreen
-		config->set("config/video/fullscreen", fullscreen ? "yes" : "no");
+		config->set("config/fullscreen", fullscreen ? "yes" : "no");
+		game->get_screen()->set_fullscreen(fullscreen);
+
 		// non-square pixels
 		config->set("config/video/non_square_pixels", non_square_pixels ? "yes" : "no");
 		// roof mode

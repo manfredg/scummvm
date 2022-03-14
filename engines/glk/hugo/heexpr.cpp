@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -318,7 +317,7 @@ int Hugo::GetVal() {
 				break;
 			}
 #endif
-                        val = CallRoutine(routineaddr);
+			val = CallRoutine(routineaddr);
 
 			break;
 		}
@@ -478,7 +477,7 @@ int Hugo::GetVal() {
 
 			/* The array element we're after: */
 			element = arrayaddr+a + j*2;
-			
+
 			defseg = arraytable;
 #if defined (DEBUGGER)
 			CheckinRange(element, debug_workspace, "array data");
@@ -519,7 +518,7 @@ int Hugo::GetVal() {
 		{
 			codeptr += 2;           /* skip the "(" */
 			val = GetValue();
-			if (val!=0) 
+			if (val!=0)
 #if !defined (RANDOM)
 				val = (hugo_rand() % val)+1;
 #else
@@ -538,7 +537,7 @@ int Hugo::GetVal() {
 				val = words;
 				break;
 			}
-			
+
 			val = wd[GetValue()];
 			if (MEM(codeptr)==CLOSE_SQUARE_T) codeptr++;
 			break;
@@ -672,14 +671,14 @@ int Hugo::GetVal() {
 			codeptr++;
 			break;
 		}
-		
+
 		case SYSTEM_T:
 		{
 			val = RunSystem();
 			codeptr++;
 			break;
 		}
-		
+
 		default:
 		{
 #if defined (DEBUGGER)

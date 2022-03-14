@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -61,8 +60,8 @@ static const GfxTransitionTranslateEntry oldTransitionIDs[] = {
 	{  12, SCI_TRANSITIONS_STRAIGHT_FROM_LEFT,			true },
 	{  13, SCI_TRANSITIONS_STRAIGHT_FROM_BOTTOM,		true },
 	{  14, SCI_TRANSITIONS_STRAIGHT_FROM_TOP,			true },
-	{  15, SCI_TRANSITIONS_DIAGONALROLL_FROMCENTER,		true },
-	{  16, SCI_TRANSITIONS_DIAGONALROLL_TOCENTER,		true },
+	{  15, SCI_TRANSITIONS_DIAGONALROLL_TOCENTER,		true },
+	{  16, SCI_TRANSITIONS_DIAGONALROLL_FROMCENTER,		true },
 	{  17, SCI_TRANSITIONS_BLOCKS,						true },
 	{  18, SCI_TRANSITIONS_PIXELATION,					false },
 	{  27, SCI_TRANSITIONS_PIXELATION	,				true },
@@ -103,7 +102,7 @@ void GfxTransitions::init() {
 	_oldScreen = new byte[_screen->getDisplayHeight() * _screen->getDisplayWidth()];
 
 	if (getSciVersion() >= SCI_VERSION_1_LATE)
-		_translationTable = NULL;
+		_translationTable = nullptr;
 	else
 		_translationTable = oldTransitionIDs;
 
@@ -156,7 +155,7 @@ void GfxTransitions::updateScreenAndWait(uint32 shouldBeAtMsec) {
 const GfxTransitionTranslateEntry *GfxTransitions::translateNumber (int16 number, const GfxTransitionTranslateEntry *tablePtr) {
 	while (1) {
 		if (tablePtr->orgId == 255)
-			return NULL;
+			return nullptr;
 		if (tablePtr->orgId == number)
 			return tablePtr;
 		tablePtr++;
@@ -272,7 +271,7 @@ void GfxTransitions::doTransition(int16 number, bool blackoutFlag) {
 
 void GfxTransitions::setNewPalette(bool blackoutFlag) {
 	if (!blackoutFlag)
-		_palette->setOnScreen();
+		_palette->setOnScreen(false);
 }
 
 void GfxTransitions::setNewScreen(bool blackoutFlag) {
@@ -308,7 +307,7 @@ void GfxTransitions::fadeOut() {
 	//  several pictures (e.g. qfg3 demo/intro), so the fading looked weird
 	int16 tillColorNr = getSciVersion() >= SCI_VERSION_1_1 ? 255 : 254;
 
-	g_system->getPaletteManager()->grabPalette(oldPalette, 0, 256);
+	_screen->grabPalette(oldPalette, 0, 256);
 
 	for (stepNr = 100; stepNr >= 0; stepNr -= 10) {
 		for (colorNr = 1; colorNr <= tillColorNr; colorNr++) {
@@ -322,7 +321,7 @@ void GfxTransitions::fadeOut() {
 				workPalette[colorNr * 3 + 2] = oldPalette[colorNr * 3 + 2] * stepNr / 100;
 			}
 		}
-		g_system->getPaletteManager()->setPalette(workPalette + 3, 1, tillColorNr);
+		_screen->setPalette(workPalette + 3, 1, tillColorNr);
 		g_sci->getEngineState()->sleep(2);
 	}
 }
@@ -463,15 +462,12 @@ void GfxTransitions::straight(int16 number, bool blackoutFlag) {
 }
 
 void GfxTransitions::scrollCopyOldToScreen(Common::Rect screenRect, int16 x, int16 y) {
-	byte *oldScreenPtr = _oldScreen;
-	int16 screenWidth = _screen->getDisplayWidth();
 	if (_screen->getUpscaledHires()) {
 		_screen->adjustToUpscaledCoordinates(screenRect.top, screenRect.left);
 		_screen->adjustToUpscaledCoordinates(screenRect.bottom, screenRect.right);
 		_screen->adjustToUpscaledCoordinates(y, x);
 	}
-	oldScreenPtr += screenRect.left + screenRect.top * screenWidth;
-	g_system->copyRectToScreen(oldScreenPtr, screenWidth, x, y, screenRect.width(), screenRect.height());
+	_screen->bakCopyRectToScreen(screenRect, x, y);
 }
 
 // Scroll old screen (up/down/left/right) and insert new screen that way - works
@@ -484,7 +480,7 @@ void GfxTransitions::scroll(int16 number) {
 	Common::Rect newScreenRect = _picRect;
 	uint32 msecCount = 0;
 
-	_screen->copyFromScreen(_oldScreen);
+	_screen->bakCreateBackup();
 
 	switch (number) {
 	case SCI_TRANSITIONS_SCROLL_LEFT:
@@ -560,6 +556,8 @@ void GfxTransitions::scroll(int16 number) {
 	default:
 		break;
 	}
+
+	_screen->bakDiscard();
 
 	// Copy over final position just in case
 	_screen->copyRectToScreen(newScreenRect);

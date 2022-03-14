@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,22 +15,31 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "draci/draci.h"
-#include "draci/saveload.h"
-
 #include "base/plugins.h"
-#include "common/system.h"
+
 #include "engines/advancedDetector.h"
 #include "engines/metaengine.h"
 
+#include "draci/draci.h"
+
+static const DebugChannelDef debugFlagList[] = {
+	{Draci::kDraciGeneralDebugLevel, "general", "Draci general debug info"},
+	{Draci::kDraciBytecodeDebugLevel, "bytecode", "GPL bytecode instructions"},
+	{Draci::kDraciArchiverDebugLevel, "archiver", "BAR archiver debug info"},
+	{Draci::kDraciLogicDebugLevel, "logic", "Game logic debug info"},
+	{Draci::kDraciAnimationDebugLevel, "animation", "Animation debug info"},
+	{Draci::kDraciSoundDebugLevel, "sound", "Sound debug info"},
+	{Draci::kDraciWalkingDebugLevel, "walking", "Walking debug info"},
+	DEBUG_CHANNEL_END
+};
+
 static const PlainGameDescriptor draciGames[] = {
 	{ "draci", "Draci Historie" },
-	{ 0, 0 }
+	{ nullptr, nullptr }
 };
 
 namespace Draci {
@@ -38,7 +47,7 @@ namespace Draci {
 const ADGameDescription gameDescriptions[] = {
 	{
 		"draci",
-		0,
+		nullptr,
 		AD_ENTRY1s("INIT.DFW", "b890a5aeebaf16af39219cba2416b0a3", 906),
 		Common::EN_ANY,
 		Common::kPlatformDOS,
@@ -48,9 +57,9 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"draci",
-		0,
+		nullptr,
 		AD_ENTRY1s("INIT.DFW", "9921c8f0045679a8f37eca8d41c5ec02", 906),
-		Common::CZ_CZE,
+		Common::CS_CZE,
 		Common::kPlatformDOS,
 		ADGF_NO_FLAGS,
 		GUIO0()
@@ -58,7 +67,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"draci",
-		0,
+		nullptr,
 		AD_ENTRY1s("INIT.DFW", "76b9b78a8a8809a240acc395df4d0715", 906),
 		Common::PL_POL,
 		Common::kPlatformDOS,
@@ -68,7 +77,7 @@ const ADGameDescription gameDescriptions[] = {
 
 	{
 		"draci",
-		0,
+		nullptr,
 		AD_ENTRY1s("INIT.DFW", "9a7115b91cdea361bcaff3e046ac7ded", 906),
 		Common::DE_DEU,
 		Common::kPlatformDOS,
@@ -81,9 +90,9 @@ const ADGameDescription gameDescriptions[] = {
 
 } // End of namespace Draci
 
-class DraciMetaEngine : public AdvancedMetaEngine {
+class DraciMetaEngineDetection : public AdvancedMetaEngineDetection {
 public:
-	DraciMetaEngine() : AdvancedMetaEngine(Draci::gameDescriptions, sizeof(ADGameDescription), draciGames) {
+	DraciMetaEngineDetection() : AdvancedMetaEngineDetection(Draci::gameDescriptions, sizeof(ADGameDescription), draciGames) {
 	}
 
 	const char *getEngineId() const override {
@@ -98,101 +107,9 @@ public:
 		return "Draci Historie (C) 1995 NoSense";
 	}
 
-	bool hasFeature(MetaEngineFeature f) const override;
-	int getMaximumSaveSlot() const override { return 99; }
-	SaveStateList listSaves(const char *target) const override;
-	void removeSaveState(const char *target, int slot) const override;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
-	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
+	const DebugChannelDef *getDebugChannels() const override {
+		return debugFlagList;
+	}
 };
 
-bool DraciMetaEngine::hasFeature(MetaEngineFeature f) const {
-	return
-		(f == kSupportsListSaves) ||
-		(f == kSupportsDeleteSave) ||
-		(f == kSavesSupportMetaInfo) ||
-		(f == kSavesSupportThumbnail) ||
-		(f == kSavesSupportCreationDate) ||
-		(f == kSavesSupportPlayTime) ||
-		(f == kSupportsLoadingDuringStartup);
-}
-
-SaveStateList DraciMetaEngine::listSaves(const char *target) const {
-	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
-	Common::StringArray filenames;
-	Common::String pattern("draci.s##");
-
-	filenames = saveFileMan->listSavefiles(pattern);
-
-	SaveStateList saveList;
-	for (Common::StringArray::const_iterator file = filenames.begin(); file != filenames.end(); ++file) {
-		// Obtain the last 2 digits of the filename, since they correspond to the save slot
-		int slotNum = atoi(file->c_str() + file->size() - 2);
-
-		if (slotNum >= 0 && slotNum <= 99) {
-			Common::InSaveFile *in = saveFileMan->openForLoading(*file);
-			if (in) {
-				Draci::DraciSavegameHeader header;
-				if (Draci::readSavegameHeader(in, header)) {
-					saveList.push_back(SaveStateDescriptor(slotNum, header.saveName));
-				}
-				delete in;
-			}
-		}
-	}
-
-	// Sort saves based on slot number.
-	Common::sort(saveList.begin(), saveList.end(), SaveStateDescriptorSlotComparator());
-	return saveList;
-}
-
-void DraciMetaEngine::removeSaveState(const char *target, int slot) const {
-	g_system->getSavefileManager()->removeSavefile(Draci::DraciEngine::getSavegameFile(slot));
-}
-
-SaveStateDescriptor DraciMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
-	Common::InSaveFile *f = g_system->getSavefileManager()->openForLoading(
-		Draci::DraciEngine::getSavegameFile(slot));
-
-	if (f) {
-		Draci::DraciSavegameHeader header;
-		if (!Draci::readSavegameHeader(f, header, false)) {
-			delete f;
-			return SaveStateDescriptor();
-		}
-
-		delete f;
-
-		// Create the return descriptor
-		SaveStateDescriptor desc(slot, header.saveName);
-		desc.setThumbnail(header.thumbnail);
-
-		int day = (header.date >> 24) & 0xFF;
-		int month = (header.date >> 16) & 0xFF;
-		int year = header.date & 0xFFFF;
-		desc.setSaveDate(year, month, day);
-
-		int hour = (header.time >> 8) & 0xFF;
-		int minutes = header.time & 0xFF;
-		desc.setSaveTime(hour, minutes);
-
-		desc.setPlayTime(header.playtime * 1000);
-
-		return desc;
-	}
-
-	return SaveStateDescriptor();
-}
-
-bool DraciMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	if (desc) {
-		*engine = new Draci::DraciEngine(syst, desc);
-	}
-	return desc != 0;
-}
-
-#if PLUGIN_ENABLED_DYNAMIC(DRACI)
-	REGISTER_PLUGIN_DYNAMIC(DRACI, PLUGIN_TYPE_ENGINE, DraciMetaEngine);
-#else
-	REGISTER_PLUGIN_STATIC(DRACI, PLUGIN_TYPE_ENGINE, DraciMetaEngine);
-#endif
+REGISTER_PLUGIN_STATIC(DRACI_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, DraciMetaEngineDetection);

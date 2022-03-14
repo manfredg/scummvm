@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,6 +24,7 @@
 #include "sci/engine/kernel.h"
 #include "sci/engine/seg_manager.h"
 #include "sci/engine/state.h"
+#include "sci/engine/tts.h"
 #include "sci/engine/workarounds.h"
 #include "sci/util.h"
 
@@ -314,6 +314,7 @@ int MessageState::nextMessage(reg_t buf) {
 			_lastReturned = record.tuple;
 			_lastReturnedModule = _cursorStack.getModule();
 			_cursorStack.top().seq++;
+			g_sci->_tts->setMessage(record.string);
 			return record.talker;
 		} else {
 			MessageTuple &t = _cursorStack.top();
@@ -323,9 +324,10 @@ int MessageState::nextMessage(reg_t buf) {
 	} else {
 		CursorStack stack = _cursorStack;
 
-		if (getRecord(stack, true, record))
+		if (getRecord(stack, true, record)) {
+			g_sci->_tts->setMessage(record.string);
 			return record.talker;
-		else
+		} else
 			return 0;
 	}
 }
@@ -348,6 +350,7 @@ bool MessageState::messageRef(int module, const MessageTuple &t, MessageTuple &r
 	stack.init(module, t);
 	if (getRecord(stack, false, record)) {
 		ref = record.refTuple;
+		g_sci->_tts->setMessage(record.string);
 		return true;
 	}
 
@@ -444,6 +447,10 @@ bool MessageState::stringStage(Common::String &outstr, const Common::String &inS
 		// SCI32 seems to support having digits in stage directions
 		if (((inStr[i] >= 'a') && (inStr[i] <= 'z')) || ((inStr[i] >= '0') && (inStr[i] <= '9') && (getSciVersion() < SCI_VERSION_2)))
 			return false;
+
+		// If it contains Hebrew letters, it's not a stage direction
+		if (g_sci->getLanguage() == Common::HE_ISR && (byte)inStr[i] >= 128)
+			return false;
 	}
 
 	// We ran into the end of the string without finding a closing bracket
@@ -495,7 +502,7 @@ void MessageState::outputString(reg_t buf, const Common::String &str) {
 		} else {
 			// LSL6 sets an exit text here, but the buffer size allocated
 			// is too small. Don't display a warning in this case, as we
-			// don't use the exit text anyway - bug report #3035533
+			// don't use the exit text anyway - bug report #5000
 			if (g_sci->getGameId() == GID_LSL6 && str.hasPrefix("\r\n(c) 1993 Sierra On-Line, Inc")) {
 				// LSL6 buggy exit text, don't show warning
 			} else {

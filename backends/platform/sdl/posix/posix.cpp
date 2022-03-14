@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,6 +37,7 @@
 #include "backends/fs/posix/posix-fs-factory.h"
 #include "backends/fs/posix/posix-fs.h"
 #include "backends/taskbar/unity/unity-taskbar.h"
+#include "backends/dialogs/gtk/gtk-dialogs.h"
 
 #ifdef USE_LINUXCD
 #include "backends/audiocd/linux/linux-audiocd.h"
@@ -69,6 +69,11 @@ void OSystem_POSIX::init() {
 	_taskbarManager = new UnityTaskbarManager();
 #endif
 
+#if defined(USE_SYSDIALOGS) && defined(USE_GTK)
+	// Initialize dialog manager
+	_dialogManager = new GtkDialogManager();
+#endif
+
 	// Invoke parent implementation of this method
 	OSystem_SDL::init();
 }
@@ -97,6 +102,10 @@ bool OSystem_POSIX::hasFeature(Feature f) {
 		return true;
 #ifdef HAS_POSIX_SPAWN
 	if (f == kFeatureOpenUrl)
+		return true;
+#endif
+#if defined(USE_SYSDIALOGS) && defined(USE_GTK)
+	if (f == kFeatureSystemBrowserDialog)
 		return true;
 #endif
 	return OSystem_SDL::hasFeature(f);
@@ -347,8 +356,8 @@ bool OSystem_POSIX::displayLogFile() {
 	return WIFEXITED(status) && WEXITSTATUS(status) == 0;
 }
 
-bool OSystem_POSIX::openUrl(const Common::String &url) {
 #ifdef HAS_POSIX_SPAWN
+bool OSystem_POSIX::openUrl(const Common::String &url) {
 	// inspired by Qt's "qdesktopservices_x11.cpp"
 
 	// try "standards"
@@ -383,13 +392,9 @@ bool OSystem_POSIX::openUrl(const Common::String &url) {
 
 	warning("openUrl() (POSIX) failed to open URL");
 	return false;
-#else
-	return false;
-#endif
 }
 
 bool OSystem_POSIX::launchBrowser(const Common::String &client, const Common::String &url) {
-#ifdef HAS_POSIX_SPAWN
 	pid_t pid;
 	const char *argv[] = {
 		client.c_str(),
@@ -405,10 +410,8 @@ bool OSystem_POSIX::launchBrowser(const Common::String &client, const Common::St
 		return false;
 	}
 	return (waitpid(pid, NULL, WNOHANG) != -1);
-#else
-	return false;
-#endif
 }
+#endif
 
 AudioCDManager *OSystem_POSIX::createAudioCDManager() {
 #ifdef USE_LINUXCD

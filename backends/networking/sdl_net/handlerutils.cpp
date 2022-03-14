@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,6 @@
 #include "common/file.h"
 #include "common/translation.h"
 #include "common/unzip.h"
-#include "common/encoding.h"
 
 namespace Networking {
 
@@ -165,26 +163,12 @@ bool HandlerUtils::hasPermittedPrefix(const Common::String &path) {
 #else
 	prefix = ConfMan.get("savepath");
 #endif
-	return (normalized.hasPrefix(normalizePath(prefix)));
+	return normalized.hasPrefix(normalizePath(prefix))
+	       || normalizePath(prefix).compareTo(normalized + "/") == 0;
 }
 
 bool HandlerUtils::permittedPath(const Common::String path) {
 	return hasPermittedPrefix(path) && !isBlacklisted(path);
-}
-
-Common::String HandlerUtils::toUtf8(const char *text) {
-#ifdef USE_TRANSLATION
-	Common::String guiEncoding = TransMan.getCurrentCharset();
-	if (guiEncoding != "ASCII") {
-		char *utf8Text = Common::Encoding::convert("utf-8", guiEncoding, text, strlen(text));
-		if (utf8Text != nullptr) {
-			Common::String str(utf8Text);
-			delete [] utf8Text;
-			return str;
-		}
-	}
-#endif
-	return Common::String(text);
 }
 
 void HandlerUtils::setMessageHandler(Client &client, Common::String message, Common::String redirectTo) {
@@ -210,7 +194,7 @@ void HandlerUtils::setFilesManagerErrorMessageHandler(Client &client, Common::St
 			message.c_str(),
 			client.queryParameter("ajax") == "true" ? "AJAX" : "",
 			"%2F", //that's encoded "/"
-			toUtf8(_("Back to the files manager")).c_str()
+			Common::convertFromU32String(_("Back to the files manager")).c_str()
 		),
 		redirectTo
 	);

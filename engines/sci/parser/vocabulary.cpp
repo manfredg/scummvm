@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 // Main vocabulary support functions and word lookup
 
 #include "sci/parser/vocabulary.h"
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/engine/state.h"
 #include "sci/engine/kernel.h"
 #include "sci/console.h"
@@ -31,13 +30,13 @@
 namespace Sci {
 
 Vocabulary::Vocabulary(ResourceManager *resMan, bool foreign) : _resMan(resMan), _foreign(foreign) {
-	_parserRules = NULL;
+	_parserRules = nullptr;
 
 	memset(_parserNodes, 0, sizeof(_parserNodes));
 	// Mark parse tree as unused
 	_parserNodes[0].type = kParseTreeLeafNode;
 	_parserNodes[0].value = 0;
-	_parserNodes[0].right = 0;
+	_parserNodes[0].right = nullptr;
 
 	_synonyms.clear(); // No synonyms
 
@@ -67,7 +66,7 @@ Vocabulary::Vocabulary(ResourceManager *resMan, bool foreign) : _resMan(resMan),
 			_parserRules = buildGNF();
 	} else {
 		debug(2, "Assuming that this game does not use a parser.");
-		_parserRules = NULL;
+		_parserRules = nullptr;
 	}
 
 	loadAltInputs();
@@ -116,7 +115,8 @@ bool Vocabulary::loadParserWords() {
 		}
 		// If all of them were empty, we are definitely seeing SCI01 vocab in disguise (e.g. pq2 japanese)
 		if (alphabetNr == 26) {
-			warning("SCI0: Found SCI01 vocabulary in disguise");
+			if (g_sci->getLanguage() != Common::HE_ISR)
+				warning("SCI0: Found SCI01 vocabulary in disguise");
 			resourceType = kVocabularySCI1;
 		}
 	}
@@ -253,6 +253,7 @@ bool Vocabulary::loadSuffixes() {
 
 	return true;
 }
+
 
 void Vocabulary::freeSuffixes() {
 	Resource* resource = _resMan->findResource(ResourceId(kResourceTypeVocab, _resourceIdSuffixes), false);
@@ -482,6 +483,99 @@ void Vocabulary::lookupWord(ResultWordList& retval, const char *word, int word_l
 	}
 }
 
+void Vocabulary::lookupWordPrefix(ResultWordListList &parent_retval, ResultWordList &retval, const char *word, int word_len) {
+	// currently, this is needed only for Hebrew translation
+	if (g_sci->getLanguage() != Common::HE_ISR)
+		return;
+
+	if (word_len <= 1)
+		return;
+
+	// check "Otiyot Shimush" for nouns and prepositions - Hebrew prefixes that are like English words
+	PrefixMeaning prefixes[] = {
+		{0xe1, "1hebrew1prefix1bet"},           // "Bet"
+		{0xe4, "the"},                          // "He Hayedia"
+		{0xec, "1hebrew1prefix1lamed"},         // "Lamed"
+		{0xee, "1hebrew1prefix1mem"}            // "Mem"
+	};
+
+	for (int i = 0; i < ARRAYSIZE(prefixes); i++)
+		if (lookupSpecificPrefixWithMeaning(parent_retval, retval, word, word_len - 1, prefixes[i].prefix, prefixes[i].meaning))
+			return;
+
+	// check verbs - the user might type the verb in some other form, try to match it against its basic form
+
+	// e.g., 'open' : 'Taf Pe Taf Het' try to match 'Pe Taf Het'
+	if (lookupVerbPrefix(parent_retval, retval, word, word_len, "\xfa"))
+		return;
+
+	// e.g., 'take' : 'Taf Yud Kaf Het' try to match 'Kaf Het'
+	if (word_len == 4 && lookupVerbPrefix(parent_retval, retval, word, word_len, "\xfa\xe9"))
+		return;
+
+	// e.g. 'look' : 'Taf Sameh Taf Kaf Lamed' try to match 'He Sameh Taf Kaf Lamed'
+	if (word[0] == '\xfa') {                                 		// first letter is Taf
+		Common::String modified_word = word;
+		modified_word.setChar('\xe4', 0);							// replace the initial Taf with He
+
+		if (lookupVerbPrefix(parent_retval, retval, modified_word, modified_word.size(), ""))
+			return;
+	}
+
+	// e.g. 'put' : 'Taf Nun Yud Het' try to match 'He Nun Het'
+	if (word[0] == '\xfa' && word[word_len - 2] == '\xe9') {		// first letter is Taf, one before the last is Yud
+		Common::String modified_word = word;
+		modified_word.setChar('\xe4', 0);							// replace the initial Taf with He
+		modified_word.deleteChar(word_len - 2);						// delete the Yud
+
+		if (lookupVerbPrefix(parent_retval, retval, modified_word, modified_word.size(), ""))
+			return;
+	}
+
+	// e.g. 'enter' : 'He  Yud Kaf Nun Sameh' try to match 'He  Kaf Nun Sameh'
+	// e.g. 'enter' : 'Taf Yud Kaf Nun Sameh' try to match 'Taf Kaf Nun Sameh'
+	if ((word[0] == '\xe4' || word[0] == '\xfa') && word[1] == '\xe9') {       // first letters are 'He Yud' or 'Taf Yud'
+		Common::String modified_word = word;
+		modified_word.setChar('\xe4', 0);							// replace the initial Taf with He; or keep the initial He
+		modified_word.deleteChar(1);								// delete the second letter (=Yud)
+
+		if (lookupVerbPrefix(parent_retval, retval, modified_word, modified_word.size(), ""))
+			return;
+	}
+}
+
+bool Vocabulary::lookupSpecificPrefixWithMeaning(ResultWordListList &parent_retval, ResultWordList &retval, const char *word, int word_len, unsigned char prefix, const char *meaning) {
+	if (!_parserWords.contains(meaning)) {
+		warning("Vocabulary::lookupSpecificPrefix: _parserWords doesn't contains '%s'", meaning);
+		return false;
+	}
+	if ((unsigned char)word[0] == prefix) {
+		ResultWordList word_list;
+		lookupWord(word_list, word + 1, word_len);
+		if (!word_list.empty())
+			if (word_list.front()._class & (VOCAB_CLASS_NOUN << 4) || word_list.front()._class & (VOCAB_CLASS_PREPOSITION << 4)) {
+				parent_retval.push_back(_parserWords[meaning]);
+				retval = word_list;
+				return true;
+			}
+	}
+	return false;
+}
+
+bool Vocabulary::lookupVerbPrefix(ResultWordListList &parent_retval, ResultWordList &retval, Common::String word, int word_len, Common::String prefix) {
+	if (word.hasPrefix(prefix)) {
+		ResultWordList word_list;
+		lookupWord(word_list, word.c_str() +  prefix.size(), word_len);
+		if (!word_list.empty())
+			if (word_list.front()._class & (VOCAB_CLASS_IMPERATIVE_VERB << 4)) {
+				retval = word_list;
+				return true;
+			}
+	}
+	return false;
+}
+
+
 void Vocabulary::debugDecipherSaidBlock(const SciSpan<const byte> &data) {
 	bool first = true;
 	uint16 nextItem;
@@ -566,7 +660,7 @@ bool Vocabulary::tokenizeString(ResultWordListList &retval, const char *sentence
 	unsigned char c;
 	int wordLen = 0;
 
-	*error = NULL;
+	*error = nullptr;
 
 	do {
 		c = sentence[pos_in_sentence++];
@@ -585,10 +679,14 @@ bool Vocabulary::tokenizeString(ResultWordListList &retval, const char *sentence
 				lookupWord(lookup_result, currentWord, wordLen);
 
 				if (lookup_result.empty()) { // Not found?
-					*error = (char *)calloc(wordLen + 1, 1);
-					strncpy(*error, currentWord, wordLen); // Set the offending word
-					retval.clear();
-					return false; // And return with error
+					lookupWordPrefix(retval, lookup_result, currentWord, wordLen);
+
+					if (lookup_result.empty()) { // Still not found?
+						*error = (char *)calloc(wordLen + 1, 1);
+						strncpy(*error, currentWord, wordLen); // Set the offending word
+						retval.clear();
+						return false; // And return with error
+					}
 				}
 
 				// Copy into list
@@ -727,7 +825,7 @@ int Vocabulary::parseNodes(int *i, int *pos, int type, int nr, int argc, const c
 	if (type == kParseNumber) {
 		_parserNodes[*pos += 1].type = kParseTreeLeafNode;
 		_parserNodes[*pos].value = nr;
-		_parserNodes[*pos].right = 0;
+		_parserNodes[*pos].right = nullptr;
 		return *pos;
 	}
 	if (type == kParseEndOfInput) {
@@ -754,7 +852,7 @@ int Vocabulary::parseNodes(int *i, int *pos, int type, int nr, int argc, const c
 			} else if (!strcmp(token, "nil")) {
 				nextToken = kParseNil;
 			} else {
-				nextValue = strtol(token, NULL, 0);
+				nextValue = strtol(token, nullptr, 0);
 				nextToken = kParseNumber;
 			}
 		}
@@ -786,7 +884,7 @@ static int node_major(ParseTreeNode* node) {
 }
 static bool node_is_terminal(ParseTreeNode* node) {
 	return (node->right->right &&
-            node->right->right->type != kParseTreeBranchNode);
+			node->right->right->type != kParseTreeBranchNode);
 }
 static int node_terminal_value(ParseTreeNode* node) {
 	assert(node_is_terminal(node));
@@ -800,7 +898,7 @@ static ParseTreeNode* scanForMajor(ParseTreeNode *tree, int major) {
 		if (node_major(tree) == major)
 			return tree;
 		else
-			return 0;
+			return nullptr;
 	}
 
 	ParseTreeNode* ptr = tree->right;
@@ -814,12 +912,12 @@ static ParseTreeNode* scanForMajor(ParseTreeNode *tree, int major) {
 	}
 
 	if (major == 0x141)
-		return 0;
+		return nullptr;
 
 	// If not found, go into a 0x141 and try again
 	tree = scanForMajor(tree, 0x141);
 	if (!tree)
-		return 0;
+		return nullptr;
 	return scanForMajor(tree, major);
 }
 

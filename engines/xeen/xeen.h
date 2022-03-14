@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,6 +46,7 @@
 #include "xeen/sound.h"
 #include "xeen/spells.h"
 #include "xeen/window.h"
+#include "xeen/detection.h"
 
 /**
  * This is the namespace of the Xeen engine.
@@ -55,18 +55,11 @@
  *
  * Games using this engine:
  * - Might & Magic 4: Clouds of Xeen
- * - Might & Magic 5: Dark Side of Xeen
+ * - Might & Magic 5: Darkside of Xeen
  * - Might & Magic: World of Xeen
  * - Might & Magic: Swords of Xeen
  */
 namespace Xeen {
-
-enum {
-	GType_Clouds = 1,
-	GType_DarkSide = 2,
-	GType_WorldOfXeen = 3,
-	GType_Swords = 4
-};
 
 enum XeenDebugChannels {
 	kDebugPath      = 1 << 0,
@@ -102,9 +95,7 @@ enum GameMode {
 	GMODE_QUIT = 4
 };
 
-struct XeenGameDescription;
-
-#define XEEN_SAVEGAME_VERSION 1
+#define XEEN_SAVEGAME_VERSION 2
 
 class XeenEngine : public Engine {
 	/**
@@ -284,7 +275,7 @@ public:
 	/**
 	* Returns true if an autosave can be created
 	*/
-	virtual bool canSaveAutosaveCurrently() override;
+	bool canSaveAutosaveCurrently() override;
 
 	/**
 	 * Show a cutscene
@@ -313,7 +304,7 @@ public:
 	/**
 	 * Show an error message in a GUI dialog
 	 */
-	void GUIError(const Common::String &msg);
+	void GUIError(const Common::U32String &msg);
 };
 
 extern XeenEngine *g_vm;

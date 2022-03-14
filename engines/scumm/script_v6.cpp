@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 #include "scumm/charset.h"
 #include "scumm/file.h"
 #include "scumm/imuse/imuse.h"
-#include "scumm/imuse_digi/dimuse.h"
+#include "scumm/imuse_digi/dimuse_engine.h"
 #include "scumm/insane/insane.h"
 #include "scumm/object.h"
 #include "scumm/resource.h"
@@ -373,7 +372,7 @@ int ScummEngine_v6::findFreeArrayId() {
 ScummEngine_v6::ArrayHeader *ScummEngine_v6::getArray(int array) {
 	ArrayHeader *ah = (ArrayHeader *)getResourceAddress(rtString, readVar(array));
 	if (!ah)
-		return 0;
+		return nullptr;
 
 	if (_game.heversion == 0) {
 		// Workaround for a long standing bug where we saved array headers in native
@@ -397,7 +396,7 @@ int ScummEngine_v6::readArray(int array, int idx, int base) {
 	if (!ah)
 		error("readArray: invalid array %d (%d)", array, readVar(array));
 
-	// WORKAROUND bug #645711. This is clearly a script bug, as this script
+	// WORKAROUND bug #600. This is clearly a script bug, as this script
 	// excerpt shows nicely:
 	// ...
 	// [03A7] (5D)         if (isAnyOf(array-447[localvar13][localvar14],[0,4])) {
@@ -718,7 +717,7 @@ void ScummEngine_v6::o6_jump() {
 			_scummVars[202] = 35;
 	}
 
-	// WORKAROUND bug #2826144: Talking to the guard at the bigfoot party, after
+	// WORKAROUND bug #4464: Talking to the guard at the bigfoot party, after
 	// he's let you inside, will cause the game to hang, if you end the conversation.
 	// This is a script bug, due to a missing jump in one segment of the script.
 	if (_game.id == GID_SAMNMAX && vm.slot[_currentScript].number == 101 && readVar(0x8000 + 97) == 1 && offset == 1) {
@@ -736,7 +735,26 @@ void ScummEngine_v6::o6_startScript() {
 	script = pop();
 	flags = pop();
 
-	// WORKAROUND bug #556558: At Dino Bungee National Memorial, the buttons for
+	// WORKAROUND for a bug also present in the original EXE: After greasing (or oiling?)
+	// the cannonballs in the Plunder Town Theater, during the juggling show, the game
+	// cuts from room 18 (backstage) to room 19 (stage).
+	//
+	// Usually, when loading a room script 29 handles the change of background music,
+	// based on which room we've just loaded.
+	// Unfortunately, during this particular cutscene, script 29 is not executing,
+	// therefore the music is unchanged from room 18 to 19 (the muffled backstage
+	// version is played), and is not coherent with the drums fill played afterwards
+	// (sequence 2225), which is unmuffled.
+	//
+	// This fix checks for this situation happening (and only this one), and makes a call
+	// to a soundKludge operation like script 29 would have done.
+	if (_game.id == GID_CMI && _currentRoom == 19 &&
+		vm.slot[_currentScript].number == 168 && script == 118) {
+		int list[16] = { 4096, 1278, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		_sound->soundKludge(list, 2);
+	}
+
+	// WORKAROUND bug #269: At Dino Bungee National Memorial, the buttons for
 	// the Wally and Rex dinosaurs will always restart their speech, instead of
 	// stopping and starting their speech. This was a script bug in the original
 	// game.
@@ -745,7 +763,7 @@ void ScummEngine_v6::o6_startScript() {
 		o6_breakHere();
 	}
 
-	// WORKAROUND bug #903223: In Puerto Pollo, if you have Guybrush examine
+	// WORKAROUND bug #1493: In Puerto Pollo, if you have Guybrush examine
 	// the church clock, he'll read out the current time. Nice touch, only that
 	// it sounds crap in the german version (and maybe others, too). It seems
 	// the original engine of the german version played just a simple fixed
@@ -763,7 +781,7 @@ void ScummEngine_v6::o6_startScript() {
 		return;
 	}
 
-	// WORKAROUND bug #1878514: When turning pages in the recipe book
+	// WORKAROUND bug #3591: When turning pages in the recipe book
 	// (found on Blood Island), there is a brief moment where it displays
 	// text from two different pages at the same time.
 	//
@@ -850,7 +868,7 @@ void ScummEngine_v6::o6_drawObjectAt() {
 	int x = pop();
 	int obj = pop();
 
-	// WORKAROUND bug #1846746 : Adjust x and y position of
+	// WORKAROUND bug #3487 : Adjust x and y position of
 	// objects in credits sequence, to match other ports
 	if (_game.id == GID_PUTTMOON && _game.platform == Common::kPlatform3DO &&
 		_roomResource == 38 && vm.slot[_currentScript].number == 206) {
@@ -1097,7 +1115,7 @@ void ScummEngine_v6::o6_setCameraAt() {
 
 void ScummEngine_v6::o6_loadRoom() {
 	int room = pop();
-	startScene(room, 0, 0);
+	startScene(room, nullptr, 0);
 	if (_game.heversion >= 61) {
 		setCameraAt(camera._cur.x, 0);
 	}
@@ -1133,8 +1151,8 @@ void ScummEngine_v6::o6_walkActorToObj() {
 		a->startWalkActor(x, y, dir);
 	} else {
 		a2 = derefActorSafe(obj, "o6_walkActorToObj(2)");
-		if (_game.id == GID_SAMNMAX && a2 == 0) {
-			// WORKAROUND bug #742676 SAM: Fish Farm. Note quite sure why it
+		if (_game.id == GID_SAMNMAX && a2 == nullptr) {
+			// WORKAROUND bug #801 SAM: Fish Farm. Note quite sure why it
 			// happens, whether it's normal or due to a bug in the ScummVM code.
 			debug(0, "o6_walkActorToObj: invalid actor %d", obj);
 			return;
@@ -1215,7 +1233,7 @@ void ScummEngine_v6::o6_animateActor() {
 	int act = pop();
 	if (_game.id == GID_TENTACLE && _roomResource == 57 &&
 		vm.slot[_currentScript].number == 19 && act == 593) {
-		// WORKAROUND bug #743363: This very odd case (animateActor(593,250))
+		// WORKAROUND bug #813: This very odd case (animateActor(593,250))
 		// occurs in DOTT, in the cutscene after George cuts down the "cherry
 		// tree" and the tree Laverne is trapped in vanishes...
 		// Not sure if this means animateActor somehow also must work for objects
@@ -1224,7 +1242,7 @@ void ScummEngine_v6::o6_animateActor() {
 	}
 	if (_game.id == GID_SAMNMAX && _roomResource == 35 &&
 		vm.slot[_currentScript].number == 202 && act == 4 && anim == 14) {
-		// WORKAROUND bug #1223621 (Animation glitch at World of Fish).
+		// WORKAROUND bug #2068 (Animation glitch at World of Fish).
 		// Before starting animation 14 of the fisherman, make sure he isn't
 		// talking anymore. This appears to be a bug in the original game as well.
 		if (getTalkingActor() == 4) {
@@ -1390,7 +1408,28 @@ void ScummEngine_v6::o6_getActorAnimCounter() {
 void ScummEngine_v6::o6_getAnimateVariable() {
 	int var = pop();
 	Actor *a = derefActor(pop(), "o6_getAnimateVariable");
-	push(a->getAnimVar(var));
+
+	// WORKAROUND: In Backyard Baseball 2001 and 2003,
+	// bunting a foul ball as Pete Wheeler may softlock the game
+	// with an animation loop if the ball goes way into
+	// the left or right field line.
+	//
+	// This is a script bug because Pete's actor variable never
+	// sets to 1 in this condition and script room-4-2105
+	// (or room-3-2105 in 2003) will always break.
+	// We fix that by forcing Pete to play the return animation
+	// regardless if the ball's foul or not.
+	if ((_game.id == GID_BASEBALL2001 || _game.id == GID_BASEBALL2003) && \
+			_currentRoom == ((_game.id == GID_BASEBALL2001) ? 4 : 3) && \
+			vm.slot[_currentScript].number == 2105 && \
+			a->_costume == ((_game.id == GID_BASEBALL2001) ? 107 : 99) && \
+			// Room variable 5 to ensure this workaround executes only once at
+			// the beginning of the script and room variable 22 to check if we
+			// are bunting.
+			readVar(0x8000 + 5) != 0 && readVar(0x8000 + 22) == 4)
+		push(1);
+	else
+		push(a->getAnimVar(var));
 }
 
 void ScummEngine_v6::o6_isActorInBox() {
@@ -1788,7 +1827,7 @@ void ScummEngine_v6::o6_actorOps() {
 		a->_talkColor = pop();
 		break;
 	case 88:		// SO_ACTOR_NAME
-		loadPtrToResource(rtActorName, a->_number, NULL);
+		loadPtrToResource(rtActorName, a->_number, nullptr);
 		break;
 	case 89:		// SO_INIT_ANIMATION
 		a->_initFrame = pop();
@@ -1897,7 +1936,7 @@ void ScummEngine_v6::o6_verbOps() {
 		}
 		break;
 	case 125:		// SO_VERB_NAME
-		loadPtrToResource(rtVerb, slot, NULL);
+		loadPtrToResource(rtVerb, slot, nullptr);
 		vs->type = kTextVerbType;
 		vs->imgindex = 0;
 		break;
@@ -1909,7 +1948,7 @@ void ScummEngine_v6::o6_verbOps() {
 		break;
 	case 128:		// SO_VERB_AT
 		vs->curRect.top = pop();
-		vs->curRect.left = pop();
+		vs->curRect.left = vs->origLeft = pop();
 		break;
 	case 129:		// SO_VERB_ON
 		vs->curmode = 1;
@@ -2180,7 +2219,7 @@ void ScummEngine_v6::o6_wait() {
 			break;
 		return;
 	case 232:		// SO_WAIT_FOR_TURN
-		// WORKAROUND for bug #744441: An angle will often be received as the
+		// WORKAROUND for bug #819: An angle will often be received as the
 		// actor number due to script bugs in The Dig. In all cases where this
 		// occurs, _curActor is set just before it, so we can use it instead.
 		//
@@ -2209,7 +2248,7 @@ void ScummEngine_v6::o6_soundKludge() {
 
 	_sound->soundKludge(list, num);
 
-	// WORKAROUND for bug #1398195: The room-11-2016 script contains a
+	// WORKAROUND for bug #2438: The room-11-2016 script contains a
 	// slight bug causing it to busy-wait for a sound to finish. Even under
 	// the best of circumstances, this will cause the game to hang briefly.
 	// On platforms where threading is cooperative, it will cause the game
@@ -2315,7 +2354,7 @@ void ScummEngine_v6::o6_printEgo() {
 void ScummEngine_v6::o6_talkActor() {
 	int offset = _scriptPointer - _scriptOrgPointer;
 
-	// WORKAROUND for bug #896489: see below for detailed description
+	// WORKAROUND for bug #1452: see below for detailed description
 	if (_forcedWaitForMessage) {
 		if (VAR(VAR_HAVE_MSG)) {
 			_scriptPointer--;
@@ -2331,7 +2370,7 @@ void ScummEngine_v6::o6_talkActor() {
 
 	_actorToPrintStrFor = pop();
 
-	// WORKAROUND for bug #2016521: "DOTT: Bernard impersonating LaVerne"
+	// WORKAROUND for bug #3803: "DOTT: Bernard impersonating LaVerne"
 	// Original script did not check for VAR_EGO == 2 before executing
 	// a talkActor opcode.
 	if (_game.id == GID_TENTACLE && vm.slot[_currentScript].number == 307
@@ -2343,7 +2382,7 @@ void ScummEngine_v6::o6_talkActor() {
 	_string[0].loadDefault();
 	actorTalk(_scriptPointer);
 
-	// WORKAROUND for bug #896489: "DIG: Missing subtitles when talking to Brink"
+	// WORKAROUND for bug #1452: "DIG: Missing subtitles when talking to Brink"
 	// Original script does not have wait.waitForMessage() after several messages:
 	//
 	// [011A] (5D)   if (getActorCostume(VAR_EGO) == 1) {
@@ -2704,7 +2743,7 @@ void ScummEngine_v6::o6_kernelGetFunctions() {
 
 	switch (args[0]) {
 	case 113:
-		// WORKAROUND for bug #899249: The scripts used for screen savers
+		// WORKAROUND for bug #1465: The scripts used for screen savers
 		// in Sam & Max use hard coded values for the maximum height and width.
 		// This causes problems in rooms (ie. Credits) where their values are
 		// lower, so we set result to zero if out of bounds.
@@ -3010,7 +3049,7 @@ void ScummEngine_v6::o6_getPixel() {
 
 	VirtScreen *vs = findVirtScreen(y);
 
-	if (vs == NULL || x > _screenWidth - 1 || x < 0) {
+	if (vs == nullptr || x > _screenWidth - 1 || x < 0) {
 		push(-1);
 		return;
 	}
@@ -3023,7 +3062,7 @@ void ScummEngine_v6::o6_setBoxSet() {
 	int arg = pop() - 1;
 
 	const byte *room = getResourceAddress(rtRoom, _roomResource);
-	const byte *boxd = NULL, *boxm = NULL;
+	const byte *boxd = nullptr, *boxm = nullptr;
 	int32 dboxSize, mboxSize;
 	int i;
 

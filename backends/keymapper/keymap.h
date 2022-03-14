@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,8 +71,15 @@ public:
 		kKeymapTypeGame
 	};
 
+	enum KeymapMatch {
+		kKeymapMatchNone,
+		kKeymapMatchPartial,
+		kKeymapMatchExact
+	};
+
 	typedef Array<Action *> ActionArray;
 
+	Keymap(KeymapType type, const String &id, const U32String &description);
 	Keymap(KeymapType type, const String &id, const String &description);
 	~Keymap();
 	void setConfigDomain(ConfigManager::Domain *configDomain);
@@ -109,9 +115,10 @@ public:
 	/**
 	 * Find the Actions that a hardware input is mapped to
 	 * @param hardwareInput	the input that is mapped to the required Action
-	 * @return		an array containing pointers to the actions
+	 * @param actions an array containing pointers to the actions
+	 * @return	the matching status for the retieved actions
 	 */
-	ActionArray getMappedActions(const Event &event) const;
+	KeymapMatch getMappedActions(const Event &event, ActionArray &actions) const;
 
 	/**
 	 * Adds a new Action to this Map
@@ -144,12 +151,11 @@ public:
 	/**
 	 * Save this keymap's mappings to the config manager
 	 * @note Changes are *not* flushed to disk, to do so call ConfMan.flushToDisk()
-	 * @note Changes are *not* flushed to disk, to do so call ConfMan.flushToDisk()
 	 */
 	void saveMappings();
 
 	const String &getId() const { return _id; }
-	const String &getDescription() const { return _description; }
+	const U32String &getDescription() const { return _description; }
 	KeymapType getType() const { return _type; }
 
 	/**
@@ -174,7 +180,7 @@ private:
 
 	KeymapType _type;
 	String _id;
-	String _description;
+	U32String _description;
 
 	bool _enabled;
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  *
  *              Originally written by Syn9 in FreeBASIC with SDL
@@ -109,6 +108,9 @@ void GriffonEngine::updateY() {
 	_lasty = 0;
 
 	for (int i = 1; i <= _lastNpc; i++) {
+		if (!_npcInfo[i].onMap)
+			continue;
+
 		int yy = (int)(_npcInfo[i].y * 10);
 
 		do {
@@ -1305,8 +1307,7 @@ void GriffonEngine::updateSpells() {
 						}
 
 						if (xloc > -16 && xloc < 304 && yloc > -16 && yloc < 224) {
-							_spellImg->setAlpha(alf, true);
-							_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+							_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB((int)alf, 255, 255, 255));
 
 							if (_spellInfo[i].damagewho == 0) {
 								for (int e = 1; e <= _lastNpc; e++) {
@@ -1381,8 +1382,7 @@ void GriffonEngine::updateSpells() {
 				rcDest.left = xloc;
 				rcDest.top = yloc;
 
-				_spellImg->setAlpha(255, true);
-				_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+				_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(255, 255, 255, 255));
 
 				_spellInfo[i].frame = _spellInfo[i].frame - 0.2 * _fpsr;
 				if (_spellInfo[i].frame < 0)
@@ -1504,8 +1504,7 @@ void GriffonEngine::updateSpells() {
 						rcDest.top = yloc;
 
 						if (xloc > -16 && xloc < 304 && yloc > -16 && yloc < 224) {
-							_spellImg->setAlpha(255, true);
-							_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+							_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(255, 255, 255, 255));
 
 							if (scatter) {
 								if (_spellInfo[i].damagewho == 0) {
@@ -1584,8 +1583,7 @@ void GriffonEngine::updateSpells() {
 				if (fra > 24)
 					f = 192 * (1 - (fra - 24) / 8);
 
-				_spellImg->setAlpha(f, true);
-				_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+				_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(f, 255, 255, 255));
 
 				_spellInfo[i].frame = _spellInfo[i].frame - 0.3 * _fpsr;
 				if (_spellInfo[i].frame < 0) {
@@ -1667,7 +1665,7 @@ void GriffonEngine::updateSpells() {
 				if (_spellInfo[i].frame > 16) {
 					float fr = (32 - _spellInfo[i].frame);
 
-					_spellImg->setAlpha(192 * sin(3.14159 * fr / 4), true);
+					int alpha = 192 * sin(3.14159 * fr / 4);
 
 					rcSrc.left = 16 * (int)(RND() * 2);
 					rcSrc.top = 80;
@@ -1682,10 +1680,9 @@ void GriffonEngine::updateSpells() {
 						rcDest.left = xloc;
 						rcDest.top = yloc;
 
-						_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+						_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(alpha, 255, 255, 255));
 					}
 				} else {
-					_spellImg->setAlpha(192, true);
 
 					rcSrc.left = 16 * (int)(RND() * 2);
 					rcSrc.top = 80;
@@ -1715,7 +1712,7 @@ void GriffonEngine::updateSpells() {
 							rcDest.left = xloc;
 							rcDest.top = yloc;
 
-							_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+							_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(192, 255, 255, 255));
 						}
 
 						if (xloc < -1 || yloc < -1 || xloc > 304 || yloc > 224)
@@ -2092,8 +2089,7 @@ void GriffonEngine::updateSpellsUnder() {
 				if (fra > 24)
 					f = 160 * (1 - (fra - 24) / 8);
 
-				_spellImg->setAlpha(f, true);
-				_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+				_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(f, 255, 255, 255));
 
 				_spellInfo[i].frame = _spellInfo[i].frame - 0.2 * _fpsr;
 				if (_spellInfo[i].frame < 0)
@@ -2180,7 +2176,7 @@ void GriffonEngine::updateSpellsUnder() {
 				for (int f = 0; f <= 4; f++) {
 					for (int x = 0; x <= fra; x += 2) {
 						if (_spellInfo[i].legalive[f] >= x) {
-							_spellImg->setAlpha(192 * sin(3.14159 * x / 32) * s / 8, true);
+							int alpha = 192 * sin(3.14159 * x / 32) * s / 8;
 
 							float an = 360 / 5 * f + x / 32 * 180;
 
@@ -2195,7 +2191,7 @@ void GriffonEngine::updateSpellsUnder() {
 							rcDest.top = (int)yloc;
 
 							if (xloc > -1 && xloc < 304 && yloc > -1 && yloc < 224) {
-								_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+								_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(alpha, 255, 255, 255));
 
 								int sx = (xloc / 2 + 4);
 								int sy = (yloc / 2 + 8);
@@ -2304,7 +2300,6 @@ void GriffonEngine::updateSpellsUnder() {
 					float yy = 16 * sin(3.141592 / 2 * xx / 16) - 8;
 
 					alpha = CLIP(alpha, 0, 255);
-					_spellImg->setAlpha(alpha, true);
 
 					rcSrc.left = 16 * (int)(RND() * 2);
 					rcSrc.top = 80;
@@ -2318,7 +2313,7 @@ void GriffonEngine::updateSpellsUnder() {
 					rcDest.top = yloc;
 
 					if (xloc > -16 && xloc < 320 && yloc > -16 && yloc < 240) {
-						_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc);
+						_spellImg->blit(*_videoBuffer, rcDest.left, rcDest.top, Graphics::FLIP_NONE, &rcSrc, TS_ARGB(alpha, 255, 255, 255));
 
 						if (_spellInfo[i].damagewho == 1) {
 							float xdif = (xloc + 8) - (_player.px + 12);

@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -100,6 +99,7 @@ public:
 	bool isDVDDemo() const;
 	bool isOldDemo() const;
 	bool isWindows() const;
+	bool isLinux() const;
 	void addIdler(Idler *idler);
 	void removeIdler(Idler *idler);
 	void addTimeBase(TimeBase *timeBase);
@@ -125,10 +125,12 @@ public:
 	int32 getSavedEnergyValue() { return _savedEnergyValue; }
 
 	// Death
+	Sound &getDeathSound() { return _deathSound; }
 	void setEnergyDeathReason(const DeathReason reason) { _deathReason = reason; }
 	DeathReason getEnergyDeathReason() { return _deathReason; }
 	void resetEnergyDeathReason();
 	void die(const DeathReason);
+	DeathReason getDeathReason() { return _deathReason; }
 	void playEndMessage();
 
 	// Volume
@@ -170,6 +172,12 @@ public:
 	bool canSolve();
 	void prepareForAIHint(const Common::String &);
 	void cleanUpAfterAIHint(const Common::String &);
+	void requestToggle(bool request = true) { _toggleRequested = request; }
+	bool toggleRequested() const { return _toggleRequested; }
+	bool isChattyAI() { return _chattyAI; }
+	void setChattyAI(bool);
+	bool isChattyArthur() { return _chattyArthur; }
+	void setChattyArthur(bool);
 	Common::SeekableReadStream *_aiSaveStream;
 
 	// Neighborhood
@@ -278,13 +286,21 @@ private:
 	void doInterfaceOverview();
 	ScreenDimmer _screenDimmer;
 	void pauseMenu(bool menuUp);
+	PauseToken _menuPauseToken;
+	bool _heardOverviewVoice;
 
 	// Energy
 	int32 _savedEnergyValue;
 
 	// Death
 	DeathReason _deathReason;
+	Sound _deathSound;
 	void doDeath();
+
+	// AI
+	bool _toggleRequested;
+	bool _chattyAI;
+	bool _chattyArthur;
 
 	// Neighborhood
 	Neighborhood *_neighborhood;

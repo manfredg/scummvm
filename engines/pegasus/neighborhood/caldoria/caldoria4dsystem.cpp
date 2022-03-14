@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -222,7 +221,8 @@ void Caldoria4DSystem::useIdleTime() {
 void Caldoria4DSystem::initInteraction() {
 	setSpritesMovie();
 
-	_owner->loadLoopSound1("Sounds/Caldoria/Rock.aiff");
+	playSound("Rock");
+	_owner->playSpotSoundSync(kCaldoria4DInstructionsIn, kCaldoria4DInstructionsOut);
 	loopExtra(k4DIslandLoop);
 }
 
@@ -255,8 +255,7 @@ void Caldoria4DSystem::handleInput(const Input &input, const Hotspot *cursorSpot
 
 void Caldoria4DSystem::activateHotspots() {
 	GameInteraction::activateHotspots();
-	if (_whichMenu == k4DAudioMenu)
-		g_allHotspots.activateOneHotspot(kCa4DChoice4SpotID);
+	g_allHotspots.activateOneHotspot(kCa4DChoice4SpotID);
 }
 
 void Caldoria4DSystem::clickInHotspot(const Input &input, const Hotspot *spot) {
@@ -347,7 +346,7 @@ void Caldoria4DSystem::makeRockChoice() {
 	if (_audioChoice != k4DRockChoice) {
 		_audioChoice = k4DRockChoice;
 		setSpritesMovie();
-		_owner->loadLoopSound1("Sounds/Caldoria/Rock.aiff");
+		playSound("Rock");
 	}
 }
 
@@ -355,7 +354,7 @@ void Caldoria4DSystem::makeOrchestralChoice() {
 	if (_audioChoice != k4DOrchestralChoice) {
 		_audioChoice = k4DOrchestralChoice;
 		setSpritesMovie();
-		_owner->loadLoopSound1("Sounds/Caldoria/Orchestral.aiff");
+		playSound("Orchestral");
 	}
 }
 
@@ -363,7 +362,7 @@ void Caldoria4DSystem::makeRhythmsChoice() {
 	if (_audioChoice != k4DRhythmsChoice) {
 		_audioChoice = k4DRhythmsChoice;
 		setSpritesMovie();
-		_owner->loadLoopSound1("Sounds/Caldoria/Rhythms.aiff");
+		playSound("Rhythms");
 	}
 }
 
@@ -371,12 +370,22 @@ void Caldoria4DSystem::makeAcousticChoice() {
 	if (_audioChoice != k4DAcousticChoice) {
 		_audioChoice = k4DAcousticChoice;
 		setSpritesMovie();
-		_owner->loadLoopSound1("Sounds/Caldoria/Acoustic.aiff");
+		playSound("Acoustic");
 	}
 }
 
 void Caldoria4DSystem::shutDown4DSystem() {
 	_whichMenu = k4DShuttingDown;
+}
+
+void Caldoria4DSystem::playSound(const Common::String &baseFileName) {
+	Common::String fileName = "Sounds/Caldoria/" + baseFileName;
+
+	// Updated DVD files
+	if (((PegasusEngine *)g_engine)->isDVD())
+		fileName += ".44K";
+
+	_owner->loadLoopSound1(fileName + ".aiff");
 }
 
 } // End of namespace Pegasus

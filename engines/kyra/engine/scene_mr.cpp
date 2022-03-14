@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,7 +32,7 @@ void KyraEngine_MR::enterNewScene(uint16 sceneId, int facing, int unk1, int unk2
 	++_enterNewSceneLock;
 	_screen->hideMouse();
 
-	showMessage(0, 0xF0, 0xF0);
+	showMessage(nullptr, 0xF0, 0xF0);
 	if (_inventoryState)
 		hideInventory();
 
@@ -159,7 +158,7 @@ void KyraEngine_MR::enterNewScene(uint16 sceneId, int facing, int unk1, int unk2
 		}
 
 		Common::Point pos = getMousePos();
-		if (pos.y > 187)
+		if (pos.y >= _interfaceCommandLineY1)
 			setMousePos(pos.x, 179);
 	}
 	_screen->showMouse();
@@ -200,8 +199,8 @@ void KyraEngine_MR::enterNewSceneUnk1(int facing, int unk1, int unk2) {
 
 		if (x2 >= 316)
 			x2 = 312;
-		if (y2 >= 185)
-			y2 = 183;
+		if (y2 >= _interfaceCommandLineY1 - 3)
+			y2 = _interfaceCommandLineY1 - 5;
 		if (x2 <= 4)
 			x2 = 8;
 	}
@@ -284,7 +283,7 @@ void KyraEngine_MR::enterNewSceneUnk2(int unk1) {
 
 void KyraEngine_MR::unloadScene() {
 	delete[] _sceneStrings;
-	_sceneStrings = 0;
+	_sceneStrings = nullptr;
 	_emc->unload(&_sceneScriptData);
 	freeSceneShapes();
 	freeSceneAnims();
@@ -293,7 +292,7 @@ void KyraEngine_MR::unloadScene() {
 void KyraEngine_MR::freeSceneShapes() {
 	for (uint i = 0; i < ARRAYSIZE(_sceneShapes); ++i) {
 		delete[] _sceneShapes[i];
-		_sceneShapes[i] = 0;
+		_sceneShapes[i] = nullptr;
 	}
 }
 
@@ -303,7 +302,7 @@ void KyraEngine_MR::loadScenePal() {
 	strcpy(filename, _sceneList[_mainCharacter.sceneId].filename1);
 	strcat(filename, ".COL");
 
-	_screen->loadBitmap(filename, 3, 3, 0);
+	_screen->loadBitmap(filename, 3, 3, nullptr);
 	_screen->getPalette(2).copy(_screen->getCPagePtr(3), 0, 144);
 	_screen->getPalette(2).fill(0, 1, 0);
 
@@ -330,13 +329,13 @@ void KyraEngine_MR::loadSceneMsc() {
 	minY = stream->readSint16LE();
 	height = stream->readSint16LE();
 	delete stream;
-	stream = 0;
+	stream = nullptr;
 	_maskPageMinY = minY;
 	_maskPageMaxY = minY + height - 1;
 
 	_screen->setShapePages(5, 3, _maskPageMinY, _maskPageMaxY);
 
-	_screen->loadBitmap(filename, 5, 5, 0, true);
+	_screen->loadBitmap(filename, 5, 5, nullptr, true);
 
 	// HACK
 	uint8 *data = new uint8[320*200];
@@ -371,7 +370,7 @@ void KyraEngine_MR::initSceneScript(int unk1) {
 	if (shapesCount > 0) {
 		strcpy(filename, scene.filename1);
 		strcat(filename, "9.CPS");
-		_screen->loadBitmap(filename, 3, 3, 0);
+		_screen->loadBitmap(filename, 3, 3, nullptr);
 		int pageBackUp = _screen->_curPage;
 		_screen->_curPage = 2;
 		for (int i = 0; i < shapesCount; ++i) {
@@ -387,11 +386,11 @@ void KyraEngine_MR::initSceneScript(int unk1) {
 		_screen->_curPage = pageBackUp;
 	}
 	delete stream;
-	stream = 0;
+	stream = nullptr;
 
 	strcpy(filename, scene.filename1);
 	strcat(filename, ".CPS");
-	_screen->loadBitmap(filename, 3, 3, 0);
+	_screen->loadBitmap(filename, 3, 3, nullptr);
 
 	Common::fill(_specialSceneScriptState, ARRAYEND(_specialSceneScriptState), false);
 	_sceneEnterX1 = 160;
@@ -465,7 +464,7 @@ void KyraEngine_MR::initSceneAnims(int unk1) {
 	_mainCharacter.x3 = _mainCharacter.x1 - (_charScale >> 4) - 1;
 	_mainCharacter.y3 = _mainCharacter.y1 - (_charScale >> 6) - 1;
 	obj->needRefresh = true;
-	_animList = 0;
+	_animList = nullptr;
 
 	for (int i = 0; i < 16; ++i) {
 		const SceneAnim &anim = _sceneAnims[i];
@@ -489,7 +488,7 @@ void KyraEngine_MR::initSceneAnims(int unk1) {
 		if ((anim.flags & 4) && anim.shapeIndex != -1)
 			obj->shapePtr = _sceneShapes[anim.shapeIndex];
 		else
-			obj->shapePtr = 0;
+			obj->shapePtr = nullptr;
 
 		if (anim.flags & 8) {
 			obj->shapeIndex3 = anim.shapeIndex;
@@ -525,7 +524,7 @@ void KyraEngine_MR::initSceneAnims(int unk1) {
 			obj->xPos1 = item.x;
 			obj->yPos1 = item.y;
 			animSetupPaletteEntry(obj);
-			obj->shapePtr = 0;
+			obj->shapePtr = nullptr;
 			obj->shapeIndex1 = obj->shapeIndex2 = item.id + 248;
 			obj->xPos2 = item.x;
 			obj->yPos2 = item.y;
@@ -559,7 +558,7 @@ void KyraEngine_MR::initSceneAnims(int unk1) {
 }
 
 void KyraEngine_MR::initSceneScreen(int unk1) {
-	_screen->copyBlockToPage(2, 0, 188, 320, 12, _interfaceCommandLine);
+	_screen->copyBlockToPage(2, 0, _interfaceCommandLineY1, 320, _interfaceCommandLineH, _interfaceCommandLine);
 
 	if (_unkSceneScreenFlag1) {
 		_screen->copyRegion(0, 0, 0, 0, 320, 200, 2, 0, Screen::CR_NO_P_CHECK);
@@ -636,7 +635,7 @@ int KyraEngine_MR::trySceneChange(int *moveTable, int unk1, int updateChar) {
 
 		int ret = 0;
 		if (moveTable == moveTableStart || moveTable[1] == 8)
-			ret = updateCharPos(0, 0);
+			ret = updateCharPos(nullptr, 0);
 		else
 			ret = updateCharPos(moveTable, 0);
 
@@ -667,7 +666,7 @@ int KyraEngine_MR::checkSceneChange() {
 	} else if (charX >= 316 && _savedMouseState == -6) {
 		facing = 2;
 		process = 1;
-	} else if (charY >= 186 && _savedMouseState == -5) {
+	} else if (charY >= (_interfaceCommandLineY1 - 2) && _savedMouseState == -5) {
 		facing = 4;
 		process = 1;
 	} else if (charX <= 4 && _savedMouseState == -4) {
@@ -707,7 +706,7 @@ int KyraEngine_MR::checkSceneChange() {
 	return 1;
 }
 int KyraEngine_MR::runSceneScript1(int x, int y) {
-	if (y > 187 && _savedMouseState > -4)
+	if (y >= _interfaceCommandLineY1 && _savedMouseState > -4)
 		return 0;
 	if (_deathHandler >= 0)
 		return 0;
@@ -767,7 +766,7 @@ bool KyraEngine_MR::lineIsPassable(int x, int y) {
 		return false;
 	if ((_pathfinderFlag & 8) && x < 0)
 		return false;
-	if (y > 187)
+	if (y >= _interfaceCommandLineY1)
 		return false;
 
 	uint width = widthTable[getScale(x, y) >> 5];

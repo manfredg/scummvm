@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef SCI_INCLUDE_FEATURES_H
 #define SCI_INCLUDE_FEATURES_H
 
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/engine/seg_manager.h"
 
 namespace Sci {
@@ -172,6 +171,18 @@ public:
 			 g_sci->getGameId() == GID_SQ6);
 	}
 
+	inline bool useMacGammaLevel() const {
+		// SCI32 Mac interpreters were hard-coded to use gamma level 2 until
+		//  Torin's Passage, PQSWAT, and the 2.1 Late games. The colors in
+		//  the game resources are significantly darker than their PC versions.
+		//  Confirmed in disassembly of all Mac interpreters.
+		return g_sci->getPlatform() == Common::kPlatformMacintosh &&
+			getSciVersion() >= SCI_VERSION_2 &&
+			getSciVersion() < SCI_VERSION_2_1_LATE &&
+			g_sci->getGameId() != GID_PQSWAT &&
+			g_sci->getGameId() != GID_TORIN;
+	}
+
 	inline bool usesAlternateSelectors() const {
 		return g_sci->getGameId() == GID_PHANTASMAGORIA2;
 	}
@@ -187,16 +198,12 @@ public:
 	 */
 	bool supportsTextSpeed() const {
 		switch (g_sci->getGameId()) {
-#ifdef ENABLE_SCI32
 		case GID_GK1:
 		case GID_SQ6:
 			return true;
-#endif
 		default:
-			break;
+			return false;
 		}
-
-		return false;
 	}
 
 	/**
@@ -227,7 +234,7 @@ public:
 	MoveCountType detectMoveCountType();
 
 	int detectPlaneIdBase();
-	
+
 	bool handleMoveCount() { return detectMoveCountType() == kIncrementMoveCount; }
 
 	bool usesCdTrack() { return _usesCdTrack; }
@@ -250,6 +257,8 @@ public:
 	 */
 	void forceDOSTracks() { _forceDOSTracks = true; }
 
+	bool useWindowsCursors() { return _useWindowsCursors; }
+
 	/**
 	 * Autodetects, if Pseudo Mouse ability is enabled (different behavior in keyboard driver)
 	 * @return kPseudoMouseAbilityTrue or kPseudoMouseAbilityFalse
@@ -257,6 +266,21 @@ public:
 	PseudoMouseAbilityType detectPseudoMouseAbility();
 
 	bool useEarlyGetLongestTextCalculations() const;
+
+	/**
+	 * Several SCI1.1 Macintosh games have empty strings for almost all of the
+	 * object names in the script resources.
+	 *
+	 * @return true if the game's object names aren't empty strings.
+	 */
+	bool hasScriptObjectNames() const;
+
+	/**
+	 * Returns if the game can be saved via the GMM.
+	 * Saving via the GMM doesn't work as expected in
+	 * games which don't follow the normal saving scheme.
+	*/
+	bool canSaveFromGMM() const;
 
 private:
 	reg_t getDetectionAddr(const Common::String &objName, Selector slc, int methodNum = -1);
@@ -277,6 +301,7 @@ private:
 	MoveCountType _moveCountType;
 	bool _usesCdTrack;
 	bool _forceDOSTracks;
+	bool _useWindowsCursors;
 
 	PseudoMouseAbilityType _pseudoMouseAbility;
 

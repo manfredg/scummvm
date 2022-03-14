@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -90,7 +89,7 @@ ScriptOpcodes::~ScriptOpcodes() {
 void ScriptOpcodes::execOpcode(ScriptOpCall &scriptOpCall) {
 	if (!_opcodes[scriptOpCall._op])
 		error("ScriptOpcodes::execOpcode() Unimplemented opcode %d (0x%X)", scriptOpCall._op, scriptOpCall._op);
-	debug("execScriptOpcode(0x%X) @%lX  %s", scriptOpCall._op, scriptOpCall._code - scriptOpCall._base, _opcodeNames[scriptOpCall._op].c_str());
+	debug(1, "execScriptOpcode(0x%X) @%X  %s", scriptOpCall._op, (int)(scriptOpCall._code - scriptOpCall._base), _opcodeNames[scriptOpCall._op].c_str());
 	(*_opcodes[scriptOpCall._op])(scriptOpCall);
 }
 
@@ -102,7 +101,7 @@ typedef Common::Functor1Mem<ScriptOpCall&, void, ScriptOpcodes> ScriptOpcodeI;
 void ScriptOpcodes::initOpcodes() {
 	// First clear everything
 	for (uint i = 0; i < DRAGONS_NUM_SCRIPT_OPCODES; ++i) {
-		_opcodes[i] = 0;
+		_opcodes[i] = nullptr;
 	}
 	// Register opcodes
 	OPCODE(1, opUnk1);
@@ -201,7 +200,7 @@ void ScriptOpcodes::executeScriptLoop(ScriptOpCall &scriptOpCall) {
 //		execOpcode(scriptOpCall);
 //	}
 //
-	while (scriptOpCall._code < scriptOpCall._codeEnd && !(scriptOpCall._result & 1)) {
+	while (scriptOpCall._code < scriptOpCall._codeEnd && !(scriptOpCall._result & 1) && !_vm->shouldQuit()) {
 
 		if (_vm->isFlagSet(ENGINE_FLAG_100000)) {
 			return;
@@ -407,9 +406,11 @@ void ScriptOpcodes::opMoveObjectToScene(ScriptOpCall &scriptOpCall) {
 				_vm->_cursor->_sequenceID = 0;
 				_vm->_cursor->_iniItemInHand = 0;
 			} else {
-				if (_vm->_inventory->clearItem(ini->id + 1)) {
+				if (_vm->_inventory->hasItem(ini->id + 1)) {
+					Actor *actor = _vm->_inventory->getInventoryItemActor(ini->id + 1);
+					_vm->_inventory->clearItem(ini->id + 1);
 					if (_vm->_inventory->getState() == InventoryOpen) {
-						ini->actor->clearFlag(ACTOR_FLAG_40);
+						actor->clearFlag(ACTOR_FLAG_40);
 					}
 				}
 			}
@@ -459,7 +460,7 @@ void ScriptOpcodes::opActorLoadSequence(ScriptOpCall &scriptOpCall) {
 		ini->actor->_flags |= ACTOR_FLAG_2000;
 	}
 
-	if (!ini->actor->_actorResource || ini->actor->_actorResource->_id != ini->actorResourceId) {
+	if (!ini->actor->_actorResource || ini->actor->_actorResource->_id != (uint32)ini->actorResourceId) {
 		ini->actor->_actorResource = _vm->_actorManager->getActorResource(ini->actorResourceId);
 	}
 
@@ -475,10 +476,10 @@ void ScriptOpcodes::opActorLoadSequence(ScriptOpCall &scriptOpCall) {
 }
 
 void ScriptOpcodes::opPlayMusic(ScriptOpCall &scriptOpCall) {
-	//byte *code = scriptOpCall._code;
-	scriptOpCall._code += 4;
+	ARG_SKIP(2);
+	ARG_INT16(songNumber);
 	if (scriptOpCall._field8 == 0) {
-		//TODO play music here.
+		_vm->_sound->playMusic(songNumber);
 	}
 }
 
@@ -532,7 +533,7 @@ void ScriptOpcodes::opPreLoadSceneData(ScriptOpCall &scriptOpCall) {
 	ARG_INT16(field0);
 	ARG_INT16(sceneId);
 
-	_vm->_sound->PauseCDMusic();
+	_vm->_sound->resumeMusic();
 	_vm->_isLoadingDialogAudio = true;
 
 	if (sceneId >= 2) {
@@ -545,7 +546,7 @@ void ScriptOpcodes::opPauseCurrentSpeechAndFetchNextDialog(ScriptOpCall &scriptO
 	ARG_UINT32(textIndex);
 
 	if (scriptOpCall._field8 == 0) {
-		_vm->_sound->PauseCDMusic();
+		_vm->_sound->resumeMusic();
 		//The original starts seeking the CD-ROM here for the `textIndex` dialog but we don't need to do that.
 	}
 }
@@ -657,7 +658,7 @@ void ScriptOpcodes::opRunSpecialOpCode(ScriptOpCall &scriptOpCall) {
 		error("Invalid Special OpCode %d", specialOpCode);
 	}
 
-	debug("Special opCode %X", specialOpCode);
+	debug(1, "Special opCode %X", specialOpCode);
 	_specialOpCodes->run(specialOpCode);
 }
 
@@ -903,12 +904,11 @@ void ScriptOpcodes::opLoadScene(ScriptOpCall &scriptOpCall) {
 		return;
 	}
 
-	//TODO fade_related_calls_with_1f();
-	_vm->setSceneUpdateFunction(NULL);
-	_vm->_sound->PauseCDMusic();
+	_vm->fadeToBlack();
+	_vm->clearSceneUpdateFunction();
+	_vm->_sound->resumeMusic();
 
 	if (newSceneID != 0) {
-		// load scene here.
 		_vm->_scene->_mapTransitionEffectSceneID = _vm->_scene->getSceneId();
 		_vm->_scene->setSceneId(newSceneID);
 		_vm->_flickerInitialSceneDirection = flickerDirection;
@@ -958,7 +958,7 @@ void ScriptOpcodes::opCodeActorTalk(ScriptOpCall &scriptOpCall) {
 	} else {
 		_vm->_talk->FUN_8003239c(dialog,
 								 (int)(((uint)ini->actor->_x_pos - (uint)_vm->_scene->_camera.x) * 0x10000) >> 0x13,
-								 (int)(((ini->actor->_y_pos - ini->actor->getFrameYOffset()) - (uint)_vm->_scene->_camera.y) * 0x10000) >> 0x13,
+								 (int)((((ini->actor->_y_pos - ini->actor->getFrameYOffset()) - (uint)_vm->_scene->_camera.y) * 0x10000) >> 0x13) - 3,
 								 READ_LE_INT16(_vm->_dragonOBD->getFromOpt(iniId) + 6),
 								 1,
 								 ini->actor, startSequenceId, endSequenceId, textIndex);
@@ -1052,7 +1052,7 @@ void ScriptOpcodes::setVariable(ScriptOpCall &scriptOpCall) {
 					s2 -= s1;
 				} else {
 					if (fieldB == 3) {
-						s2 = _vm->getRand(s1);
+						s2 = _vm->getRand(MAX<int16>(1, s1));
 					}
 				}
 			}
@@ -1214,7 +1214,7 @@ void ScriptOpcodes::opShowActor(ScriptOpCall &scriptOpCall) {
 	}
 
 	DragonINI *ini = _vm->getINI(iniId - 1);
-	ini->actor->setFlag(ACTOR_FLAG_400);
+	ini->actor->clearFlag(ACTOR_FLAG_400);
 }
 
 void ScriptOpcodes::opHideActor(ScriptOpCall &scriptOpCall) {

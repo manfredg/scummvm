@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,7 +26,7 @@
 #include "ultima/shared/std/containers.h"
 
 #include "ultima/ultima8/usecode/intrinsics.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
+#include "ultima/ultima8/misc/classtype.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -42,7 +41,6 @@ public:
 	Container();
 	~Container() override;
 
-	// p_dynamic_cast stuff
 	ENABLE_RUNTIME_CLASSTYPE()
 
 	//! Check if an item can be added to the container
@@ -84,7 +82,17 @@ public:
 	//! \param scriptsize The size (in bytes) of the loopscript
 	//! \param recurse If true, search through child-containers too
 	void containerSearch(UCList *itemlist, const uint8 *loopscript,
-	                     uint32 scriptsize, bool recurse);
+	                     uint32 scriptsize, bool recurse) const;
+
+	//! A simpler search of the container which just gets the
+	//! first item with a given shape number, optionally recursively.
+	//! \return The first item with that shape, or nullptr if nothing found.
+	Item *getFirstItemWithShape(uint16 shapeno, bool recurse);
+
+	//! A simpler search of the container which just gets the
+	//! items with a given shape family, optionally recursively.
+	//! \return The first item with that shape, or nullptr if nothing found.
+	void getItemsWithShapeFamily(Std::vector<Item *> &itemlist, uint16 family, bool recurse);
 
 	//! Get the weight of the container and its contents
 	//! \return weight
@@ -108,15 +116,13 @@ public:
 
 	void dumpInfo() const override;
 
-	bool loadData(IDataSource *ids, uint32 version);
+	bool loadData(Common::ReadStream *rs, uint32 version);
+	void saveData(Common::WriteStream *ws) override;
 
 	INTRINSIC(I_removeContents);
 	INTRINSIC(I_destroyContents);
 
 protected:
-	//! save Container data
-	void saveData(ODataSource *ods) override;
-
 	Std::list<Item *> _contents;
 };
 

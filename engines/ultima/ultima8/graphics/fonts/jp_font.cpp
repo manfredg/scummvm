@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,27 +15,21 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/graphics/fonts/jp_font.h"
 #include "ultima/ultima8/graphics/fonts/shape_font.h"
-#include "ultima/ultima8/graphics/shape.h"
 #include "ultima/ultima8/graphics/shape_frame.h"
 #include "ultima/ultima8/graphics/fonts/jp_rendered_text.h"
-#include "ultima/ultima8/misc/encoding.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(JPFont, Font)
-
-
-JPFont::JPFont(ShapeFont *jpfont, unsigned int fontnum_)
-	: _fontNum(fontnum_), _shapeFont(jpfont) {
+JPFont::JPFont(ShapeFont *jpfont, unsigned int fontnum)
+	: _fontNum(fontnum), _shapeFont(jpfont) {
 	assert(_shapeFont->frameCount() > 256);
 }
 
@@ -80,10 +74,10 @@ void JPFont::getStringSize(const Std::string &text, int32 &width, int32 &height)
 }
 
 void JPFont::getTextSize(const Std::string &text,
-                         int32 &resultwidth, int32 &resultheight,
-                         unsigned int &remaining,
-                         int32 width, int32 height, TextAlign align,
-                         bool u8specials) {
+						 int32 &resultwidth, int32 &resultheight,
+						 unsigned int &remaining,
+						 int32 width, int32 height, TextAlign align,
+						 bool u8specials) {
 	Std::list<PositionedText> tmp;
 	tmp = typesetText<SJISTraits>(this, text, remaining,
 	                              width, height, align, u8specials,
@@ -91,10 +85,10 @@ void JPFont::getTextSize(const Std::string &text,
 }
 
 RenderedText *JPFont::renderText(const Std::string &text,
-                                 unsigned int &remaining,
-                                 int32 width, int32 height, TextAlign align,
-                                 bool u8specials,
-                                 Std::string::size_type cursor) {
+								 unsigned int &remaining,
+								 int32 width, int32 height, TextAlign align,
+								 bool u8specials,
+								 Std::string::size_type cursor) {
 	int32 resultwidth, resultheight;
 	Std::list<PositionedText> lines;
 	lines = typesetText<SJISTraits>(this, text, remaining,

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -70,7 +69,7 @@ int Hugo::loadres(HUGO_FILE infile, int reslen, int type) {
 		reslen -= n;
 	}
 
-	glk_stream_close(stream, NULL);
+	glk_stream_close(stream, nullptr);
 
 	return idVal;
 }
@@ -79,51 +78,6 @@ int Hugo::hugo_hasgraphics() {
 	/* Returns true if the current display is capable of graphics display */
 	return glk_gestalt(gestalt_Graphics, 0)
 		&& glk_gestalt(gestalt_DrawImage, glk_window_get_type(mainwin));
-}
-
-int Hugo::hugo_displaypicture(HUGO_FILE infile, long reslen) {
-	int idVal;
-
-	/* Ignore the call if the current window is set elsewhere. */
-	if (currentwin != NULL && currentwin != mainwin)
-	{
-		hugo_fclose(infile);
-		return false;
-	}
-
-	idVal = loadres(infile, reslen, PIC);
-	if (idVal < 0)
-	{
-		hugo_fclose(infile);
-		return false;
-	}
-
-#if 0
-	/* Get picture width and height for scaling. */
-	glui32 width, height;
-	if (glk_image_get_info(idVal, &width, &height))
-	{
-		/* Scale large images. */
-		if (width > PIC_MAX_WIDTH)
-		{
-			height = height * PIC_MAX_WIDTH / width;
-			width = PIC_MAX_WIDTH;
-		}
-		if (height > PIC_MAX_HEIGHT)
-		{
-			width = width * PIC_MAX_HEIGHT / height;
-			height = PIC_MAX_HEIGHT;
-		}
-	}
-#endif
-
-	hugo_fclose(infile);
-
-	/* Draw, then move cursor down to the next line. */
-	glk_image_draw(mainwin, idVal, imagealign_InlineUp, 0);
-	glk_put_char('\n');
-
-	return true;
 }
 
 void Hugo::initsound() {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,9 +24,10 @@
 namespace BladeRunner {
 
 AIScriptDeskClerk::AIScriptDeskClerk(BladeRunnerEngine *vm) : AIScriptBase(vm) {
-	_flag1 = false;
-	_flag2 = false;
-	_var3 = 75;
+	// _varChooseIdleAnimation can have valid values: 0, 1
+	_varChooseIdleAnimation = 0;
+	_resumeIdleAfterFramesetCompletesFlag = false;
+	_varNumOfTimesToHoldCurrentFrame = 75;
 }
 
 void AIScriptDeskClerk::Initialize() {
@@ -36,9 +36,9 @@ void AIScriptDeskClerk::Initialize() {
 	_animationStateNext = 0;
 	_animationNext = 0;
 
-	_flag1 = false;
-	_flag2 = false;
-	_var3 = 75;
+	_varChooseIdleAnimation = 0;
+	_resumeIdleAfterFramesetCompletesFlag = false;
+	_varNumOfTimesToHoldCurrentFrame = 75;
 	Actor_Set_Goal_Number(kActorDeskClerk, kGoalDeskClerkDefault);
 }
 
@@ -129,6 +129,7 @@ bool AIScriptDeskClerk::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 		_animationState = 0;
 #endif // BLADERUNNER_ORIGINAL_BUGS
 		break;
+
 	case kGoalDeskClerkKnockedOut:
 		// fall through
 	case kGoalDeskClerkGone:
@@ -143,9 +144,10 @@ bool AIScriptDeskClerk::UpdateAnimation(int *animation, int *frame) {
 
 #if BLADERUNNER_ORIGINAL_BUGS
 #else
-	// Fixing a bug for when the Clerk gets stuck in animation id 668, after Act 3:
+	// Fixing a bug for when the Clerk gets stuck in animation id kModelAnimationDeskClerkIsHeldUpByLeonIdle (668), after Act 3:
 	//	- when using HDFRAMES, the clerk will briefly be in the choking animation when McCoy re-enters
-	//	- when using CDFRAMES, the game would crash with a message "Unable to locate page 2214 for animation 668 frame 4!"
+	//	- when using CDFRAMES, the game would crash with a message:
+	//   "Unable to locate page 2214 for animation 668 frame 4!"
 	// This occurs when:
 	//	 The player walks out too fast from the scene where Leon is choking the clerk in Act 3.
 	//   Hence, Leon's AI script's OtherAgentExitedThisSet() is triggered, Leon is gone,
@@ -161,7 +163,7 @@ bool AIScriptDeskClerk::UpdateAnimation(int *animation, int *frame) {
 	    && _animationState >= 6
 	) {
 		Actor_Change_Animation_Mode(kActorDeskClerk, kAnimationModeIdle);
-		*animation = 661;
+		*animation = kModelAnimationDeskClerkReadPaperIdle;
 		_animationFrame = 0;
 		_animationState = 0;
 	}
@@ -169,42 +171,40 @@ bool AIScriptDeskClerk::UpdateAnimation(int *animation, int *frame) {
 
 	switch (_animationState) {
 	case 0:
-		if (_flag1) {
-			*animation = 662;
+		if (_varChooseIdleAnimation > 0) {
+			*animation = kModelAnimationDeskClerkReadPaperChangePageIdle;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(662)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationDeskClerkReadPaperChangePageIdle)) {
 				_animationFrame = 0;
-				_flag1 = false;
-				*animation = 661;
-				_var3 = Random_Query(50, 100);
+				_varChooseIdleAnimation = 0;
+				*animation = kModelAnimationDeskClerkReadPaperIdle;
+				_varNumOfTimesToHoldCurrentFrame = Random_Query(50, 100);
 			}
 		} else {
-			if (_var3 != 0) {
-				--_var3;
+			if (_varNumOfTimesToHoldCurrentFrame != 0) {
+				--_varNumOfTimesToHoldCurrentFrame;
 			}
 
-			*animation = 661;
+			*animation = kModelAnimationDeskClerkReadPaperIdle;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(661)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationDeskClerkReadPaperIdle)) {
 				_animationFrame = 0;
 
-				if (_var3 == 0) {
-					*animation = 662;
-					_flag1 = true;
+				if (_varNumOfTimesToHoldCurrentFrame == 0) {
+					*animation = kModelAnimationDeskClerkReadPaperChangePageIdle;
+					_varChooseIdleAnimation = 1;
 				}
 			}
 		}
 		break;
 
 	case 1:
-		*animation = 663;
+		*animation = kModelAnimationDeskClerkReadPaperCalmTalk;
 
-		if (_animationFrame == 0
-		 && _flag2
-		) {
-			*animation = 661;
+		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
+			*animation = kModelAnimationDeskClerkReadPaperIdle;
 			_animationState = 0;
-			_flag1 = false;
+			_varChooseIdleAnimation = 0;
 		} else {
 			++_animationFrame;
 			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(*animation)) {
@@ -214,61 +214,59 @@ bool AIScriptDeskClerk::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 2:
-		*animation = 664;
+		*animation = kModelAnimationDeskClerkReadPaperMoreCalmTalk;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(664)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationDeskClerkReadPaperMoreCalmTalk)) {
 			_animationFrame = 0;
 			_animationState = 1;
-			*animation = 663;
+			*animation = kModelAnimationDeskClerkReadPaperCalmTalk;
 		}
 		break;
 
 	case 3:
-		*animation = 665;
+		*animation = kModelAnimationDeskClerkReadPaperMoveLeftTalk;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(665)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationDeskClerkReadPaperMoveLeftTalk)) {
 			_animationFrame = 0;
 			_animationState = 1;
-			*animation = 663;
+			*animation = kModelAnimationDeskClerkReadPaperCalmTalk;
 		}
 		break;
 
 	case 4:
-		*animation = 666;
+		*animation = kModelAnimationDeskClerkReadPaperSlightClosePaperTalk;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(666)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationDeskClerkReadPaperSlightClosePaperTalk)) {
 			_animationFrame = 0;
 			_animationState = 1;
-			*animation = 663;
+			*animation = kModelAnimationDeskClerkReadPaperCalmTalk;
 		}
 		break;
 
 	case 5:
-		*animation = 667;
+		*animation = kModelAnimationDeskClerkReadPaperMoreClosePaperTalk;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(667)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationDeskClerkReadPaperMoreClosePaperTalk)) {
 			_animationFrame = 0;
 			_animationState = 1;
-			*animation = 663;
+			*animation = kModelAnimationDeskClerkReadPaperCalmTalk;
 		}
 		break;
 
 	case 6:
-		*animation = 668;
+		*animation = kModelAnimationDeskClerkIsHeldUpByLeonIdle;
 		++_animationFrame;
-		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(668)) {
+		if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationDeskClerkIsHeldUpByLeonIdle)) {
 			_animationFrame = 0;
 		}
 		break;
 
 	case 7:
-		*animation = 669;
+		*animation = kModelAnimationDeskClerkFallingAfterLeonLetsGo;
 
-		if (_animationFrame == 0
-		 && _flag2
-		) {
+		if (_animationFrame == 0 && _resumeIdleAfterFramesetCompletesFlag) {
 			Actor_Change_Animation_Mode(kActorDeskClerk, 72);
-			*animation = 668;
+			*animation = kModelAnimationDeskClerkIsHeldUpByLeonIdle;
 			_animationState = 6;
 		} else {
 			++_animationFrame;
@@ -279,13 +277,13 @@ bool AIScriptDeskClerk::UpdateAnimation(int *animation, int *frame) {
 		break;
 
 	case 8:
-		*animation = 670;
+		*animation = kModelAnimationDeskClerkHeadSmashedOnCounter;
 		++_animationFrame;
-		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(670) - 2) {
+		if (_animationFrame > Slice_Animation_Query_Number_Of_Frames(kModelAnimationDeskClerkHeadSmashedOnCounter) - 2) {
 			Ambient_Sounds_Play_Sound(kSfxZUBLAND1, 40, 30, 30, 99);
 			Actor_Set_Goal_Number(kActorDeskClerk, kGoalDeskClerkKnockedOut);
 			Actor_Change_Animation_Mode(kActorDeskClerk, kAnimationModeIdle);
-			*animation = 661;
+			*animation = kModelAnimationDeskClerkReadPaperIdle;
 			_animationFrame = 0;
 			_animationState = 0;
 		}
@@ -306,11 +304,15 @@ bool AIScriptDeskClerk::ChangeAnimationMode(int mode) {
 			break;
 
 		case 1:
+			// fall through
 		case 2:
+			// fall through
 		case 3:
+			// fall through
 		case 4:
+			// fall through
 		case 5:
-			_flag2 = true;
+			_resumeIdleAfterFramesetCompletesFlag = true;
 			break;
 
 		case 6:
@@ -320,8 +322,8 @@ bool AIScriptDeskClerk::ChangeAnimationMode(int mode) {
 		default:
 			_animationState = 0;
 			_animationFrame = 0;
-			_flag1 = false;
-			_var3 = Random_Query(70, 140);
+			_varChooseIdleAnimation = 0;
+			_varNumOfTimesToHoldCurrentFrame = Random_Query(70, 140);
 			break;
 		}
 		break;
@@ -329,31 +331,31 @@ bool AIScriptDeskClerk::ChangeAnimationMode(int mode) {
 	case kAnimationModeTalk:
 		_animationState = 1;
 		_animationFrame = 0;
-		_flag2 = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case 12:
 		_animationState = 2;
 		_animationFrame = 0;
-		_flag2 = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case 13:
 		_animationState = 3;
 		_animationFrame = 0;
-		_flag2 = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case 14:
 		_animationState = 4;
 		_animationFrame = 0;
-		_flag2 = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case 15:
 		_animationState = 5;
 		_animationFrame = 0;
-		_flag2 = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case 26:
@@ -364,7 +366,7 @@ bool AIScriptDeskClerk::ChangeAnimationMode(int mode) {
 	case 58:
 		_animationState = 7;
 		_animationFrame = 0;
-		_flag2 = false;
+		_resumeIdleAfterFramesetCompletesFlag = false;
 		break;
 
 	case 72:

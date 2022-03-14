@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -164,10 +163,24 @@ reg_t kDoCdAudio(EngineState *s, int argc, reg_t *argv) {
  * This is the SCI16 version; SCI32 is handled separately.
  */
 reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
-	// JonesCD uses different functions based on the cdaudio.map file
-	// to use red book tracks.
-	if (g_sci->_features->usesCdTrack())
-		return kDoCdAudio(s, argc, argv);
+	// JonesCD and Mothergoose256 CD use different functions
+	// based on the cdaudio.map file to use red book tracks.
+	if (g_sci->_features->usesCdTrack()) {
+		if (g_sci->getGameId() == GID_MOTHERGOOSE256) {
+			// The CD audio version of Mothergoose256 CD is unique with a
+			// custom interpreter for its audio. English is only in the CD
+			// audio track while the other four languages are only in audio
+			// resource files. This is transparent to the scripts which are
+			// the same in all versions. The interpreter detected when
+			// English was selected and used CD audio in that case.
+			if (g_sci->getSciLanguage() == K_LANG_ENGLISH &&
+				argv[0].toUint16() != kSciAudioLanguage) {
+				return kDoCdAudio(s, argc, argv);
+			}
+		} else {
+			return kDoCdAudio(s, argc, argv);
+		}
+	}
 
 	Audio::Mixer *mixer = g_system->getMixer();
 
@@ -178,6 +191,9 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 		uint32 number;
 
 		g_sci->_audio->stopAudio();
+		// In SSCI, kDoAudio handles all samples, even if started by kDoSound.
+		// We manage samples started by kDoSound in SoundCommandParser.
+		g_sci->_soundCmd->stopAllSamples();
 
 		if (argc == 2) {
 			module = 65535;
@@ -188,17 +204,13 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 			         ((argv[3].toUint16() & 0xff) << 16) |
 			         ((argv[4].toUint16() & 0xff) <<  8) |
 			          (argv[5].toUint16() & 0xff);
-			// Removed warning because of the high amount of console spam
-			/*if (argc == 8) {
-				// TODO: Handle the extra 2 SCI21 params
-				// argv[6] is always 1
-				// argv[7] is the contents of global 229 (0xE5)
-				warning("kDoAudio: Play called with SCI2.1 extra parameters: %04x:%04x and %04x:%04x",
-						PRINT_REG(argv[6]), PRINT_REG(argv[7]));
-			}*/
 		} else {
 			warning("kDoAudio: Play called with an unknown number of parameters (%d)", argc);
 			return NULL_REG;
+		}
+
+		if (argv[0].toUint16() == kSciAudioPlay) {
+			g_sci->_audio->incrementPlayCounter();
 		}
 
 		debugC(kDebugLevelSound, "kDoAudio: play sample %d, module %d", number, module);
@@ -212,6 +224,9 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 	case kSciAudioStop:
 		debugC(kDebugLevelSound, "kDoAudio: stop");
 		g_sci->_audio->stopAudio();
+		// In SSCI, kDoAudio handles all samples, even if started by kDoSound.
+		// We manage samples started by kDoSound in SoundCommandParser.
+		g_sci->_soundCmd->stopAllSamples();
 		break;
 	case kSciAudioPause:
 		debugC(kDebugLevelSound, "kDoAudio: pause");
@@ -262,21 +277,23 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 				g_sci->getResMan()->setAudioLanguage(language);
 
 			kLanguage kLang = g_sci->getSciLanguage();
+			if (g_sci->_features->usesCdTrack() && language == K_LANG_ENGLISH) {
+				// Mothergoose 256 CD has a multi-lingual version with English only on CD audio,
+				// so setAudioLanguage() will fail because there are no English resource files.
+				// The scripts cycle through languages to test which are available for the main
+				// menu, so setting English must succeed. This was handled by a custom interpreter.
+				kLang = K_LANG_ENGLISH;
+			}
 			g_sci->setSciLanguage(kLang);
 
 			return make_reg(0, kLang);
 		}
 		break;
 	case kSciAudioCD:
+		debugC(kDebugLevelSound, "kDoAudio: CD audio subop");
+		return kDoCdAudio(s, argc - 1, argv + 1);
 
-		if (getSciVersion() <= SCI_VERSION_1_1) {
-			debugC(kDebugLevelSound, "kDoAudio: CD audio subop");
-			return kDoCdAudio(s, argc - 1, argv + 1);
-		}
-		// fall through
-		// FIXME: fall through intended?
-
-		// 3 new subops in Pharkas CD (including CD demo). kDoAudio in Pharkas sits at seg026:038C
+	// 3 new subops in Pharkas CD (including CD demo). kDoAudio in Pharkas sits at seg026:038C
 	case 11:
 		// Not sure where this is used yet
 		warning("kDoAudio: Unhandled case 11, %d extra arguments passed", argc - 1);
@@ -293,22 +310,24 @@ reg_t kDoAudio(EngineState *s, int argc, reg_t *argv) {
 		// more explicit.
 
 		return make_reg(0, 1);
-		break;
 	case 13:
-		// SSCI returns a serial number for the played audio
-		// here, used in the PointsSound class. The reason is severalfold:
-
-		// 1. SSCI does not support multiple wave effects at once
-		// 2. FPFP may disable its icon bar during the points sound.
-		// 3. Each new sound preempts any sound already playing.
-		// 4. If the points sound is interrupted before completion,
-		// the icon bar could remain disabled.
-
-		// Since points (1) and (3) do not apply to us, we can simply
-		// return a constant here. This is equivalent to the
-		// old behavior, as above.
-		return make_reg(0, 1);
-		break;
+		// SSCI returns a counter that increments each time a sample
+		//  is played. This is used by the PointsSound and Narrator
+		//  classes to detect if their sound was interrupted by
+		//  another sample playing, since only one can play at a time.
+		//  The counter is incremented on each kDoAudio(Play) and on
+		//  each kDoSound(Play) when the sound is a sample, since SSCI
+		//  just passes those on to kDoAudio.
+		//
+		// When awarding points, the icon bar is often disabled, and
+		//  PointsSound:check polls its signal to detect when the
+		//  sound is completed so that it can re-enable the icon bar.
+		//  If the sound is interrupted by another sample then the icon
+		//  bar could remain permanently disabled, so the play counter
+		//  is stored before playing and PointsSound:check polls for
+		//  a change. The Narrator class also does this to detect
+		//  if speech was interrupted so that the game can continue.
+		return make_reg(0, g_sci->_audio->getPlayCounter());
 	case 17:
 		// Seems to be some sort of audio sync, used in SQ6. Silenced the
 		// warning due to the high level of spam it produces. (takes no params)
@@ -374,7 +393,7 @@ reg_t kDoAudioWaitForPlay(EngineState *s, int argc, reg_t *argv) {
 		}
 	}
 
-	return g_sci->_audio32->kernelPlay(false, argc, argv);
+	return g_sci->_audio32->kernelPlay(false, s, argc, argv);
 }
 
 reg_t kDoAudioPlay(EngineState *s, int argc, reg_t *argv) {
@@ -382,23 +401,23 @@ reg_t kDoAudioPlay(EngineState *s, int argc, reg_t *argv) {
 		return make_reg(0, g_sci->_audio32->getNumActiveChannels());
 	}
 
-	return g_sci->_audio32->kernelPlay(true, argc, argv);
+	return g_sci->_audio32->kernelPlay(true, s, argc, argv);
 }
 
 reg_t kDoAudioStop(EngineState *s, int argc, reg_t *argv) {
-	return g_sci->_audio32->kernelStop(argc, argv);
+	return g_sci->_audio32->kernelStop(s, argc, argv);
 }
 
 reg_t kDoAudioPause(EngineState *s, int argc, reg_t *argv) {
-	return g_sci->_audio32->kernelPause(argc, argv);
+	return g_sci->_audio32->kernelPause(s, argc, argv);
 }
 
 reg_t kDoAudioResume(EngineState *s, int argc, reg_t *argv) {
-	return g_sci->_audio32->kernelResume(argc, argv);
+	return g_sci->_audio32->kernelResume(s, argc, argv);
 }
 
 reg_t kDoAudioPosition(EngineState *s, int argc, reg_t *argv) {
-	return g_sci->_audio32->kernelPosition(argc, argv);
+	return g_sci->_audio32->kernelPosition(s, argc, argv);
 }
 
 reg_t kDoAudioRate(EngineState *s, int argc, reg_t *argv) {
@@ -413,7 +432,7 @@ reg_t kDoAudioRate(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoAudioVolume(EngineState *s, int argc, reg_t *argv) {
-	return g_sci->_audio32->kernelVolume(argc, argv);
+	return g_sci->_audio32->kernelVolume(s, argc, argv);
 }
 
 reg_t kDoAudioGetCapability(EngineState *s, int argc, reg_t *argv) {
@@ -455,7 +474,7 @@ reg_t kDoAudioPreload(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoAudioFade(EngineState *s, int argc, reg_t *argv) {
-	return g_sci->_audio32->kernelFade(argc, argv);
+	return g_sci->_audio32->kernelFade(s, argc, argv);
 }
 
 reg_t kDoAudioHasSignal(EngineState *s, int argc, reg_t *argv) {
@@ -463,25 +482,30 @@ reg_t kDoAudioHasSignal(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDoAudioSetLoop(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_audio32->kernelLoop(argc, argv);
+	g_sci->_audio32->kernelLoop(s, argc, argv);
 	return s->r_acc;
 }
 
 reg_t kDoAudioPan(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_audio32->kernelPan(argc, argv);
+	g_sci->_audio32->kernelPan(s, argc, argv);
 	return s->r_acc;
 }
 
 reg_t kDoAudioPanOff(EngineState *s, int argc, reg_t *argv) {
-	g_sci->_audio32->kernelPanOff(argc, argv);
+	g_sci->_audio32->kernelPanOff(s, argc, argv);
 	return s->r_acc;
 }
 
 reg_t kSetLanguage(EngineState *s, int argc, reg_t *argv) {
 	// Used by script 90 of MUMG Deluxe from the main menu to toggle between
-	// English and Spanish.
+	// English and Spanish in some versions and English and Spanish and
+	// French and German in others.
 	const Common::String audioDirectory = s->_segMan->getString(argv[0]);
-	g_sci->getResMan()->changeAudioDirectory(audioDirectory);
+	if (g_sci->getPlatform() == Common::kPlatformMacintosh) {
+		g_sci->getResMan()->changeMacAudioDirectory(audioDirectory);
+	} else {
+		g_sci->getResMan()->changeAudioDirectory(audioDirectory);
+	}
 	return s->r_acc;
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -127,20 +126,9 @@ size_t writeString16(FILE *fp, const char *string) {
 	return written;
 }
 
-template<typename T, size_t (*Tf)(FILE *fp, T), typename U, size_t (*Uf)(FILE *fp, U)>
-size_t writeArray(FILE *fp, T const *array, U elems) {
-	size_t written = 0;
-	written += Uf(fp, elems);
-	for (U i = 0; i < elems; i++) {
-		written += Tf(fp, array[i]);
-	}
-	return written;
-}
-
 size_t writeString16Array16(FILE *fp, char const *const *array, uint16 elems) {
 	return writeArray<char const *, writeString16, uint16, writeUint16LE>(fp, array, elems);
 }
-
 
 //#define DEBUG
 static const char padBuf[PADDING_ALIGNMENT] = {

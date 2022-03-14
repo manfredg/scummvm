@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -2138,7 +2137,11 @@ void Scene7700::Object8::doAction(int action) {
 			scene->_object14.fixPriority(250);
 			scene->_object14.setPosition(Common::Point(139, 151));
 
-			scene->_gfxButton.setText(EXIT_MSG);
+			if (g_vm->getLanguage() == Common::ES_ESP) {
+				scene->_gfxButton.setText(ESP_EXIT_MSG);
+			} else {
+				scene->_gfxButton.setText(EXIT_MSG);
+			}
 			scene->_gfxButton._bounds.center(140, 189);
 			scene->_gfxButton.draw();
 
@@ -2151,7 +2154,11 @@ void Scene7700::Object8::doAction(int action) {
 			scene->_object15.setPosition(Common::Point(140, 165));
 			scene->_object15.fixPriority(200);
 
-			scene->_gfxButton.setText(EXIT_MSG);
+			if (g_vm->getLanguage() == Common::ES_ESP) {
+				scene->_gfxButton.setText(ESP_EXIT_MSG);
+			} else {
+				scene->_gfxButton.setText(EXIT_MSG);
+			}
 			scene->_gfxButton._bounds.center(140, 186);
 			scene->_gfxButton.draw();
 			scene->_gfxButton._bounds.expandPanes();

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,10 +31,8 @@ namespace Ultima8 {
 class Debugger;
 class Process;
 class idMan;
-class IDataSource;
-class ODataSource;
 
-typedef Process *(*ProcessLoadFunc)(IDataSource *, uint32 version);
+typedef Process *(*ProcessLoadFunc)(Common::ReadStream *rs, uint32 version);
 typedef Std::list<Process *>::const_iterator ProcessIter;
 typedef Std::list<Process *>::iterator ProcessIterator;
 
@@ -58,7 +55,6 @@ public:
 	//! \return pid of process
 	ProcId addProcessExec(Process *proc);
 
-	void removeProcess(Process *proc);
 	void runProcesses();
 	Process *getProcess(ProcId pid);
 
@@ -98,8 +94,8 @@ public:
 	void kernelStats();
 	void processTypes();
 
-	void save(ODataSource *ods);
-	bool load(IDataSource *ids, uint32 version);
+	void save(Common::WriteStream *ws);
+	bool load(Common::ReadStream *rs, uint32 version);
 
 	void pause() {
 		_paused++;
@@ -124,24 +120,34 @@ public:
 	}
 
 	uint32 getFrameNum() const {
-		return _frameNum;
+		return _tickNum / TICKS_PER_FRAME;
 	};
+	uint32 getTickNum() const {
+		return _tickNum;
+	};
+
+	static const uint32 TICKS_PER_FRAME;
+	static const uint32 TICKS_PER_SECOND;
+	static const uint32 FRAMES_PER_SECOND;
+
+	// A special process type which means kill all the processes.
+	static const uint16 PROC_TYPE_ALL;
 
 	INTRINSIC(I_getNumProcesses);
 	INTRINSIC(I_resetRef);
 private:
-	Process *loadProcess(IDataSource *ids, uint32 version);
+	Process *loadProcess(Common::ReadStream *rs, uint32 version);
 
 	Std::list<Process *> _processes;
 	idMan   *_pIDs;
 
-	Std::list<Process *>::iterator current_process;
+	Std::list<Process *>::iterator _currentProcess;
 
 	Std::map<Common::String, ProcessLoadFunc> _processLoaders;
 
 	bool _loading;
 
-	uint32 _frameNum;
+	uint32 _tickNum;
 	unsigned int _paused;
 	bool _frameByFrame;
 
@@ -150,23 +156,10 @@ private:
 	static Kernel *_kernel;
 };
 
-// a bit of a hack to prevent having to write a load function for
-// every process
-template<class T>
-struct ProcessLoader {
-	static Process *load(IDataSource *ids, uint32 version) {
-		T *p = new T();
-		bool ok = p->loadData(ids, version);
-		if (!ok) {
-			delete p;
-			p = 0;
-		}
-		return p;
-	}
-};
 
-
+extern const uint U8_RAND_MAX;
 extern uint getRandom();
+
 
 } // End of namespace Ultima8
 } // End of namespace Ultima

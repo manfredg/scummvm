@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,6 +43,9 @@ class AdPath;
 class AdScaleLevel;
 class AdRotLevel;
 class AdPathPoint;
+#ifdef ENABLE_WME3D
+class AdSceneGeometry;
+#endif
 class AdScene : public BaseObject {
 public:
 
@@ -52,6 +54,21 @@ public:
 	bool getSceneObjects(BaseArray<AdObject *> &objects, bool interactiveOnly);
 	bool getRegionObjects(AdRegion *region, BaseArray<AdObject *> &objects, bool interactiveOnly);
 
+#ifdef ENABLE_WME3D
+	uint32 _ambientLightColor;
+	TShadowType _maxShadowType;
+
+	void setMaxShadowType(TShadowType shadowType);
+
+	bool _2DPathfinding;
+	float _waypointHeight;
+
+	float _fov;
+	float _nearPlane;
+	float _farPlane;
+
+	FogParameters _fogParameters;
+#endif
 	bool afterLoad();
 
 	bool getRegionsAt(int x, int y, AdRegion **regionList, int numRegions);
@@ -123,6 +140,10 @@ public:
 	BaseArray<AdLayer *> _layers;
 	BaseArray<AdObject *> _objects;
 	BaseArray<AdWaypointGroup *> _waypointGroups;
+#ifdef ENABLE_WME3D
+	AdSceneGeometry* _sceneGeometry;
+	bool _showGeometry;
+#endif
 	bool loadFile(const char *filename);
 	bool loadBuffer(char *buffer, bool complete = true);
 	int32 _width;

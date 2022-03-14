@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -86,7 +85,7 @@ static void d_listroom() {
 }
 
 #define SEPLENG 27  /* Width between beginning of object column and
-               location column */
+			   location column */
 
 static void d_listnoun() {
 	int i;
@@ -249,7 +248,7 @@ static void edit_str() {
 	char buff[10];
 	char *tmpstr;
 
-	if (MAX_USTR == 0 || userstr == NULL) {
+	if (MAX_USTR == 0 || userstr == nullptr) {
 		writeln("This game doesn't contain any user strings");
 		return;
 	}

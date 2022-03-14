@@ -1,25 +1,33 @@
 MODULE := engines/groovie
 
 MODULE_OBJS := \
-	cell.o \
+	logic/cell.o \
+	video/player.o \
+	video/vdx.o \
 	cursor.o \
 	debug.o \
-	detection.o \
 	font.o \
 	graphics.o \
 	groovie.o \
 	lzss.o \
+	metaengine.o \
 	music.o \
-	player.o \
 	resource.o \
 	saveload.o \
-	script.o \
-	stuffit.o \
-	vdx.o
+	script.o
 
 ifdef ENABLE_GROOVIE2
 MODULE_OBJS += \
-	roq.o
+	logic/beehive.o \
+	logic/cake.o \
+	logic/gallery.o \
+	logic/mousetrap.o \
+	logic/othello.o \
+	logic/pente.o \
+	logic/tlcgame.o \
+	logic/triangle.o \
+	logic/winerack.o \
+	video/roq.o
 endif
 
 # This module can be built as a plugin
@@ -29,3 +37,6 @@ endif
 
 # Include common rules
 include $(srcdir)/rules.mk
+
+# Detection objects
+DETECT_OBJS += $(MODULE)/detection.o

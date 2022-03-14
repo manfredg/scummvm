@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -87,11 +86,7 @@ PrinceEngine::PrinceEngine(OSystem *syst, const PrinceGameDescription *gameDesc)
 	_shanLen(0), _directionTable(nullptr), _currentMidi(0), _lightX(0), _lightY(0), _curveData(nullptr), _curvPos(0),
 	_creditsData(nullptr), _creditsDataSize(0), _currentTime(0), _zoomBitmap(nullptr), _shadowBitmap(nullptr), _transTable(nullptr),
 	_flcFrameSurface(nullptr), _shadScaleValue(0), _shadLineLen(0), _scaleValue(0), _dialogImage(nullptr), _mobTranslationData(nullptr),
-	_mobTranslationSize(0) {
-
-	// Debug/console setup
-	DebugMan.addDebugChannel(DebugChannel::kScript, "script", "Prince Script debug channel");
-	DebugMan.addDebugChannel(DebugChannel::kEngine, "engine", "Prince Engine debug channel");
+	_mobTranslationSize(0), _missingVoice(false) {
 
 	DebugMan.enableDebugChannel("script");
 
@@ -99,8 +94,6 @@ PrinceEngine::PrinceEngine(OSystem *syst, const PrinceGameDescription *gameDesc)
 }
 
 PrinceEngine::~PrinceEngine() {
-	DebugMan.clearAllDebugChannels();
-
 	delete _rnd;
 	delete _cursor1;
 	delete _cursor3;
@@ -777,7 +770,7 @@ void PrinceEngine::leftMouseButton() {
 						if (!text._str) {
 							continue;
 						}
-						text._str = 0;
+						text._str = nullptr;
 						text._time = 0;
 					}
 				}

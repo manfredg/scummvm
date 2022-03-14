@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,9 @@ struct SaveFileHeader {
 class SaveFileManager {
 private:
 	static const uint32 kTag = MKTAG('B', 'R', 'S', 'V');
-	static const uint32 kVersion = 3; // kVersion: 3 as of Feb 5th 2020 (UTC) - ScummVM development version 2.2.0git
+	// kVersion: 3 as of Feb 5th 2020 (UTC) - ScummVM development version 2.2.0git
+	// kVersion: 4 as of Apr 17th 2021 - Added full-size thumbnails
+	static const uint32 kVersion = 4;
 
 public:
 	// kVersion
@@ -71,8 +72,8 @@ public:
 	static const uint32 kNameLength    = 41;
 	static const uint32 kThumbnailSize = 9600; // 80x60x16bpp
 
-	static SaveStateList list(const Common::String &target);
-	static SaveStateDescriptor queryMetaInfos(const Common::String &target, int slot);
+	static SaveStateList list(const MetaEngine *metaEngine, const Common::String &target);
+	static SaveStateDescriptor queryMetaInfos(const MetaEngine *metaEngine, const Common::String &target, int slot);
 
 	static Common::InSaveFile *openForLoading(const Common::String &target, int slot);
 	static Common::OutSaveFile *openForSaving(const Common::String &target, int slot);
@@ -93,7 +94,7 @@ public:
 
 	uint32 write(const void *dataPtr, uint32 dataSize) override { return _s.write(dataPtr, dataSize); }
 	bool flush() override { return _s.flush(); }
-	int32 pos() const override { return _s.pos(); }
+	int64 pos() const override { return _s.pos(); }
 
 	void debug(char *p);
 
@@ -118,9 +119,9 @@ public:
 
 	bool eos() const override { return _s.eos(); }
 	uint32 read(void *dataPtr, uint32 dataSize) override { return _s.read(dataPtr, dataSize); }
-	int32 pos() const override { return _s.pos(); }
-	int32 size() const override { return _s.size(); }
-	bool seek(int32 offset, int whence = SEEK_SET) override { return _s.seek(offset, whence); }
+	int64 pos() const override { return _s.pos(); }
+	int64 size() const override { return _s.size(); }
+	bool seek(int64 offset, int whence = SEEK_SET) override { return _s.seek(offset, whence); }
 
 	int32 readInt();
 	float readFloat();

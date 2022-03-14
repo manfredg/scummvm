@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,15 @@
 #include "common/winexe.h"
 
 namespace Common {
+
+/**
+ * @defgroup common_winexe_ne Windows New Executable resources
+ * @ingroup common_winexe
+ *
+ * @brief API for managing Windows New Executable resources.
+ *
+ * @{
+ */
 
 template<class T> class Array;
 class SeekableReadStream;
@@ -50,13 +58,19 @@ public:
 	using WinResources::loadFromEXE;
 
 	/** Load from a stream. */
-	bool loadFromEXE(SeekableReadStream *stream);
+	bool loadFromEXE(SeekableReadStream *stream, DisposeAfterUse::Flag disposeFileHandle = DisposeAfterUse::YES);
 
 	/** Return a list of resources for a given type. */
 	const Array<WinResourceID> getIDList(const WinResourceID &type) const;
 
 	/** Return a stream to the specified resource (or 0 if non-existent). */
 	SeekableReadStream *getResource(const WinResourceID &type, const WinResourceID &id);
+
+	/** Get a string from a string resource. */
+	String loadString(uint32 stringID);
+
+protected:
+	VersionInfo *parseVersionInfo(SeekableReadStream *stream);
 
 private:
 	/** A resource. */
@@ -74,6 +88,7 @@ private:
 	};
 
 	SeekableReadStream *_exe;        ///< Current file.
+	DisposeAfterUse::Flag _disposeFileHandle;
 
 	/** All resources. */
 	List<Resource> _resources;
@@ -89,6 +104,8 @@ private:
 	/** Read a resource string. */
 	static String getResourceString(SeekableReadStream &exe, uint32 offset);
 };
+
+/** @} */
 
 } // End of namespace Common
 

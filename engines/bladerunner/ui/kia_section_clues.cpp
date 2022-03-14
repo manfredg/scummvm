@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -146,7 +145,7 @@ void KIASectionClues::draw(Graphics::Surface &surface) {
 		_vm->_mainFont->drawString(&surface, text, 490, 442, surface.w, surface.format.RGBToColor(136, 168, 255));
 
 		int assetType = _vm->_crimesDatabase->getAssetType(clueId);
-		if (assetType != -1) {
+		if (assetType != kClueTypeIntangible) {
 			text = _vm->_textClueTypes->getText(assetType);
 		} else {
 			text.clear();
@@ -287,7 +286,7 @@ void KIASectionClues::populateFilters() {
 		if (_clues->isAcquired(clueId)) {
 			int assetType = _vm->_crimesDatabase->getAssetType(clueId);
 			int crimeId = _vm->_crimesDatabase->getCrime(clueId);
-			if (_debugIntangible || assetType != -1) {
+			if (_debugIntangible || assetType != kClueTypeIntangible) {
 				availableFilters[getLineIdForAssetType(assetType)] = true;
 				availableFilters[getLineIdForCrimeId(crimeId)] = true;
 			}
@@ -387,14 +386,26 @@ void KIASectionClues::populateClues() {
 		if (_clues->isAcquired(clueId)) {
 			int assetType = _vm->_crimesDatabase->getAssetType(clueId);
 			int crimeId = _vm->_crimesDatabase->getCrime(clueId);
-			if (assetType != -1 || _debugIntangible) {
+			if (assetType != kClueTypeIntangible || _debugIntangible) {
 				if (_filters[getLineIdForAssetType(assetType)] && _filters[getLineIdForCrimeId(crimeId)]) {
 					int flags = 0x30;
+#if BLADERUNNER_ORIGINAL_BUGS
 					if (_clues->isPrivate(clueId)) {
 						flags = 0x08;
 					} else if (_clues->isViewed(clueId)) {
 						flags = 0x10;
 					}
+#else
+					if (_clues->isPrivate(clueId)) {
+						flags |= 0x08;
+					}
+					if (_clues->isViewed(clueId)) {
+						flags &= ~0x20;
+					}
+					if (_vm->_cutContent && _clues->isSharedWithMainframe(clueId)) {
+						flags |= 0x40;
+					}
+#endif // BLADERUNNER_ORIGINAL_BUGS
 					_cluesScrollBox->addLine(_vm->_crimesDatabase->getClueText(clueId), clueId, flags);
 				}
 			}

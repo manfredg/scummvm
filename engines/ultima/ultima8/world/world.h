@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -57,6 +56,7 @@
 //  game data need this, actually.)
 
 #include "ultima/ultima8/misc/common_types.h"
+#include "ultima/ultima8/usecode/intrinsics.h"
 #include "ultima/shared/std/containers.h"
 
 namespace Ultima {
@@ -64,8 +64,6 @@ namespace Ultima8 {
 
 class Map;
 class CurrentMap;
-class IDataSource;
-class ODataSource;
 class Actor;
 class MainActor;
 class Flex;
@@ -90,10 +88,10 @@ public:
 	void initMaps();
 
 	//! load U8's nonfixed.dat into the Maps
-	void loadNonFixed(IDataSource *ds); // delete ds afterwards
+	void loadNonFixed(Common::SeekableReadStream *rs); // delete ds afterwards
 
 	//! load U8's itemcach.dat, npcdata.dat into the world
-	void loadItemCachNPCData(IDataSource *itemcach, IDataSource *npcdata);
+	void loadItemCachNPCData(Common::SeekableReadStream *itemcach, Common::SeekableReadStream *npcdata);
 
 	//! get the CurrentMap
 	CurrentMap *getCurrentMap() const {
@@ -129,24 +127,71 @@ public:
 	void worldStats() const;
 
 	//! save the Maps in World.
-	void saveMaps(ODataSource *ods);
+	void saveMaps(Common::WriteStream *ws);
 
 	//! load Maps
-	bool loadMaps(IDataSource *ids, uint32 version);
+	bool loadMaps(Common::ReadStream *rs, uint32 version);
 
 	//! save the rest of the World data (ethereal items, current map number).
-	void save(ODataSource *ods);
+	void save(Common::WriteStream *ws);
 
 	//! load World data
-	bool load(IDataSource *ids, uint32 version);
+	bool load(Common::ReadStream *rs, uint32 version);
+
+	bool isAlertActive() const {
+		return _alertActive;
+	}
+
+	void setAlertActive(bool active);
+
+	uint8 getGameDifficulty() const {
+		return _difficulty;
+	}
+
+	void setGameDifficulty(uint8 difficulty);
+
+	uint16 getControlledNPCNum() const {
+		return _controlledNPCNum;
+	}
+	void setControlledNPCNum(uint16 num);
+
+	uint32 getVargasShield() const {
+		return _vargasShield;
+	}
+	void setVargasShield(uint32 val) {
+		_vargasShield = val;
+	}
+
+	INTRINSIC(I_getAlertActive); // for Crusader
+	INTRINSIC(I_setAlertActive); // for Crusader
+	INTRINSIC(I_clrAlertActive); // for Crusader
+	INTRINSIC(I_gameDifficulty); // for Crusader
+	INTRINSIC(I_getControlledNPCNum); // for Crusader
+	INTRINSIC(I_setControlledNPCNum); // for Crusader
+	INTRINSIC(I_resetVargasShield); // for Crusader: No Remorse
 
 private:
+
+	void setAlertActiveRemorse(bool active);
+	void setAlertActiveRegret(bool active);
+
 	static World *_world;
 
 	Std::vector<Map *> _maps;
 	CurrentMap *_currentMap;
 
 	Std::list<ObjId> _ethereal;
+
+	bool _alertActive; //!< is intruder alert active (Crusader)
+	uint8 _difficulty; //!< game difficulty level (Crusader)
+	uint16 _controlledNPCNum; //!< Current controlled NPC (normally 1, the avatar)
+	/**
+	 * Special varaible for Vargas' shield in No Remorse, which is remembered separately.
+	 *
+	 * Starts at 5000 and can be reset to 500 by an intrinsic function.
+	 */
+	uint32 _vargasShield;
+
 };
 
 } // End of namespace Ultima8

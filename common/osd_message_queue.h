@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,10 +25,19 @@
 #include "common/events.h"
 #include "common/singleton.h"
 #include "common/str.h"
+#include "common/ustr.h"
 #include "common/queue.h"
 #include "common/mutex.h"
 
 namespace Common {
+
+/**
+ * @defgroup common_osd_message_queue OSD message queue
+ * @ingroup common
+ *
+ * @brief API for managing the queue of On Screen Display (OSD) messages.
+ * @{
+ */
 
 /**
  * Queue OSD messages from any thread to be displayed by the graphic thread.
@@ -48,7 +56,7 @@ public:
 	/**
 	 * Add a message to the OSD message queue.
 	 */
-	void addMessage(const char *msg);
+	void addMessage(const Common::U32String &msg);
 
 	/**
 	 * Common::EventSource interface
@@ -59,13 +67,15 @@ public:
 	 *
 	 * The periodical polling is used to update the OSD messages.
 	 */
-	virtual bool pollEvent(Common::Event &event) override;
+	bool pollEvent(Common::Event &event) override;
 
 private:
 	Mutex _mutex;
-	Queue<String> _messages;
+	Queue<U32String> _messages;
 	uint32 _lastUpdate;
 };
+
+/** @} */
 
 } // End of namespace Common
 

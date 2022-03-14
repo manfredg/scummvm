@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -46,12 +45,19 @@ void Subtitles::loadSubtitles() {
 		// first subtitle into separate lines to allow them to better interleave with the voice
 		Common::String line = f.readString();
 		for (;;) {
-			const char *lineSep = strstr(line.c_str(), "   ");
-			if (!lineSep)
-				break;
+			const char *lineSep;
 
-			_lines.push_back(Common::String(line.c_str(), lineSep));
-			line = Common::String(lineSep + 3);
+			if (Common::RU_RUS == g_vm->getLanguage()) {
+				lineSep = strstr(line.c_str(), ".");
+				if (!lineSep) break;
+				_lines.push_back(Common::String(line.c_str(), lineSep + 1) + "   ");
+				line = Common::String(lineSep + 1);
+			} else {
+				lineSep = strstr(line.c_str(), "   ");
+				if (!lineSep) break;
+				_lines.push_back(Common::String(line.c_str(), lineSep));
+				line = Common::String(lineSep + 3);
+			}
 			while (line.hasPrefix(" "))
 				line.deleteChar(0);
 		}
@@ -129,7 +135,11 @@ void Subtitles::show() {
 	} else {
 		if (timeElapsed()) {
 			_lineEnd = (_lineEnd + 1) % _lineSize;
-			int count = MAX(_lineEnd - 40, 0);
+			int count;
+			if (Common::RU_RUS == g_vm->getLanguage())
+				count = MAX(_lineEnd - 36, 0);
+			else
+				count = MAX(_lineEnd - 40, 0);
 
 			// Get the portion of the line to display
 			char buffer[1000];

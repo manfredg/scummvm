@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 /* This code is based on Nine Patch code by Matthew Leverton
@@ -54,6 +53,7 @@ namespace Graphics {
 
 struct TransparentSurface;
 struct Surface;
+class MacWindowManager;
 
 struct NinePatchMark {
 	int offset;
@@ -71,8 +71,9 @@ public:
 	NinePatchSide() : _fix(0) { _m.clear(); }
 	~NinePatchSide();
 
-	bool init(Graphics::TransparentSurface *bmp, bool vertical);
-	void calcOffsets(int len);
+	bool init(Graphics::TransparentSurface *bmp, bool vertical, int titlePos = 0, int *titleIndex = nullptr);
+
+	void calcOffsets(int len, int titleIndex = 0, int titleWidth = 0);
 };
 
 class NinePatchBitmap {
@@ -82,19 +83,24 @@ class NinePatchBitmap {
 	bool _destroy_bmp;
 	int _width, _height;
 	int _cached_dw, _cached_dh;
+	int _titleIndex, _titleWidth, _titlePos;
 	Common::HashMap<uint32, int> _cached_colors;
 
 public:
-	NinePatchBitmap(Graphics::TransparentSurface *bmp, bool owns_bitmap);
+	NinePatchBitmap(Graphics::TransparentSurface *bmp, bool owns_bitmap, int titlePos = 0);
 	~NinePatchBitmap();
 
-	void blit(Graphics::Surface &target, int dx, int dy, int dw, int dh, byte *palette = NULL, int numColors = 0);
+	void blit(Graphics::Surface &target, int dx, int dy, int dw, int dh, byte *palette = NULL, int numColors = 0, MacWindowManager *wm = NULL, uint32 transColor = 0);
 	void blitClip(Graphics::Surface &target, Common::Rect clip, int dx, int dy, int dw, int dh);
+	void modifyTitleWidth(int titleWidth);
 
 	int getWidth() { return _width; }
 	int getHeight() { return _height; }
 	int getMinWidth() { return _h._fix; }
 	int getMinHeight() { return _v._fix; }
+	int getTitleWidth() { return _titleWidth; }
+	// always call it after you calc the offset, such as after you call blit, then you will get the right offset
+	int getTitleOffset();
 	Graphics::TransparentSurface *getSource() { return _bmp; }
 	Common::Rect &getPadding() { return _padding; }
 

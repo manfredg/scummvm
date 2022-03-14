@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,13 +23,14 @@
 #include "glk/quetzal.h"
 #include "common/config-manager.h"
 #include "common/translation.h"
+#include "common/ustr.h"
 
 namespace Glk {
 namespace Scott {
 
 Scott::Scott(OSystem *syst, const GlkGameDescription &gameDesc) : GlkAPI(syst, gameDesc),
 		_currentCounter(0), _savedRoom(0), _options(0), _width(0), _topHeight(0), _splitScreen(true),
-		_bottomWindow(0), _topWindow(0), _bitFlags(0), _saveSlot(-1) {
+		_bottomWindow(nullptr), _topWindow(nullptr), _bitFlags(0), _saveSlot(-1) {
 	Common::fill(&_nounText[0], &_nounText[16], '\0');
 	Common::fill(&_counters[0], &_counters[16], 0);
 	Common::fill(&_roomSaved[0], &_roomSaved[16], 0);
@@ -40,7 +40,7 @@ void Scott::runGame() {
 	int vb, no;
 	initialize();
 
-	_bottomWindow = glk_window_open(0, 0, 0, wintype_TextBuffer, 1);
+	_bottomWindow = glk_window_open(nullptr, 0, 0, wintype_TextBuffer, 1);
 	if (_bottomWindow == nullptr) {
 		glk_exit();
 		return;
@@ -164,6 +164,18 @@ void Scott::display(winid_t w, const char *fmt, ...) {
 	va_end(ap);
 
 	glk_put_string_stream(glk_window_get_stream(w), msg.c_str());
+}
+
+void Scott::display(winid_t w, const Common::U32String fmt, ...) {
+	Common::U32String msg;
+
+	va_list ap;
+
+	va_start(ap, fmt);
+	Common::U32String::vformat(fmt.begin(), fmt.end(), msg, ap);
+	va_end(ap);
+
+	glk_put_string_stream_uni(glk_window_get_stream(w), msg.u32_str());
 }
 
 void Scott::delay(int seconds) {
@@ -385,13 +397,18 @@ void Scott::output(const Common::String &a) {
 		display(_bottomWindow, "%s", a.c_str());
 }
 
+void Scott::output(const Common::U32String &a) {
+	if (_saveSlot == -1)
+		display(_bottomWindow, Common::U32String("%S"), a.c_str());
+}
+
 void Scott::outputNumber(int a) {
 	display(_bottomWindow, "%d", a);
 }
 
 void Scott::look(void) {
 	const char *const ExitNames[6] = {
-		_("North"), _("South"), _("East"), _("West"), _("Up"), _("Down")
+		_s("North"), _s("South"), _s("East"), _s("West"), _s("Up"), _s("Down")
 	};
 	Room *r;
 	int ct, f;
@@ -429,7 +446,7 @@ void Scott::look(void) {
 				f = 1;
 			else
 				display(_topWindow, ", ");
-			display(_topWindow, "%s", ExitNames[ct]);
+			display(_topWindow, Common::U32String("%S"), _(ExitNames[ct]).c_str());
 		}
 		ct++;
 	}

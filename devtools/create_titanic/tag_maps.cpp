@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
  // Disable symbol overrides so that we can use system headers.
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
-
-// HACK to allow building with the SDL backend on MinGW
-// see bug #1800764 "TOOLS: MinGW tools building broken"
-#ifdef main
-#undef main
-#endif // main
 
 #include "file.h"
 #include "tag_maps.h"
@@ -650,7 +643,7 @@ static const TagMapping LIFTBOT_MAP_DE[119] = {
 	{ 0x46d47, 0x07536 }, { 0x46d4a, 0x3360c }, { 0x46d4e, 0x337fc },
 	{ 0x46d50, 0x337fd }, { 0x46d56, 0x33800 }, { 0x46d58, 0x33694 },
 	{ 0x46dc2, 0x337f3 }, { 0x46dc6, 0x337fb }, { 0x46dc7, 0x337f9 },
-	{ 0x46dca, 0x33802 }, { 0x46dd3, 0x33775 } 
+	{ 0x46dca, 0x33802 }, { 0x46dd3, 0x33775 }
 };
 
 #define MAITRED_COUNT_DE 105
@@ -693,14 +686,14 @@ static const TagMapping MAITRED_MAP_DE[105] = {
 };
 
 void writeTagMappings(const char *name, const TagMapping *map, int count) {
-	outputFile.seek(dataOffset);
+	outputFile->seek(dataOffset);
 
 	for (int idx = 0; idx < count; ++idx, ++map) {
-		outputFile.writeLong(map->_src);
-		outputFile.writeLong(map->_dest);
+		outputFile->writeLong(map->_src);
+		outputFile->writeLong(map->_dest);
 	}
 
-	uint size = outputFile.size() - dataOffset;
+	uint size = outputFile->size() - dataOffset;
 	writeEntryHeader(name, dataOffset, size);
 	dataOffset += size;
 }

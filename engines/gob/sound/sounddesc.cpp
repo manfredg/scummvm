@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,9 +32,9 @@
 namespace Gob {
 
 SoundDesc::SoundDesc() {
-	_resource = 0;
+	_resource = nullptr;
 
-	_data = _dataPtr = 0;
+	_data = _dataPtr = nullptr;
 	_size = 0;
 
 	_type = SOUND_SND;
@@ -73,7 +72,7 @@ void SoundDesc::set(SoundType type, byte *data, uint32 dSize) {
 }
 
 void SoundDesc::set(SoundType type, Resource *resource) {
-	byte *data = 0;
+	byte *data = nullptr;
 	uint32 dSize = 0;
 
 	if (resource && (resource->getSize() > 0)) {
@@ -117,14 +116,14 @@ bool SoundDesc::load(SoundType type, Resource *resource) {
 void SoundDesc::free() {
 	if (_resource) {
 		delete _resource;
-		_data = 0;
+		_data = nullptr;
 	}
 
 	delete[] _data;
 
-	_resource = 0;
-	_data = 0;
-	_dataPtr = 0;
+	_resource = nullptr;
+	_data = nullptr;
+	_dataPtr = nullptr;
 	_id = 0;
 }
 
@@ -174,7 +173,7 @@ bool SoundDesc::loadWAV(byte *data, uint32 dSize) {
 	byte wavFlags;
 	uint16 wavtype;
 
-	if (!Audio::loadWAVFromStream(stream, wavSize, wavRate, wavFlags, &wavtype, 0))
+	if (!Audio::loadWAVFromStream(stream, wavSize, wavRate, wavFlags, &wavtype, nullptr))
 		return false;
 
 	if (wavFlags & Audio::FLAG_16BITS) {

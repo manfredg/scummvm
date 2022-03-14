@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,16 +23,18 @@
 #include "cryo/platdefs.h"
 #include "cryo/cryolib.h"
 #include "cryo/eden.h"
-#include "cryo/sound.h"
 #include "cryo/eden_graphics.h"
-#include "cryo/video.h"
+
+#include "graphics/conversion.h"
+#include "graphics/palette.h"
+#include "video/hnm_decoder.h"
 
 namespace Cryo {
 
-EdenGraphics::EdenGraphics(EdenGame *game, HnmPlayer *video) : _game(game), _video(video) {
+EdenGraphics::EdenGraphics(EdenGame *game) : _game(game) {
 	_glowH = _glowW = _glowY = _glowX = 0;
 	_showVideoSubtitle = false;
-	_showBlackBars = false;	
+	_showBlackBars = false;
 	_mainView = nullptr;
 	_mainViewBuf = nullptr;
 	_hnmView = nullptr;
@@ -45,6 +46,29 @@ EdenGraphics::EdenGraphics(EdenGame *game, HnmPlayer *video) : _game(game), _vid
 	_subtitlesView = nullptr;
 	_underBarsView = nullptr;
 	_needToFade = false;
+	_eff2pat = 0;
+	
+	_savedUnderSubtitles = false;
+	_underSubtitlesViewBuf = nullptr;
+	_hnmViewBuf = nullptr;
+	_hnmFrameNum = 0;
+	_videoCanceledFlag = false;
+
+	for (int i = 0; i < 256; ++i) {
+		_globalPalette[i].a = _globalPalette[i].r = _globalPalette[i].g = _globalPalette[i].b = 0;
+		_oldPalette[i].a = _oldPalette[i].r = _oldPalette[i].g = _oldPalette[i].b = 0;
+		_newPalette[i].a = _newPalette[i].r = _newPalette[i].g = _newPalette[i].b = 0; 
+	}
+
+	_newColor.r = _newColor.g = _newColor.b = 0;
+}
+
+EdenGraphics::~EdenGraphics() {
+	delete _underBarsView;
+	delete _view2;
+	delete _subtitlesView;
+	delete _underSubtitlesView;
+	delete _mainView;
 }
 
 void EdenGraphics::SendPalette2Screen(int16 value) {
@@ -208,25 +232,25 @@ void EdenGraphics::loadMouthRectFromCurChar() {
 void EdenGraphics::paneltobuf() {
 	setSrcRect(0, 16, 320 - 1, 169 - 1);
 	setDestRect(320, 16, 640 - 1, 169 - 1);
-	CLBlitter_CopyViewRect(getMainView(), getMainView(), &_rect_src, &_rect_dst);	
+	CLBlitter_CopyViewRect(getMainView(), getMainView(), &_rect_src, &_rect_dst);
 }
 
 void EdenGraphics::cursbuftopanel() {
 	setSrcRect(434, 40, 525 - 1, 111 - 1);
 	setDestRect(114, 40, 205 - 1, 111 - 1);
-	CLBlitter_CopyViewRect(getMainView(), getMainView(), &_rect_src, &_rect_dst);	
+	CLBlitter_CopyViewRect(getMainView(), getMainView(), &_rect_src, &_rect_dst);
 }
 
 void EdenGraphics::langbuftopanel() {
 	setSrcRect(328, 42, 407 - 1, 97 - 1);
 	setDestRect(8, 42,  87 - 1, 97 - 1);
-	CLBlitter_CopyViewRect(getMainView(), getMainView(), &_rect_src, &_rect_dst);	
+	CLBlitter_CopyViewRect(getMainView(), getMainView(), &_rect_src, &_rect_dst);
 }
 
 // Original name: sauvefondbouche
 void EdenGraphics::saveMouthBackground() {
 	loadMouthRectFromCurChar();
-	CLBlitter_CopyViewRect(getMainView(), getMainView(), &_rect_src, &_rect_dst);	
+	CLBlitter_CopyViewRect(getMainView(), getMainView(), &_rect_src, &_rect_dst);
 }
 
 // Original name: restaurefondbouche
@@ -262,7 +286,7 @@ void EdenGraphics::sundcurs(int16 x, int16 y) {
 			*keep++ = *scr++;
 		scr += 640 - 48;
 	}
-	_game->setCursorSaved(true);;
+	_game->setCursorSaved(true);
 }
 
 void EdenGraphics::rundcurs() {
@@ -790,7 +814,7 @@ View *EdenGraphics::getUnderBarsView() {
 }
 
 void EdenGraphics::openWindow() {
-	_underBarsView = new View(320, 40); //TODO: Who deletes these?
+	_underBarsView = new View(320, 40);
 	_underBarsView->_normal._width = 320;
 
 	_view2 = new View(32, 32);
@@ -864,17 +888,16 @@ void EdenGraphics::displayEffect1() {
 
 // Original name: effet2
 void EdenGraphics::displayEffect2() {
-	static int16 pattern1[] = { 0, 1, 2, 3, 7, 11, 15, 14, 13, 12, 8, 4, 5, 6, 10, 9 };
-	static int16 pattern2[] = { 0, 15, 1, 14, 2, 13, 3, 12, 7, 8, 11, 4, 5, 10, 6, 9 };
-	static int16 pattern3[] = { 0, 2, 5, 7, 8, 10, 13, 15, 1, 3, 4, 6, 9, 11, 12, 14 };
-	static int16 pattern4[] = { 0, 3, 15, 12, 1, 7, 14, 8, 2, 11, 13, 4, 5, 6, 10, 9 };
+	static const int16 pattern1[] = { 0, 1, 2, 3, 7, 11, 15, 14, 13, 12, 8, 4, 5, 6, 10, 9 };
+	static const int16 pattern2[] = { 0, 15, 1, 14, 2, 13, 3, 12, 7, 8, 11, 4, 5, 10, 6, 9 };
+	static const int16 pattern3[] = { 0, 2, 5, 7, 8, 10, 13, 15, 1, 3, 4, 6, 9, 11, 12, 14 };
+	static const int16 pattern4[] = { 0, 3, 15, 12, 1, 7, 14, 8, 2, 11, 13, 4, 5, 6, 10, 9 };
 
-	static int eff2pat = 0;
 	if (_game->_globals->_var103 == 69) {
 		displayEffect4();
 		return;
 	}
-	switch (++eff2pat) {
+	switch (++_eff2pat) {
 	case 1:
 		colimacon(pattern1);
 		break;
@@ -887,7 +910,7 @@ void EdenGraphics::displayEffect2() {
 	case 4:
 	default:
 		colimacon(pattern4);
-		eff2pat = 0;
+		_eff2pat = 0;
 		break;
 	}
 }
@@ -1005,7 +1028,7 @@ void EdenGraphics::clearScreen() {
 	CLBlitter_UpdateScreen();
 }
 
-void EdenGraphics::colimacon(int16 pattern[16]) {
+void EdenGraphics::colimacon(const int16 pattern[16]) {
 	int16 p, r27, r25;
 
 	int16 ww = _game->_vm->_screenView->_pitch;
@@ -1167,21 +1190,40 @@ void EdenGraphics::effetpix() {
 
 ////// film.c
 // Original name: showfilm
-void EdenGraphics::showMovie(char arg1) {
-	_video->readHeader();
-	if (_game->_globals->_curVideoNum == 92) {
-		// _hnmContext->_header._unusedFlag2 = 0; CHECKME: Useless?
-		_game->setVolume(0);
+void EdenGraphics::showMovie(int16 num, char arg1) {
+	Common::SeekableReadStream *stream = _game->loadSubStream(num - 1 + 485);
+	if (!stream) {
+		warning("Could not load movie %d", num);
+		return;
 	}
 
-	if (_video->getVersion() != 4)
-		return;
+	int16 j = 0;
+	color_t palette16[256];
+	byte *palette = new byte[256 * 3];
+	CLPalette_GetLastPalette(palette16);
+	for (int16 i = 0; i < 256; i++) {
+		palette[j++] = palette16[i].r >> 8;
+		palette[j++] = palette16[i].g >> 8;
+		palette[j++] = palette16[i].b >> 8;
+	}
 
-	bool playing = true;
-	_video->allocMemory();
-	_hnmView = new View(_video->_header._width, _video->_header._height);
+	Video::VideoDecoder *decoder = new Video::HNMDecoder(false, palette);
+	if (!decoder->loadStream(stream)) {
+		warning("Could not load movie %d", num);
+		delete decoder;
+		delete stream;
+		return;
+	}
+
+	if (_game->_globals->_curVideoNum == 92) {
+		decoder->setVolume(0);
+	}
+
+	decoder->start();
+
+	_hnmView = new View(decoder->getWidth(), decoder->getHeight());
 	_hnmView->setSrcZoomValues(0, 0);
-	_hnmView->setDisplayZoomValues(_video->_header._width * 2, _video->_header._height * 2);
+	_hnmView->setDisplayZoomValues(decoder->getWidth() * 2, decoder->getHeight() * 2);
 	_hnmView->centerIn(_game->_vm->_screenView);
 	_hnmViewBuf = _hnmView->_bufferPtr;
 	if (arg1) {
@@ -1190,15 +1232,30 @@ void EdenGraphics::showMovie(char arg1) {
 		_hnmView->_normal._dstTop = _mainView->_normal._dstTop + 16;
 		_hnmView->_zoom._dstTop = _mainView->_zoom._dstTop + 32;
 	}
-	_video->setFinalBuffer(_hnmView->_bufferPtr);
+
 	do {
-		_hnmFrameNum = _video->getFrameNum();
-		_video->waitLoop();
-		playing = _video->nextElement();
+		if (decoder->needsUpdate()) {
+			const Graphics::Surface *frame = decoder->decodeNextFrame();
+			if (frame) {
+				Graphics::copyBlit(_hnmView->_bufferPtr, (const byte *)frame->getPixels(), _hnmView->_pitch, frame->pitch, frame->w, frame->h, 1);
+			}
+			if (decoder->hasDirtyPalette()) {
+				const byte *framePalette = decoder->getPalette();
+				for (int i = 0; i < 256; i++) {
+					palette16[i].r = framePalette[(i * 3) + 0] << 8;
+					palette16[i].g = framePalette[(i * 3) + 1] << 8;
+					palette16[i].b = framePalette[(i * 3) + 2] << 8;
+				}
+				CLBlitter_Send2ScreenNextCopy(palette16, 0, 256);
+			}
+		}
+		_hnmFrameNum = decoder->getCurFrame();
+
 		if (_game->getSpecialTextMode())
 			handleHNMSubtitles();
 		else
 			_game->musicspy();
+
 		CLBlitter_CopyView2Screen(_hnmView);
 		assert(_game->_vm->_screenView->_pitch == 320);
 		_game->_vm->pollEvents();
@@ -1213,9 +1270,12 @@ void EdenGraphics::showMovie(char arg1) {
 			else
 				_game->setMouseNotHeld();
 		}
-	} while (playing && !_videoCanceledFlag);
+
+		g_system->delayMillis(10);
+	} while (!_game->_vm->shouldQuit() && !decoder->endOfVideo() && !_videoCanceledFlag);
+
 	delete _hnmView;
-	_video->deallocMemory();
+	delete decoder;
 }
 
 bool EdenGraphics::getShowBlackBars() {
@@ -1247,20 +1307,20 @@ void EdenGraphics::playHNM(int16 num) {
 	}
 	_showVideoSubtitle = false;
 	_videoCanceledFlag = false;
-	_game->loadHnm(num);
-	_video->reset();
+
 	if (_needToFade) {
 		fadeToBlack(4);
 		clearScreen();
 		_needToFade = false;
 	}
 	if (num == 2012 || num == 98 || num == 171)
-		showMovie(0);
+		showMovie(num, 0);
 	else
-		showMovie(1);
+		showMovie(num, 1);
+
 	_cursKeepPos = Common::Point(-1, -1);
 	if (_game->getSpecialTextMode()) {
-		_game->setMusicFade(3);;
+		_game->setMusicFade(3);
 		_game->musicspy();
 		_game->_globals->_characterPtr = perso;
 		_game->_globals->_dialogType = oldDialogType;
@@ -1289,7 +1349,7 @@ void EdenGraphics::initGlobals() {
 	_underSubtitlesBackupRect.top = 0;
 	_underSubtitlesBackupRect.left = _subtitlesXScrMargin;
 	_underSubtitlesBackupRect.right = _subtitlesXScrMargin + _subtitlesXWidth - 1;
-	_underSubtitlesBackupRect.bottom = 60 - 1;	
+	_underSubtitlesBackupRect.bottom = 60 - 1;
 }
 
 // Original name: sauvefondbulle
@@ -1336,7 +1396,7 @@ void EdenGraphics::handleHNMSubtitles() {
 #define SUB_LINE(start, end) \
 	(start), (end) | 0x8000
 
-	static uint16 kFramesVid170[] = {
+	static const uint16 kFramesVid170[] = {
 		SUB_LINE(68, 120),
 		SUB_LINE(123, 196),
 		SUB_LINE(199, 274),
@@ -1356,13 +1416,13 @@ void EdenGraphics::handleHNMSubtitles() {
 		0xFFFF
 	};
 
-	static uint16 kFramesVid83[] = {
+	static const uint16 kFramesVid83[] = {
 		SUB_LINE(99, 155),
 		SUB_LINE(157, 256),
 		0xFFFF
 	};
 
-	static uint16 kFramesVid88[] = {
+	static const uint16 kFramesVid88[] = {
 		SUB_LINE(106, 173),
 		SUB_LINE(175, 244),
 		SUB_LINE(246, 350),
@@ -1370,7 +1430,7 @@ void EdenGraphics::handleHNMSubtitles() {
 		0xFFFF
 	};
 
-	static uint16 kFramesVid89[] = {
+	static const uint16 kFramesVid89[] = {
 		SUB_LINE(126, 176),
 		SUB_LINE(178, 267),
 		SUB_LINE(269, 342),
@@ -1380,7 +1440,7 @@ void EdenGraphics::handleHNMSubtitles() {
 		0xFFFF
 	};
 
-	static uint16 kFramesVid94[] = {
+	static const uint16 kFramesVid94[] = {
 		SUB_LINE(101, 213),
 		SUB_LINE(215, 353),
 		SUB_LINE(355, 455),
@@ -1392,7 +1452,7 @@ void EdenGraphics::handleHNMSubtitles() {
 
 #undef SUB_LINE
 
-	uint16 *frames = nullptr;
+	const uint16 *frames = nullptr;
 	perso_t *perso = nullptr;
 
 	switch (_game->_globals->_curVideoNum) {
@@ -1420,7 +1480,7 @@ void EdenGraphics::handleHNMSubtitles() {
 	assert(perso  != nullptr);
 	assert(frames != nullptr);
 
-	uint16 *frames_start = frames;
+	const uint16 *frames_start = frames;
 	uint16 frame;
 	while ((frame = *frames++) != 0xFFFF) {
 		if ((frame & ~0x8000) == _hnmFrameNum)

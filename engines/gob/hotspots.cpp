@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,7 +48,7 @@ Hotspots::Hotspot::Hotspot(uint16 i,
 	funcEnter = enter;
 	funcLeave = leave;
 	funcPos   = pos;
-	script    = 0;
+	script    = nullptr;
 }
 
 void Hotspots::Hotspot::clear() {
@@ -63,7 +62,7 @@ void Hotspots::Hotspot::clear() {
 	funcEnter = 0;
 	funcLeave = 0;
 	funcPos   = 0;
-	script    = 0;
+	script    = nullptr;
 }
 
 Hotspots::Type Hotspots::Hotspot::getType() const {
@@ -1331,7 +1330,7 @@ void Hotspots::evaluateNew(uint16 i, uint16 *ids, InputDesc *inputs,
 
 	int16 key   = 0;
 	int16 flags = 0;
-	Font *font = 0;
+	Font *font = nullptr;
 	uint32 funcEnter = 0, funcLeave = 0;
 
 	if ((windowNum != 0) && (type != 0) && (type != 2))
@@ -1387,7 +1386,7 @@ void Hotspots::evaluateNew(uint16 i, uint16 *ids, InputDesc *inputs,
 		inputs[inputCount].backColor  = _vm->_game->_script->readByte();
 		inputs[inputCount].frontColor = _vm->_game->_script->readByte();
 		inputs[inputCount].length     = 0;
-		inputs[inputCount].str        = 0;
+		inputs[inputCount].str        = nullptr;
 
 		if ((type >= kTypeInput2NoLeave) && (type <= kTypeInput3Leave)) {
 			inputs[inputCount].length = _vm->_game->_script->readUint16();
@@ -1579,7 +1578,7 @@ void Hotspots::evaluate() {
 
 	_vm->_game->_script->skip(6);
 
-	setCurrentHotspot(0, 0);
+	setCurrentHotspot(nullptr, 0);
 
 	bool finishedDuration = false;
 
@@ -1642,7 +1641,7 @@ void Hotspots::evaluate() {
 		if (_hotspots[index].funcEnter != 0)
 			call(_hotspots[index].funcEnter);
 
-		setCurrentHotspot(0, 0);
+		setCurrentHotspot(nullptr, 0);
 		id = 0;
 	}
 
@@ -1765,7 +1764,7 @@ void Hotspots::oPlaytoons_F_1B() {
 	shortId = _vm->_game->_script->readValExpr();
 	var2 = _vm->_game->_script->readValExpr();
 
-	_vm->_game->_script->evalExpr(0);
+	_vm->_game->_script->evalExpr(nullptr);
 
 	fontIndex = _vm->_game->_script->readValExpr();
 	var4 = _vm->_game->_script->readValExpr();

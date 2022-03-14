@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -112,16 +111,16 @@ bool AIScriptRajif::GoalChanged(int currentGoalNumber, int newGoalNumber) {
 
 bool AIScriptRajif::UpdateAnimation(int *animation, int *frame) {
 	if (_animationState <= 1) {
-		if (_animationState) {
-			*animation = 751;
+		if (_animationState > 0) {
+			*animation = kModelAnimationRajifWithGunIdle;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(751)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationRajifWithGunIdle)) {
 				_animationFrame = 0;
 			}
 		} else { // bug in original. Both branches are equal
-			*animation = 751;
+			*animation = kModelAnimationRajifWithGunIdle;
 			++_animationFrame;
-			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(751)) {
+			if (_animationFrame >= Slice_Animation_Query_Number_Of_Frames(kModelAnimationRajifWithGunIdle)) {
 				_animationFrame = 0;
 			}
 		}

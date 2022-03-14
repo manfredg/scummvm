@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,15 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "common/config-manager.h"
+#include "common/translation.h"
 
 #include "graphics/macgui/macwindowmanager.h"
 #include "graphics/macgui/macmenu.h"
+
+#include "gui/message.h"
 
 #include "pink/pink.h"
 #include "pink/director.h"
@@ -132,9 +134,12 @@ static void menuCommandsCallback(int action, Common::U32String &, void *data) {
 }
 
 void PinkEngine::initMenu() {
-	_director->getWndManager().setEnginePauseCallback(this, &pauseEngine);
+	_director->getWndManager().setEngine(this);
 
 	_menu = Graphics::MacMenu::createMenuFromPEexe(_exeResources, &_director->getWndManager());
+	if (getLanguage() == Common::HE_ISR) {
+		_menu->setAlignment(Graphics::kTextAlignRight);
+	}
 	_menu->calcDimensions();
 	_menu->setCommandsCallback(&menuCommandsCallback, this);
 }
@@ -155,8 +160,6 @@ void PinkEngine::executeMenuCommand(uint id) {
 
 	case kSaveAction:
 	case kSaveAsAction:
-		//FIXME: Somehow messes up the pause system causing issues such as
-		//frozen animations and BGM disappearing
 		saveGameDialog();
 		break;
 
@@ -212,7 +215,11 @@ void PinkEngine::executeMenuCommand(uint id) {
 		break;
 
 	default:
-		warning("Unprocessed command id %d", id);
+		{
+			GUI::MessageDialog dialog(_("This menu item is not yet implemented"));
+			dialog.runModal();
+			warning("Unprocessed command id %d", id);
+		}
 		break;
 	}
 }
@@ -234,10 +241,12 @@ bool PinkEngine::executePageChangeCommand(uint id) {
 }
 
 void PinkEngine::openLocalWebPage(const Common::String &pageName) const {
-	Common::FSNode gameFolder= Common::FSNode(ConfMan.get("path"));
+	Common::FSNode gameFolder = Common::FSNode(ConfMan.get("path"));
 	Common::FSNode filePath = gameFolder.getChild("INSTALL").getChild(pageName);
-	Common::String fullUrl = Common::String::format("file:///%s", filePath.getPath().c_str());
-	_system->openUrl(fullUrl);
+	if (filePath.exists()) {
+		Common::String fullUrl = Common::String::format("file:///%s", filePath.getPath().c_str());
+		_system->openUrl(fullUrl);
+	}
 }
 
 } // End of namespace Pink

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,7 +42,7 @@ static bool isSaneNodePointer(SegManager *segMan, reg_t addr) {
 				//  there is no previous entry so we get 0 in here
 			} else if ((g_sci->getGameId() == GID_HOYLE1) && (g_sci->getEngineState()->currentRoomNumber() == 3)) {
 				// HOYLE1: after sorting cards in hearts, in the next round
-				// we get an invalid node - bug #3038433
+				// we get an invalid node - bug #5109
 			} else {
 				error("isSaneNodePointer: Node at %04x:%04x wasn't found", PRINT_REG(addr));
 			}

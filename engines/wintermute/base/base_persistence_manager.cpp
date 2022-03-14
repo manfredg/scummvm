@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,7 +35,6 @@
 #include "engines/wintermute/base/gfx/base_image.h"
 #include "engines/wintermute/base/save_thumb_helper.h"
 #include "engines/wintermute/base/sound/base_sound.h"
-#include "graphics/transparent_surface.h"
 #include "engines/wintermute/wintermute.h"
 #include "graphics/scaler.h"
 #include "image/bmp.h"
@@ -44,6 +42,12 @@
 #include "common/str.h"
 #include "common/system.h"
 #include "common/savefile.h"
+
+#ifdef ENABLE_WME3D
+#include "math/angle.h"
+#include "math/matrix4.h"
+#include "math/vector3d.h"
+#endif
 
 namespace Wintermute {
 
@@ -173,11 +177,9 @@ void BasePersistenceManager::getSaveStateDesc(int slot, SaveStateDescriptor &des
 		Image::BitmapDecoder bmpDecoder;
 		if (bmpDecoder.loadStream(thumbStream)) {
 			const Graphics::Surface *bmpSurface = bmpDecoder.getSurface();
-			Graphics::TransparentSurface *scaleableSurface = new Graphics::TransparentSurface(*bmpSurface, false);
-			Graphics::Surface *scaled = scaleableSurface->scale(kThumbnailWidth, kThumbnailHeight2);
+			Graphics::Surface *scaled = bmpSurface->scale(kThumbnailWidth, kThumbnailHeight2);
 			Graphics::Surface *thumb = scaled->convertTo(g_system->getOverlayFormat());
 			desc.setThumbnail(thumb);
-			delete scaleableSurface;
 			scaled->free();
 			delete scaled;
 		}
@@ -820,6 +822,82 @@ bool BasePersistenceManager::transferVector2(const char *name, Vector2 *val) {
 		return STATUS_OK;
 	}
 }
+
+#ifdef ENABLE_WME3D
+//////////////////////////////////////////////////////////////////////////
+// Vector3
+bool BasePersistenceManager::transferVector3d(const char *name, Math::Vector3d *val) {
+	if (_saving) {
+		putFloat(val->x());
+		putFloat(val->y());
+		putFloat(val->z());
+
+		if (_saveStream->err()) {
+			return STATUS_FAILED;
+		}
+
+		return STATUS_OK;
+	} else {
+		val->x() = getFloat();
+		val->y() = getFloat();
+		val->z() = getFloat();
+
+		if (_loadStream->err()) {
+			return STATUS_FAILED;
+		}
+
+		return STATUS_OK;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Matrix4
+bool BasePersistenceManager::transferMatrix4(const char *name, Math::Matrix4 *val) {
+	if (_saving) {
+		for (int r = 0; r < 4; ++r) {
+			for (int c = 0; c < 4; ++c) {
+				putFloat((*val)(r, c));
+			}
+		}
+
+		if (_saveStream->err()) {
+			return STATUS_FAILED;
+		}
+
+		return STATUS_OK;
+	} else {
+		for (int r = 0; r < 4; ++r) {
+			for (int c = 0; c < 4; ++c) {
+				(*val)(r, c) = getFloat();
+			}
+		}
+
+		if (_loadStream->err()) {
+			return STATUS_FAILED;
+		}
+
+		return STATUS_OK;
+	}
+}
+
+bool BasePersistenceManager::transferAngle(const char *name, Math::Angle *val) {
+	if (_saving) {
+		putFloat(val->getDegrees());
+
+		if (_saveStream->err()) {
+			return STATUS_FAILED;
+		}
+	} else {
+		*val = getFloat();
+
+		if (_loadStream->err()) {
+			return STATUS_FAILED;
+		}
+	}
+
+	return STATUS_OK;
+}
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////

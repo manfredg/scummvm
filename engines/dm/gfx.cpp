@@ -1,29 +1,28 @@
 /* ScummVM - Graphic Adventure Engine
-*
-* ScummVM is the legal property of its developers, whose names
-* are too numerous to list here. Please refer to the COPYRIGHT
-* file distributed with this source distribution.
-*
-* This program is free software; you can redistribute it and/or
-* modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2
-* of the License, or (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-*
-*/
+ *
+ * ScummVM is the legal property of its developers, whose names
+ * are too numerous to list here. Please refer to the COPYRIGHT
+ * file distributed with this source distribution.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 /*
-* Based on the Reverse Engineering work of Christophe Fontanel,
-* maintainer of the Dungeon Master Encyclopaedia (http://dmweb.free.fr/)
-*/
+ * Based on the Reverse Engineering work of Christophe Fontanel,
+ * maintainer of the Dungeon Master Encyclopaedia (http://dmweb.free.fr/)
+ */
 
 #include "engines/util.h"
 #include "common/system.h"
@@ -558,7 +557,7 @@ void DisplayMan::initConstants() {
 			for(int c = 0; c < 6; ++c)
 				_wallOrnamentCoordSets[a][b][c] = wallOrnamentCoordSets[a][b][c];
 
-    for(int a = 0; a < 4; ++a)
+	for(int a = 0; a < 4; ++a)
 		for(int b = 0; b < 3; ++b)
 			for(int c = 0; c < 6; ++c)
 				_doorOrnCoordSets[a][b][c] = doorOrnCoordSets[a][b][c];
@@ -703,8 +702,8 @@ void DisplayMan::initializeGraphicData() {
 	_bitmapViewport = new byte[224 * 136]();
 
 	if (!_derivedBitmapByteCount) {
-        _derivedBitmapByteCount = new uint16[k730_DerivedBitmapMaximumCount];
-    }
+		_derivedBitmapByteCount = new uint16[k730_DerivedBitmapMaximumCount];
+	}
 	if (!_derivedBitmaps) {
 		_derivedBitmaps = new byte *[k730_DerivedBitmapMaximumCount];
 		for (uint16 i = 0; i < k730_DerivedBitmapMaximumCount; ++i)
@@ -3806,7 +3805,7 @@ T0115171_BackFromT0115015_DrawProjectileAsObject:;
 					blitToBitmapShrinkWithPalChange(bitmapRedBanana, _tmpBitmap, 48, 32, 48, 32, _palChangeSmoke);
 					bitmapRedBanana = _tmpBitmap;
 				}
-				blitBoxFilledWithMaskedBitmap(bitmapRedBanana, _bitmapViewport, 0, getDerivedBitmap(kDMDerivedBitmapViewport), boxExplosionPatternD0C, _vm->getRandomNumber(4) + 87, _vm->getRandomNumber(64), k112_byteWidthViewport, Color(k0x0080_BlitDoNotUseMask | kDMColorFlesh), 0, 0, 136, 93);
+				blitBoxFilledWithMaskedBitmap(bitmapRedBanana, _bitmapViewport, nullptr, getDerivedBitmap(kDMDerivedBitmapViewport), boxExplosionPatternD0C, _vm->getRandomNumber(4) + 87, _vm->getRandomNumber(64), k112_byteWidthViewport, Color(k0x0080_BlitDoNotUseMask | kDMColorFlesh), 0, 0, 136, 93);
 				addDerivedBitmap(kDMDerivedBitmapViewport);
 				warning("DISABLED CODE: f480_releaseBlock in drawObjectsCreaturesProjectilesExplosions");
 				//f480_releaseBlock(k0_DerivedBitmapViewport | 0x8000);
@@ -3876,7 +3875,7 @@ T0115200_DrawExplosion:
 		}
 	} while ((thingParam = dungeon.getNextThing(thingParam))!= _vm->_thingEndOfList);
 
-	if ((fluxcageExplosion != 0) && (doorFrontViewDrawingPass != 1) && !_doNotDrawFluxcagesDuringEndgame) { /* Fluxcage is an explosion displayed as a field (like teleporters), above all other graphics */
+	if ((fluxcageExplosion != nullptr) && (doorFrontViewDrawingPass != 1) && !_doNotDrawFluxcagesDuringEndgame) { /* Fluxcage is an explosion displayed as a field (like teleporters), above all other graphics */
 		AL_1_viewSquareExplosionIndex -= 3; /* Convert square index for explosions back to square index */
 		FieldAspect fieldAspect = _fieldAspects188[viewSquareIndex];
 		(fieldAspect._nativeBitmapRelativeIndex)++; /* NativeBitmapRelativeIndex is now the index of the Fluxcage field graphic */

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -72,7 +71,7 @@ static const sc_strings_t DEBUG_COMMANDS[] = {
 	{"clearevents", DEBUG_CLEAREVENTS}, {"cleartasks", DEBUG_CLEARTASKS},
 	{"clearvariables", DEBUG_CLEARVARIABLES}, {"watchall", DEBUG_WATCHALL},
 	{"clearall", DEBUG_CLEARALL}, {"random", DEBUG_RANDOM}, {"quit", DEBUG_QUIT},
-	{NULL, DEBUG_NONE}
+	{nullptr, DEBUG_NONE}
 };
 
 /*
@@ -204,7 +203,7 @@ static void debug_finalize(sc_gameref_t game) {
 	sc_free(debug);
 
 	/* Remove the debug reference from the game. */
-	game->debugger = NULL;
+	game->debugger = nullptr;
 }
 
 
@@ -1340,9 +1339,9 @@ static void debug_dump_common(sc_gameref_t game, sc_command_t command,
 
 	/* Initialize variables to avoid gcc warnings. */
 	limit = 0;
-	class_ = NULL;
-	filter_function = NULL;
-	dumper_function = NULL;
+	class_ = nullptr;
+	filter_function = nullptr;
+	dumper_function = nullptr;
 
 	/* Switch to undo game on relevant commands. */
 	switch (command) {
@@ -1405,7 +1404,7 @@ static void debug_dump_common(sc_gameref_t game, sc_command_t command,
 	case DEBUG_VARIABLES:
 	case DEBUG_OLDVARIABLES:
 		class_ = "Variable";
-		filter_function = NULL;
+		filter_function = nullptr;
 		dumper_function = debug_dump_variable;
 		limit = debug_variable_count(game);
 		break;
@@ -1611,8 +1610,8 @@ static void debug_watchpoint_common(sc_gameref_t game, sc_command_t command,
 
 	/* Initialize variables to avoid gcc warnings. */
 	limit = 0;
-	class_ = NULL;
-	watchpoints = NULL;
+	class_ = nullptr;
+	watchpoints = nullptr;
 	action = FALSE;
 
 	/* Set action to TRUE or FALSE, for setting/clearing watchpoints. */
@@ -2484,7 +2483,7 @@ void debug_set_enabled(sc_gameref_t game, sc_bool enable) {
 sc_bool debug_get_enabled(sc_gameref_t game) {
 	const sc_debuggerref_t debug = debug_get_debugger(game);
 
-	return debug != NULL;
+	return debug != nullptr;
 }
 
 } // End of namespace Adrift

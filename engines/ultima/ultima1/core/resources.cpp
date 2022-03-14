@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,8 +64,8 @@ static const char *const SRC_CHAR_GEN_TEXT[14] = {
 		"b) %s\n"
 		"c) %s\n"
 		"d) %s",
-	"a) %s\n"
-		"b) %s",
+	("a) %s\n"
+		"b) %s"),
 	"Select thy race:",
 	"Select thy sex:",
 	"Select thy class:",
@@ -732,7 +731,7 @@ static const char *const SRC_KING_TEXT[12] = {
 /*-------------------------------------------------------------------*/
 
 GameResources::GameResources() : LocalResourceFile("ULTIMA1/DATA") {
-} 
+}
 
 GameResources::GameResources(Shared::Resources *resManager) : LocalResourceFile(resManager, "ULTIMA1/DATA") {
 	Common::copy(SRC_TITLE_MESSAGES, SRC_TITLE_MESSAGES + 13, TITLE_MESSAGES);
@@ -741,14 +740,14 @@ GameResources::GameResources(Shared::Resources *resManager) : LocalResourceFile(
 	Common::copy(SRC_RACE_NAMES, SRC_RACE_NAMES + 4, RACE_NAMES);
 	Common::copy(SRC_SEX_NAMES, SRC_SEX_NAMES + 3, SEX_NAMES);
 	Common::copy(SRC_CLASS_NAMES, SRC_CLASS_NAMES + 4, CLASS_NAMES);
-	Common::copy(SRC_TRANSPORT_NAMES, SRC_TRANSPORT_NAMES + 10, TRANSPORT_NAMES);
+	Common::copy(SRC_TRANSPORT_NAMES, SRC_TRANSPORT_NAMES + 8, TRANSPORT_NAMES);
 	Common::copy(SRC_STAT_NAMES, SRC_STAT_NAMES + 11, STAT_NAMES);
 	Common::copy(SRC_STATUS_TEXT, SRC_STATUS_TEXT + 4, STATUS_TEXT);
 	Common::copy(SRC_DIRECTION_NAMES, SRC_DIRECTION_NAMES + 4, DIRECTION_NAMES);
 	Common::copy(SRC_DUNGEON_MOVES, SRC_DUNGEON_MOVES + 4, DUNGEON_MOVES);
-	Common::copy(SRC_LOCATION_NAMES, SRC_LOCATION_NAMES + 85, LOCATION_NAMES);
-	Common::copy(SRC_LOCATION_X, SRC_LOCATION_X + 84, LOCATION_X);
-	Common::copy(SRC_LOCATION_Y, SRC_LOCATION_Y + 84, LOCATION_Y);
+	Common::copy(SRC_LOCATION_NAMES, SRC_LOCATION_NAMES + LOCATION_COUNT, LOCATION_NAMES);
+	Common::copy(SRC_LOCATION_X, SRC_LOCATION_X + LOCATION_COUNT, LOCATION_X);
+	Common::copy(SRC_LOCATION_Y, SRC_LOCATION_Y + LOCATION_COUNT, LOCATION_Y);
 	Common::copy(&SRC_LOCATION_PEOPLE[0][0], &SRC_LOCATION_PEOPLE[0][0] + 150 * 4, &LOCATION_PEOPLE[0][0]);
 	Common::copy(&SRC_DUNGEON_DRAW_DATA[0], &SRC_DUNGEON_DRAW_DATA[1964], DUNGEON_DRAW_DATA);
 	Common::copy(&SRC_DUNGEON_ITEM_NAMES[0], &SRC_DUNGEON_ITEM_NAMES[2], DUNGEON_ITEM_NAMES);
@@ -883,14 +882,14 @@ void GameResources::synchronize() {
 	syncStrings(RACE_NAMES, 4);
 	syncStrings(SEX_NAMES, 3);
 	syncStrings(CLASS_NAMES, 4);
-	syncStrings(TRANSPORT_NAMES, 10);
+	syncStrings(TRANSPORT_NAMES, 8);
 	syncStrings(STAT_NAMES, 11);
 	syncStrings(STATUS_TEXT, 4);
 	syncStrings(DIRECTION_NAMES, 4);
 	syncStrings(DUNGEON_MOVES, 4);
 	syncStrings(LOCATION_NAMES, LOCATION_COUNT);
-	syncBytes(LOCATION_X, 84);
-	syncBytes(LOCATION_Y, 84);
+	syncBytes(LOCATION_X, LOCATION_COUNT);
+	syncBytes(LOCATION_Y, LOCATION_COUNT);
 	syncNumbers2D((int *)LOCATION_PEOPLE, 150, 4);
 	syncBytes(DUNGEON_DRAW_DATA, 1964);
 	syncStrings(DUNGEON_ITEM_NAMES, 2);

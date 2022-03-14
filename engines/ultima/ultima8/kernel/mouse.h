@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,36 +15,66 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef ULTIMA8_KERNEL_MOUSE_H
 #define ULTIMA8_KERNEL_MOUSE_H
 
+#include "common/system.h"
 #include "common/rect.h"
-#include "common/stack.h"
 #include "ultima/shared/engine/events.h"
-#include "ultima/ultima8/graphics/texture.h"
+#include "ultima/ultima8/misc/common_types.h"
+#include "ultima/ultima8/misc/direction.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
 const unsigned int DOUBLE_CLICK_TIMEOUT = 200;
 
+enum MouseButtonState {
+	MBS_DOWN = 0x1,
+	MBS_HANDLED = 0x2		// Mousedown event handled
+};
+
 struct MButton {
 	uint16 _downGump;
 	uint32 _lastDown;
 	uint32 _curDown;
-	int _downX, _downY;
+	Common::Point _downPoint;
 	int _state;
-};
 
-enum MouseButtonState {
-	MBS_DOWN = 0x1,
-	MBS_HANDLED = 0x2,
-	MBS_RELHANDLED = 0x4
+	MButton() : _downGump(0), _curDown(0), _lastDown(0), _state(MBS_HANDLED)
+	{
+	}
+
+	bool isState(MouseButtonState state) const {
+		return _state & state;
+	}
+	void setState(MouseButtonState state) {
+		_state |= state;
+	}
+	void clearState(MouseButtonState state) {
+		_state &= ~state;
+	}
+
+	bool curWithinDblClkTimeout() {
+		uint32 now = g_system->getMillis();
+		return now - _curDown <= DOUBLE_CLICK_TIMEOUT;
+	}
+
+	bool lastWithinDblClkTimeout() {
+		uint32 now = g_system->getMillis();
+		return now - _lastDown <= DOUBLE_CLICK_TIMEOUT;
+	}
+
+	//! A convenience function - true if the current state is down, unhandled, and within the double click timeout.
+	bool isUnhandledDoubleClick() {
+		return isState(MBS_DOWN) && !isState(MBS_HANDLED) &&
+				(_curDown - _lastDown) <= DOUBLE_CLICK_TIMEOUT;
+	}
+
 };
 
 class Gump;
@@ -72,7 +102,6 @@ public:
 private:
 	static Mouse *_instance;
 	Common::Stack<MouseCursor> _cursors;
-	Texture *_defaultMouse;      //!< Default Pentagram mouse for when there is no GameData
 
 	/**
 	 * Time mouse started flashing, or 0
@@ -94,10 +123,13 @@ private:
 	void startDragging(int mx, int my);
 	void moveDragging(int mx, int my);
 	void stopDragging(int mx, int my);
+	int mouseFrameForDir(Direction mousedir) const;
+
 public:
 	static Mouse *get_instance() { return _instance; }
 public:
 	Mouse();
+	~Mouse();
 
 	/**
 	 * Setup the mouse cursors
@@ -115,10 +147,28 @@ public:
 	bool buttonUp(Shared::MouseButton button);
 
 	//! get mouse cursor length. 0 = short, 1 = medium, 2 = long
-	int getMouseLength(int mx, int my);
+	int getMouseLength(int mx, int my) const;
 
-	//! get mouse cursor direction. 0 = up, 1 = up-right, 2 = right, etc...
-	int getMouseDirection(int mx, int my);
+	//! get mouse cursor length for the current coordinates
+	int getMouseLength() const {
+		return getMouseLength(_mousePos.x, _mousePos.y);
+	}
+
+	//! get mouse cursor direction on the screen. 0 = up, 1 = up-right, 2 = right, etc...
+	Direction getMouseDirectionScreen(int mx, int my) const;
+
+	//! get mouse cursor direction on the screen using the current coordinates.
+	Direction getMouseDirectionScreen() const {
+		return getMouseDirectionScreen(_mousePos.x, _mousePos.y);
+	}
+
+	//! get mouse cursor direction in the world. 0 = up, 1 = up-right, 2 = right, etc...
+	Direction getMouseDirectionWorld(int mx, int my) const;
+
+	//! get mouse cursor direction in the world using the current coordinates.
+	Direction getMouseDirectionWorld() const {
+		return getMouseDirectionWorld(_mousePos.x, _mousePos.y);
+	}
 
 	//! get current mouse cursor location
 	void getMouseCoords(int32 &mx, int32 &my) const {

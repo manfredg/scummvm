@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -364,13 +363,21 @@ void Scene50::postInit(SceneObjectList *OwnerList) {
 	_text.fixPriority(256);
 
 	// Set all the hotspots
-	_location3.set(Rect(10, 92, 24, 105), 180, GRANDMA_FRANNIE, 4);
+	if (g_vm->getLanguage() == Common::ES_ESP) {
+		_location3.set(Rect(10, 92, 24, 105), 180, ESP_GRANDMA_FRANNIE, 4);
+		_location1.set(Rect(573, 103, 604, 130), 190, ESP_POLICE_DEPARTMENT, 1);
+		_location4.set(Rect(313, 21, 325, 33), 114, ESP_TONYS_BAR, 8);
+		_location8.set(Rect(69, 79, 82, 88), 580, ESP_CHILD_PROTECTIVE_SERVICES, 256);
+		_location5.set(Rect(383, 57, 402, 70), 380, ESP_CITY_HALL_JAIL, 32);
+	} else {
+		_location3.set(Rect(10, 92, 24, 105), 180, GRANDMA_FRANNIE, 4);
+		_location1.set(Rect(573, 103, 604, 130), 190, POLICE_DEPARTMENT, 1);
+		_location4.set(Rect(313, 21, 325, 33), 114, TONYS_BAR, 8);
+		_location8.set(Rect(69, 79, 82, 88), 580, CHILD_PROTECTIVE_SERVICES, 256);
+		_location5.set(Rect(383, 57, 402, 70), 380, CITY_HALL_JAIL, 32);
+	}
 	_location2.set(Rect(443, 149, 508, 178), 330, MARINA, 2);
-	_location1.set(Rect(573, 103, 604, 130), 190, POLICE_DEPARTMENT, 1);
-	_location4.set(Rect(313, 21, 325, 33), 114, TONYS_BAR, 8);
-	_location8.set(Rect(69, 79, 82, 88), 580, CHILD_PROTECTIVE_SERVICES, 256);
 	_location6.set(Rect(242, 131, 264, 144), 440, ALLEY_CAT, 64);
-	_location5.set(Rect(383, 57, 402, 70), 380, CITY_HALL_JAIL, 32);
 	_location7.set(Rect(128, 32, 143, 42), 800, JAMISON_RYAN, 128);
 	_location9.set(Rect(349, 125, 359, 132),
 		(BF_GLOBALS._bookmark == bInspectionDone) || (BF_GLOBALS._bookmark == bCalledToDrunkStop) ? 551 : 550,

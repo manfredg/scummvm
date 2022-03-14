@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,7 +29,7 @@
 #include "common/timer.h"
 #include "common/translation.h"
 #include <SDL_net.h>
-#include <common/config-manager.h>
+#include "common/config-manager.h"
 
 #ifdef POSIX
 #include <errno.h>
@@ -51,6 +50,10 @@
 #endif
 
 #define LSSDP_BUFFER_LEN 2048
+#endif // POSIX
+
+#ifdef PLAYSTATION3
+#include <net/netctl.h>
 #endif
 
 namespace Common {
@@ -84,7 +87,7 @@ void localWebserverTimer(void *ignored) {
 
 void LocalWebserver::startTimer(int interval) {
 	Common::TimerManager *manager = g_system->getTimerManager();
-	if (manager->installTimerProc(localWebserverTimer, interval, 0, "Networking::LocalWebserver's Timer")) {
+	if (manager->installTimerProc(localWebserverTimer, interval, nullptr, "Networking::LocalWebserver's Timer")) {
 		_timerStarted = true;
 	} else {
 		warning("Failed to install Networking::LocalWebserver's timer");
@@ -110,7 +113,7 @@ void LocalWebserver::start(bool useMinimalMode) {
 
 	// Create a listening TCP socket
 	IPaddress ip;
-	if (SDLNet_ResolveHost(&ip, NULL, _serverPort) == -1) {
+	if (SDLNet_ResolveHost(&ip, nullptr, _serverPort) == -1) {
 		error("LocalWebserver: SDLNet_ResolveHost: %s\n", SDLNet_GetError());
 	}
 
@@ -286,7 +289,7 @@ void LocalWebserver::resolveAddress(void *ipAddress) {
 
 	// default way (might work everywhere, surely works on Windows)
 	const char *name = SDLNet_ResolveIP(ip);
-	if (name == NULL) {
+	if (name == nullptr) {
 		warning("LocalWebserver: SDLNet_ResolveIP: %s", SDLNet_GetError());
 	} else {
 		IPaddress localIp;
@@ -322,7 +325,7 @@ void LocalWebserver::resolveAddress(void *ipAddress) {
 		ifc.ifc_buf = (caddr_t) buffer;
 
 		if (ioctl(fd, SIOCGIFCONF, &ifc) < 0) {
-		    warning("LocalWebserver: ioctl SIOCGIFCONF failed: %s (%d)", strerror(errno), errno);
+			warning("LocalWebserver: ioctl SIOCGIFCONF failed: %s (%d)", strerror(errno), errno);
 		} else {
 			struct ifreq *i;
 			for (size_t index = 0; index < (size_t)ifc.ifc_len; index += _SIZEOF_ADDR_IFREQ(*i)) {
@@ -373,6 +376,22 @@ void LocalWebserver::resolveAddress(void *ipAddress) {
 			warning("LocalWebserver: failed to close socket [fd %d]: %s (%d)", fd, strerror(errno), errno);
 		}
 	}
+#elif defined(PLAYSTATION3)
+	netCtlInit();
+	s32 connectionState;
+	netCtlGetState(&connectionState);
+	if (connectionState == NET_CTL_STATE_IPObtained) {
+		union net_ctl_info info;
+		if (netCtlGetInfo(NET_CTL_INFO_IP_ADDRESS, &info) == 0) {
+			debug(9, "LocalWebserver: IP Address %s", info.ip_address);
+			_address = "http://" + Common::String(info.ip_address) + Common::String::format(":%u/", _serverPort);
+		} else {
+			warning("LocalWebserver: failed to get IP address for network connection");
+		}
+	} else {
+		warning("LocalWebserver: no active network connection was detected");
+	}
+	netCtlTerm();
 #endif
 }
 

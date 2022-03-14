@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -126,6 +125,10 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 			_roomTable[sceneId].needInit[i] = in->readByte();
 		}
 	}
+
+	_sound->selectAudioResourceSet(kMusicIngame);
+	closeFinalWsa();
+
 	if (header.version >= 3) {
 		_lastMusicCommand = in->readSint16BE();
 		if (_lastMusicCommand != -1)
@@ -159,7 +162,7 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 	loadMainScreen(8);
 
 	if (queryGameFlag(0x2D)) {
-		_screen->loadBitmap("AMULET3.CPS", 10, 10, 0);
+		_screen->loadBitmap("AMULET3.CPS", 10, 10, nullptr);
 		if (!queryGameFlag(0xF1)) {
 			for (int i = 0x55; i <= 0x5A; ++i) {
 				if (queryGameFlag(i))
@@ -205,7 +208,7 @@ Common::Error KyraEngine_LoK::loadGameState(int slot) {
 	// We need to reset the "_noDrawShapesFlag" flag of Animator_LoK
 	// over here. Else in certain cases restoring an savegame might
 	// result in no shapes being drawn at all. See bug report
-	// #2868581 "KYRA1: Invisible Brandon" for an example of this.
+	// #4625 "KYRA1: Invisible Brandon" for an example of this.
 	_animator->_noDrawShapesFlag = 0;
 
 	enterNewScene(_currentCharacter->sceneId, _currentCharacter->facing, 0, 0, 1);

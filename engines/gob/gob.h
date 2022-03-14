@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,6 +30,7 @@
 #include "engines/engine.h"
 
 #include "gob/console.h"
+#include "gob/detection/detection.h"
 
 /**
  * This is the namespace of the Gob engine.
@@ -103,48 +103,6 @@ enum Endianness {
 	kEndiannessBE
 };
 
-// WARNING: Reordering these will invalidate save games!
-//          Add new games to the bottom of the list.
-enum GameType {
-	kGameTypeNone = 0,
-	kGameTypeGob1,
-	kGameTypeGob2,
-	kGameTypeGob3,
-	kGameTypeWoodruff,
-	kGameTypeBargon,
-	kGameTypeWeen,
-	kGameTypeLostInTime,
-	kGameTypeInca2,
-	kGameTypeDynasty,
-	kGameTypeUrban,
-	kGameTypePlaytoons,
-	kGameTypeBambou,
-	kGameTypeFascination,
-	kGameTypeGeisha,
-	kGameTypeAdi2,
-	kGameTypeAdi4,
-	kGameTypeAdibou2,
-	kGameTypeAdibou1,
-	kGameTypeAbracadabra,
-	kGameTypeBabaYaga,
-	kGameTypeLittleRed,
-	kGameTypeOnceUponATime, // Need more inspection to see if Baba Yaga or Abracadabra
-	kGameTypeAJWorld,
-	kGameTypeCrousti
-};
-
-enum Features {
-	kFeaturesNone      =      0,
-	kFeaturesCD        = 1 << 0,
-	kFeaturesEGA       = 1 << 1,
-	kFeaturesAdLib     = 1 << 2,
-	kFeaturesSCNDemo   = 1 << 3,
-	kFeaturesBATDemo   = 1 << 4,
-	kFeatures640x480   = 1 << 5,
-	kFeatures800x600   = 1 << 6,
-	kFeaturesTrueColor = 1 << 7
-};
-
 enum EndiannessMethod {
 	kEndiannessMethodLE,     ///< Always little endian.
 	kEndiannessMethodBE,     ///< Always big endian.
@@ -166,8 +124,6 @@ enum {
 	kDebugHotspots   = 1 << 10,
 	kDebugDemo       = 1 << 11
 };
-
-struct GOBGameDescription;
 
 class GobEngine : public Engine {
 private:

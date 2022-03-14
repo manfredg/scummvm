@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,10 +39,14 @@ PEResources::~PEResources() {
 void PEResources::clear() {
 	_sections.clear();
 	_resources.clear();
-	delete _exe; _exe = nullptr;
+	if (_exe) {
+		if (_disposeFileHandle == DisposeAfterUse::YES)
+			delete _exe;
+		_exe = nullptr;
+	}
 }
 
-bool PEResources::loadFromEXE(SeekableReadStream *stream) {
+bool PEResources::loadFromEXE(SeekableReadStream *stream, DisposeAfterUse::Flag disposeFileHandle) {
 	clear();
 
 	if (!stream)
@@ -93,6 +96,7 @@ bool PEResources::loadFromEXE(SeekableReadStream *stream) {
 	}
 
 	_exe = stream;
+	_disposeFileHandle = disposeFileHandle;
 
 	Section &resSection = _sections[".rsrc"];
 	parseResourceLevel(resSection, resSection.offset, 0);
@@ -233,6 +237,67 @@ SeekableReadStream *PEResources::getResource(const WinResourceID &type, const Wi
 	const Resource &resource = langMap[lang];
 	_exe->seek(resource.offset);
 	return _exe->readStream(resource.size);
+}
+
+String PEResources::loadString(uint32 stringID) {
+	String string;
+	SeekableReadStream *stream = getResource(kWinString, (stringID >> 4) + 1);
+
+	if (!stream)
+		return string;
+
+	// Skip over strings we don't care about
+	uint32 startString = stringID & ~0xF;
+
+	for (uint32 i = startString; i < stringID; i++)
+		stream->skip(stream->readUint16LE() * 2);
+
+	// HACK: Truncate UTF-16 down to ASCII
+	byte size = stream->readUint16LE();
+	while (size--)
+		string += (char)(stream->readUint16LE() & 0xFF);
+
+	delete stream;
+	return string;
+}
+
+WinResources::VersionInfo *PEResources::parseVersionInfo(SeekableReadStream *res) {
+	VersionInfo *info = new VersionInfo;
+
+	while (res->pos() < res->size() && !res->eos()) {
+		while (res->pos() % 4 && !res->eos()) // Pad to 4
+			res->readByte();
+
+		/* uint16 len = */ res->readUint16LE();
+		uint16 valLen = res->readUint16LE();
+		uint16 type = res->readUint16LE();
+		uint16 c;
+
+		Common::U32String key;
+		while ((c = res->readUint16LE()) != 0 && !res->eos())
+			key += c;
+
+		while (res->pos() % 4 && !res->eos()) // Pad to 4
+			res->readByte();
+
+		if (res->eos())
+			break;
+
+		if (type != 0) {	// text
+			Common::U32String value;
+			for (int j = 0; j < valLen; j++)
+				value += res->readUint16LE();
+
+			info->hash.setVal(key.encode(), value);
+		} else {
+			if (key == "VS_VERSION_INFO") {
+				if (!info->readVSVersionInfo(res))
+					return info;
+			}
+		}
+	}
+
+	return info;
 }
 
 } // End of namespace Common

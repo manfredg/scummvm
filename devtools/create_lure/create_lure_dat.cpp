@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * This is a utility for extracting needed resource data from different language
  * version of the Lure of the Temptress lure.exe executable files into a new file
@@ -27,11 +26,9 @@
 // Disable symbol overrides so that we can use system headers.
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
 
-// HACK to allow building with the SDL backend on MinGW
-// see bug #1800764 "TOOLS: MinGW tools building broken"
-#ifdef main
-#undef main
-#endif // main
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wnarrowing"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,6 +47,7 @@ uint16 dataSegment;
 #define FRENCH_FILE_CHECKSUM 0xD38C
 #define GERMAN_FILE_CHECKSUM 0xD143
 #define SPANISH_FILE_CHECKSUM 0xFFDA
+#define KONAMI_FILE_CHECKSUM 0xd634
 
 Common::Language processedLanguages[100];
 int langIndex = 0;
@@ -131,7 +129,8 @@ void add_anim_record(uint16 offset) {
 		else if (language == FR_FRA) index = 2;
 		else if (language == DE_DEU) index = 3;
 		else if (language == ES_ESP) index = 4;
-		else if (language != EN_ANY) errorExit("add_anim_record: Unknown language");
+		else if (language != EN_ANY && language != EN_USA)
+			errorExit("add_anim_record: Unknown language");
 
 		AnimListRecord *p = &animDataList[0];
 		while (p->languages[index] != 0) {
@@ -160,6 +159,7 @@ void read_basic_palette(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) segmentStart = 0xC4B7;
 	else if (language == DE_DEU) segmentStart = 0xC517;
 	else if (language == ES_ESP) segmentStart = 0xC177;
+	else if (language == EN_USA) segmentStart = 0xC387;
 	else if (language != EN_ANY) errorExit("read_basic_palette: Unknown language");
 
 	lureExe.seek(segmentStart);
@@ -188,6 +188,7 @@ void read_dialog_data(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) segmentStart = 0x1e1a0;
 	else if (language == DE_DEU) segmentStart = 0x1e230;
 	else if (language == ES_ESP) segmentStart = 0x1de60;
+	else if (language == EN_USA) segmentStart = 0x1df90;
 	else if (language != EN_ANY) errorExit("read_dialog_data: Unknown language");
 
 	totalSize = DIALOG_SIZE;
@@ -202,6 +203,7 @@ void read_talk_dialog_data(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) segmentStart = 0x1e2f0;
 	else if (language == DE_DEU) segmentStart = 0x1e380;
 	else if (language == ES_ESP) segmentStart = 0x1dfb0;
+	else if (language == EN_USA) segmentStart = 0x1e0e0;
 	else if (language != EN_ANY) errorExit("read_talk_dialog_data: Unknown language");
 
 	totalSize = TALK_DIALOG_SIZE;
@@ -241,6 +243,10 @@ void read_room_data(byte *&data, uint16 &totalSize)  {
 	case ES_ESP:
 		dataStart = 0xc020;
 		walkAreaOffset = 0x2ecb;
+		break;
+	case EN_USA:
+		dataStart = 0xbf40;
+		walkAreaOffset = 0x2eb1;
 		break;
 	default:
 		errorExit("read_room_data: Unknown language");
@@ -342,6 +348,13 @@ uint16 englishTickProcOffsets[] = {
 	0xffff
 };
 
+uint16 konamiTickProcOffsets[] = {
+	0x44A3, 0x5268, 0x612a, 0x6544, 0x6857, 0x74ed, 0x7efa, 0x7f0a, 0x81e0, 0x81e8,
+	0x821d, 0x8220, 0x823a, 0x824f, 0x8287, 0x82ef, 0x83ac, 0x8425, 0x8466, 0x8499,
+	0x84d9, 0x84f4, 0x8527, 0x8586, 0x88b4, 0x8913, 0x8940, 0x89e0, 0x89e5, 0x8a04,
+	0x8a23, 0x8a28, 0x8a2d, 0x8a99, 0x8ad2, 0x8b10, 0x8da3, 0x9b13, 0x9b9c
+};
+
 uint16 italianTickProcOffsets[] = {
 	0x4205, 0x4fca, 0x5e8c, 0x62a6, 0x65b9, 0x724f, 0x7c5c, 0x7c6c, 0x7f58, 0x7f60,
 	0x7f95, 0x7f98, 0x7fb2, 0x7fc7, 0x7fff, 0x8067, 0x8124, 0x819d, 0x81de, 0x8211,
@@ -380,8 +393,10 @@ uint16 italianOffsets[4] = {0x5e58, 0x5f78, 0x62fe, 0x6471};
 uint16 frenchOffsets[4]  = {0x5e78, 0x5f98, 0x631e, 0x6491};
 uint16 germanOffsets[4]  = {0x5ea8, 0x5fc8, 0x634e, 0x64c1};
 uint16 spanishOffsets[4] = {0x5e78, 0x5f98, 0x631e, 0x6491};
+uint16 konamiOffsets[4] = {0x5d98, 0x5eb8, 0x623e, 0x63b1};
 
 uint16 englishLoadOffsets[] = {0x3afe, 0x41BD, 0x7167, 0x7172, 0x8617, 0x88ac, 0};
+uint16 konamiLoadOffsets[] =  {0x3de4, 0x44A3, 0x744D, 0x7458, 0x88fd, 0x8B92, 0};
 uint16 italianLoadOffsets[] = {0x3b46, 0x4205, 0x71af, 0x71ba, 0x8675, 0x890a, 0};
 uint16 frenchLoadOffsets[]  = {0x3ebc, 0x457B, 0x755b, 0x7566, 0x8a18, 0x8ca8, 0};
 uint16 germanLoadOffsets[]  = {0x3e84, 0x4543, 0x74f1, 0x74fc, 0x8a75, 0x8d05, 0};
@@ -431,6 +446,12 @@ void read_hotspot_data(byte *&data, uint16 &totalSize)  {
 		procList = &spanishTickProcOffsets[0];
 		walkToOffset = 0xBD2B;
 		loadOffsets = &spanishLoadOffsets[0];
+		break;
+	case EN_USA:
+		offsets = &konamiOffsets[0];
+		procList = &konamiTickProcOffsets[0];
+		walkToOffset = 0xBC4B;
+		loadOffsets = &konamiLoadOffsets[0];
 		break;
 	default:
 		errorExit("read_hotspot_data: Unknown language");
@@ -540,9 +561,8 @@ void read_hotspot_data(byte *&data, uint16 &totalSize)  {
 				if (procList[procIndex] == 0xffff) {
 					if ((FROM_LE_16(entry.tickProcOffset) != 0xe00) &&
 						(FROM_LE_16(entry.tickProcOffset) != 2))
-//						printf("Could not find a tick proc handler for hotspot %xh offset %xh\n",
-//							startId[tableNum] + hotspotIndex,
-printf("%xh,\n",
+						printf("Could not find a tick proc handler for hotspot %d offset %xh\n",
+							startId[tableNum] + hotspotIndex,
 							FROM_LE_16(entry.tickProcOffset));
 					r->tickProcId = 0;
 				}
@@ -668,6 +688,7 @@ void read_room_exits(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) dataStart = 0x2f80;
 	else if (language == DE_DEU) dataStart = 0x2f8f;
 	else if (language == ES_ESP) dataStart = 0x2f7b;
+	else if (language == EN_USA) dataStart = 0x2F61;
 	else if (language != EN_ANY) errorExit("read_room_exits: Unknown language");
 
 	lureExe.seek(dataSegment + dataStart);
@@ -741,6 +762,7 @@ void read_room_exit_joins(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) dataStart = 0xcf10;
 	else if (language == DE_DEU) dataStart = 0xcf40;
 	else if (language == ES_ESP) dataStart = 0xcf10;
+	else if (language == EN_USA) dataStart = 0xce30;
 	else if (language != EN_ANY) errorExit("read_room_exit_joins: Unknown language");
 
 	lureExe.seek(dataSegment + dataStart);
@@ -895,6 +917,7 @@ void read_script_data(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) segmentOffset = 0x1e3f0;
 	else if (language == DE_DEU) segmentOffset = 0x1e480;
 	else if (language == ES_ESP) segmentOffset = 0x1e0b0;
+	else if (language == EN_USA) segmentOffset = 0x1e1e0;
 	else if (language != EN_ANY) errorExit("read_script_data: Unknown language");
 	lureExe.seek(segmentOffset);
 
@@ -909,6 +932,7 @@ void read_script2_data(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) segmentOffset = 0x1a160;
 	else if (language == DE_DEU) segmentOffset = 0x1a1f0;
 	else if (language == ES_ESP) segmentOffset = 0x19e20;
+	else if (language == EN_USA) segmentOffset = 0x19f50;
 	else if (language != EN_ANY) errorExit("read_script2_data: Unknown language");
 	lureExe.seek(segmentOffset);
 
@@ -923,6 +947,7 @@ void read_hotspot_script_offsets(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) dataStart = 0x58c0;
 	else if (language == DE_DEU) dataStart = 0x58f0;
 	else if (language == ES_ESP) dataStart = 0x58c0;
+	else if (language == EN_USA) dataStart = 0x57e0;
 	else if (language != EN_ANY) errorExit("read_hotspot_script_offsets: Unknown language");
 
 	lureExe.seek(dataSegment + dataStart);
@@ -937,6 +962,7 @@ void read_messages_segment(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) segmentOffset = 0x21050;
 	else if (language == DE_DEU) segmentOffset = 0x210E0;
 	else if (language == ES_ESP) segmentOffset = 0x20d10;
+	else if (language == EN_USA) segmentOffset = 0x20e40;
 	else if (language != EN_ANY) errorExit("read_messages_segment: Unknown language");
 
 	lureExe.seek(segmentOffset);
@@ -999,6 +1025,7 @@ void read_talk_headers(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) dataStart = 0x513c;
 	else if (language == DE_DEU) dataStart = 0x515c;
 	else if (language == ES_ESP) dataStart = 0x512c;
+	else if (language == EN_USA) dataStart = 0x505c;
 	else if (language != EN_ANY) errorExit("read_talk_headers: Unknown language");
 
 	lureExe.seek(dataSegment + dataStart);
@@ -1077,6 +1104,7 @@ struct TalkRecord {
 
 #define NUM_GIVE_TALK_IDS 6
 uint16 englishGiveTalkIds[7] = {0xCF5E, 0xCF14, 0xCF90, 0xCFAA, 0xCFD0, 0xCFF6, 0xf010};
+uint16 konamiGiveTalkIds[7] =  {0xCF5E, 0xCF14, 0xCF90, 0xCFAA, 0xCFD0, 0xCFF6, 0xf010};
 uint16 italianGiveTalkIds[7] = {0xD01E, 0xCFD4, 0xD050, 0xD06A, 0xD090, 0xD0B6, 0xf0d0};
 uint16 frenchGiveTalkIds[7]  = {0xD03E, 0xCFF4, 0xD070, 0xD08A, 0xD0B0, 0xD0D6, 0xf0f0};
 uint16 germanGiveTalkIds[7]  = {0xD06E, 0xD024, 0xD0A0, 0xD0BA, 0xD0E0, 0xD106, 0xf120};
@@ -1092,6 +1120,7 @@ void read_talk_data(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) giveTalkIds = &frenchGiveTalkIds[0];
 	else if (language == DE_DEU) giveTalkIds = &germanGiveTalkIds[0];
 	else if (language == ES_ESP) giveTalkIds = &spanishGiveTalkIds[0];
+	else if (language == EN_USA) giveTalkIds = &konamiGiveTalkIds[0];
 	else if (language != EN_ANY) errorExit("read_talk_data: Unknown language");
 
 	data = (byte *) malloc(MAX_DATA_SIZE);
@@ -1210,6 +1239,7 @@ void read_room_pathfinding_data(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) dataStart = 0x992A;
 	else if (language == DE_DEU) dataStart = 0x995A;
 	else if (language == ES_ESP) dataStart = 0x992A;
+	else if (language == EN_USA) dataStart = 0x984a;
 	else if (language != EN_ANY) errorExit("read_room_pathfinding_data: Unknown language");
 	lureExe.seek(dataSegment + dataStart);
 
@@ -1270,6 +1300,7 @@ void read_room_exit_hotspots_data(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) dataStart = 0x2e76;
 	else if (language == DE_DEU) dataStart = 0x2e85;
 	else if (language == ES_ESP) dataStart = 0x2e71;
+	else if (language == EN_USA) dataStart = 0x2e57;
 	else if (language != EN_ANY) errorExit("read_room_exit_hotspots_data: Unknown language");
 	lureExe.seek(dataSegment + dataStart);
 
@@ -1290,6 +1321,7 @@ void save_fight_segment(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) fightSegment = 0x1c8f0;
 	else if (language == DE_DEU) fightSegment = 0x1c980;
 	else if (language == ES_ESP) fightSegment = 0x1c5b0;
+	else if (language == EN_USA) fightSegment = 0x1c6E0;
 	else if (language != EN_ANY) errorExit("save_fight_segment: Unknown language");
 	lureExe.seek(fightSegment);
 
@@ -1300,49 +1332,49 @@ void save_fight_segment(byte *&data, uint16 &totalSize) {
 
 #define NUM_TEXT_ENTRIES 56
 const char *englishTextStrings[NUM_TEXT_ENTRIES] = {
-	"Get", NULL, "Push", "Pull", "Operate", "Open", "Close", "Lock", "Unlock", "Use",
-	"Give", "Talk to", "Tell", "Buy", "Look", "Look at", "Look through", "Ask", NULL,
+	"Get", nullptr, "Push", "Pull", "Operate", "Open", "Close", "Lock", "Unlock", "Use",
+	"Give", "Talk to", "Tell", "Buy", "Look", "Look at", "Look through", "Ask", nullptr,
 	"Drink", "Status", "Go to", "Return", "Bribe", "Examine",
 	"Credits", "Restart game", "Save game", "Restore game", "Quit", "Fast Text\x8B",
 	"Slow Text\x8B", "Sound on", "Sound off", "(nothing)", " for ", " to ", " on ",
 	"and then", "finish", "Are you sure (y/n)?",
 	"You are carrying ", "nothing", "You have ", "groat", "groats",
-	NULL, "the ", "a ", "a ", "an ", "an ", "an ", "an ", NULL, NULL
+	nullptr, "the ", "a ", "a ", "an ", "an ", "an ", "an ", nullptr, nullptr
 };
 
 const char *italianTextStrings[NUM_TEXT_ENTRIES] = {
-	"Prendi", NULL,	"Spingi", "Tira", "Aziona", "Apri", "Chiudi", "Blocca",
+	"Prendi", nullptr, "Spingi", "Tira", "Aziona", "Apri", "Chiudi", "Blocca",
 	"Sblocca", "Usa", "Dai", "Parla con", "Ordina a", "Compra", "Guarda", "Osserva",
-	"Guarda attraverso", "Chiedi", NULL,  "Bevi", "Stato", "Vai a", "Ritorna",
+	"Guarda attraverso", "Chiedi", nullptr, "Bevi", "Stato", "Vai a", "Ritorna",
 	"Corrompi", "Esamina",
 	"Crediti", "Ricomincia", "Salva gioco", "Ripristina", "Abbandona", "Testo lento\x8B",
 	"Testo veloce\x8B",  "Sonoro acceso", "Sonoro spento",
 	"(niente)", " per ", " a ", " su ",
 	"e poi", "finito", "Sei sicuro (s/n)?",
 	"Stai portando ", "niente", "Hai ", "soldo", "soldi",
-	NULL, "l' ", "la ", NULL, "le ", "i ", "il ", NULL, NULL, NULL
+	nullptr, "l' ", "la ", nullptr, "le ", "i ", "il ", nullptr, nullptr, nullptr
 };
 
 const char frenchUnlockStr[] = {'D', '\x7f', 'v', 'e', 'r', 'r', 'o', 'u', 'i', 'l', 'l', 'e', '\0'};
 const char frenchCreditsStr[] = {'C', 'r', '\x7f', 'd', 'i', 't', 's', '\0'};
 
 const char *frenchTextStrings[NUM_TEXT_ENTRIES] = {
-	"Prends", NULL, "Pousse", "Tire", "Actionne", "Ouvre", "Ferme", "Verrouille",
-	frenchUnlockStr, "Utilise", "Donne", "Parle \0x81", "Dis \x81", NULL,
-	"Regarde", "Observe", "Regarde par", "Demande \x81", NULL, "Bois", "Statut",
+	"Prends", nullptr, "Pousse", "Tire", "Actionne", "Ouvre", "Ferme", "Verrouille",
+	frenchUnlockStr, "Utilise", "Donne", "Parle \0x81", "Dis \x81", nullptr,
+	"Regarde", "Observe", "Regarde par", "Demande \x81", nullptr, "Bois", "Statut",
 	"Va \x81", "Reviens", "Corromps", "Examine",
 	frenchCreditsStr, "Recommencer", "Sauvegarder", "Restituer", "Quitter",
 	"Texte rapide\x8b", "Texte lent  \x8b", "Avec son", "Sans son",
 	"(rien)", " avec ", " \x81 ", " sur ", "et puis", "fin",
 	"Vous  \x83tes s\x89r (o/n)?",
 	"Vous avez ", "rien", "et vous avez ", "sou", "sous",
-	NULL, "les", "l'", "l'", "le", "le", "la", "la", NULL, NULL
+	nullptr, "les", "l'", "l'", "le", "le", "la", "la", nullptr, nullptr
 };
 
 const char *germanTextStrings[NUM_TEXT_ENTRIES] = {
-	"Nimm", NULL, "Schiebe", "Ziehe", "Bet\x8dtige", "\x90" "ffne", "Schlie\x92h" "e",
+	"Nimm", nullptr, "Schiebe", "Ziehe", "Bet\x8dtige", "\x90" "ffne", "Schlie\x92h" "e",
 	"Sperre", "Steck Schl\x8cssel in", "Benutze", "Gib", "Sprich mit", "Befehl an",
-	NULL, "Betrachte", "Betrachte", "Schau durch", "Verlange", NULL, "Trink",
+	nullptr, "Betrachte", "Betrachte", "Schau durch", "Verlange", nullptr, "Trink",
 	"Status", "Geh zu", "Zur\x8c" "ck", "Besteche", "Untersuche",
 	"Mitwirkende", "Spiel neu starten", "Spiel sichern", "Gesichertes Spiel laden",
 	"Abbrechen", "Schneller Text\x8b",
@@ -1353,14 +1385,14 @@ const char *germanTextStrings[NUM_TEXT_ENTRIES] = {
 };
 
 const char *spanishTextStrings[NUM_TEXT_ENTRIES] = {
-	"Coge", NULL, "Empuja", "Tira de", "Opera", "Abre", "Cierra", "Atranca", "Desatranca", "Usa",
-	"Dale", "Habla con", "Dile a", "Compra", "Obsevar", "Observe", "Mirar por", "P\x97" "dele", NULL,
+	"Coge", nullptr, "Empuja", "Tira de", "Opera", "Abre", "Cierra", "Atranca", "Desatranca", "Usa",
+	"Dale", "Habla con", "Dile a", "Compra", "Obsevar", "Observe", "Mirar por", "P\x97" "dele", nullptr,
 	"Bebe", "Estado", "Ve a", "Regresa", "Sobornar", "Examinar",
 	"Cr\x7f" "ditos", "Reiniciar", "Salvar juego", "Recuperar jue", "Abandonar", "Texto r\x98pido\x8b",
 	"Texto lento \x8b", "Sonido activado   ", "Sonido desactivado ", "(nada)", " con ", " a ", " con ",
 	"y luego", "eso es todo", "\x94" "Est\x98s seguro? (S/N)",
 	"Llevas ", "nada", "y tienes ", "moneda", "monedas",
-	"el ", "la ", "los ", "las ", "este ", "esta ", "estos ", "estas ", NULL, NULL
+	"el ", "la ", "los ", "las ", "este ", "esta ", "estos ", "estas ", nullptr, nullptr
 };
 
 void save_text_strings(byte *&data, uint16 &totalSize) {
@@ -1371,12 +1403,13 @@ void save_text_strings(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) textStrings = &frenchTextStrings[0];
 	else if (language == DE_DEU) textStrings = &germanTextStrings[0];
 	else if (language == ES_ESP) textStrings = &spanishTextStrings[0];
-	else if (language != EN_ANY) errorExit("save_text_strings: Unknown language");
+	else if (language != EN_ANY && language != EN_USA)
+		errorExit("save_text_strings: Unknown language");
 
 	// Calculate the total needed space
 	totalSize = sizeof(uint16);
 	for (index = 0; index < NUM_TEXT_ENTRIES; ++index) {
-		if (textStrings[index] != NULL)
+		if (textStrings[index] != nullptr)
 			totalSize += strlen(textStrings[index]);
 		++totalSize;
 	}
@@ -1387,7 +1420,7 @@ void save_text_strings(byte *&data, uint16 &totalSize) {
 	char *p = (char *) data + sizeof(uint16);
 
 	for (index = 0; index < NUM_TEXT_ENTRIES; ++index) {
-		if (textStrings[index] == NULL)
+		if (textStrings[index] == nullptr)
 			*p++ = '\0';
 		else {
 			strcpy(p, textStrings[index]);
@@ -1402,17 +1435,25 @@ void save_sound_desc_data(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) dataStart = 0x5751;
 	else if (language == DE_DEU) dataStart = 0x5781;
 	else if (language == ES_ESP) dataStart = 0x5751;
-	else if (language != EN_ANY) errorExit("save_sound_desc_data: Unknown language");
+	else if (language != EN_ANY && language != EN_USA)
+		errorExit("save_sound_desc_data: Unknown language");
 	lureExe.seek(dataSegment + dataStart);
 
 	totalSize = SOUND_DESCS_SIZE;
 	data = (byte *) malloc(totalSize);
 	lureExe.read(data, totalSize);
+
+	// WORKAROUND Sounds 0 and 12 (running water) use 3 channels
+	// on MT-32, but sound resource lists 2.
+	if ((data[2] & 3) == 2) {
+		data[2] |= 3;
+		data[(12 * 5) + 2] |= 3;
+	}
 }
 
 struct DecoderEntry {
 	const char *sequence;
-	char character;
+	unsigned char character;
 };
 
 const DecoderEntry englishDecoders[] = {
@@ -1443,7 +1484,53 @@ const DecoderEntry englishDecoders[] = {
 	{"111111111111101", '\xa7'}, {"1111111111111100", '/'}, {"1111111111111101", 'Q'},
 	{"11111111111111100", '\xa8'}, {"11111111111111101", '('}, {"111111111111111100", ')'},
 	{"111111111111111101", '\x99'}, {"11111111111111111", '\xa9'},
-	{NULL, '\0'}
+	{nullptr, '\0'}
+};
+
+const DecoderEntry konamiDecoders[] = {
+	{ "00", ' ' }, { "0100", 'a' }, { "0101", 'o' }, { "0110", 'e' },
+	{ "01110", 't' }, { "01111", 's' }, { "1000", 'i' }, { "10010", 'n' },
+	{ "10011", 'r' }, { "10100", 'h' }, { "10101", 'l' }, { "10110", 'd' },
+	{ "101110", 'm' }, { "1011110", '\0' }, { "1011111", 'g' },
+	{ "11000", 'u' }, { "110010", 'w' }, { "1100110", 'c' },
+	{ "1100111", 'f' }, { "110100", '.' }, { "110101", 'y' },
+	{ "110110", 'p' }, { "1101110", 'b' }, { "1101111", ',' },
+	{ "111000", '\xA1' }, { "1110010", 'k' }, { "1110011", '\'' },
+	{ "1110100", 'I' }, { "1110101", 'v' }, { "1110110", '\xA4' },
+	{ "11101110", '!' }, { "11101111", '\xB0' }, { "1111000", '\xB8' },
+	{ "11110010", '?' }, { "111100110", '\xA2' }, { "111100111", '\xAA' },
+	{ "11110100", 'W' }, { "111101010", 'A' }, { "111101011", 'H' },
+	{ "111101100", 'T' }, { "111101101", '\xF2' }, { "111101110", '\xA3' },
+	{ "1111011110", 'G' }, { "11110111110", 'S' }, { "11110111111", '\xC5' },
+	{ "111110000", 'Y' }, { "111110001", 'M' }, { "111110010", 'N' },
+	{ "1111100110", 'O' }, { "1111100111", 'L' }, { "111110100", 'E' },
+	{ "1111101010", '-' }, { "11111010110", '\xEF' }, { "11111010111", 'R' },
+	{ "1111101100", 'B' }, { "1111101101", 'D' }, { "1111101110", '\xC8' },
+	{ "11111011110", 'C' }, { "11111011111", 'x' }, { "1111110000", '\xA7' },
+	{ "1111110001", '\xE6' }, { "1111110010", 'j' }, { "11111100110", '\xAF' },
+	{ "11111100111", '\xBE' }, { "1111110100", '\xE0' }, { "11111101010", '\xC7' },
+	{ "11111101011", '\xB1' }, { "1111110110", '\xC9' }, { "11111101110", '\x50' },
+	{ "111111011110", 'U' }, { "111111011111", '\xBD' }, { "1111111000", 'q' },
+	{ "11111110010", '\xBC' }, { "111111100110", '\xDC' }, { "111111100111", '\xE9' },
+	{ "11111110100", 'F' }, { "111111101010", 'z' }, { "111111101011", '\xDB' },
+	{ "11111110110", '\xA0' }, { "111111101110", '\xC2' }, { "1111111011110", '\xC4' },
+	{ "1111111011111", '1' }, { "11111111000", '\xCD' }, { "111111110010", '\xBA' },
+	{ "1111111100110", '\xEE' }, { "1111111100111", ';' }, { "111111110100", '2' },
+	{ "1111111101010", '\xD9' }, { "1111111101011", 'K' }, { "1111111101100", '\xC3' },
+	{ "1111111101101", '%' }, { "1111111101110", '5' }, { "1111111101111", '\xE8' },
+	{ "111111111000", '6' }, { "1111111110010", ':' }, { "1111111110011", 'J' },
+	{ "1111111110100", 'V' }, { "1111111110101", '\xA6' }, { "1111111110110", '\xB7' },
+	{ "11111111101110", '\xD0' }, { "11111111101111", '\xAE' }, { "1111111111000", '\xE3' },
+	{ "1111111111001", '3' }, { "1111111111010", '\xC0' }, { "11111111110110", '0' },
+	{ "111111111101110", '4' }, { "111111111101111", '9' }, { "11111111111000", '7' },
+	{ "11111111111001", '8' }, { "11111111111010", '\xD8' }, { "111111111110110", '\xE4' },
+	{ "111111111110111", '\xED' }, { "111111111111000", '\xAC' }, { "111111111111001", '"' },
+	{ "111111111111010", '/' }, { "111111111111011", '\xD5' }, { "111111111111100", '\xEA' },
+	{ "111111111111101", '\xEB' }, { "1111111111111100", 'Q' }, { "1111111111111101", '\xA5' },
+	{ "11111111111111100", '\x99' }, { "111111111111111010", '(' }, { "111111111111111011", ')' },
+	{ "111111111111111100", '\xB2' }, { "111111111111111101", '\xDA' },
+	{ "11111111111111111", '\xEC' },
+	{ nullptr, '\0' }
 };
 
 const DecoderEntry italianDecoders[] = {
@@ -1476,7 +1563,7 @@ const DecoderEntry italianDecoders[] = {
 	{"1111111111111100", (char) 0x4B}, {"1111111111111101", (char) 0x22}, {"111111111111111000", (char) 0x09},
 	{"111111111111111001", (char) 0x28}, {"11111111111111101", (char) 0x29}, {"111111111111111100", (char) 0x4A},
 	{"111111111111111101", (char) 0x59}, {"11111111111111111", (char) 0x78},
-	{NULL, '\0'}
+	{nullptr, '\0'}
 };
 
 const DecoderEntry frenchDecoders[] = {
@@ -1521,7 +1608,7 @@ const DecoderEntry frenchDecoders[] = {
 	{"1111111111111011", (char) 0x28}, {"1111111111111100", (char) 0x29}, {"1111111111111101", (char) 0x5A},
 	{"11111111111111100", (char) 0x86}, {"11111111111111101", (char) 0x58}, {"11111111111111110", (char) 0x84},
 	{"11111111111111111", (char) 0xA2},
-	{NULL, '\0'}
+	{nullptr, '\0'}
 };
 
 const DecoderEntry germanDecoders[] = {
@@ -1565,7 +1652,7 @@ const DecoderEntry germanDecoders[] = {
 	{"11111111111111010", (char) 0xBC}, {"11111111111111011", (char) 0x28}, {"111111111111111000", (char) 0x29},
 	{"111111111111111001", (char) 0x59}, {"11111111111111101", (char) 0xBB}, {"11111111111111110", (char) 0xBD},
 	{"11111111111111111", (char) 0xC0},
-	{NULL, '\0'}
+	{nullptr, '\0'}
 };
 
 const DecoderEntry spanishDecoders[] = {
@@ -1600,7 +1687,7 @@ const DecoderEntry spanishDecoders[] = {
 	{"1111111111111100", (char) 0x5A}, {"1111111111111101", (char) 0x8C}, {"11111111111111100", (char) 0x28},
 	{"11111111111111101", (char) 0x29}, {"11111111111111110", (char) 0x4B}, {"111111111111111110", (char) 0x58},
 	{"111111111111111111", (char) 0x91},
-	{NULL, '\0'}
+	{nullptr, '\0'}
 };
 
 void save_string_decoder_data(byte *&data, uint16 &totalSize) {
@@ -1609,11 +1696,12 @@ void save_string_decoder_data(byte *&data, uint16 &totalSize) {
 	else if (language == FR_FRA) list = &frenchDecoders[0];
 	else if (language == DE_DEU) list = &germanDecoders[0];
 	else if (language == ES_ESP) list = &spanishDecoders[0];
+	else if (language == EN_USA) list = &konamiDecoders[0];
 	else if (language != EN_ANY) errorExit("save_string_decoder_data: Unknown language");
 
 	totalSize = 1;
 	const DecoderEntry *pSrc = list;
-	while (pSrc->sequence != NULL) {
+	while (pSrc->sequence != nullptr) {
 		totalSize += strlen(pSrc->sequence) + 2;
 		++pSrc;
 	}
@@ -1622,7 +1710,7 @@ void save_string_decoder_data(byte *&data, uint16 &totalSize) {
 	char *pDest = (char *)data;
 
 	pSrc = list;
-	while (pSrc->sequence != NULL) {
+	while (pSrc->sequence != nullptr) {
 		*pDest++ = pSrc->character;
 		strcpy(pDest, pSrc->sequence);
 		pDest += strlen(pSrc->sequence) + 1;
@@ -1631,6 +1719,21 @@ void save_string_decoder_data(byte *&data, uint16 &totalSize) {
 	}
 
 	*pDest = (char) 0xff;
+}
+
+void save_audio_init_icon(byte *&data, uint16 &totalSize) {
+	uint32 dataStart = 0x131E0;
+	if (language == IT_ITA) dataStart = 0x132A0;
+	else if (language == FR_FRA) dataStart = 0x132C0;
+	else if (language == DE_DEU) dataStart = 0x132F0;
+	else if (language == ES_ESP) dataStart = 0x132C0;
+	else if (language == EN_USA) dataStart = 0x131e0;
+	else if (language != EN_ANY) errorExit("save_audio_init_icon: Unknown language");
+	lureExe.seek(dataSegment + dataStart);
+
+	totalSize = AUDIO_INIT_ICON_SIZE;
+	data = (byte *)malloc(totalSize);
+	lureExe.read(data, totalSize);
 }
 
 void getEntry(uint8 entryIndex, uint16 &resourceId, byte *&data, uint16 &size) {
@@ -1762,8 +1865,13 @@ void getEntry(uint8 entryIndex, uint16 &resourceId, byte *&data, uint16 &size) {
 		save_string_decoder_data(data, size);
 		break;
 
+	case 25:
+		// Save the audio init icon
+		save_audio_init_icon(data, size);
+		break;
+
 	default:
-		data = NULL;
+		data = nullptr;
 		size = 0;
 		resourceId = 0xffff;
 		break;
@@ -1829,6 +1937,9 @@ void createFile(const char *outFilename) {
 	case EN_ANY:
 		outputFile.writeByte(LANG_EN_ANY);
 		break;
+	case EN_USA:
+		outputFile.writeByte(LANG_EN_USA);
+		break;
 	default:
 		printf("Unknown language encountered\n");
 		exit(1);
@@ -1843,7 +1954,7 @@ void createFile(const char *outFilename) {
 
 	resourceFlag = true;
 	for (int resIndex=0; resIndex < 0xBE; ++resIndex) {
-		resourceData = NULL;
+		resourceData = nullptr;
 
 		// Get next data entry
 		if (resourceFlag)
@@ -1919,6 +2030,10 @@ bool validate_executable() {
 		language = ES_ESP;
 		dataSegment = 0xAD20;
 		printf("Detected Spanish version\n");
+	} else if (sumTotal == KONAMI_FILE_CHECKSUM) {
+		language = EN_USA;
+		dataSegment = 0xaf30;
+		printf("Detected Konami English version\n");
 	} else {
 		printf("Lure executable version not recognized. Checksum = %xh\n", sumTotal);
 		return false;
@@ -1938,7 +2053,7 @@ bool validate_executable() {
 
 
 int main(int argc, char *argv[]) {
-	const char /**inFilename,*/ *outFilename = 0;
+	const char /**inFilename,*/ *outFilename = nullptr;
 
 	if (argc == 1) {
 		printf("Format: %s output_filename [lureExecutable ..]\n", argv[0]);

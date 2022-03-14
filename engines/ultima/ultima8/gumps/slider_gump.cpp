@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,17 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/gumps/slider_gump.h"
 #include "ultima/ultima8/games/game_data.h"
-#include "ultima/ultima8/graphics/shape_frame.h"
 #include "ultima/ultima8/graphics/gump_shape_archive.h"
-#include "ultima/ultima8/graphics/shape.h"
 #include "ultima/ultima8/gumps/widgets/sliding_widget.h"
 #include "ultima/ultima8/graphics/fonts/font.h"
 #include "ultima/ultima8/graphics/fonts/rendered_text.h"
@@ -33,25 +29,23 @@
 #include "ultima/ultima8/gumps/widgets/button_widget.h"
 #include "ultima/ultima8/usecode/uc_process.h"
 #include "ultima/ultima8/kernel/kernel.h"
+#include "ultima/ultima8/kernel/mouse.h"
 #include "ultima/ultima8/ultima8.h"
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(SliderGump, ModalGump)
+DEFINE_RUNTIME_CLASSTYPE_CODE(SliderGump)
 
-SliderGump::SliderGump() : ModalGump() {
-	_renderedText = 0;
+SliderGump::SliderGump() : ModalGump(), _renderedText(nullptr), _min(0), _max(0),
+		_delta(0), _value(0), _usecodeNotifyPID(0), _renderedValue(-1) {
 }
 
 
 SliderGump::SliderGump(int x, int y, int16 min, int16 max,
-                       int16 value_, int16 delta)
-	: ModalGump(x, y, 5, 5), _min(min), _max(max), _delta(delta), _value(value_) {
-	_usecodeNotifyPID = 0;
-	_renderedText = 0;
+					   int16 value, int16 delta)
+	: ModalGump(x, y, 5, 5), _min(min), _max(max), _delta(delta), _value(value),
+	  _usecodeNotifyPID(0), _renderedText(nullptr), _renderedValue(-1) {
 }
 
 SliderGump::~SliderGump() {
@@ -95,7 +89,7 @@ void SliderGump::setValueFromSlider(int sliderx) {
 }
 
 void SliderGump::setSliderPos() {
-	Gump *slider = Gump::FindGump(SlidingWidget::ClassType);
+	Gump *slider = Gump::FindGump<SlidingWidget>();
 	assert(slider);
 	slider->Move(getSliderPos(), slidery);
 }
@@ -127,13 +121,9 @@ void SliderGump::InitGump(Gump *newparent, bool take_focus) {
 	ModalGump::InitGump(newparent, take_focus);
 
 	_shape = GameData::get_instance()->getGumps()->getShape(gumpshape);
-	ShapeFrame *sf = _shape->getFrame(0);
-	assert(sf);
+	UpdateDimsFromShape();
 
-	_dims.w = sf->_width;
-	_dims.h = sf->_height;
-
-	Shape *childshape = GameData::get_instance()->
+	const Shape *childshape = GameData::get_instance()->
 	                    getGumps()->getShape(slidershape);
 
 	// Create the SlidingWidget
@@ -190,7 +180,7 @@ void SliderGump::Close(bool no_del) {
 	_processResult = _value;
 
 	if (_usecodeNotifyPID) {
-		UCProcess *ucp = p_dynamic_cast<UCProcess *>(Kernel::get_instance()->getProcess(_usecodeNotifyPID));
+		UCProcess *ucp = dynamic_cast<UCProcess *>(Kernel::get_instance()->getProcess(_usecodeNotifyPID));
 		assert(ucp);
 		ucp->setReturnValue(_value);
 		ucp->wakeUp(_value);
@@ -248,11 +238,11 @@ void SliderGump::setUsecodeNotify(UCProcess *ucp) {
 	_usecodeNotifyPID = ucp->getPid();
 }
 
-void SliderGump::saveData(ODataSource *ods) {
+void SliderGump::saveData(Common::WriteStream *ws) {
 	CANT_HAPPEN_MSG("Trying to save ModalGump");
 }
 
-bool SliderGump::loadData(IDataSource *ids, uint32 version) {
+bool SliderGump::loadData(Common::ReadStream *rs, uint32 version) {
 	CANT_HAPPEN_MSG("Trying to load ModalGump");
 
 	return false;

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,7 +38,7 @@ void resetObjectTable() {
 	}
 }
 
-void loadObject(char *pObjectName) {
+int16 loadObject(char *pObjectName) {
 	debug(5, "loadObject(\"%s\")", pObjectName);
 	uint16 numEntry;
 	uint16 entrySize;
@@ -48,7 +47,12 @@ void loadObject(char *pObjectName) {
 
 	checkDataDisk(-1);
 
-	ptr = dataPtr = readBundleFile(findFileInBundle(pObjectName));
+	int16 foundFileIdx = findFileInBundle(pObjectName);
+	if (foundFileIdx < 0) {
+		return -1;
+	}
+
+	ptr = dataPtr = readBundleFile(foundFileIdx);
 
 	setMouseCursor(MOUSE_CURSOR_DISK);
 
@@ -59,7 +63,19 @@ void loadObject(char *pObjectName) {
 	assert(numEntry <= NUM_MAX_OBJECT);
 
 	for (i = 0; i < numEntry; i++) {
-		if (g_cine->_objectTable[i].costume != -2 && g_cine->_objectTable[i].costume != -3) { // flag is keep?
+		bool overwrite =
+			(g_cine->getGameType() == Cine::GType_FW && g_cine->_objectTable[i].costume != -2) ||
+			(g_cine->getGameType() == Cine::GType_OS && g_cine->_objectTable[i].costume != -3);
+
+		// HACK: Fix handling of electric razor and cable in Amiga version of Operation Stealth
+		// when entering the Dr. Why's control room.
+		if (hacksEnabled && g_cine->getPlatform() == Common::kPlatformAmiga &&
+			g_cine->getGameType() == Cine::GType_OS && (i == 231 || i == 232) &&
+			scumm_stricmp(pObjectName, "SALLE59.REL") == 0) {
+			overwrite = false;
+		}
+
+		if (overwrite) {
 			Common::MemoryReadStream readS(ptr, entrySize);
 
 			g_cine->_objectTable[i].x = readS.readSint16BE();
@@ -80,6 +96,7 @@ void loadObject(char *pObjectName) {
 	}
 
 	free(dataPtr);
+	return 0;
 }
 
 /**

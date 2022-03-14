@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "kyra/engine/kyra_lok.h"
 #include "kyra/resource/resource.h"
-#include "kyra/sequence/seqplayer.h"
+#include "kyra/sequence/seqplayer_lok.h"
 #include "kyra/engine/sprites.h"
 #include "kyra/graphics/animator_lok.h"
 #include "kyra/gui/debugger.h"
@@ -38,45 +37,45 @@ namespace Kyra {
 KyraEngine_LoK::KyraEngine_LoK(OSystem *system, const GameFlags &flags)
 	: KyraEngine_v1(system, flags) {
 
-	_seq_Forest = _seq_KallakWriting = _seq_KyrandiaLogo = _seq_KallakMalcolm = 0;
-	_seq_MalcolmTree = _seq_WestwoodLogo = _seq_Demo1 = _seq_Demo2 = _seq_Demo3 = 0;
-	_seq_Demo4 = 0;
+	_seq_Forest = _seq_KallakWriting = _seq_KyrandiaLogo = _seq_KallakMalcolm = nullptr;
+	_seq_MalcolmTree = _seq_WestwoodLogo = _seq_Demo1 = _seq_Demo2 = _seq_Demo3 = nullptr;
+	_seq_Demo4 = nullptr;
 
-	_seq_WSATable = _seq_CPSTable = _seq_COLTable = _seq_textsTable = 0;
+	_seq_WSATable = _seq_CPSTable = _seq_COLTable = _seq_textsTable = nullptr;
 	_seq_WSATable_Size = _seq_CPSTable_Size = _seq_COLTable_Size = _seq_textsTable_Size = 0;
 
-	_roomFilenameTable = _characterImageTable = 0;
+	_roomFilenameTable = _characterImageTable = nullptr;
 	_roomFilenameTableSize = _characterImageTableSize = 0;
-	_itemList = _takenList = _placedList = _droppedList = _noDropList = 0;
+	_itemList = _takenList = _placedList = _droppedList = _noDropList = nullptr;
 	_itemList_Size = _takenList_Size = _placedList_Size = _droppedList_Size = _noDropList_Size = 0;
-	_putDownFirst = _waitForAmulet = _blackJewel = _poisonGone = _healingTip = 0;
+	_putDownFirst = _waitForAmulet = _blackJewel = _poisonGone = _healingTip = nullptr;
 	_putDownFirst_Size = _waitForAmulet_Size = _blackJewel_Size = _poisonGone_Size = _healingTip_Size = 0;
-	_thePoison = _fluteString = _wispJewelStrings = _magicJewelString = _flaskFull = _fullFlask = 0;
+	_thePoison = _fluteString = _wispJewelStrings = _magicJewelString = _flaskFull = _fullFlask = nullptr;
 	_thePoison_Size = _fluteString_Size = _wispJewelStrings_Size = 0;
 	_magicJewelString_Size = _flaskFull_Size = _fullFlask_Size = 0;
 
-	_defaultShapeTable = 0;
-	_healingShapeTable = _healingShape2Table = 0;
+	_defaultShapeTable = nullptr;
+	_healingShapeTable = _healingShape2Table = nullptr;
 	_defaultShapeTableSize = _healingShapeTableSize = _healingShape2TableSize = 0;
-	_posionDeathShapeTable = _fluteAnimShapeTable = 0;
+	_posionDeathShapeTable = _fluteAnimShapeTable = nullptr;
 	_posionDeathShapeTableSize = _fluteAnimShapeTableSize = 0;
-	_winterScrollTable = _winterScroll1Table = _winterScroll2Table = 0;
+	_winterScrollTable = _winterScroll1Table = _winterScroll2Table = nullptr;
 	_winterScrollTableSize = _winterScroll1TableSize = _winterScroll2TableSize = 0;
-	_drinkAnimationTable = _brandonToWispTable = _magicAnimationTable = _brandonStoneTable = 0;
+	_drinkAnimationTable = _brandonToWispTable = _magicAnimationTable = _brandonStoneTable = nullptr;
 	_drinkAnimationTableSize = _brandonToWispTableSize = _magicAnimationTableSize = _brandonStoneTableSize = 0;
-	_specialPalettes = 0;
-	_sprites = 0;
-	_animator = 0;
-	_seq = 0;
-	_characterList = 0;
-	_roomTable = 0;
-	_movFacingTable = 0;
-	_buttonData = 0;
-	_buttonDataListPtr = 0;
+	_specialPalettes = nullptr;
+	_sprites = nullptr;
+	_animator = nullptr;
+	_seq = nullptr;
+	_characterList = nullptr;
+	_roomTable = nullptr;
+	_movFacingTable = nullptr;
+	_buttonData = nullptr;
+	_buttonDataListPtr = nullptr;
 	memset(_shapes, 0, sizeof(_shapes));
 	memset(_movieObjects, 0, sizeof(_movieObjects));
-	_finalA = _finalB = _finalC = 0;
-	_endSequenceBackUpRect = 0;
+	_finalA = _finalB = _finalC = nullptr;
+	_endSequenceBackUpRect = nullptr;
 	memset(_panPagesTable, 0, sizeof(_panPagesTable));
 	memset(_sceneAnimTable, 0, sizeof(_sceneAnimTable));
 	_currHeadShape = 0;
@@ -96,6 +95,8 @@ KyraEngine_LoK::KyraEngine_LoK(OSystem *system, const GameFlags &flags)
 
 	_malcolmFrame = 0;
 	_malcolmTimer1 = _malcolmTimer2 = 0;
+	_defaultFont = (_flags.lang == Common::ZH_TWN) ? Screen::FID_CHINESE_FNT : ((_flags.lang == Common::JA_JPN) ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
+	_defaultLineSpacing = (_flags.lang == Common::ZH_TWN) ? 2 : 0;
 }
 
 KyraEngine_LoK::~KyraEngine_LoK() {
@@ -103,7 +104,7 @@ KyraEngine_LoK::~KyraEngine_LoK() {
 		if (_movieObjects[i])
 			_movieObjects[i]->close();
 		delete _movieObjects[i];
-		_movieObjects[i] = 0;
+		_movieObjects[i] = nullptr;
 	}
 
 	closeFinalWsa();
@@ -111,8 +112,6 @@ KyraEngine_LoK::~KyraEngine_LoK() {
 		_emc->unload(&_npcScriptData);
 		_emc->unload(&_scriptClickData);
 	}
-
-	DebugMan.clearAllDebugChannels();
 
 	delete _screen;
 	delete _sprites;
@@ -145,19 +144,22 @@ KyraEngine_LoK::~KyraEngine_LoK() {
 	delete[] _itemBkgBackUp[1];
 
 	for (int i = 0; i < ARRAYSIZE(_shapes); ++i) {
-		if (_shapes[i] != 0) {
+		if (_shapes[i] != nullptr) {
 			delete[] _shapes[i];
 			for (int i2 = 0; i2 < ARRAYSIZE(_shapes); i2++) {
 				if (_shapes[i2] == _shapes[i] && i2 != i) {
-					_shapes[i2] = 0;
+					_shapes[i2] = nullptr;
 				}
 			}
-			_shapes[i] = 0;
+			_shapes[i] = nullptr;
 		}
 	}
 
 	for (int i = 0; i < ARRAYSIZE(_sceneAnimTable); ++i)
 		delete[] _sceneAnimTable[i];
+
+	// This one has to be deleted manually, since we allocate an extra buffer for it.
+	delete[] _seq_KyrandiaLogo;
 }
 
 Common::Error KyraEngine_LoK::init() {
@@ -192,6 +194,9 @@ Common::Error KyraEngine_LoK::init() {
 	if (_flags.platform == Common::kPlatformAmiga) {
 		_trackMap = _amigaTrackMap;
 		_trackMapSize = _amigaTrackMapSize;
+	} else if (_flags.platform == Common::kPlatformMacintosh) {
+		_trackMap = (_configMusic == 1) ? _macHQTrackMap : _macLQTrackMap;
+		_trackMapSize = (_configMusic == 1) ? _macHQTrackMapSize : _macLQTrackMapSize;
 	} else {
 		_trackMap = _dosTrackMap;
 		_trackMapSize = _dosTrackMapSize;
@@ -205,10 +210,9 @@ Common::Error KyraEngine_LoK::init() {
 	setupButtonData();
 
 	_paletteChanged = 1;
-	_currentCharacter = 0;
-	_characterList = new Character[11];
+	_currentCharacter = nullptr;
+	_characterList = new Character[11]();
 	assert(_characterList);
-	memset(_characterList, 0, sizeof(Character) * 11);
 
 	for (int i = 0; i < 11; ++i)
 		memset(_characterList[i].inventoryItems, 0xFF, sizeof(_characterList[i].inventoryItems));
@@ -249,7 +253,7 @@ Common::Error KyraEngine_LoK::init() {
 
 	memset(_itemHtDat, 0, sizeof(_itemHtDat));
 	memset(_exitList, 0xFF, sizeof(_exitList));
-	_exitListPtr = 0;
+	_exitListPtr = nullptr;
 	_pathfinderFlag = _pathfinderFlag2 = 0;
 	_lastFindWayRet = 0;
 	_sceneChangeState = _loopFlag2 = 0;
@@ -277,12 +281,12 @@ Common::Error KyraEngine_LoK::init() {
 	_beadStateVar = 0;
 	_endSequenceSkipFlag = 0;
 	_unkEndSeqVar2 = 0;
-	_endSequenceBackUpRect = 0;
+	_endSequenceBackUpRect = nullptr;
 	_unkEndSeqVar4 = 0;
 	_unkEndSeqVar5 = 0;
 	_lastDisplayedPanPage = 0;
 	memset(_panPagesTable, 0, sizeof(_panPagesTable));
-	_finalA = _finalB = _finalC = 0;
+	_finalA = _finalB = _finalC = nullptr;
 	memset(&_kyragemFadingState, 0, sizeof(_kyragemFadingState));
 	_kyragemFadingState.gOffset = 0x13;
 	_kyragemFadingState.bOffset = 0x13;
@@ -299,7 +303,14 @@ Common::Error KyraEngine_LoK::go() {
 		_screen->loadFont(Screen::FID_6_FNT, "6.FNT");
 	_screen->loadFont(Screen::FID_8_FNT, "8FAT.FNT");
 
-	_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
+	if (_flags.lang == Common::ZH_TWN) {
+		_screen->loadFont(Screen::FID_CHINESE_FNT, "ASCII.FNT");
+		_screen->loadFont(Screen::FID_CHINESE_FNT, "KYRANDIA.FNT");
+		_screen->setTextMarginRight(312);
+	}
+
+	_screen->setFont(_defaultFont);
+	_screen->_lineSpacing = _defaultLineSpacing;
 
 	_screen->setScreenDim(0);
 
@@ -348,7 +359,6 @@ void KyraEngine_LoK::startup() {
 	else
 		_sound->loadSoundFile(0);
 
-//	_screen->setFont(Screen::FID_6_FNT);
 	_screen->setAnimBlockPtr(3750);
 	memset(_sceneAnimTable, 0, sizeof(_sceneAnimTable));
 	loadMouseShapes();
@@ -366,10 +376,8 @@ void KyraEngine_LoK::startup() {
 		_shapes[361 + i] = new byte[size];
 	}
 
-	_itemBkgBackUp[0] = new uint8[_screen->getRectSize(3, 24)];
-	memset(_itemBkgBackUp[0], 0, _screen->getRectSize(3, 24));
-	_itemBkgBackUp[1] = new uint8[_screen->getRectSize(4, 32)];
-	memset(_itemBkgBackUp[1], 0, _screen->getRectSize(4, 32));
+	_itemBkgBackUp[0] = new uint8[_screen->getRectSize(3, 24)]();
+	_itemBkgBackUp[1] = new uint8[_screen->getRectSize(4, 32)]();
 
 	for (int i = 0; i < _roomTableSize; ++i) {
 		for (int item = 0; item < 12; ++item) {
@@ -417,13 +425,14 @@ void KyraEngine_LoK::startup() {
 			_menuDirectlyToLoad = true;
 			_screen->setMouseCursor(1, 1, _shapes[0]);
 			_screen->showMouse();
-			_gui->buttonMenuCallback(0);
+			_gui->buttonMenuCallback(nullptr);
 			_menuDirectlyToLoad = false;
 		} else if (!shouldQuit()) {
-			saveGameStateIntern(0, "New game", 0);
+			saveGameStateIntern(0, "New game", nullptr);
 		}
 	} else {
-		_screen->setFont(_flags.lang == Common::JA_JPN ? Screen::FID_SJIS_FNT : Screen::FID_8_FNT);
+		_screen->setFont(_defaultFont);;
+		_screen->_lineSpacing = _defaultLineSpacing;
 		loadGameStateCheck(_gameToLoad);
 		_gameToLoad = -1;
 	}
@@ -434,6 +443,7 @@ void KyraEngine_LoK::mainLoop() {
 	static_cast<Debugger_LoK *>(getDebugger())->initialize();
 
 	_eventList.clear();
+	bool updateGfx = true;
 
 	while (!shouldQuit()) {
 		int32 frameTime = (int32)_system->getMillis();
@@ -446,10 +456,13 @@ void KyraEngine_LoK::mainLoop() {
 
 		if (_deathHandler != -1) {
 			snd_playWanderScoreViaMap(0, 1);
-			snd_playSoundEffect(49);
+ 			snd_playSoundEffect(49);
+			if (_flags.platform == Common::kPlatformMacintosh)
+				_sound->playTrack(15);
 			_screen->setMouseCursor(1, 1, _shapes[0]);
 			removeHandItem();
-			_gui->buttonMenuCallback(0);
+			_gui->buttonMenuCallback(nullptr);
+			updateGfx = !shouldQuit();
 			_deathHandler = -1;
 		}
 
@@ -478,7 +491,7 @@ void KyraEngine_LoK::mainLoop() {
 		if (skipFlag())
 			resetSkipFlag();
 
-		delay((frameTime + _gameSpeed) - _system->getMillis(), true, true);
+		delay((frameTime + _gameSpeed) - _system->getMillis(), updateGfx, true);
 	}
 }
 
@@ -572,7 +585,7 @@ void KyraEngine_LoK::delayWithTicks(int ticks) {
 
 void KyraEngine_LoK::setupShapes123(const Shape *shapeTable, int endShape, int flags) {
 	for (int i = 123; i <= 172; ++i)
-		_shapes[i] = 0;
+		_shapes[i] = nullptr;
 
 	uint8 curImage = 0xFF;
 	int curPageBackUp = _screen->_curPage;
@@ -584,7 +597,7 @@ void KyraEngine_LoK::setupShapes123(const Shape *shapeTable, int endShape, int f
 		uint8 newImage = shapeTable[i - 123].imageIndex;
 		if (newImage != curImage && newImage != 0xFF) {
 			assert(_characterImageTable);
-			_screen->loadBitmap(_characterImageTable[newImage], 8, 8, 0);
+			_screen->loadBitmap(_characterImageTable[newImage], 8, 8, nullptr);
 			curImage = newImage;
 		}
 		_shapes[i] = _screen->encodeShape(shapeTable[i - 123].x << 3, shapeTable[i - 123].y, shapeTable[i - 123].w << 3, shapeTable[i - 123].h, shapeFlags);
@@ -600,7 +613,7 @@ void KyraEngine_LoK::setupShapes123(const Shape *shapeTable, int endShape, int f
 void KyraEngine_LoK::freeShapes123() {
 	for (int i = 123; i <= 172; ++i) {
 		delete[] _shapes[i];
-		_shapes[i] = 0;
+		_shapes[i] = nullptr;
 	}
 }
 
@@ -962,6 +975,11 @@ void KyraEngine_LoK::readSettings() {
 		_configTextspeed = 2;   // Fast
 
 	KyraEngine_v1::readSettings();
+
+	if (_flags.platform == Common::kPlatformMacintosh) {
+		_trackMap = (_configMusic == 1) ? _macHQTrackMap : _macLQTrackMap;
+		_trackMapSize = (_configMusic == 1) ? _macHQTrackMapSize : _macLQTrackMapSize;
+	}
 }
 
 void KyraEngine_LoK::writeSettings() {
@@ -982,6 +1000,11 @@ void KyraEngine_LoK::writeSettings() {
 	}
 
 	ConfMan.setInt("talkspeed", talkspeed);
+
+	if (_flags.platform == Common::kPlatformMacintosh) {
+		_trackMap = (_configMusic == 1) ? _macHQTrackMap : _macLQTrackMap;
+		_trackMapSize = (_configMusic == 1) ? _macHQTrackMapSize : _macLQTrackMapSize;
+	}
 
 	KyraEngine_v1::writeSettings();
 }

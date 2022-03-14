@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/nuvie/core/nuvie_defs.h"
 #include "ultima/nuvie/screen/surface.h"
-#include "ultima/shared/std/misc.h"
 #include "common/algorithm.h"
 
 namespace Ultima {
@@ -109,7 +107,7 @@ void RenderSurface::set_format(const Graphics::PixelFormat *fmt) {
 	Gloss16 = Gloss + 8;
 	Bloss16 = Bloss + 8;
 	Rshift = fmt->rShift;
-	Gshift = fmt->gShift; 
+	Gshift = fmt->gShift;
 	Bshift = fmt->bShift;
 	Rmask = fmt->rMax() << fmt->rShift;
 	Gmask = fmt->gMax() << fmt->gShift;
@@ -297,9 +295,9 @@ void RenderSurface::draw_line16(int sx, int sy, int ex, int ey, unsigned char co
 		}
 	}
 	// Diagonal xdiff >= ydiff
-	else if (Std::labs(sx - ex) >= Std::labs(sy - ey)) {
+	else if (ABS(sx - ex) >= ABS(sy - ey)) {
 		//Std::cout << "Diagonal 1" << Std::endl;
-		uint32 fraction = Std::labs((LINE_FRACTION * (sy - ey)) / (sx - ex));
+		uint32 fraction = ABS((LINE_FRACTION * (sy - ey)) / (sx - ex));
 		uint32 ycounter = 0;
 
 		for (; ;) {
@@ -321,7 +319,7 @@ void RenderSurface::draw_line16(int sx, int sy, int ex, int ey, unsigned char co
 	// Diagonal ydiff > xdiff
 	else {
 		//Std::cout << "Diagonal 2" << Std::endl;
-		uint32 fraction = Std::labs((LINE_FRACTION * (sx - ex)) / (sy - ey));
+		uint32 fraction = ABS((LINE_FRACTION * (sx - ex)) / (sy - ey));
 		uint32 xcounter = 0;
 
 		for (; ;) {
@@ -415,9 +413,9 @@ void RenderSurface::draw_line32(int sx, int sy, int ex, int ey, unsigned char co
 		}
 	}
 	// Diagonal xdiff >= ydiff
-	else if (Std::labs(sx - ex) >= Std::labs(sy - ey)) {
+	else if (ABS(sx - ex) >= ABS(sy - ey)) {
 		//Std::cout << "Diagonal 1" << Std::endl;
-		uint32 fraction = Std::labs((LINE_FRACTION * (sy - ey)) / (sx - ex));
+		uint32 fraction = ABS((LINE_FRACTION * (sy - ey)) / (sx - ex));
 		uint32 ycounter = 0;
 
 		for (; ;) {
@@ -439,7 +437,7 @@ void RenderSurface::draw_line32(int sx, int sy, int ex, int ey, unsigned char co
 	// Diagonal ydiff > xdiff
 	else {
 		//Std::cout << "Diagonal 2" << Std::endl;
-		uint32 fraction = Std::labs((LINE_FRACTION * (sx - ex)) / (sy - ey));
+		uint32 fraction = ABS((LINE_FRACTION * (sx - ex)) / (sy - ey));
 		uint32 xcounter = 0;
 
 		for (; ;) {

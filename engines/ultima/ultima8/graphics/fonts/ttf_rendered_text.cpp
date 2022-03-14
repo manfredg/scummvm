@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,16 +23,12 @@
 #include "ultima/ultima8/graphics/fonts/ttf_rendered_text.h"
 #include "ultima/ultima8/graphics/fonts/tt_font.h"
 #include "ultima/ultima8/graphics/render_surface.h"
-#include "ultima/ultima8/graphics/texture.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(TTFRenderedText, RenderedText)
-
-
-TTFRenderedText::TTFRenderedText(Texture *texture_, int width, int height,
-		int vLead, TTFont *font) : _texture(texture_), _font(font) {
+TTFRenderedText::TTFRenderedText(Graphics::ManagedSurface *texture, int width, int height,
+		int vLead, int baseline, bool antiAliased) : _texture(texture), _baseline(baseline), _antiAliased(antiAliased) {
 	_width = width;
 	_height = height;
 	_vLead = vLead;
@@ -44,22 +39,24 @@ TTFRenderedText::~TTFRenderedText() {
 }
 
 void TTFRenderedText::draw(RenderSurface *surface, int x, int y, bool destmasked) {
+	if (!_width)
+		return;
 	if (!destmasked)
-		surface->Blit(_texture, 0, 0, _width, _height, x, y - _font->getBaseline(),
-			_font->isAntialiased());
+		surface->Blit(_texture, 0, 0, _width, _height, x, y - _baseline,
+			_antiAliased);
 	else
 		surface->MaskedBlit(_texture, 0, 0, _width, _height,
-			x, y - _font->getBaseline(), 0, _font->isAntialiased());
+			x, y - _baseline, 0, _antiAliased);
 }
 
 void TTFRenderedText::drawBlended(RenderSurface *surface, int x, int y,
 		uint32 col, bool destmasked) {
 	if (!destmasked)
 		surface->FadedBlit(_texture, 0, 0, _width, _height,
-			x, y - _font->getBaseline(), col, _font->isAntialiased());
+			x, y - _baseline, col, _antiAliased);
 	else
 		surface->MaskedBlit(_texture, 0, 0, _width, _height,
-			x, y - _font->getBaseline(), col, _font->isAntialiased());
+			x, y - _baseline, col, _antiAliased);
 }
 
 } // End of namespace Ultima8

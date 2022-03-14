@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -90,6 +89,7 @@ const GlkDetectionEntry SCOTT_GAMES[] = {
 	DT_ENTRY0("goldenvoyage",      "e2a8f956ab215012d1495550c4c11ee8", 18513),
 	DT_ENTRY0("claymorguesorcerer","f986d7e1ee074f65b6c1d00461c9b3c3", 19232),
 	DT_ENTRY0("pirateisle",        "6d98f422cc986d959a3c74351785aea3", 19013),
+	DT_ENTRY0("buckaroobanzai",    "ee2c7139d58423c5e25dd918fcb48383", 17989),
 	DT_ENTRY0("marveladventure",   "aadcc04e6b37eb9d30a58b5bc775842e", 18876),
 	DT_ENTRY0("scottsampler",      "d569a769f304dc02b3062d97458ddd01", 13854),
 

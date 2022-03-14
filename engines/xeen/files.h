@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -119,6 +118,7 @@ class File : public Common::File {
 	friend class FileManager;
 	friend class OutFile;
 	friend class SavesManager;
+	friend class Debugger;
 private:
 	static CCArchive *_xeenCc, *_darkCc, *_introCc;
 	static SaveArchive *_xeenSave, *_darkSave;
@@ -144,12 +144,12 @@ public:
 	/**
 	 * Opens the given file, throwing an error if it can't be opened
 	 */
-	bool open(const Common::String &filename) override;
+	bool open(const Common::Path &filename) override;
 
 	/**
 	 * Opens the given file, throwing an error if it can't be opened
 	 */
-	bool open(const Common::String &filename, Common::Archive &archive) override;
+	bool open(const Common::Path &filename, Common::Archive &archive) override;
 
 	/**
 	 * Opens the given file, throwing an error if it can't be opened
@@ -222,7 +222,7 @@ public:
 	}
 	bool flush() override { return _parentStream->flush(); }
 	void finalize() override {}
-	int32 pos() const override { return _parentStream->pos() - _begin; }
+	int64 pos() const override { return _parentStream->pos() - _begin; }
 };
 
 class StringArray : public Common::StringArray {
@@ -244,13 +244,18 @@ public:
 class XeenSerializer : public Common::Serializer {
 private:
 	Common::SeekableReadStream *_in;
+	int _filesize;
 public:
 	XeenSerializer(Common::SeekableReadStream *in, Common::WriteStream *out) :
-		Common::Serializer(in, out), _in(in) {}
+		Common::Serializer(in, out), _in(in), _filesize(-1) {}
 
 	SYNC_AS(Sint8, Byte, int8, 1)
 
-	bool finished() const { return _in != nullptr && _in->pos() >= _in->size(); }
+	bool finished() {
+		if (_in && _filesize == -1)
+			_filesize = _in->size();
+		return _in != nullptr && _in->pos() >= _filesize;
+	}
 };
 
 /**
@@ -290,9 +295,9 @@ public:
 	BaseCCArchive() {}
 
 	// Archive implementation
-	bool hasFile(const Common::String &name) const override;
+	bool hasFile(const Common::Path &path) const override;
 	int listMembers(Common::ArchiveMemberList &list) const override;
-	const Common::ArchiveMemberPtr getMember(const Common::String &name) const override;
+	const Common::ArchiveMemberPtr getMember(const Common::Path &path) const override;
 };
 
 /**
@@ -311,7 +316,7 @@ public:
 	~CCArchive() override;
 
 	// Archive implementation
-	Common::SeekableReadStream *createReadStreamForMember(const Common::String &name) const override;
+	Common::SeekableReadStream *createReadStreamForMember(const Common::Path &path) const override;
 };
 
 class SaveArchive : public BaseCCArchive {
@@ -333,7 +338,7 @@ public:
 	/**
 	 * Archive implementation
 	 */
-	Common::SeekableReadStream *createReadStreamForMember(const Common::String &name) const override;
+	Common::SeekableReadStream *createReadStreamForMember(const Common::Path &path) const override;
 
 	/**
 	 * Archive implementation
@@ -387,7 +392,7 @@ public:
 	/**
 	 * Returns the current position
 	 */
-	int32 pos() const override;
+	int64 pos() const override;
 };
 
 } // End of namespace Xeen

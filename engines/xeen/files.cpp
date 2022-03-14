@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,10 +57,15 @@ uint16 BaseCCArchive::convertNameToId(const Common::String &resourceName) {
 
 void BaseCCArchive::loadIndex(Common::SeekableReadStream &stream) {
 	int count = stream.readUint16LE();
+	size_t size = count * 8;
 
 	// Read in the data for the archive's index
-	byte *rawIndex = new byte[count * 8];
-	stream.read(rawIndex, count * 8);
+	byte *rawIndex = new byte[size];
+
+	if (stream.read(rawIndex, size) != size) {
+		delete[] rawIndex;
+		error("Failed to read %zu bytes from CC file", size);
+	}
 
 	// Decrypt the index
 	int seed = 0xac;
@@ -116,7 +120,8 @@ void BaseCCArchive::saveIndex(Common::WriteStream &stream) {
 	delete[] rawIndex;
 }
 
-bool BaseCCArchive::hasFile(const Common::String &name) const {
+bool BaseCCArchive::hasFile(const Common::Path &path) const {
+	Common::String name = path.toString();
 	CCEntry ccEntry;
 	return getHeaderEntry(name, ccEntry);
 }
@@ -138,7 +143,8 @@ bool BaseCCArchive::getHeaderEntry(uint16 id, CCEntry &ccEntry) const {
 	return false;
 }
 
-const Common::ArchiveMemberPtr BaseCCArchive::getMember(const Common::String &name) const {
+const Common::ArchiveMemberPtr BaseCCArchive::getMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	if (!hasFile(name))
 		return Common::ArchiveMemberPtr();
 
@@ -188,7 +194,8 @@ bool CCArchive::getHeaderEntry(const Common::String &resourceName, CCEntry &ccEn
 	return BaseCCArchive::getHeaderEntry(resName, ccEntry);
 }
 
-Common::SeekableReadStream *CCArchive::createReadStreamForMember(const Common::String &name) const {
+Common::SeekableReadStream *CCArchive::createReadStreamForMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 	CCEntry ccEntry;
 
 	if (getHeaderEntry(name, ccEntry)) {
@@ -198,9 +205,15 @@ Common::SeekableReadStream *CCArchive::createReadStreamForMember(const Common::S
 			error("Could not open CC file");
 
 		// Read in the data for the specific resource
-		f.seek(ccEntry._offset);
+		if (!f.seek(ccEntry._offset))
+			error("Failed to seek to %d bytes in CC file", ccEntry._offset);
+
 		byte *data = (byte *)malloc(ccEntry._size);
-		f.read(data, ccEntry._size);
+
+		if (f.read(data, ccEntry._size) != ccEntry._size) {
+			free(data);
+			error("Failed to read %hu bytes in CC file", ccEntry._size);
+		}
 
 		if (_encoded) {
 			// Decrypt the data
@@ -261,7 +274,7 @@ bool FileManager::setup() {
 
 	// Verify the version of the CC is correct
 	CCArchive *dataCc = new CCArchive("xeen.ccs", "data", true);
-	if (!f.open("VERSION", *dataCc) || f.readUint32LE() != 3) {
+	if (!f.open("VERSION", *dataCc) || f.readUint32LE() != 5) {
 		GUIErrorMessage("xeen.ccs is out of date");
 		return false;
 	}
@@ -310,21 +323,21 @@ File::File(const Common::String &filename, int ccMode) {
 	File::open(filename, ccMode);
 }
 
-bool File::open(const Common::String &filename) {
+bool File::open(const Common::Path &filename) {
 	if (!_currentSave || !Common::File::open(filename, *_currentSave)) {
 		if (!Common::File::open(filename, *_currentArchive)) {
 			// Could not find in current archive, so try intro.cc or in folder
 			if (!Common::File::open(filename))
-				error("Could not open file - %s", filename.c_str());
+				error("Could not open file - %s", filename.toString().c_str());
 		}
 	}
 
 	return true;
 }
 
-bool File::open(const Common::String &filename, Common::Archive &archive) {
+bool File::open(const Common::Path &filename, Common::Archive &archive) {
 	if (!Common::File::open(filename, archive))
-		error("Could not open file - %s", filename.c_str());
+		error("Could not open file - %s", filename.toString().c_str());
 	return true;
 }
 
@@ -448,13 +461,14 @@ SaveArchive::SaveArchive(Party *party) : BaseCCArchive(), _party(party), _data(n
 }
 
 SaveArchive::~SaveArchive() {
-	for (Common::HashMap<uint16, Common::MemoryWriteStreamDynamic *>::iterator it = _newData.begin(); it != _newData.end(); it++) {
+	for (Common::HashMap<uint16, Common::MemoryWriteStreamDynamic *>::iterator it = _newData.begin(); it != _newData.end(); ++it) {
 		delete (*it)._value;
 	}
 	delete[] _data;
 }
 
-Common::SeekableReadStream *SaveArchive::createReadStreamForMember(const Common::String &name) const {
+Common::SeekableReadStream *SaveArchive::createReadStreamForMember(const Common::Path &path) const {
+	Common::String name = path.toString();
 
 	// If the given resource has already been perviously "written" to the
 	// save manager, then return that new resource
@@ -485,8 +499,12 @@ void SaveArchive::load(Common::SeekableReadStream &stream) {
 	delete[] _data;
 	_dataSize = stream.size();
 	_data = new byte[_dataSize];
-	stream.seek(0);
-	stream.read(_data, _dataSize);
+
+	if (!stream.seek(0))
+		error("Failed to seek to 0 in the save archive");
+
+	if (!stream.read(_data, _dataSize))
+		error("Failed to read %u bytes from save archive", _dataSize);
 }
 
 void SaveArchive::loadParty() {
@@ -514,11 +532,17 @@ void SaveArchive::reset(CCArchive *src) {
 		if (src->hasFile(filename)) {
 			// Read in the next resource
 			fIn.open(filename, *src);
-			byte *data = new byte[fIn.size()];
-			fIn.read(data, fIn.size());
+
+			size_t size = fIn.size();
+			byte *data = new byte[size];
+
+			if (fIn.read(data, size) != size) {
+				delete[] data;
+				error("Failed to read %zu bytes from resource '%s' in save archive", size, filename.c_str());
+			}
 
 			// Copy it to the combined savefile resource
-			saveFile.write(data, fIn.size());
+			saveFile.write(data, size);
 			delete[] data;
 			fIn.close();
 		}
@@ -559,12 +583,19 @@ void SaveArchive::save(Common::WriteStream &s) {
 	for (uint idx = 0; idx < _index.size(); ++idx) {
 		// Get the entry
 		Common::SeekableReadStream *entry = createReadStreamForMember(_index[idx]._id);
-		byte *data = new byte[entry->size()];
-		entry->read(data, entry->size());
+
+		size_t size = entry->size();
+		byte *data = new byte[size];
+
+		if (entry->read(data, size) != size) {
+			delete[] data;
+			delete entry;
+			error("Failed to read %zu bytes from entry %hu", size, _index[idx]._id);
+		}
 
 		// Write it out to the savegame
 		assert(dataStream.pos() == _index[idx]._writeOffset);
-		dataStream.write(data, entry->size());
+		dataStream.write(data, size);
 		delete[] data;
 		delete entry;
 	}
@@ -610,7 +641,7 @@ uint32 OutFile::write(const void *dataPtr, uint32 dataSize) {
 	return _backingStream.write(dataPtr, dataSize);
 }
 
-int32 OutFile::pos() const {
+int64 OutFile::pos() const {
 	return _backingStream.pos();
 }
 

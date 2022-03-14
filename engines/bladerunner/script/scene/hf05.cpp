@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -152,6 +151,10 @@ bool SceneScriptHF05::ClickedOn3DObject(const char *objectName, bool a2) {
 
 bool SceneScriptHF05::ClickedOnActor(int actorId) {
 	if (actorId == kActorCrazylegs) {
+		// Note: dialogueWithCrazylegs1() makes sense only for Acts 3 and 4.
+		//      by Act 5, McCoy is done interrogating, and it would also be weird
+		//      if he is asking questions about Lucy or Dektora, with them standing next to him.
+		// TODO Recheck: Is McCoy allowed to click on CrazyLegs in Act5 while Dektora or Lucy are there too?
 #if BLADERUNNER_ORIGINAL_BUGS
 		if (!Loop_Actor_Walk_To_Actor(kActorMcCoy, kActorCrazylegs, 60, true, false)) {
 			Actor_Face_Actor(kActorMcCoy, kActorCrazylegs, true);
@@ -253,7 +256,7 @@ void SceneScriptHF05::SceneFrameAdvanced(int frame) {
 
 	case 179:
 		Sound_Play(kSfxCAREXPL1, 90,   0,   0, 50);
-		Music_Play(kMusicBatl226M, 50, 0, 2, -1, 0, 0);
+		Music_Play(kMusicBatl226M, 50, 0, 2, -1, kMusicLoopPlayOnce, 0);
 		break;
 
 	case 186:
@@ -322,7 +325,7 @@ void SceneScriptHF05::PlayerWalkedIn() {
 			 && !Game_Flag_Query(kFlagHF05PoliceArrived)
 			) {
 				Game_Flag_Set(kFlagHF05PoliceArrived);
-				Music_Play(kMusicBatl226M, 40, 0, 2, -1, 0, 0);
+				Music_Play(kMusicBatl226M, 40, 0, 2, -1, kMusicLoopPlayOnce, 0);
 				Actor_Says(kActorOfficerGrayford, 200, kAnimationModeTalk);
 				Actor_Says(kActorOfficerGrayford, 210, kAnimationModeTalk);
 				Actor_Set_Goal_Number(kActorOfficerLeary, kGoalOfficerLearyPoliceWait120SecondsToAttackHF05);
@@ -366,7 +369,7 @@ void SceneScriptHF05::PlayerWalkedOut() {
 		Actor_Set_Goal_Number(kActorCrazylegs, kGoalCrazyLegsLeavesShowroom);
 	}
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 }
 
 void SceneScriptHF05::DialogueQueueFlushed(int a1) {
@@ -389,32 +392,74 @@ void SceneScriptHF05::talkWithCrazyLegs2() {
 
 void SceneScriptHF05::dialogueWithCrazylegs1() {
 	Dialogue_Menu_Clear_List();
+#if BLADERUNNER_ORIGINAL_BUGS
 	if (Actor_Clue_Query(kActorMcCoy, kClueGrigoriansNote) // cut feature? there is no way how to obtain this clue
 	 && Global_Variable_Query(kVariableChapter) == 3
 	) {
 		DM_Add_To_List_Never_Repeat_Once_Selected(1180, 3, 6, 7); // ADVERTISEMENT
 	}
+#else
+	// Restored feature - Original: it is impossible to obtain this clue
+	if (Actor_Clue_Query(kActorMcCoy, kClueCrazysInvolvement)
+	 && Global_Variable_Query(kVariableChapter) == 3
+	) {
+		// This dialogue point does not talk about Grigorian's Note
+		// but rather a Note that CrazyLegs wrote on one of his flyers
+		// kClueCrazysInvolvement is only acquired in _cutContent (Restored Content) mode
+		// so no need to add that extra check in the if clause.
+		DM_Add_To_List_Never_Repeat_Once_Selected(1180, 3, 6, 7); // ADVERTISEMENT
+	}
+#endif // BLADERUNNER_ORIGINAL_BUGS
 	if (Actor_Clue_Query(kActorMcCoy, kClueCrazylegsInterview1)) {
+		// kClueCrazylegsInterview1 is acquired (after bug fix)
+		// only when Dektora has bought the car (kClueCarRegistration1)
+		// and McCoy has asked Crazylegs for the CAR REGISTRATION topic already
 		DM_Add_To_List_Never_Repeat_Once_Selected(1190, 2, 7, 4); // WOMAN
 	}
+#if BLADERUNNER_ORIGINAL_BUGS
 	if (Actor_Clue_Query(kActorMcCoy, kClueDektorasDressingRoom)) {
 		DM_Add_To_List_Never_Repeat_Once_Selected(1200, 5, 5, 3); // WOMAN'S PHOTO
 	}
+#else
+	if ((Actor_Clue_Query(kActorMcCoy, kClueDektorasDressingRoom)
+	    && Actor_Clue_Query(kActorMcCoy, kClueCrazylegsInterview1))
+	) {
+		// kClueDektorasDressingRoom is acquired from EarlyQ at his office (nr04)
+		// McCoy should only ask about this if CrazyLegs already told him at least about the sexy blonde (kClueCrazylegsInterview1)
+		// TODO Maybe McCoy can show the kClueWomanInAnimoidRow
+		//      - if he has the kClueChinaBar (where she is with Clovis) too?
+		//      - or if he met Dektora already.
+		DM_Add_To_List_Never_Repeat_Once_Selected(1200, 5, 5, 3); // WOMAN'S PHOTO
+	}
+#endif // BLADERUNNER_ORIGINAL_BUGS
 	if (Actor_Clue_Query(kActorMcCoy, kClueLucy)
 	 && Actor_Query_Goal_Number(kActorLucy) != kGoalLucyGone
 	) {
 		DM_Add_To_List_Never_Repeat_Once_Selected(1210, 4, 6, 2); // LUCY'S PHOTO
 	}
-	if (Actor_Clue_Query(kActorMcCoy, kClueGrigoriansResources) // cut feature? there is no way how to obtain this clue
-	 || (Actor_Clue_Query(kActorMcCoy, kClueGrigoriansNote) // cut feature? there is no way how to obtain this clue either
+#if BLADERUNNER_ORIGINAL_BUGS
+	if (Actor_Clue_Query(kActorMcCoy, kClueGrigoriansResources) // it is impossible to obtain this clue
+	 || (Actor_Clue_Query(kActorMcCoy, kClueGrigoriansNote) // it is impossible to obtain this clue either
 	  && Global_Variable_Query(kVariableChapter) == 3
 	 )
 	) {
 		DM_Add_To_List_Never_Repeat_Once_Selected(1220, -1, 2, 8); // GRIGORIAN
 	}
+#else
+	if (Global_Variable_Query(kVariableChapter) == 3
+	    && (Actor_Clue_Query(kActorMcCoy, kClueGrigoriansResources) // Restored feature - Original: it is impossible to obtain this clue
+	        || Actor_Clue_Query(kActorMcCoy, kClueGrigoriansNote)) // Restored feature - Original: it is impossible to obtain this clue either
+	) {
+		// The chapter check is done for both cases:
+		//      either McCoy has kClueGrigoriansResources or kClueGrigoriansNote
+		DM_Add_To_List_Never_Repeat_Once_Selected(1220, -1, 2, 8); // GRIGORIAN
+	}
+#endif
 	if (Actor_Clue_Query(kActorMcCoy, kClueCarRegistration1)
 	 || Actor_Clue_Query(kActorMcCoy, kClueCarRegistration3)
 	) {
+		// Dektora bought the car or Blake Williams (which is an alias, that Clovis used)
+		// Gordo is with Dektora when making the car purchase (as revealed by CrazyLegs in the "WOMAN" question).
 		DM_Add_To_List_Never_Repeat_Once_Selected(1230, 4, 7, -1); // CAR REGISTRATION
 	}
 
@@ -435,8 +480,19 @@ void SceneScriptHF05::dialogueWithCrazylegs1() {
 	switch (answer) {
 	case 1180: // ADVERTISEMENT
 		Actor_Says(kActorMcCoy, 1890, 23);
+		if (_vm->_cutContent) {
+			// McCoy shows the sales pamphlet (from Dektora's Vanity drawer) to CrazyLegs
+			Item_Pickup_Spin_Effect_From_Actor(kModelAnimationTyrellSalesPamphlet, kActorMcCoy, 0, 0);
+		}
 		Actor_Says(kActorCrazylegs, 510, kAnimationModeTalk);
+		if (_vm->_cutContent) {
+			Actor_Says(kActorCrazylegs, 520, kAnimationModeTalk);
+		}
 		Actor_Says(kActorMcCoy, 1920, 23);
+		if (_vm->_cutContent) {
+			// McCoy shows the note he found inside the sales pamphlet (from Dektora's Vanity drawer) to CrazyLegs
+			Item_Pickup_Spin_Effect_From_Actor(kModelAnimationLetter, kActorMcCoy, 0, 0);
+		}
 		Actor_Says(kActorMcCoy, 1925, kAnimationModeTalk);
 		Actor_Says(kActorCrazylegs, 530, 12);
 		Actor_Says(kActorMcCoy, 1930, 18);
@@ -445,6 +501,7 @@ void SceneScriptHF05::dialogueWithCrazylegs1() {
 		Actor_Says(kActorCrazylegs, 550, 16);
 		Actor_Says(kActorMcCoy, 1940, 15);
 		Actor_Says(kActorMcCoy, 1945, -1);
+		// CrazyLegs cuts his sentence short here. He is not interrupted.
 		Actor_Says(kActorCrazylegs, 560, 15);
 		Actor_Says(kActorCrazylegs, 570, 16);
 		Actor_Says(kActorMcCoy, 1950, 17);
@@ -489,11 +546,22 @@ void SceneScriptHF05::dialogueWithCrazylegs1() {
 		break;
 
 	case 1220: // GRIGORIAN
+		// This dialogue does not mention Grigorian's note explicitly
+		// but it does mention Grigorian talking about friends with resources.
+		// So it needs that clue as a prerequisite
+		// for that specific part of the dialogue (McCoy's cues only)
 		Actor_Says(kActorMcCoy, 1910, kAnimationModeTalk);
 		Actor_Says(kActorCrazylegs, 780, 12);
 		Actor_Says(kActorMcCoy, 2045, 17);
+#if BLADERUNNER_ORIGINAL_BUGS
 		Actor_Says(kActorMcCoy, 2050, kAnimationModeTalk);
 		Actor_Says(kActorCrazylegs, 790, 14);
+#else
+		if (Actor_Clue_Query(kActorMcCoy, kClueGrigoriansResources)) {
+			Actor_Says(kActorMcCoy, 2050, kAnimationModeTalk);
+			Actor_Says(kActorCrazylegs, 790, 14);
+		}
+#endif
 		Actor_Says(kActorMcCoy, 2055, 19);
 		Actor_Says(kActorMcCoy, 2060, -1);
 		Actor_Says(kActorCrazylegs, 800, 15);
@@ -514,6 +582,13 @@ void SceneScriptHF05::dialogueWithCrazylegs1() {
 			Actor_Says(kActorMcCoy, 2080, kAnimationModeTalk);
 			Actor_Says(kActorCrazylegs, 860, 16);
 			Actor_Says(kActorCrazylegs, 870, kAnimationModeTalk);
+#if BLADERUNNER_ORIGINAL_BUGS
+#else
+			// This clue was never acquired, even though it is checked in KIA
+			// (so that it appears as a recording in KIA if acquired)
+			// It also enables the "WOMAN" conversation option with CrazyLegs.
+			Actor_Clue_Acquire(kActorMcCoy, kClueCrazylegsInterview1, true, kActorCrazylegs);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 		} else if (Actor_Clue_Query(kActorMcCoy, kClueCarRegistration3)) {
 			Actor_Says(kActorCrazylegs, 880, 12);
 			Actor_Says(kActorCrazylegs, 890, 14);
@@ -535,7 +610,7 @@ void SceneScriptHF05::dialogueWithCrazylegs1() {
 	}
 }
 
-void SceneScriptHF05::dialogueWithCrazylegs2() { // cut feature? it is impossible to trigger this dialog
+void SceneScriptHF05::dialogueWithCrazylegs2() { // Restored feature - Original: it is impossible to obtain this clue
 	Dialogue_Menu_Clear_List();
 	DM_Add_To_List_Never_Repeat_Once_Selected(1250, -1, -1, 10); // ARREST
 	DM_Add_To_List_Never_Repeat_Once_Selected(1260, 10,  5, -1); // WARNING
@@ -558,6 +633,8 @@ void SceneScriptHF05::dialogueWithCrazylegs2() { // cut feature? it is impossibl
 		Actor_Says(kActorMcCoy, 1995, kAnimationModeTalk);
 		Game_Flag_Set(kFlagCrazylegsArrested);
 		Actor_Put_In_Set(kActorCrazylegs, kSetPS09);
+		// This XYZ is awry (won't show Crazylegs inside a cell or at all in the PS09 scene)
+		// but it is eventually overridden by the PS09 script, which puts Crazylegs at the right spot
 		Actor_Set_At_XYZ(kActorCrazylegs, -315.15f, 0.0f, 241.06f, 583);
 		Actor_Set_Goal_Number(kActorCrazylegs, kGoalCrazyLegsIsArrested);
 		Game_Flag_Set(kFlagCrazylegsArrestedTalk);
@@ -608,7 +685,12 @@ void SceneScriptHF05::talkWithDektora() {
 	Actor_Says(kActorDektora, 2660, 12);
 	Actor_Says(kActorMcCoy, 8990, kAnimationModeTalk);
 	Actor_Says(kActorDektora, 2670, 13);
+#if BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorDektora, 2680, 17);
+#else
+	// Dektora is interrupted here
+	Actor_Says_With_Pause(kActorDektora, 2680, 0.0f, 17);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 	Actor_Says(kActorMcCoy, 8995, 14);
 	Actor_Says(kActorDektora, 2690, 15);
 	Actor_Says_With_Pause(kActorMcCoy, 9000, 1.0f, 16);
@@ -657,6 +739,7 @@ void SceneScriptHF05::talkWithCrazylegs3(int affectionTowardsActor) {
 		Actor_Says(kActorMcCoy, 1725, kAnimationModeTalk);
 		Actor_Says(kActorCrazylegs, 40, 16);
 		Actor_Says(kActorCrazylegs, 50, kAnimationModeTalk);
+		// CrazyLegs cuts his sentence short here. He is not interrupted.
 		Actor_Says(kActorCrazylegs, 60, 12);
 		Actor_Says(kActorCrazylegs, 70, 13);
 		Actor_Says(kActorMcCoy, 1730, kAnimationModeTalk);
@@ -697,6 +780,7 @@ void SceneScriptHF05::talkWithCrazyLegs1() {
 		ADQ_Flush();
 		ADQ_Add(kActorCrazylegs, 130, 18);
 		ADQ_Add(kActorCrazylegs, 140, 18);
+		// CrazyLegs cuts his sentence short here. He is not interrupted.
 		ADQ_Add(kActorCrazylegs, 150, 18);
 		ADQ_Add(kActorCrazylegs, 160, 17);
 	}
@@ -755,15 +839,15 @@ void SceneScriptHF05::talkWithCrazyLegs1() {
 
 void SceneScriptHF05::addAmbientSounds() {
 	Ambient_Sounds_Add_Sound(kSfxSIREN2, 20, 80, 20, 100, -100, 100, -101, -101, 0, 0);
-	Ambient_Sounds_Add_Speech_Sound(kActorOfficerLeary,    250, 5, 70, 7, 10, -50, 50, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorOfficerLeary,    330, 5, 70, 7, 10, -50, 50, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorOfficerLeary,    340, 5, 90, 7, 10, -50, 50, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorOfficerLeary,    360, 5, 70, 7, 10, -50, 50, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorOfficerGrayford, 380, 5, 70, 7, 10, -50, 50, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorOfficerGrayford, 510, 5, 70, 7, 10, -50, 50, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorDispatcher,       80, 5, 70, 7, 10, -50, 50, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorDispatcher,      160, 5, 70, 7, 10, -50, 50, -101, -101, 1, 1);
-	Ambient_Sounds_Add_Speech_Sound(kActorDispatcher,      280, 5, 70, 7, 10, -50, 50, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorOfficerLeary,    250, 5u, 70u, 7, 10, -50, 50, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorOfficerLeary,    330, 5u, 70u, 7, 10, -50, 50, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorOfficerLeary,    340, 5u, 90u, 7, 10, -50, 50, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorOfficerLeary,    360, 5u, 70u, 7, 10, -50, 50, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorOfficerGrayford, 380, 5u, 70u, 7, 10, -50, 50, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorOfficerGrayford, 510, 5u, 70u, 7, 10, -50, 50, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorDispatcher,       80, 5u, 70u, 7, 10, -50, 50, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorDispatcher,      160, 5u, 70u, 7, 10, -50, 50, -101, -101, 1, 1);
+	Ambient_Sounds_Add_Speech_Sound(kActorDispatcher,      280, 5u, 70u, 7, 10, -50, 50, -101, -101, 1, 1);
 }
 
 int SceneScriptHF05::getCompanionActor() {

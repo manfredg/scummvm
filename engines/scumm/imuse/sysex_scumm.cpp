@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,14 +53,14 @@ void sysexHandler_Scumm(Player *player, const byte *msg, uint16 len) {
 		// Here is what we know about them so far:
 		//   BYTE 0: Channel #
 		//   BYTE 1: BIT 01(0x01): Part on?(1 = yes)
-		//            BIT 02(0x02): Reverb? (1 = yes) [bug #1088045]
+		//            BIT 02(0x02): Reverb? (1 = yes) [bug #1849]
 		//   BYTE 2: Priority adjustment
 		//   BYTE 3: Volume [guessing]
-		//   BYTE 4: Pan [bug #1088045]
+		//   BYTE 4: Pan [bug #1849]
 		//   BYTE 5: BIT 8(0x80): Percussion?(1 = yes) [guessed?]
 		//   BYTE 5: Transpose, if set to 0x80(=-1) it means no transpose
 		//   BYTE 6: Detune
-		//   BYTE 7: Pitchbend factor [bug #1088045]
+		//   BYTE 7: Pitchbend factor [bug #1849]
 		//   BYTE 8: Program
 
 		part = player->getPart(p[0] & 0x0F);
@@ -102,9 +101,9 @@ void sysexHandler_Scumm(Player *player, const byte *msg, uint16 len) {
 		break;
 
 	case 1:
-		// Shut down a part. [Bug 1088045, comments]
+		// Shut down a part. [Bug #1849, comments]
 		part = player->getPart(p[0]);
-		if (part != NULL)
+		if (part != nullptr)
 			part->uninit();
 		break;
 

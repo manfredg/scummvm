@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,7 +51,7 @@ bool loadPrc(const char *pPrcName) {
 	// This is copy protection. Used to hang the machine
 	if (!scumm_stricmp(pPrcName, COPY_PROT_FAIL_PRC_NAME)) {
 		Common::Event event;
-		event.type = Common::EVENT_RTL;
+		event.type = Common::EVENT_RETURN_TO_LAUNCHER;
 		g_system->getEventManager()->pushEvent(event);
 		return false;
 	}
@@ -62,6 +61,7 @@ bool loadPrc(const char *pPrcName) {
 		(!scumm_stricmp(pPrcName, BOOT_PRC_NAME) || !scumm_stricmp(pPrcName, "demo.prc"))) {
 		scriptPtr = dataPtr = readFile(pPrcName, (g_cine->getFeatures() & GF_CRYPTED_BOOT_PRC) != 0);
 	} else {
+		checkDataDisk(-1);
 		scriptPtr = dataPtr = readBundleFile(findFileInBundle(pPrcName));
 	}
 
@@ -84,7 +84,7 @@ bool loadPrc(const char *pPrcName) {
 		uint16 size = g_cine->_scriptTable[i]->_size;
 		// TODO: delete the test?
 		if (size) {
-			g_cine->_scriptTable[i]->setData(*scriptInfo, scriptPtr);
+			g_cine->_scriptTable[i]->setData(*g_cine->_scriptInfo, scriptPtr);
 			scriptPtr += size;
 		}
 	}

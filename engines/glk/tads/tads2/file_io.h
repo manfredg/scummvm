@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,19 +42,19 @@ struct tokcxdef;
 
 /* load-on-demand context (passed in by mcm in load callback) */
 struct fiolcxdef {
-    osfildef *fiolcxfp;                        /* file pointer of load file */
-    errcxdef *fiolcxerr;                          /* error handling context */
-    ulong     fiolcxst;                          /* starting offset in file */
-    uint      fiolcxflg;                   /* flags from original load file */
-    uint      fiolcxseed;                                    /* fioxor seed */
-    uint      fiolcxinc;                                /* fioxor increment */
+	osfildef *fiolcxfp;                        /* file pointer of load file */
+	errcxdef *fiolcxerr;                          /* error handling context */
+	ulong     fiolcxst;                          /* starting offset in file */
+	uint      fiolcxflg;                   /* flags from original load file */
+	uint      fiolcxseed;                                    /* fioxor seed */
+	uint      fiolcxinc;                                /* fioxor increment */
 };
 
 /* write game to binary file */
 void fiowrt(struct mcmcxdef *mctx, voccxdef *vctx,
-            struct tokcxdef *tokctx, struct tokthdef *tab,
-            uchar *fmts, uint fmtl, char *fname, uint flags, objnum preinit,
-            int extc, uint prpcnt, char *filever);
+			struct tokcxdef *tokctx, struct tokthdef *tab,
+			uchar *fmts, uint fmtl, char *fname, uint flags, objnum preinit,
+			int extc, uint prpcnt, char *filever);
 
 /* flag values for use with fiowrt */
 #define FIOFSYM   0x01               /* include symbol table in output file */
@@ -79,18 +78,18 @@ void fiorcls(fiolcxdef *ctx);
 /* loader callback - load an object on demand */
 void OS_LOADDS fioldobj(void *ctx, mclhd handle, uchar *ptr, ushort siz);
 
-/* 
+/*
  *   Save a game - returns TRUE on failure.  We'll save the file to
  *   'fname'.  'game_fname' is the name of the game file; if this is not
  *   null, we'll save it to the saved game file so that the player can
  *   later start the game by specifying only the saved game file to the
  *   run-time.  'game_fname' can be null, in which case we'll omit the
- *   game file information.  
+ *   game file information.
  */
 int fiosav(voccxdef *vctx, char *fname, char *game_fname);
 
 /*
- *   fiorso() result codes 
+ *   fiorso() result codes
  */
 #define FIORSO_SUCCESS          0                                /* success */
 #define FIORSO_FILE_NOT_FOUND   1                         /* file not found */
@@ -107,7 +106,7 @@ int fiorso(voccxdef *vctx, char *fname);
  *   Look in a saved game file to determine if it has information on which
  *   GAM file created it.  If the GAM file information is available, this
  *   routine returns true and stores the game file name in the given
- *   buffer; if the information isn't available, we'll return false.  
+ *   buffer; if the information isn't available, we'll return false.
  */
 int fiorso_getgame(char *saved_file, char *buf, size_t buflen);
 

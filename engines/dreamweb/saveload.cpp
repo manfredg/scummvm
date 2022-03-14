@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -148,7 +147,7 @@ void DreamWebEngine::doLoad(int savegameId) {
 				{ kOpsx+2,kOpsx+92,kOpsy+4,kOpsy+81,&DreamWebEngine::selectSlot },
 				{ kOpsx+158,kOpsx+158+(18*3),kOpsy-17,kOpsy-1,&DreamWebEngine::selectSaveLoadPage },
 				{ 0,320,0,200,&DreamWebEngine::blank },
-				{ 0xFFFF,0,0,0,0 }
+				{ 0xFFFF,0,0,0,nullptr }
 			};
 			checkCoords(loadlist);
 			if (_getBack == 2)
@@ -160,7 +159,7 @@ void DreamWebEngine::doLoad(int savegameId) {
 			// Wait till both mouse buttons are up. We should wait till the user
 			// releases the mouse button, otherwise the follow-up mouseup event
 			// will trigger a load of the save slot under the mouse cursor. Fixes
-			// bug #3582582.
+			// bug #6175.
 			while (_oldMouseState > 0) {
 				readMouse();
 				g_system->delayMillis(10);
@@ -244,7 +243,7 @@ void DreamWebEngine::saveGame() {
 				{ kOpsx+2,kOpsx+92,kOpsy+4,kOpsy+81,&DreamWebEngine::selectSlot },
 				{ kOpsx+158,kOpsx+158+(18*3),kOpsy-17,kOpsy-1,&DreamWebEngine::selectSaveLoadPage },
 				{ 0,320,0,200,&DreamWebEngine::blank },
-				{ 0xFFFF,0,0,0,0 }
+				{ 0xFFFF,0,0,0,nullptr }
 			};
 			checkCoords(savelist);
 		}
@@ -253,7 +252,7 @@ void DreamWebEngine::saveGame() {
 		// Wait till both mouse buttons are up. We should wait till the user
 		// releases the mouse button, otherwise the follow-up mouseup event
 		// will trigger a save into the save slot under the mouse cursor. Fixes
-		// bug #3582582.
+		// bug #6175.
 		while (_oldMouseState > 0) {
 			readMouse();
 			g_system->delayMillis(10);
@@ -337,7 +336,7 @@ void DreamWebEngine::doSaveLoad() {
 		{ kOpsx+10,kOpsx+77,kOpsy+10,kOpsy+59,&DreamWebEngine::DOSReturn },
 		{ kOpsx+128,kOpsx+190,kOpsy+16,kOpsy+100,&DreamWebEngine::discOps },
 		{ 0,320,0,200,&DreamWebEngine::blank },
-		{ 0xFFFF,0,0,0,0 }
+		{ 0xFFFF,0,0,0,nullptr }
 	};
 
 	bool firstOps = true;
@@ -431,7 +430,7 @@ void DreamWebEngine::discOps() {
 		{ kOpsx+10,kOpsx+79,kOpsy+10,kOpsy+59,&DreamWebEngine::saveGame },
 		{ kOpsx+176,kOpsx+192,kOpsy+60,kOpsy+76,&DreamWebEngine::getBackToOps },
 		{ 0,320,0,200,&DreamWebEngine::blank },
-		{ 0xFFFF,0,0,0,0 }
+		{ 0xFFFF,0,0,0,nullptr }
 	};
 
 	do {
@@ -531,7 +530,7 @@ void DreamWebEngine::savePosition(unsigned int slot, const char *descbuf) {
 	outSaveFile->write((const uint8 *)&header, sizeof(FileHeader));
 	outSaveFile->write(descbuf, len[0]);
 	// TODO: Convert more to serializer?
-	Common::Serializer s(0, outSaveFile);
+	Common::Serializer s(nullptr, outSaveFile);
 	syncGameVars(s, _vars);
 
 	// the Extras segment:
@@ -613,7 +612,7 @@ void DreamWebEngine::loadPosition(unsigned int slot) {
 	}
 
 	// TODO: Use serializer for more?
-	Common::Serializer s(inSaveFile, 0);
+	Common::Serializer s(inSaveFile, nullptr);
 	syncGameVars(s, _vars);
 
 	// the Extras segment:
@@ -665,7 +664,7 @@ void DreamWebEngine::loadPosition(unsigned int slot) {
 
 
 	// Do a sanity check on exFrames data to detect exFrames corruption
-	// caused by a (now fixed) bug in emergencyPurge. See bug #3591088.
+	// caused by a (now fixed) bug in emergencyPurge. See bug #6196.
 	// Gather the location of frame data of all used ex object frames.
 	Common::List<FrameExtent> flist;
 	for (unsigned int i = 0; i < kNumexobjects; ++i) {
@@ -728,7 +727,7 @@ uint DreamWebEngine::scanForNames() {
 		delete stream;
 
 		int slotNum = atoi(file.c_str() + file.size() - 2);
-		SaveStateDescriptor sd(slotNum, name);
+		SaveStateDescriptor sd(getMetaEngine(), slotNum, name);
 		saveList.push_back(sd);
 		if (slotNum < 21)
 			Common::strlcpy(&_saveNames[17 * slotNum + 1], name, 16);	// the first character is unused
@@ -900,7 +899,7 @@ void DreamWebEngine::showOpBox() {
 	// This call displays half of the ops dialog in the CD version. It's not
 	// in the floppy version, and if it's called, a stray red dot is shown in
 	// the game dialogs. It is included in the early UK CD release, which had
-	// similar data files as the floppy release (bug #3528160).
+	// similar data files as the floppy release (bug #6039).
 	if (isCD() && getLanguage() != Common::EN_GRB)
 		showFrame(_saveGraphics, kOpsx, kOpsy + 55, 4, 0);
 }

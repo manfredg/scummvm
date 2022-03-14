@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,24 +27,28 @@
 namespace Ultima {
 namespace Ultima8 {
 
-// p_dynamic_class stuff
-DEFINE_RUNTIME_CLASSTYPE_CODE(SpeechFlex, SoundFlex)
-
-SpeechFlex::SpeechFlex(IDataSource *ds) : SoundFlex(ds) {
+SpeechFlex::SpeechFlex(Common::SeekableReadStream *rs) : SoundFlex(rs) {
 	uint32 size = getRawSize(0);
 	const uint8 *buf = getRawObject(0);
 
-	istring strings(reinterpret_cast<const char *>(buf), size);
-	Std::vector<istring> s;
-	SplitString(strings, 0, s);
+	const char *cbuf = reinterpret_cast<const char *>(buf);
 
-	for (unsigned int i = 0; i < s.size(); ++i) {
-		TabsToSpaces(s[i], 1);
-		TrimSpaces(s[i]);
+	// Note: SplitString doesn't work here because Std::string can't
+	// hold multiple null-terminated strings.
+	unsigned int off = 0;
+	while (off < size) {
+		unsigned int slen = 0;
+		while (off + slen < size && cbuf[off + slen])
+			slen++;
+		istring str(cbuf + off, slen);
+		off += slen + 1;
 
-//		pout << "Found string: \"" << s[i] << "\"" << Std::endl;
+		TabsToSpaces(str, 1);
+		TrimSpaces(str);
 
-		_phrases.push_back(s[i]);
+		// pout << "Found string: \"" << str << "\"" << Std::endl;
+
+		_phrases.push_back(str);
 	}
 
 	delete [] buf;
@@ -56,7 +59,7 @@ SpeechFlex::~SpeechFlex(void) {
 }
 
 int SpeechFlex::getIndexForPhrase(const Std::string &phrase,
-                                  uint32 start, uint32 &end) const {
+								  uint32 start, uint32 &end) const {
 	Std::vector<istring>::const_iterator it;
 	int i = 1;
 
@@ -96,15 +99,15 @@ uint32 SpeechFlex::getSpeechLength(const Std::string &phrase) {
 		int index = getIndexForPhrase(phrase, start, end);
 		if (!index) break;
 
-		AudioSample *sample = getSample(index);
+		const AudioSample *sample = getSample(index);
 		if (!sample) break;
 
-		uint32 samples_ = sample->getLength();
+		uint32 samples = sample->getLength();
 		uint32 rate = sample->getRate();
 		bool stereo = sample->isStereo();
 		if (stereo) rate *= 2;
 
-		length += (samples_ * 1000) / rate;
+		length += (samples * 1000) / rate;
 		length += 33; // one engine frame of overhead between speech samples_
 	}
 

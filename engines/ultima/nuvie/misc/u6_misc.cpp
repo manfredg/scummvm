@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,15 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/shared/std/containers.h"
-#include "ultima/shared/std/misc.h"
 #include "ultima/nuvie/core/nuvie_defs.h"
 #include "ultima/nuvie/misc/u6_misc.h"
 #include "ultima/nuvie/conf/configuration.h"
+#include "common/config-manager.h"
 #include "common/file.h"
 #include "common/fs.h"
 #include "common/str.h"
@@ -104,7 +103,7 @@ bool find_casesensitive_path(Std::string path, Std::string filename, Std::string
 	for (dir_iter = directories.begin(); dir_iter != directories.end();) {
 		string dir = *dir_iter;
 
-		::debug("%s, ", dir.c_str());
+		::debug(1, "%s, ", dir.c_str());
 
 		if (find_path(tmp_path, dir) == false)
 			return false;
@@ -119,7 +118,7 @@ bool find_casesensitive_path(Std::string path, Std::string filename, Std::string
 
 	new_path = tmp_path;
 
-	::debug("\nproper path = %s", new_path.c_str());
+	::debug(1, "\nproper path = %s", new_path.c_str());
 	return true;
 }
 
@@ -135,7 +134,7 @@ bool find_path(Std::string path, Std::string &dir_str) {
 		return false;
 
 	for (item = readdir(dir); item != NULL; item = readdir(dir)) {
-		debug("trying %s, want %s\n", item->d_name, dir_str.c_str());
+		debug("trying %s, want %s", item->d_name, dir_str.c_str());
 		if (strlen(item->d_name) == dir_str.length() && Common::scumm_stricmp(item->d_name, dir_str.c_str()) == 0) {
 			dir_str = item->d_name;
 			return true;
@@ -229,7 +228,7 @@ void build_path(Std::string path, Std::string filename, Std::string &full_path) 
 
 bool has_fmtowns_support(Configuration *config) {
 	Std::string townsdir;
-	config->value("config/ultima6/townsdir", townsdir, "");
+	config->value("config/townsdir", townsdir, "");
 	if (townsdir != "" && directory_exists(townsdir.c_str()))
 		return true;
 
@@ -237,8 +236,8 @@ bool has_fmtowns_support(Configuration *config) {
 }
 
 bool directory_exists(const char *directory) {
-	Common::FSNode dir(directory);
-	return dir.exists();
+	Common::FSNode gameDir(ConfMan.get("path"));
+	return Common::FSNode(directory).exists() || gameDir.getChild(directory).exists();
 }
 
 bool file_exists(const char *path) {
@@ -617,9 +616,9 @@ void draw_line_8bit(int sx, int sy, int ex, int ey, uint8 col, uint8 *pixels, ui
 		}
 	}
 	// Diagonal xdiff >= ydiff
-	else if (Std::labs(sx - ex) >= Std::labs(sy - ey)) {
+	else if (ABS(sx - ex) >= ABS(sy - ey)) {
 		//Std::cout << "Diagonal 1" << Std::endl;
-		uint32 fraction = Std::labs((LINE_FRACTION * (sy - ey)) / (sx - ex));
+		uint32 fraction = ABS((LINE_FRACTION * (sy - ey)) / (sx - ex));
 		uint32 ycounter = 0;
 
 		for (; ;) {
@@ -641,7 +640,7 @@ void draw_line_8bit(int sx, int sy, int ex, int ey, uint8 col, uint8 *pixels, ui
 	// Diagonal ydiff > xdiff
 	else {
 		//Std::cout << "Diagonal 2" << Std::endl;
-		uint32 fraction = Std::labs((LINE_FRACTION * (sx - ex)) / (sy - ey));
+		uint32 fraction = ABS((LINE_FRACTION * (sx - ex)) / (sy - ey));
 		uint32 xcounter = 0;
 
 		for (; ;) {
@@ -722,7 +721,7 @@ void scaleLine8Bit(unsigned char *Target, unsigned char *Source, int SrcWidth, i
 
 //Coarse 2D scaling from http://www.compuphase.com/graphic/scale.htm
 void scale_rect_8bit(unsigned char *Source, unsigned char *Target, int SrcWidth, int SrcHeight,
-                     int TgtWidth, int TgtHeight) {
+					 int TgtWidth, int TgtHeight) {
 	int NumPixels = TgtHeight;
 	int IntPart = (SrcHeight / TgtHeight) * SrcWidth;
 	int FractPart = SrcHeight % TgtHeight;

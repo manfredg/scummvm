@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * MIT License:
  *
@@ -141,7 +140,7 @@ Scene::~Scene() {
 }
 
 void Scene::paint(Graphics::ManagedSurface *surface, int x, int y) {
-	Common::Rect r(x + 5, y + 5, _design->getBounds()->width() + x - 10, _design->getBounds()->height() + y - 10);
+	Common::Rect r(x, y, surface->w + x, surface->h + y);
 	surface->fillRect(r, kColorWhite);
 
 	_design->paint(surface, *((WageEngine *)g_engine)->_world->_patterns, x, y);
@@ -381,6 +380,11 @@ Chr::Chr(Common::String name, Common::SeekableReadStream *data) {
 	}
 
 	delete data;
+}
+
+Chr::~Chr() {
+	delete _weapon1;
+	delete _weapon2;
 }
 
 void Chr::resetState() {

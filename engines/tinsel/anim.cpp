@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * This file contains utilities to handle object animation.
  */
@@ -39,7 +38,7 @@ namespace Tinsel {
  */
 SCRIPTSTATE DoNextFrame(ANIM *pAnim) {
 	// get a pointer to the script
-	const ANI_SCRIPT *pAni = (const ANI_SCRIPT *)LockMem(pAnim->hScript);
+	const ANI_SCRIPT *pAni = (const ANI_SCRIPT *)_vm->_handle->LockMem(pAnim->hScript);
 
 	while (1) {	// repeat until a real image
 		debugC(DEBUG_DETAILED, kTinselDebugAnimations,
@@ -162,7 +161,7 @@ SCRIPTSTATE DoNextFrame(ANIM *pAnim) {
 			// pFunc is a function pointer that's part of a union and is assumed to be 32-bits.
 			// There is no known place where a function pointer is stored inside the animation
 			// scripts, something which wouldn't have worked anyway. Having played through the
-			// entire game, there hasn't been any occurence of this case, so just error out here
+			// entire game, there hasn't been any occurrence of this case, so just error out here
 			// in case we missed something (highly unlikely though)
 			error("ANI_CALL opcode encountered! Please report this error to the ScummVM team");
 			//(*pAni[pAnim->scriptIndex].pFunc)(pAnim);
@@ -265,7 +264,7 @@ SCRIPTSTATE StepAnimScript(ANIM *pAnim) {
  */
 void SkipFrames(ANIM *pAnim, int numFrames) {
 	// get a pointer to the script
-	const ANI_SCRIPT *pAni = (const ANI_SCRIPT *)LockMem(pAnim->hScript);
+	const ANI_SCRIPT *pAni = (const ANI_SCRIPT *)_vm->_handle->LockMem(pAnim->hScript);
 
 	if (!TinselV2 && (numFrames <= 0))
 		// do nothing
@@ -406,10 +405,10 @@ void SkipFrames(ANIM *pAnim, int numFrames) {
  * About to jump or end
  * @param pAnim			Animation data structure
  */
-bool AboutToJumpOrEnd(PANIM pAnim) {
+bool AboutToJumpOrEnd(ANIM *pAnim) {
 	if (pAnim->aniDelta == 1) {
 		// get a pointer to the script
-		ANI_SCRIPT *pAni = (ANI_SCRIPT *)LockMem(pAnim->hScript);
+		ANI_SCRIPT *pAni = (ANI_SCRIPT *)_vm->_handle->LockMem(pAnim->hScript);
 		int	zzz = pAnim->scriptIndex;
 
 		for (;;) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,6 +27,7 @@
 #include "common/array.h"
 #include "common/events.h"
 #include "common/str.h"
+#include "common/ustr.h"
 
 namespace Common {
 
@@ -42,16 +42,17 @@ struct Action {
 	/** unique id used for saving/loading to config */
 	const char *id;
 	/** Human readable description */
-	String description;
+	U32String description;
 
 	/** Event to be sent when mapped key is pressed */
 	Event event;
 
 private:
 	Array<String> _defaultInputMapping;
+	bool _shouldTriggerOnKbdRepeats;
 
 public:
-	Action(const char *id, const String &description);
+	Action(const char *id, const U32String &description);
 
 	void setEvent(const Event &evt) {
 		event = evt;
@@ -113,6 +114,22 @@ public:
 	void setX2ClickEvent() {
 		setEvent(EVENT_X2BUTTONDOWN);
 	}
+
+	/**
+	 * Allows an action bound to a keyboard event to be repeatedly
+	 * triggered by key repeats
+	 *
+	 * Note that key repeat events should probably not be used for anything
+	 * else than text input as they do not trigger when the action is bound
+	 * to something else than a keyboard key. Furthermore, the frequency at
+	 * which they trigger and whether they trigger at all is operating system
+	 * controlled.
+	 */
+	void allowKbdRepeats() {
+		_shouldTriggerOnKbdRepeats = true;
+	}
+
+	bool shouldTriggerOnKbdRepeats() const { return _shouldTriggerOnKbdRepeats; }
 
 	/**
 	 * Add a default input mapping for the action

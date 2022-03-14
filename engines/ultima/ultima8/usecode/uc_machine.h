@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,9 +33,7 @@ class Debugger;
 class Process;
 class UCProcess;
 class ConvertUsecode;
-class IDataSource;
-class ODataSource;
-class BitSet;
+class GlobalStorage;
 class UCList;
 class idMan;
 
@@ -63,7 +60,7 @@ public:
 
 	uint16 duplicateString(uint16 str);
 
-	void usecodeStats();
+	void usecodeStats() const;
 
 	static uint32 listToPtr(uint16 l);
 	static uint32 stringToPtr(uint16 s);
@@ -76,21 +73,21 @@ public:
 	bool assignPointer(uint32 ptr, const uint8 *data, uint32 size);
 	bool dereferencePointer(uint32 ptr, uint8 *data, uint32 size);
 
-	void saveGlobals(ODataSource *ods);
-	void saveStrings(ODataSource *ods);
-	void saveLists(ODataSource *ods);
+	void saveGlobals(Common::WriteStream *ws) const;
+	void saveStrings(Common::WriteStream *ws) const;
+	void saveLists(Common::WriteStream *ws) const;
 
-	bool loadGlobals(IDataSource *ids, uint32 version);
-	bool loadStrings(IDataSource *ids, uint32 version);
-	bool loadLists(IDataSource *ids, uint32 version);
+	bool loadGlobals(Common::ReadStream *rs, uint32 version);
+	bool loadStrings(Common::ReadStream *rs, uint32 version);
+	bool loadLists(Common::ReadStream *rs, uint32 version);
 
 	INTRINSIC(I_true);
+	INTRINSIC(I_false);
 	INTRINSIC(I_dummyProcess);
 	INTRINSIC(I_getName);
 	INTRINSIC(I_urandom);
 	INTRINSIC(I_rndRange);
 	INTRINSIC(I_numToStr);
-	INTRINSIC(I_getCurrentTimerTick);
 
 protected:
 	void loadIntrinsics(Intrinsic *i, unsigned int icount);
@@ -100,11 +97,12 @@ private:
 	Intrinsic *_intrinsics;
 	unsigned int _intrinsicCount;
 
-	BitSet *_globals;
+	GlobalStorage *_globals;
 
 	Std::map<uint16, UCList *> _listHeap;
 	Std::map<uint16, Std::string> _stringHeap;
 
+	// Add a string to the list (copies the string)
 	uint16 assignString(const char *str);
 	uint16 assignList(UCList *l);
 

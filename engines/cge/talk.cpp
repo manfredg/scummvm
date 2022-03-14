@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 /*
  * This code is based on original Soltys source code
- * Copyright (c) 1994-1995 Janus B. Wisniewski and L.K. Avalon
+ * Copyright (c) 1994-1995 Janusz B. Wisniewski and L.K. Avalon
  */
 
 #include "cge/general.h"
@@ -30,6 +29,8 @@
 #include "cge/game.h"
 #include "cge/events.h"
 #include "cge/cge_main.h"
+#include "common/config-manager.h"
+#include "common/text-to-speech.h"
 
 namespace CGE {
 
@@ -38,7 +39,7 @@ Font::Font(CGEEngine *vm, const char *name) : _vm(vm) {
 	_pos = (uint16 *)malloc(kPosSize * sizeof(uint16));
 	_widthArr = (uint8 *)malloc(kWidSize);
 
-	assert((_map != NULL) && (_pos != NULL) && (_widthArr != NULL));
+	assert((_map != nullptr) && (_pos != nullptr) && (_widthArr != nullptr));
 	_vm->mergeExt(_path, name, kFontExt);
 	load();
 }
@@ -50,7 +51,7 @@ Font::~Font() {
 }
 
 void Font::load() {
-	EncryptedStream f(_vm, _path);
+	EncryptedStream f(_vm->_resman, _path);
 	assert(!f.err());
 
 	f.read(_widthArr, kWidSize);
@@ -74,21 +75,29 @@ uint16 Font::width(const char *text) {
 }
 
 Talk::Talk(CGEEngine *vm, const char *text, TextBoxStyle mode, bool wideSpace)
-	: Sprite(vm, NULL), _mode(mode), _wideSpace(wideSpace), _vm(vm) {
-	_ts = NULL;
+	: Sprite(vm, nullptr), _mode(mode), _wideSpace(wideSpace), _vm(vm) {
+	_ts = nullptr;
 	_flags._syst = true;
 	update(text);
 }
 
 
 Talk::Talk(CGEEngine *vm)
-	: Sprite(vm, NULL), _mode(kTBPure), _vm(vm) {
-	_ts = NULL;
+	: Sprite(vm, nullptr), _mode(kTBPure), _vm(vm) {
+	_ts = nullptr;
 	_flags._syst = true;
 	_wideSpace = false;
 }
 
+void Talk::textToSpeech(const char *text) {
+	Common::TextToSpeechManager *ttsMan = g_system->getTextToSpeechManager();
+	if (text != nullptr && ttsMan != nullptr && ConfMan.getBool("tts_enabled"))
+		ttsMan->say(text);
+}
+
 void Talk::update(const char *text) {
+	textToSpeech(text);
+
 	const uint16 vmarg = (_mode) ? kTextVMargin : 0;
 	const uint16 hmarg = (_mode) ? kTextHMargin : 0;
 	uint16 mw = 0;
@@ -114,7 +123,7 @@ void Talk::update(const char *text) {
 
 		_ts = new BitmapPtr[2];
 		_ts[0] = box(mw, mh);
-		_ts[1] = NULL;
+		_ts[1] = nullptr;
 	}
 
 	m = _ts[0]->_m + ln * mw + hmarg;
@@ -158,7 +167,7 @@ Bitmap *Talk::box(uint16 w, uint16 h) {
 		h = 8;
 	uint16 n = w * h;
 	uint8 *b = (uint8 *)malloc(n);
-	assert(b != NULL);
+	assert(b != nullptr);
 	memset(b, kTextColBG, n);
 
 	if (_mode) {
@@ -192,10 +201,10 @@ Bitmap *Talk::box(uint16 w, uint16 h) {
 	return new Bitmap(_vm, w, h, b);
 }
 
-InfoLine::InfoLine(CGEEngine *vm, uint16 w) : Talk(vm), _oldText(NULL), _vm(vm) {
+InfoLine::InfoLine(CGEEngine *vm, uint16 w) : Talk(vm), _oldText(nullptr), _vm(vm) {
 	if (!_ts) {
 		_ts = new BitmapPtr[2];
-		_ts[1] = NULL;
+		_ts[1] = nullptr;
 	}
 
 	_ts[0] = new Bitmap(_vm, w, kFontHigh, kTextColBG);
@@ -205,6 +214,10 @@ InfoLine::InfoLine(CGEEngine *vm, uint16 w) : Talk(vm), _oldText(NULL), _vm(vm) 
 void InfoLine::update(const char *text) {
 	if (text == _oldText)
 		return;
+
+	_oldText = text;
+
+	textToSpeech(text);
 
 	uint16 w = _ts[0]->_w;
 	uint16 h = _ts[0]->_h;
@@ -252,8 +265,6 @@ void InfoLine::update(const char *text) {
 			text++;
 		}
 	}
-
-	_oldText = text;
 }
 
 } // End of namespace CGE

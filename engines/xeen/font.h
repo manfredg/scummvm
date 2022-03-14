@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef XEEN_FONT_H
 #define XEEN_FONT_H
 
+#include "common/language.h"
 #include "xeen/xsurface.h"
 
 namespace Xeen {
@@ -46,6 +46,19 @@ class FontSurface: public XSurface, public FontData {
 private:
 	const char *_displayString;
 	bool _msgWraps;
+
+	Common::Language lang;
+	/**
+	 * fnt file offsets
+	 */
+	int _fntEnOffset;               // English characters
+	int _fntEnReducedOffset;		// English characters (reduced)
+	int _fntNonEnOffset;			// Non-English characters
+	int _fntNonEnReducedOffset;     // Non-English characters (reduced)
+	int _fntEnWOffset;				// English characters Width
+	int _fntEnReducedWOffset;       // English characters (reduced) Width
+	int _fntNonEnWOffset;			// Non-English characters Width
+	int _fntNonEnReducedWOffset;    // Non-English characters (reduced) Width
 
 	/**
 	 * Return the next pending character to display
@@ -98,7 +111,7 @@ public:
 	 *		justification is set, the message will be written at _writePos
 	 */
 	const char *writeString(const Common::String &s, const Common::Rect &clipRect);
-
+	bool isSpace(char c);
 	/**
 	 * Write a charcter to the window
 	 * @param c			Character

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,19 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 // Disable symbol overrides so that we can use system headers.
 #define FORBIDDEN_SYMBOL_ALLOW_ALL
-
-// HACK to allow building with the SDL backend on MinGW
-// see bug #1800764 "TOOLS: MinGW tools building broken"
-#ifdef main
-#undef main
-#endif // main
 
 #include "create_kyradat.h"
 #include "resources.h"
@@ -45,7 +38,7 @@
 
 
 enum {
-	kKyraDatVersion = 96
+	kKyraDatVersion = 116
 };
 
 const ExtractFilename extractFilenames[] = {
@@ -95,6 +88,7 @@ const ExtractFilename extractFilenames[] = {
 	// GUI strings table
 	{ k1GUIStrings, kStringList, true },
 	{ k1ConfigStrings, kStringList, true },
+	{ k1ConfigStrings2, kStringList, true },
 
 	// ROOM table/filenames
 	{ k1RoomList, kRoomList, false },
@@ -159,7 +153,7 @@ const ExtractFilename extractFilenames[] = {
 	{ k1SpecialPalette32, kRawData, false },
 	{ k1SpecialPalette33, kRawData, false },
 
-	// CREDITS (used in FM-TOWNS and AMIGA)
+	// CREDITS (used in FM-TOWNS, AMIGA, Chinese DOS)
 	{ k1CreditsStrings, kRawData, true },
 
 	// FM-TOWNS specific
@@ -171,6 +165,9 @@ const ExtractFilename extractFilenames[] = {
 	// PC98 specific
 	{ k1PC98StoryStrings, kStringList, true },
 	{ k1PC98IntroSfx, kRawData, false },
+
+	// Chinese version specific
+	{ k1TwoByteFontLookupTable, kRawDataBe16, true },
 
 	// AMIGA specific
 	{ k1AmigaIntroSFXTable, kAmigaSfxTable, false },
@@ -202,10 +199,10 @@ const ExtractFilename extractFilenames[] = {
 	{ k2IngameTimJpStrings, kStringList, false },
 	{ k2IngameShapeAnimData, k2ItemAnimDefinition, false },
 	{ k2IngameTlkDemoStrings, kStringList, true },
-
+	{ k2FontData, kRawData, true },
 
 	// MALCOLM'S REVENGE
-	{ k3MainMenuStrings, kStringList, false },
+	{ k3MainMenuStrings, kStringList, true },
 	{ k3MusicFiles, kStringList, false },
 	{ k3ScoreTable, kRawData, false },
 	{ k3SfxFiles, kStringList, false },
@@ -213,6 +210,8 @@ const ExtractFilename extractFilenames[] = {
 	{ k3ItemAnimData, k2ItemAnimDefinition, false },
 	{ k3ItemMagicTable, kRawData, false },
 	{ k3ItemStringMap, kRawData, false },
+	{ k3VqaSubtitlesIntro, kStringList, true },
+	{ k3VqaSubtitlesBoat, kStringList, true },
 
 	// EYE OF THE BEHOLDER COMMON
 	{ kEoBBaseChargenStrings1, kStringList, true },
@@ -370,6 +369,8 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoBBaseBookNumbers, kStringList, true },
 	{ kEoBBaseMageSpellsList, kStringList, true },
 	{ kEoBBaseClericSpellsList, kStringList, true },
+	{ kEoBBaseMageSpellsList2, kStringList, true },
+	{ kEoBBaseClericSpellsList2, kStringList, true },
 	{ kEoBBaseSpellNames, kStringList, true },
 
 	{ kEoBBaseMagicStrings1, kStringList, true },
@@ -418,6 +419,8 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoBBaseLevelSoundFiles2, kStringList, false },
 
 	// EYE OF THE BEHOLDER I
+	{ kEoB1DefaultPartyStats, kRawData, false },
+	{ kEoB1DefaultPartyNames, kStringList, true },
 	{ kEoB1MainMenuStrings, kStringList, true },
 	{ kEoB1BonusStrings, kStringList, true },
 
@@ -462,8 +465,10 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoB1FinaleHandsAnim2, kRawDataBe16, false },
 	{ kEoB1FinaleHandsAnim3, kRawData, false },
 	{ kEoB1FinaleTextDuration, kRawData, false },
-	{ kEoB1CreditsStrings, kRawData, false },
+	{ kEoB1CreditsStrings, kRawData, true },
 	{ kEoB1CreditsCharWdth, kRawData, false },
+	{ kEoB1CreditsStrings2, kStringList, true },
+	{ kEoB1CreditsTileGrid, kRawData, false },
 	{ kEoB1DoorShapeDefs, kRawData, false },
 	{ kEoB1DoorSwitchShapeDefs, kRawData, false },
 	{ kEoB1DoorSwitchCoords, kRawData, false },
@@ -493,6 +498,15 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoB1PalCycleData, kRawData, false },
 	{ kEoB1PalCycleStyle1, kRawDataBe16, false },
 	{ kEoB1PalCycleStyle2, kRawDataBe16, false },
+	{ kEoB1PalettesSega, kRawDataBe16, false },
+	{ kEoB1PatternTable0, kRawDataBe16, false },
+	{ kEoB1PatternTable1, kRawDataBe16, false },
+	{ kEoB1PatternTable2, kRawDataBe16, false },
+	{ kEoB1PatternTable3, kRawDataBe16, false },
+	{ kEoB1PatternTable4, kRawDataBe16, false },
+	{ kEoB1PatternTable5, kRawDataBe16, false },
+	{ kEoB1PatternAddTable1, kRawDataBe16, false },
+	{ kEoB1PatternAddTable2, kRawDataBe16, false },
 
 	{ kEoB1NpcShpData, kRawData, false },
 	{ kEoB1NpcSubShpIndex1, kRawData, false },
@@ -510,10 +524,24 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoB1Npc6Strings, kStringList, true },
 	{ kEoB1Npc7Strings, kStringList, true },
 
+	{ kEoB1ParchmentStrings, kStringList, true },
 	{ kEoB1ItemNames, kStringList, true },
-	{ kEoB1Ascii2SjisTable1, kRawDataBe16, true },
-	{ kEoB1Ascii2SjisTable2, kRawDataBe16, true },
-	{ kEoB1FontLookupTable, kRawData, true },
+	{ kEoB1SpeechAnimData, kRawData, false },
+	{ kEoB1WdAnimSprites, kRawData, false },
+	{ kEoB1SequenceTrackMap, kRawData, false },
+
+	{ kEoB1MapStrings1, kStringList, true },
+	{ kEoB1MapStrings2, kStringList, true },
+	{ kEoB1MapStrings3, kStringList, true },
+	{ kEoB1MapLevelData, kRawData, false },
+
+	{ kEoB1Ascii2SjisTable1, kRawDataBe16, false },
+	{ kEoB1Ascii2SjisTable2, kRawDataBe16, false },
+	{ kEoB1FontLookupTable, kRawData, false },
+	{ kEoB1CharWidthTable1, kRawData, false },
+	{ kEoB1CharWidthTable2, kRawData, false },
+	{ kEoB1CharWidthTable3, kRawData, false },
+	{ kEoB1CharTilesTable, kRawData, true },
 
 	// EYE OF THE BEHOLDER II
 	{ kEoB2MainMenuStrings, kStringList, true },
@@ -657,7 +685,142 @@ const ExtractFilename extractFilenames[] = {
 	{ kEoBBaseMonsterDirChangeTable, kRawData, false },
 	{ kEoBBaseMonsterDistAttStrings, kStringList, true },
 	{ kEoBBaseEncodeMonsterDefs, kRawDataBe16, false },
+	{ kEoBBaseEncodeMonsterDefs00, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs01, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs02, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs03, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs04, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs05, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs06, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs07, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs08, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs09, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs10, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs11, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs12, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs13, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs14, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs15, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs16, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs17, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs18, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs19, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs20, kRawData, false },
+	{ kEoBBaseEncodeMonsterDefs21, kRawData, false },
+
+	{ kEoB1MonsterAnimFrames00, kRawData, false },
+	{ kEoB1MonsterAnimFrames01, kRawData, false },
+	{ kEoB1MonsterAnimFrames02, kRawData, false },
+	{ kEoB1MonsterAnimFrames03, kRawData, false },
+	{ kEoB1MonsterAnimFrames04, kRawData, false },
+	{ kEoB1MonsterAnimFrames05, kRawData, false },
+	{ kEoB1MonsterAnimFrames06, kRawData, false },
+	{ kEoB1MonsterAnimFrames07, kRawData, false },
+	{ kEoB1MonsterAnimFrames08, kRawData, false },
+	{ kEoB1MonsterAnimFrames09, kRawData, false },
+	{ kEoB1MonsterAnimFrames10, kRawData, false },
+	{ kEoB1MonsterAnimFrames11, kRawData, false },
+	{ kEoB1MonsterAnimFrames12, kRawData, false },
+	{ kEoB1MonsterAnimFrames13, kRawData, false },
+	{ kEoB1MonsterAnimFrames14, kRawData, false },
+	{ kEoB1MonsterAnimFrames15, kRawData, false },
+	{ kEoB1MonsterAnimFrames16, kRawData, false },
+	{ kEoB1MonsterAnimFrames17, kRawData, false },
+	{ kEoB1MonsterAnimFrames18, kRawData, false },
+	{ kEoB1MonsterAnimFrames19, kRawData, false },
+	{ kEoB1MonsterAnimFrames20, kRawData, false },
+	{ kEoB1MonsterAnimFrames21, kRawData, false },
+	{ kEoB1MonsterAnimFrames22, kRawData, false },
+	{ kEoB1MonsterAnimFrames23, kRawData, false },
+	{ kEoB1MonsterAnimFrames24, kRawData, false },
+	{ kEoB1MonsterAnimFrames25, kRawData, false },
+	{ kEoB1MonsterAnimFrames26, kRawData, false },
+	{ kEoB1MonsterAnimFrames27, kRawData, false },
+	{ kEoB1MonsterAnimFrames28, kRawData, false },
+	{ kEoB1MonsterAnimFrames29, kRawData, false },
+	{ kEoB1MonsterAnimFrames30, kRawData, false },
+	{ kEoB1MonsterAnimFrames31, kRawData, false },
+	{ kEoB1MonsterAnimFrames32, kRawData, false },
+	{ kEoB1MonsterAnimFrames33, kRawData, false },
+	{ kEoB1MonsterAnimFrames34, kRawData, false },
+	{ kEoB1MonsterAnimFrames35, kRawData, false },
+	{ kEoB1MonsterAnimFrames36, kRawData, false },
+	{ kEoB1MonsterAnimFrames37, kRawData, false },
+	{ kEoB1MonsterAnimFrames38, kRawData, false },
+	{ kEoB1MonsterAnimFrames39, kRawData, false },
+	{ kEoB1MonsterAnimFrames40, kRawData, false },
+	{ kEoB1MonsterAnimFrames41, kRawData, false },
+	{ kEoB1MonsterAnimFrames42, kRawData, false },
+	{ kEoB1MonsterAnimFrames43, kRawData, false },
+	{ kEoB1MonsterAnimFrames44, kRawData, false },
+	{ kEoB1MonsterAnimFrames45, kRawData, false },
+	{ kEoB1MonsterAnimFrames46, kRawData, false },
+	{ kEoB1MonsterAnimFrames47, kRawData, false },
+	{ kEoB1MonsterAnimFrames48, kRawData, false },
+	{ kEoB1MonsterAnimFrames49, kRawData, false },
+	{ kEoB1MonsterAnimFrames50, kRawData, false },
+	{ kEoB1MonsterAnimFrames51, kRawData, false },
+	{ kEoB1MonsterAnimFrames52, kRawData, false },
+	{ kEoB1MonsterAnimFrames53, kRawData, false },
+	{ kEoB1MonsterAnimFrames54, kRawData, false },
+	{ kEoB1MonsterAnimFrames55, kRawData, false },
+	{ kEoB1MonsterAnimFrames56, kRawData, false },
+	{ kEoB1MonsterAnimFrames57, kRawData, false },
+	{ kEoB1MonsterAnimFrames58, kRawData, false },
+	{ kEoB1MonsterAnimFrames59, kRawData, false },
+	{ kEoB1MonsterAnimFrames60, kRawData, false },
+	{ kEoB1MonsterAnimFrames61, kRawData, false },
+	{ kEoB1MonsterAnimFrames62, kRawData, false },
+	{ kEoB1MonsterAnimFrames63, kRawData, false },
+	{ kEoB1MonsterAnimFrames64, kRawData, false },
+	{ kEoB1MonsterAnimFrames65, kRawData, false },
+	{ kEoB1MonsterAnimFrames66, kRawData, false },
+	{ kEoB1MonsterAnimFrames67, kRawData, false },
+	{ kEoB1MonsterAnimFrames68, kRawData, false },
+	{ kEoB1MonsterAnimFrames69, kRawData, false },
+	{ kEoB1MonsterAnimFrames70, kRawData, false },
+	{ kEoB1MonsterAnimFrames71, kRawData, false },
+	{ kEoB1MonsterAnimFrames72, kRawData, false },
+	{ kEoB1MonsterAnimFrames73, kRawData, false },
+	{ kEoB1MonsterAnimFrames74, kRawData, false },
+	{ kEoB1MonsterAnimFrames75, kRawData, false },
+	{ kEoB1MonsterAnimFrames76, kRawData, false },
+	{ kEoB1MonsterAnimFrames77, kRawData, false },
+	{ kEoB1MonsterAnimFrames78, kRawData, false },
+	{ kEoB1MonsterAnimFrames79, kRawData, false },
+	{ kEoB1MonsterAnimFrames80, kRawData, false },
+	{ kEoB1MonsterAnimFrames81, kRawData, false },
+	{ kEoB1MonsterAnimFrames82, kRawData, false },
+	{ kEoB1MonsterAnimFrames83, kRawData, false },
+	{ kEoB1MonsterAnimFrames84, kRawData, false },
+	{ kEoB1MonsterAnimFrames85, kRawData, false },
+	{ kEoB1MonsterAnimFrames86, kRawData, false },
+	{ kEoB1MonsterAnimFrames87, kRawData, false },
+	{ kEoB1MonsterAnimFrames88, kRawData, false },
+	{ kEoB1MonsterAnimFrames89, kRawData, false },
+	{ kEoB1MonsterAnimFrames90, kRawData, false },
+	{ kEoB1MonsterAnimFrames91, kRawData, false },
+	{ kEoB1MonsterAnimFrames92, kRawData, false },
+	{ kEoB1MonsterAnimFrames93, kRawData, false },
+	{ kEoB1MonsterAnimFrames94, kRawData, false },
+	{ kEoB1MonsterAnimFrames95, kRawData, false },
+	{ kEoB1MonsterAnimFrames96, kRawData, false },
+	{ kEoB1MonsterAnimFrames97, kRawData, false },
+	{ kEoB1MonsterAnimFrames98, kRawData, false },
+	{ kEoB1MonsterAnimFrames99, kRawData, false },
+	{ kEoB1MonsterAnimFrames100, kRawData, false },
+	{ kEoB1MonsterAnimFrames101, kRawData, false },
+	{ kEoB1MonsterAnimFrames102, kRawData, false },
+	{ kEoB1MonsterAnimFrames103, kRawData, false },
+	{ kEoB1MonsterAnimFrames104, kRawData, false },
+	{ kEoB1MonsterAnimFrames105, kRawData, false },
+	{ kEoB1MonsterAnimFrames106, kRawData, false },
+	{ kEoB1MonsterAnimFrames107, kRawData, false },
+	{ kEoB1MonsterAnimFrames108, kRawData, false },
+	{ kEoB1MonsterAnimFrames109, kRawData, false },
+
 	{ kEoBBaseNpcPresets, kEoBNpcData, false },
+	{ kEoBBaseNpcPresetsNames, kStringList, true },
 	{ kEoB2Npc1Strings, kStringList, true },
 	{ kEoB2Npc2Strings, kStringList, true },
 	{ kEoB2MonsterDustStrings, kStringList, true },
@@ -884,12 +1047,12 @@ const ExtractFilename extractFilenames[] = {
 
 	{ kEoB2UtilMenuStrings, kStringList, true },
 	{ kEoB2Config2431Strings, kStringList, true },
-	{ kEoB2KatakanaLines, kStringList, true },
-	{ kEoB2KanaSelectStrings, kStringList, true },
+	{ kEoBBaseTextInputCharacterLines, kStringList, true },
+	{ kEoBBaseTextInputSelectStrings, kStringList, true },
 	{ kEoB2FontDmpSearchTbl, kRawDataBe16, false },
 	{ kEoB2Ascii2SjisTables, kStringList, false },
 	{ kEoB2Ascii2SjisTables2, kStringList, false },
-	{ kEoB2SaveNamePatterns, kStringList, false },
+	{ kEoBBaseSaveNamePatterns, kStringList, true },
 
 	{ kEoB2PcmSoundEffectsIngame, kRawData, false },
 	{ kEoB2PcmSoundEffectsIntro, kRawData, false },
@@ -1002,7 +1165,7 @@ const ExtractFilename *getFilenameDesc(const int id) {
 		if (i->id == id)
 			return i;
 	}
-	return 0;
+	return nullptr;
 }
 
 bool isLangSpecific(const int id) {
@@ -1030,13 +1193,16 @@ byte getGameID(int game) {
 
 const TypeTable languageTable[] = {
 	{ UNK_LANG, 0 },
-	{ EN_ANY, 1 },
-	{ FR_FRA, 2 },
-	{ DE_DEU, 3 },
-	{ ES_ESP, 4 },
-	{ IT_ITA, 5 },
-	{ JA_JPN, 6 },
-	{ RU_RUS, 7 },
+	{ EN_ANY,  1 },
+	{ FR_FRA,  2 },
+	{ DE_DEU,  3 },
+	{ ES_ESP,  4 },
+	{ IT_ITA,  5 },
+	{ JA_JPN,  6 },
+	{ RU_RUS,  7 },
+	{ HE_ISR,  8 },
+	{ ZH_CHN,  9 },
+	{ ZH_TWN, 10 },
 	{ -1, -1 }
 };
 
@@ -1049,7 +1215,8 @@ const TypeTable platformTable[] = {
 	{ kPlatformAmiga, 1 },
 	{ kPlatformFMTowns, 2 },
 	{ kPlatformPC98, 3 },
-	{ kPlatformMacintosh, 4 },
+	{ kPlatformSegaCD, 4 },
+	{ kPlatformMacintosh, 5 },
 	{ -1, -1 }
 };
 

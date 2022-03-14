@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -34,7 +33,10 @@
 
 namespace Common {
 
-PlaybackFile::PlaybackFile() : _tmpRecordFile(_tmpBuffer, kRecordBuffSize), _tmpPlaybackFile(_tmpBuffer, kRecordBuffSize) {
+PlaybackFile::PlaybackFile()
+	: _tmpBuffer(kRecordBuffSize)
+	, _tmpRecordFile(_tmpBuffer.data(), kRecordBuffSize)
+	, _tmpPlaybackFile(_tmpBuffer.data(), kRecordBuffSize) {
 	_readStream = NULL;
 	_writeStream = NULL;
 	_screenshotsFile = NULL;
@@ -44,7 +46,8 @@ PlaybackFile::PlaybackFile() : _tmpRecordFile(_tmpBuffer, kRecordBuffSize), _tmp
 	_headerDumped = false;
 	_recordCount = 0;
 	_eventsSize = 0;
-	memset(_tmpBuffer, 1, kRecordBuffSize);
+	_version = RECORD_VERSION;
+	memset(_tmpBuffer.data(), 1, kRecordBuffSize);
 
 	_playbackParseState = kFileStateCheckFormat;
 }
@@ -109,7 +112,6 @@ void PlaybackFile::close() {
 }
 
 bool PlaybackFile::parseHeader() {
-	PlaybackFileHeader result;
 	ChunkHeader nextChunk;
 	_playbackParseState = kFileStateCheckFormat;
 	if (!readChunkHeader(nextChunk)) {
@@ -128,11 +130,16 @@ bool PlaybackFile::parseHeader() {
 }
 
 bool PlaybackFile::checkPlaybackFileVersion() {
-	uint32 version;
-	version = _readStream->readUint32LE();
-	if (version != RECORD_VERSION) {
-		warning("Incorrect playback file version. Expected version %d, but got %d.", RECORD_VERSION, version);
+	_version = _readStream->readUint32BE();
+	switch (_version) {
+	case 1:
+		break;
+	default:
+		warning("Unknown playback file version %d. Maximum supported version is %d.", _version, RECORD_VERSION);
 		return false;
+	}
+	if (_version != RECORD_VERSION) {
+		warning("This playback file uses version %d, and may not be accurate. You can re-record the file in version %d format using --record-mode=update", _version, RECORD_VERSION);
 	}
 	return true;
 }
@@ -155,8 +162,8 @@ String PlaybackFile::readString(int len) {
 }
 
 bool PlaybackFile::readChunkHeader(PlaybackFile::ChunkHeader &nextChunk) {
-	nextChunk.id = (FileTag)_readStream->readUint32LE();
-	nextChunk.len = _readStream->readUint32LE();
+	nextChunk.id = (FileTag)_readStream->readUint32BE();
+	nextChunk.len = _readStream->readUint32BE();
 	return !_readStream->err() && !_readStream->eos();
 }
 
@@ -257,7 +264,7 @@ bool PlaybackFile::processChunk(ChunkHeader &nextChunk) {
 		}
 		break;
 	default:
-			return false;
+		return false;
 	}
 	return true;
 }
@@ -274,7 +281,7 @@ void PlaybackFile::readHashMap(ChunkHeader chunk) {
 
 void PlaybackFile::processRndSeedRecord(ChunkHeader chunk) {
 	String randomSourceName = readString(chunk.len - 4);
-	uint32 randomSourceSeed = _readStream->readUint32LE();
+	uint32 randomSourceSeed = _readStream->readUint32BE();
 	_header.randomSourceRecords[randomSourceName] = randomSourceSeed;
 }
 
@@ -317,9 +324,19 @@ bool PlaybackFile::readSaveRecord() {
 	return true;
 }
 
-
+bool PlaybackFile::hasNextEvent() const {
+	if (_readStream->err()) {
+		return false;
+	}
+	return !_readStream->eos();
+}
 
 RecorderEvent PlaybackFile::getNextEvent() {
+	if (!hasNextEvent()) {
+		debug(3, "end of recorder file reached.");
+		g_system->quit();
+	}
+
 	assert(_mode == kRead);
 	if (isEventsBufferEmpty()) {
 		PlaybackFile::ChunkHeader header;
@@ -359,18 +376,32 @@ void PlaybackFile::readEvent(RecorderEvent& event) {
 	event.recordedtype = (RecorderEventType)_tmpPlaybackFile.readByte();
 	switch (event.recordedtype) {
 	case kRecorderEventTypeTimer:
-		event.time = _tmpPlaybackFile.readUint32LE();
+		event.time = _tmpPlaybackFile.readUint32BE();
+		break;
+	case kRecorderEventTypeTimeDate:
+		event.timeDate.tm_sec = _tmpPlaybackFile.readSint32BE();
+		event.timeDate.tm_min = _tmpPlaybackFile.readSint32BE();
+		event.timeDate.tm_hour = _tmpPlaybackFile.readSint32BE();
+		event.timeDate.tm_mday = _tmpPlaybackFile.readSint32BE();
+		event.timeDate.tm_mon = _tmpPlaybackFile.readSint32BE();
+		event.timeDate.tm_year = _tmpPlaybackFile.readSint32BE();
+		event.timeDate.tm_wday = _tmpPlaybackFile.readSint32BE();
+		break;
+	case kRecorderEventTypeScreenUpdate:
+		event.time = _tmpPlaybackFile.readUint32BE();
 		break;
 	default:
 		// fallthrough intended
 	case kRecorderEventTypeNormal:
-		event.type = (EventType)_tmpPlaybackFile.readUint32LE();
+		event.type = (EventType)_tmpPlaybackFile.readUint32BE();
 		switch (event.type) {
 		case EVENT_KEYDOWN:
+			event.kbdRepeat = _tmpPlaybackFile.readByte();
+			// fallthrough
 		case EVENT_KEYUP:
-			event.time = _tmpPlaybackFile.readUint32LE();
-			event.kbd.keycode = (KeyCode)_tmpPlaybackFile.readSint32LE();
-			event.kbd.ascii = _tmpPlaybackFile.readUint16LE();
+			event.time = _tmpPlaybackFile.readUint32BE();
+			event.kbd.keycode = (KeyCode)_tmpPlaybackFile.readSint32BE();
+			event.kbd.ascii = _tmpPlaybackFile.readUint16BE();
 			event.kbd.flags = _tmpPlaybackFile.readByte();
 			break;
 		case EVENT_MOUSEMOVE:
@@ -386,29 +417,45 @@ void PlaybackFile::readEvent(RecorderEvent& event) {
 		case EVENT_X1BUTTONUP:
 		case EVENT_X2BUTTONDOWN:
 		case EVENT_X2BUTTONUP:
-			event.time = _tmpPlaybackFile.readUint32LE();
-			event.mouse.x = _tmpPlaybackFile.readSint16LE();
-			event.mouse.y = _tmpPlaybackFile.readSint16LE();
+			event.time = _tmpPlaybackFile.readUint32BE();
+			event.mouse.x = _tmpPlaybackFile.readSint16BE();
+			event.mouse.y = _tmpPlaybackFile.readSint16BE();
+			break;
+		case EVENT_CUSTOM_BACKEND_ACTION_START:
+		case EVENT_CUSTOM_BACKEND_ACTION_END:
+		case EVENT_CUSTOM_ENGINE_ACTION_START:
+		case EVENT_CUSTOM_ENGINE_ACTION_END:
+			event.time = _tmpPlaybackFile.readUint32BE();
+			event.customType = _tmpPlaybackFile.readUint32BE();
+			break;
+		case EVENT_JOYAXIS_MOTION:
+		case EVENT_JOYBUTTON_UP:
+		case EVENT_JOYBUTTON_DOWN:
+			event.time = _tmpPlaybackFile.readUint32BE();
+			event.joystick.axis = _tmpPlaybackFile.readByte();
+			event.joystick.button = _tmpPlaybackFile.readByte();
+			event.joystick.position = _tmpPlaybackFile.readSint16BE();
 			break;
 		default:
-			event.time = _tmpPlaybackFile.readUint32LE();
+			event.time = _tmpPlaybackFile.readUint32BE();
 			break;
 		}
 		break;
 	}
-	event.kbdRepeat = true;
+	debug(3, "read event of recordedtype: %i, type: %i (time: %u, systemmillis: %u)",
+			event.recordedtype, event.type, event.time, g_system->getMillis(true));
 }
 
 void PlaybackFile::readEventsToBuffer(uint32 size) {
-	_readStream->read(_tmpBuffer, size);
+	_readStream->read(_tmpBuffer.data(), size);
 	_tmpPlaybackFile.seek(0);
 	_eventsSize = size;
 }
 
 void PlaybackFile::saveScreenShot(Graphics::Surface &screen, byte md5[16]) {
 	dumpRecordsToFile();
-	_writeStream->writeUint32LE(kMD5Tag);
-	_writeStream->writeUint32LE(16);
+	_writeStream->writeUint32BE(kMD5Tag);
+	_writeStream->writeUint32BE(16);
 	_writeStream->write(md5, 16);
 	Graphics::saveThumbnail(*_writeStream, screen);
 }
@@ -421,21 +468,21 @@ void PlaybackFile::dumpRecordsToFile() {
 	if (_recordCount == 0) {
 		return;
 	}
-	_writeStream->writeUint32LE(kEventTag);
-	_writeStream->writeUint32LE(_tmpRecordFile.pos());
-	_writeStream->write(_tmpBuffer, _tmpRecordFile.pos());
+	_writeStream->writeUint32BE(kEventTag);
+	_writeStream->writeUint32BE(_tmpRecordFile.pos());
+	_writeStream->write(_tmpBuffer.data(), _tmpRecordFile.pos());
 	_tmpRecordFile.seek(0);
 	_recordCount = 0;
 }
 
 void PlaybackFile::dumpHeaderToFile() {
-	_writeStream->writeUint32LE(kFormatIdTag);
+	_writeStream->writeUint32BE(kFormatIdTag);
 	// Specify size for first tag as NULL since we cannot calculate
 	// size of the file at time of the header dumping
-	_writeStream->writeUint32LE(0);
-	_writeStream->writeUint32LE(kVersionTag);
-	_writeStream->writeUint32LE(4);
-	_writeStream->writeUint32LE(RECORD_VERSION);
+	_writeStream->writeUint32BE(0);
+	_writeStream->writeUint32BE(kVersionTag);
+	_writeStream->writeUint32BE(4);
+	_writeStream->writeUint32BE(RECORD_VERSION);
 	writeHeaderSection();
 	writeGameHash();
 	writeRandomRecords();
@@ -457,21 +504,21 @@ void PlaybackFile::writeHeaderSection() {
 	if (headerSize == 0) {
 		return;
 	}
-	_writeStream->writeUint32LE(kHeaderSectionTag);
-	_writeStream->writeUint32LE(headerSize);
+	_writeStream->writeUint32BE(kHeaderSectionTag);
+	_writeStream->writeUint32BE(headerSize);
 	if (!_header.author.empty()) {
-		_writeStream->writeUint32LE(kAuthorTag);
-		_writeStream->writeUint32LE(_header.author.size());
+		_writeStream->writeUint32BE(kAuthorTag);
+		_writeStream->writeUint32BE(_header.author.size());
 		_writeStream->writeString(_header.author);
 	}
 	if (!_header.notes.empty()) {
-		_writeStream->writeUint32LE(kCommentsTag);
-		_writeStream->writeUint32LE(_header.notes.size());
+		_writeStream->writeUint32BE(kCommentsTag);
+		_writeStream->writeUint32BE(_header.notes.size());
 		_writeStream->writeString(_header.notes);
 	}
 	if (!_header.name.empty()) {
-		_writeStream->writeUint32LE(kNameTag);
-		_writeStream->writeUint32LE(_header.name.size());
+		_writeStream->writeUint32BE(kNameTag);
+		_writeStream->writeUint32BE(_header.name.size());
 		_writeStream->writeString(_header.name);
 	}
 }
@@ -484,11 +531,11 @@ void PlaybackFile::writeGameHash() {
 	if (_header.hashRecords.size() == 0) {
 		return;
 	}
-	_writeStream->writeUint32LE(kHashSectionTag);
-	_writeStream->writeUint32LE(hashSectionSize);
+	_writeStream->writeUint32BE(kHashSectionTag);
+	_writeStream->writeUint32BE(hashSectionSize);
 	for (StringMap::iterator i = _header.hashRecords.begin(); i != _header.hashRecords.end(); ++i) {
-		_writeStream->writeUint32LE(kHashRecordTag);
-		_writeStream->writeUint32LE(i->_key.size() + i->_value.size());
+		_writeStream->writeUint32BE(kHashRecordTag);
+		_writeStream->writeUint32BE(i->_key.size() + i->_value.size());
 		_writeStream->writeString(i->_key);
 		_writeStream->writeString(i->_value);
 	}
@@ -502,13 +549,13 @@ void PlaybackFile::writeRandomRecords() {
 	if (_header.randomSourceRecords.size() == 0) {
 		return;
 	}
-	_writeStream->writeUint32LE(kRandomSectionTag);
-	_writeStream->writeUint32LE(randomSectionSize);
+	_writeStream->writeUint32BE(kRandomSectionTag);
+	_writeStream->writeUint32BE(randomSectionSize);
 	for (RandomSeedsDictionary::iterator i = _header.randomSourceRecords.begin(); i != _header.randomSourceRecords.end(); ++i) {
-		_writeStream->writeUint32LE(kRandomRecordTag);
-		_writeStream->writeUint32LE(i->_key.size() + 4);
+		_writeStream->writeUint32BE(kRandomRecordTag);
+		_writeStream->writeUint32BE(i->_key.size() + 4);
 		_writeStream->writeString(i->_key);
-		_writeStream->writeUint32LE(i->_value);
+		_writeStream->writeUint32BE(i->_value);
 	}
 }
 
@@ -518,18 +565,32 @@ void PlaybackFile::writeEvent(const RecorderEvent &event) {
 	_tmpRecordFile.writeByte(event.recordedtype);
 	switch (event.recordedtype) {
 	case kRecorderEventTypeTimer:
-		_tmpRecordFile.writeUint32LE(event.time);
+		_tmpRecordFile.writeUint32BE(event.time);
+		break;
+	case kRecorderEventTypeTimeDate:
+		_tmpRecordFile.writeSint32BE(event.timeDate.tm_sec);
+		_tmpRecordFile.writeSint32BE(event.timeDate.tm_min);
+		_tmpRecordFile.writeSint32BE(event.timeDate.tm_hour);
+		_tmpRecordFile.writeSint32BE(event.timeDate.tm_mday);
+		_tmpRecordFile.writeSint32BE(event.timeDate.tm_mon);
+		_tmpRecordFile.writeSint32BE(event.timeDate.tm_year);
+		_tmpRecordFile.writeSint32BE(event.timeDate.tm_wday);
+		break;
+	case kRecorderEventTypeScreenUpdate:
+		_tmpRecordFile.writeUint32BE(event.time);
 		break;
 	default:
 		// fallthrough intended
 	case kRecorderEventTypeNormal:
-		_tmpRecordFile.writeUint32LE((uint32)event.type);
+		_tmpRecordFile.writeUint32BE((uint32)event.type);
 		switch(event.type) {
 		case EVENT_KEYDOWN:
+			_tmpRecordFile.writeByte(event.kbdRepeat);
+			// fallthrough
 		case EVENT_KEYUP:
-			_tmpRecordFile.writeUint32LE(event.time);
-			_tmpRecordFile.writeSint32LE(event.kbd.keycode);
-			_tmpRecordFile.writeUint16LE(event.kbd.ascii);
+			_tmpRecordFile.writeUint32BE(event.time);
+			_tmpRecordFile.writeSint32BE(event.kbd.keycode);
+			_tmpRecordFile.writeUint16BE(event.kbd.ascii);
 			_tmpRecordFile.writeByte(event.kbd.flags);
 			break;
 		case EVENT_MOUSEMOVE:
@@ -545,12 +606,27 @@ void PlaybackFile::writeEvent(const RecorderEvent &event) {
 		case EVENT_X1BUTTONUP:
 		case EVENT_X2BUTTONDOWN:
 		case EVENT_X2BUTTONUP:
-			_tmpRecordFile.writeUint32LE(event.time);
-			_tmpRecordFile.writeSint16LE(event.mouse.x);
-			_tmpRecordFile.writeSint16LE(event.mouse.y);
+			_tmpRecordFile.writeUint32BE(event.time);
+			_tmpRecordFile.writeSint16BE(event.mouse.x);
+			_tmpRecordFile.writeSint16BE(event.mouse.y);
+			break;
+		case EVENT_CUSTOM_BACKEND_ACTION_START:
+		case EVENT_CUSTOM_BACKEND_ACTION_END:
+		case EVENT_CUSTOM_ENGINE_ACTION_START:
+		case EVENT_CUSTOM_ENGINE_ACTION_END:
+			_tmpRecordFile.writeUint32BE(event.time);
+			_tmpRecordFile.writeUint32BE(event.customType);
+			break;
+		case EVENT_JOYAXIS_MOTION:
+		case EVENT_JOYBUTTON_UP:
+		case EVENT_JOYBUTTON_DOWN:
+			_tmpRecordFile.writeUint32BE(event.time);
+			_tmpRecordFile.writeByte(event.joystick.axis);
+			_tmpRecordFile.writeByte(event.joystick.button);
+			_tmpRecordFile.writeSint16BE(event.joystick.position);
 			break;
 		default:
-			_tmpRecordFile.writeUint32LE(event.time);
+			_tmpRecordFile.writeUint32BE(event.time);
 			break;
 		}
 		break;
@@ -558,23 +634,25 @@ void PlaybackFile::writeEvent(const RecorderEvent &event) {
 	if (_recordCount == kMaxBufferedRecords) {
 		dumpRecordsToFile();
 	}
+	debug(3, "write event of recordedtype: %i, type: %i (time: %u, systemmillis: %u)",
+			event.recordedtype, event.type, event.time, g_system->getMillis(true));
 }
 
 void PlaybackFile::writeGameSettings() {
-	_writeStream->writeUint32LE(kSettingsSectionTag);
+	_writeStream->writeUint32BE(kSettingsSectionTag);
 	uint32 settingsSectionSize = 0;
 	for (StringMap::iterator i = _header.settingsRecords.begin(); i != _header.settingsRecords.end(); ++i) {
 		settingsSectionSize += i->_key.size() + i->_value.size() + 24;
 	}
-	_writeStream->writeUint32LE(settingsSectionSize);
+	_writeStream->writeUint32BE(settingsSectionSize);
 	for (StringMap::iterator i = _header.settingsRecords.begin(); i != _header.settingsRecords.end(); ++i) {
-		_writeStream->writeUint32LE(kSettingsRecordTag);
-		_writeStream->writeUint32LE(i->_key.size() + i->_value.size() + 16);
-		_writeStream->writeUint32LE(kSettingsRecordKeyTag);
-		_writeStream->writeUint32LE(i->_key.size());
+		_writeStream->writeUint32BE(kSettingsRecordTag);
+		_writeStream->writeUint32BE(i->_key.size() + i->_value.size() + 16);
+		_writeStream->writeUint32BE(kSettingsRecordKeyTag);
+		_writeStream->writeUint32BE(i->_key.size());
 		_writeStream->writeString(i->_key);
-		_writeStream->writeUint32LE(kSettingsRecordValueTag);
-		_writeStream->writeUint32LE(i->_value.size());
+		_writeStream->writeUint32BE(kSettingsRecordValueTag);
+		_writeStream->writeUint32BE(i->_value.size());
 		_writeStream->writeString(i->_value);
 	}
 }
@@ -594,18 +672,16 @@ int PlaybackFile::getScreensCount() {
 }
 
 bool PlaybackFile::skipToNextScreenshot() {
-	while (true) {
-		FileTag id = (FileTag)_readStream->readUint32LE();
-		if (_readStream->eos()) {
+	while (!_readStream->eos() && !_readStream->err()) {
+		FileTag id = (FileTag)_readStream->readUint32BE();
+		if (_readStream->eos() || _readStream->err()) {
 			break;
 		}
 		if (id == kScreenShotTag) {
 			return true;
 		}
-		else {
-			uint32 size = _readStream->readUint32LE();
-			_readStream->skip(size);
-		}
+		uint32 size = _readStream->readUint32BE();
+		_readStream->skip(size);
 	}
 	return false;
 }
@@ -633,7 +709,11 @@ Graphics::Surface *PlaybackFile::getScreenShot(int number) {
 
 void PlaybackFile::updateHeader() {
 	if (_mode == kWrite) {
+		StringArray dummy;
+		g_system->getSavefileManager()->updateSavefilesList(dummy);
 		_readStream = g_system->getSavefileManager()->openForLoading(_header.fileName);
+
+		assert (_readStream);
 	}
 	_readStream->seek(0);
 	skipHeader();
@@ -642,8 +722,8 @@ void PlaybackFile::updateHeader() {
 	dumpHeaderToFile();
 	uint32 readedSize = 0;
 	do {
-		readedSize = _readStream->read(_tmpBuffer, kRecordBuffSize);
-		_writeStream->write(_tmpBuffer, readedSize);
+		readedSize = _readStream->read(_tmpBuffer.data(), kRecordBuffSize);
+		_writeStream->write(_tmpBuffer.data(), readedSize);
 	} while (readedSize != 0);
 	delete _writeStream;
 	_writeStream = NULL;
@@ -658,7 +738,7 @@ void PlaybackFile::updateHeader() {
 
 void PlaybackFile::skipHeader() {
 	while (true) {
-		uint32 id = _readStream->readUint32LE();
+		uint32 id = _readStream->readUint32BE();
 		if (_readStream->eos()) {
 			break;
 		}
@@ -667,7 +747,7 @@ void PlaybackFile::skipHeader() {
 			return;
 		}
 		else {
-			uint32 size = _readStream->readUint32LE();
+			uint32 size = _readStream->readUint32BE();
 			_readStream->skip(size);
 		}
 	}
@@ -690,16 +770,16 @@ void PlaybackFile::writeSaveFilesSection() {
 	if (size == 0) {
 		return;
 	}
-	_writeStream->writeSint32LE(kSaveTag);
-	_writeStream->writeSint32LE(size);
+	_writeStream->writeSint32BE(kSaveTag);
+	_writeStream->writeSint32BE(size);
 	for (HashMap<String, SaveFileBuffer>::iterator  i = _header.saveFiles.begin(); i != _header.saveFiles.end(); ++i) {
-		_writeStream->writeSint32LE(kSaveRecordTag);
-		_writeStream->writeSint32LE(i->_key.size() + i->_value.size + 16);
-		_writeStream->writeSint32LE(kSaveRecordNameTag);
-		_writeStream->writeSint32LE(i->_key.size());
+		_writeStream->writeSint32BE(kSaveRecordTag);
+		_writeStream->writeSint32BE(i->_key.size() + i->_value.size + 16);
+		_writeStream->writeSint32BE(kSaveRecordNameTag);
+		_writeStream->writeSint32BE(i->_key.size());
 		_writeStream->writeString(i->_key);
-		_writeStream->writeSint32LE(kSaveRecordBufferTag);
-		_writeStream->writeSint32LE(i->_value.size);
+		_writeStream->writeSint32BE(kSaveRecordBufferTag);
+		_writeStream->writeSint32BE(i->_value.size);
 		_writeStream->write(i->_value.buffer, i->_value.size);
 	}
 }

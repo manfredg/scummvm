@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,25 +46,18 @@ Display::Display(QueenEngine *vm, OSystem *system)
 
 	initFont();
 
-	_screenBuf   = new uint8[ SCREEN_W * SCREEN_H ];
-	_panelBuf    = new uint8[ PANEL_W * PANEL_H ];
-	_backdropBuf = new uint8[ BACKDROP_W * BACKDROP_H ];
-	memset(_screenBuf,   0, SCREEN_W * SCREEN_H);
-	memset(_panelBuf,    0, PANEL_W * PANEL_H);
-	memset(_backdropBuf, 0, BACKDROP_W * BACKDROP_H);
+	_screenBuf   = new uint8[ SCREEN_W * SCREEN_H ]();
+	_panelBuf    = new uint8[ PANEL_W * PANEL_H ]();
+	_backdropBuf = new uint8[ BACKDROP_W * BACKDROP_H ]();
 
 	_fullRefresh = 1;
 	_dirtyBlocksWidth  = SCREEN_W / D_BLOCK_W;
 	_dirtyBlocksHeight = SCREEN_H / D_BLOCK_H;
-	_dirtyBlocks = new uint8[_dirtyBlocksWidth * _dirtyBlocksHeight];
-	memset(_dirtyBlocks, 0, _dirtyBlocksWidth * _dirtyBlocksHeight);
+	_dirtyBlocks = new uint8[_dirtyBlocksWidth * _dirtyBlocksHeight]();
 
-	_pal.room   = new uint8[ 256 * 3 ];
-	_pal.screen = new uint8[ 256 * 3 ];
-	_pal.panel  = new uint8[ 112 * 3 ];
-	memset(_pal.room,   0, 256 * 3);
-	memset(_pal.screen, 0, 256 * 3);
-	memset(_pal.panel,  0, 112 * 3);
+	_pal.room   = new uint8[ 256 * 3 ]();
+	_pal.screen = new uint8[ 256 * 3 ]();
+	_pal.panel  = new uint8[ 112 * 3 ]();
 	_pal.dirtyMin = 0;
 	_pal.dirtyMax = 255;
 	_pal.scrollable = true;
@@ -73,9 +65,11 @@ Display::Display(QueenEngine *vm, OSystem *system)
 	_imageExt = (_vm->resource()->getPlatform() == Common::kPlatformAmiga) ? "LBM" : "PCX";
 
 	_curTextColor = 0;
-	memset(_texts, 0, sizeof(_texts));
+	for (uint i = 0; i < ARRAYSIZE(_texts); i++) {
+		_texts[i].clear();
+	}
 
-	memset(&_dynalum, 0, sizeof(_dynalum));
+	_dynalum.clear();
 
 	setupInkColors();
 }
@@ -100,9 +94,9 @@ void Display::dynalumInit(const char *roomName, uint16 roomNum) {
 
 	_dynalum.valid = false;
 	delete[] _dynalum.mskBuf;
-	_dynalum.mskBuf = NULL;
+	_dynalum.mskBuf = nullptr;
 	delete[] _dynalum.lumBuf;
-	_dynalum.lumBuf = NULL;
+	_dynalum.lumBuf = nullptr;
 
 	if (!isPalFadingDisabled(roomNum)) {
 		char filename[20];
@@ -757,7 +751,7 @@ void Display::drawBobPasteDown(const uint8 *data, uint16 x, uint16 y, uint16 w, 
 }
 
 void Display::drawInventoryItem(const uint8 *data, uint16 x, uint16 y, uint16 w, uint16 h) {
-	if (data != NULL) {
+	if (data != nullptr) {
 		if (_vm->resource()->getPlatform() == Common::kPlatformAmiga) {
 			uint8 *dst = _panelBuf + y * PANEL_W + x;
 			for (int j = 0; j < h; ++j) {
@@ -918,7 +912,7 @@ void Display::initFont() {
 	case Common::RU_RUS:
 		_font = _fontRussian;
 		break;
-	case Common::GR_GRE:
+	case Common::EL_GRC:
 		_font = _fontGreek;
 		break;
 	default:

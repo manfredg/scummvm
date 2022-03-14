@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,7 +57,7 @@
 
 // -- DOS VGA Floppy (3 disks) --
 
-{ // Supplied by alex86r in bug report #3297633
+{ // Supplied by alex86r in bug report #5691
 	{
 		"fascination",
 		"VGA 3 disks edition",
@@ -89,7 +88,7 @@
 {
 	{
 		"fascination",
-		"Hebrew edition (censored)",
+		"Censored",
 		AD_ENTRY1s("intro.stk", "d6e45ce548598727e2b5587a99718eba", 1055909),
 		HE_ISR,
 		kPlatformDOS,
@@ -100,7 +99,7 @@
 	kFeaturesAdLib,
 	"intro.stk", 0, 0
 },
-{ // Supplied by windlepoons in bug report #2809247
+{ // Supplied by windlepoons in bug report #4371
 	{
 		"fascination",
 		"VGA 3 disks edition",
@@ -252,6 +251,21 @@
 		"",
 		AD_ENTRY1s("disk0.stk", "7691827fff35df7799f14cfd6be178ad", 189931),
 		IT_ITA,
+		kPlatformAmiga,
+		ADGF_NO_FLAGS,
+		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
+	},
+	kGameTypeFascination,
+	kFeaturesNone,
+	"disk0.stk", 0, 0
+},
+
+{ // Supplied by CaptainHIT in bug report #11592
+	{
+		"fascination",
+		"",
+		AD_ENTRY1s("disk0.stk", "be68d6609da9ded9489dc2c4523035d2", 190030),
+		ES_ESP,
 		kPlatformAmiga,
 		ADGF_NO_FLAGS,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)

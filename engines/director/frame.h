@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,35 +23,50 @@
 #define DIRECTOR_FRAME_H
 
 namespace Image {
-	class ImageDecoder;
+class ImageDecoder;
 }
 
 namespace Graphics {
-	class ManagedSurface;
-	struct Surface;
+class ManagedSurface;
+struct Surface;
 }
 
 namespace Common {
-	class ReadStreamEndian;
+class ReadStreamEndian;
 }
 
 namespace Director {
 
 class Score;
 class Sprite;
-class TextCast;
+class TextCastMember;
 
 enum {
 	kChannelDataSize = (25 * 50)
 };
 
 struct PaletteInfo {
-	uint8 firstColor;
-	uint8 lastColor;
-	uint8 flags;
-	uint8 speed;
+	int paletteId;
+
+	byte firstColor;
+	byte lastColor;
+	byte flags;
+	byte speed;
 	uint16 frameCount;
 	uint16 cycleCount;
+	uint16 cycleLength;
+	byte fade;
+	byte delay;
+	byte style;
+	byte colorCode;
+
+	PaletteInfo() {
+		paletteId = 0;
+		firstColor = lastColor = 0;
+		flags = 0; speed = 0;
+		frameCount = cycleCount = cycleLength = 0;
+		fade = delay = style = colorCode = 0;
+	}
 };
 
 struct FrameEntity {
@@ -63,57 +77,52 @@ struct FrameEntity {
 
 class Frame {
 public:
-	Frame(DirectorEngine *vm, int numChannels);
+	Frame(Score *score, int numChannels);
 	Frame(const Frame &frame);
 	~Frame();
-	void readChannels(Common::ReadStreamEndian *stream);
-	void readChannel(Common::SeekableSubReadStreamEndian &stream, uint16 offset, uint16 size);
-	void prepareFrame(Score *score);
-	uint16 getSpriteIDFromPos(Common::Point pos);
-	bool checkSpriteIntersection(uint16 spriteId, Common::Point pos);
-	Common::Rect *getSpriteRect(uint16 spriteId);
+
+	Score *getScore() const { return _score; }
+
+	void readChannels(Common::ReadStreamEndian *stream, uint16 version);
+	void readChannel(Common::SeekableReadStreamEndian &stream, uint16 offset, uint16 size);
 
 	void executeImmediateScripts();
 
 private:
-	void playTransition(Score *score);
-	void playSoundChannel();
-	void renderSprites(Graphics::ManagedSurface &surface, bool renderTrail);
-	void renderText(Graphics::ManagedSurface &surface, uint16 spriteId, Common::Rect *textSize);
-	void renderShape(Graphics::ManagedSurface &surface, uint16 spriteId);
-	void renderButton(Graphics::ManagedSurface &surface, uint16 spriteId);
-	void readPaletteInfo(Common::SeekableSubReadStreamEndian &stream);
-	void readSprite(Common::SeekableSubReadStreamEndian &stream, uint16 offset, uint16 size);
-	void readMainChannels(Common::SeekableSubReadStreamEndian &stream, uint16 offset, uint16 size);
+
+	void readPaletteInfo(Common::SeekableReadStreamEndian &stream);
+	void readSprite(Common::SeekableReadStreamEndian &stream, uint16 offset, uint16 size);
+	void readMainChannels(Common::SeekableReadStreamEndian &stream, uint16 offset, uint16 size);
 	Image::ImageDecoder *getImageFrom(uint16 spriteId);
-	Common::String readTextStream(Common::SeekableSubReadStreamEndian *textStream, TextCast *textCast);
-	void drawBackgndTransSprite(Graphics::ManagedSurface &target, const Graphics::Surface &sprite, Common::Rect &drawRect);
-	void drawMatteSprite(Graphics::ManagedSurface &target, const Graphics::Surface &sprite, Common::Rect &drawRect);
-	void drawGhostSprite(Graphics::ManagedSurface &target, const Graphics::Surface &sprite, Common::Rect &drawRect);
-	void drawReverseSprite(Graphics::ManagedSurface &target, const Graphics::Surface &sprite, Common::Rect &drawRect);
-	void inkBasedBlit(Graphics::ManagedSurface &targetSurface, const Graphics::Surface &spriteSurface, InkType ink, Common::Rect drawRect);
-	void addDrawRect(uint16 entityId, Common::Rect &rect);
+	Common::String readTextStream(Common::SeekableReadStreamEndian *textStream, TextCastMember *textCast);
+
 
 public:
 	int _numChannels;
 	byte _channelData[kChannelDataSize];
-	uint8 _actionId;
-	uint8 _transDuration;
-	uint8 _transArea; // 1 - Whole Stage, 0 - Changing Area
+	CastMemberID _actionId;
+	uint16 _transDuration;
+	uint8 _transArea; // 1 - Whole Window, 0 - Changing Area
 	uint8 _transChunkSize;
 	TransitionType _transType;
-	PaletteInfo *_palette;
+	PaletteInfo _palette;
 	uint8 _tempo;
 
-	uint16 _sound1;
+	CastMemberID _sound1;
 	uint8 _soundType1;
-	uint16 _sound2;
+	CastMemberID _sound2;
 	uint8 _soundType2;
+
+	byte _colorTempo;
+	byte _colorSound1;
+	byte _colorSound2;
+	byte _colorScript;
+	byte _colorTrans;
 
 	uint8 _skipFrameFlag;
 	uint8 _blend;
 	Common::Array<Sprite *> _sprites;
-	Common::Array<FrameEntity *> _drawRects;
+	Score *_score;
 	DirectorEngine *_vm;
 };
 

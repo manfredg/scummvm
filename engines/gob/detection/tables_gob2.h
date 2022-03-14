@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -55,7 +54,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by raziel_ in bug report #1891867
+{ // Supplied by raziel_ in bug report #3621
 	{
 		"gob2",
 		"",
@@ -83,7 +82,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by blackwhiteeagle in bug report #1605235
+{ // Supplied by blackwhiteeagle in bug report #2934
 	{
 		"gob2",
 		"",
@@ -111,7 +110,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2602017
+{ // Supplied by goodoldgeorg in bug report #4163
 	{
 		"gob2",
 		"",
@@ -139,7 +138,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by arcepi in bug report #1659884
+{ // Supplied by arcepi in bug report #3060
 	{
 		"gob2",
 		"",
@@ -170,7 +169,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by pykman in bug report #3067489
+{ // Supplied by pykman in bug report #5365
 	{
 		"gob2cd",
 		"v2.01 Polish",
@@ -254,7 +253,21 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Hebrew fan translation
+	{
+		"gob2cd",
+		"v2.01",
+		AD_ENTRY1s("intro.stk", "b768039f8d0a12c39ca28dcd33d584ba", 4696209),
+		HE_ISR,
+		kPlatformDOS,
+		ADGF_NO_FLAGS,
+		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
+	},
+	kGameTypeGob2,
+	kFeaturesCD,
+	0, 0, 0
+},
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob2cd",
 		"v1.02",
@@ -268,7 +281,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob2cd",
 		"v1.02",
@@ -282,7 +295,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob2cd",
 		"v1.02",
@@ -296,7 +309,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob2cd",
 		"v1.02",
@@ -310,7 +323,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob2cd",
 		"v1.02",
@@ -466,7 +479,7 @@
 
 // -- Mac --
 
-{ // Supplied by fac76 in bug report #1673397
+{ // Supplied by fac76 in bug report #3108
 	{
 		"gob2",
 		"",
@@ -484,7 +497,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by koalet in bug report #2478585
+{ // Supplied by koalet in bug report #4064
 	{
 		"gob2",
 		"",
@@ -505,7 +518,7 @@
 
 // -- Amiga --
 
-{ // Supplied by fac76 in bug report #1883808
+{ // Supplied by fac76 in bug report #3608
 	{
 		"gob2",
 		"",
@@ -533,7 +546,7 @@
 	kFeaturesNone,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2602057
+{ // Supplied by goodoldgeorg in bug report #4164
 	{
 		"gob2",
 		"",
@@ -561,10 +574,25 @@
 	kFeaturesNone,
 	0, 0, 0
 },
+{ // Supplied by damsoftPL in bug report #12033
+	{
+		"gob2",
+		"",
+		AD_ENTRY1s("intro.stk", "d721383633b7acd6f18752e1ad217473", 559840),
+		PL_POL,
+		kPlatformAmiga,
+		ADGF_NO_FLAGS,
+		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
+	},
+	kGameTypeGob2,
+	kFeaturesNone,
+	0, 0, 0
+},
+
 
 // -- Atari ST --
 
-{ // Supplied by bgk in bug report #1706861
+{ // Supplied by bgk in bug report #3161
 	{
 		"gob2",
 		"",
@@ -623,7 +651,7 @@
 	kFeaturesNone,
 	0, 0, 0
 },
-{ // Supplied by polluks in bug report #1895126
+{ // Supplied by polluks in bug report #3628
 	{
 		"gob2",
 		"Interactive Demo",

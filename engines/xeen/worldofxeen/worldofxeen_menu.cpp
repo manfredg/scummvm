@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -262,8 +261,7 @@ bool MainMenuDialog::handleEvents() {
 	checkEvents(g_vm);
 	int difficulty;
 
-	switch (_buttonValue) {
-	case Common::KEYCODE_s:
+	if (Res.KeyConstants.CloudsOfXeenMenu.KEY_START_NEW_GAME == _buttonValue) {
 		// Start new game
 		difficulty = DifficultyDialog::show(g_vm);
 		if (difficulty == -1)
@@ -273,9 +271,7 @@ bool MainMenuDialog::handleEvents() {
 		g_vm->_saves->newGame();
 		g_vm->_party->_difficulty = (Difficulty)difficulty;
 		g_vm->_gameMode = GMODE_PLAY_GAME;
-		break;
-
-	case Common::KEYCODE_l: {
+	} else if (Res.KeyConstants.CloudsOfXeenMenu.KEY_LOAD_GAME == _buttonValue) {
 		// Load existing game
 		int ccNum = files._ccNum;
 		g_vm->_saves->newGame();
@@ -285,20 +281,12 @@ bool MainMenuDialog::handleEvents() {
 		}
 
 		g_vm->_gameMode = GMODE_PLAY_GAME;
-		break;
-	}
-
-	case Common::KEYCODE_c:
-	case Common::KEYCODE_v:
+	} else if (Res.KeyConstants.CloudsOfXeenMenu.KEY_SHOW_CREDITS == _buttonValue) {
 		// Show credits
 		CreditsScreen::show(g_vm);
-		break;
-
-	case Common::KEYCODE_ESCAPE:
+	} else if (Common::KEYCODE_ESCAPE == _buttonValue) {
 		// Exit dialog (returning to just the animated background)
-		break;
-
-	default:
+	} else {
 		return false;
 	}
 
@@ -327,11 +315,11 @@ CloudsMenuDialog::~CloudsMenuDialog() {
 
 void CloudsMenuDialog::loadButtons() {
 	_buttonSprites.load("start.icn");
-	addButton(Common::Rect(93, 53, 227, 73), Common::KEYCODE_s, &_buttonSprites);
-	addButton(Common::Rect(93, 78, 227, 98), Common::KEYCODE_l, &_buttonSprites);
-	addButton(Common::Rect(93, 103, 227, 123), Common::KEYCODE_c, &_buttonSprites);
+	addButton(Common::Rect(93, 53, 227, 73), Res.KeyConstants.CloudsOfXeenMenu.KEY_START_NEW_GAME, &_buttonSprites);
+	addButton(Common::Rect(93, 78, 227, 98), Res.KeyConstants.CloudsOfXeenMenu.KEY_LOAD_GAME, &_buttonSprites);
+	addButton(Common::Rect(93, 103, 227, 123), Res.KeyConstants.CloudsOfXeenMenu.KEY_SHOW_CREDITS, &_buttonSprites);
 	if (g_vm->_gameWon[0])
-		addButton(Common::Rect(93, 128, 227, 148), Common::KEYCODE_e, &_buttonSprites);
+		addButton(Common::Rect(93, 128, 227, 148), Res.KeyConstants.CloudsOfXeenMenu.KEY_VIEW_ENDGAME, &_buttonSprites);
 }
 
 void CloudsMenuDialog::draw() {
@@ -347,8 +335,7 @@ bool CloudsMenuDialog::handleEvents() {
 	if (MainMenuDialog::handleEvents())
 		return true;
 
-	switch (_buttonValue) {
-	case Common::KEYCODE_e:
+	if (Res.KeyConstants.CloudsOfXeenMenu.KEY_VIEW_ENDGAME == _buttonValue) {
 		if (g_vm->_gameWon[0]) {
 			// Close the window
 			delete this;
@@ -358,10 +345,6 @@ bool CloudsMenuDialog::handleEvents() {
 			WOX_VM.showCloudsEnding(g_vm->_finalScore);
 			return true;
 		}
-		break;
-
-	default:
-		break;
 	}
 
 	return false;
@@ -597,14 +580,18 @@ bool OtherOptionsDialog::handleEvents() {
 	case Common::KEYCODE_d:
 		delete this;
 		sound.stopAllAudio();
+		WOX_VM._events->hideCursor();
 		WOX_VM.showDarkSideIntro(false);
+		WOX_VM._events->showCursor();
 		break;
 
 	case Common::KEYCODE_c:
 		if (g_vm->getGameID() == GType_WorldOfXeen) {
 			delete this;
 			sound.stopAllAudio();
+			WOX_VM._events->hideCursor();
 			WOX_VM.showCloudsIntro();
+			WOX_VM._events->showCursor();
 		}
 		break;
 
@@ -612,7 +599,9 @@ bool OtherOptionsDialog::handleEvents() {
 		if (g_vm->_gameWon[1]) {
 			delete this;
 			sound.stopAllAudio();
+			WOX_VM._events->hideCursor();
 			WOX_VM.showDarkSideEnding(g_vm->_finalScore);
+			WOX_VM._events->showCursor();
 		}
 		break;
 
@@ -620,7 +609,9 @@ bool OtherOptionsDialog::handleEvents() {
 		if (g_vm->_gameWon[0]) {
 			delete this;
 			sound.stopAllAudio();
+			WOX_VM._events->hideCursor();
 			WOX_VM.showCloudsEnding(g_vm->_finalScore);
+			WOX_VM._events->showCursor();
 		}
 		break;
 
@@ -628,7 +619,9 @@ bool OtherOptionsDialog::handleEvents() {
 		if (g_vm->_gameWon[2]) {
 			delete this;
 			sound.stopAllAudio();
+			WOX_VM._events->hideCursor();
 			WOX_VM.showWorldOfXeenEnding(NON_GOOBER, g_vm->_finalScore);
+			WOX_VM._events->showCursor();
 		}
 		break;
 

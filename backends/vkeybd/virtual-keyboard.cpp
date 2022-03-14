@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,8 +23,11 @@
 
 #ifdef ENABLE_VKEYBD
 
+#include "gui/gui-manager.h"
 #include "backends/vkeybd/virtual-keyboard.h"
 
+#include "backends/keymapper/keymapper.h"
+#include "backends/keymapper/keymap.h"
 #include "backends/vkeybd/virtual-keyboard-gui.h"
 #include "backends/vkeybd/virtual-keyboard-parser.h"
 #include "backends/vkeybd/keycode-descriptions.h"
@@ -221,6 +223,21 @@ void VirtualKeyboard::handleMouseUp(int16 x, int16 y) {
 	_kbdGUI->endDrag();
 }
 
+// If no GUI opened before the virtual keyboard, kKeymapTypeGui is not yet initialized
+// Check and do it if needed
+void VirtualKeyboard::initKeymap() {
+	using namespace Common;
+
+	Keymapper *mapper = _system->getEventManager()->getKeymapper();
+
+	// Do not try to recreate same keymap over again
+	if (mapper->getKeymap(kGuiKeymapName) != 0)
+			return;
+
+	Keymap *guiMap = g_gui.getKeymap();
+	mapper->addGlobalKeymap(guiMap);
+}
+
 void VirtualKeyboard::show() {
 	if (!_loaded) {
 		debug(1, "VirtualKeyboard::show() - Virtual keyboard not loaded");
@@ -230,7 +247,12 @@ void VirtualKeyboard::show() {
 	}
 
 	switchMode(_initialMode);
-	_kbdGUI->run();
+
+	{
+		initKeymap();
+		KeymapTypeEnabler guiKeymap(_system->getEventManager()->getKeymapper(), Keymap::kKeymapTypeGui);
+		_kbdGUI->run();
+	}
 
 	if (_submitKeys) {
 		EventManager *eventMan = _system->getEventManager();

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,14 +47,14 @@ void SupportingActor::toConsole() const {
 }
 
 bool SupportingActor::isLeftClickHandlers() const {
-	return _handlerMgr.isLeftClickHandler(this);
+	return _handlerMgr.findSuitableHandlerLeftClick(this);
 }
 
 bool SupportingActor::isUseClickHandlers(InventoryItem *item) const {
-	return _handlerMgr.isUseClickHandler(this, item->getName());
+	return _handlerMgr.findSuitableHandlerUseClick(this, item->getName());
 }
 
-void SupportingActor::onMouseOver(const Common::Point point, CursorMgr *mgr) {
+void SupportingActor::onMouseOver(Common::Point point, CursorMgr *mgr) {
 	if (isLeftClickHandlers()) {
 		if (!_cursor.empty())
 			mgr->setCursor(_cursor, point);
@@ -65,9 +64,9 @@ void SupportingActor::onMouseOver(const Common::Point point, CursorMgr *mgr) {
 		Actor::onMouseOver(point, mgr);
 }
 
-void SupportingActor::onMouseOverWithItem(const Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr) {
+void SupportingActor::onMouseOverWithItem(Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr) {
 	Common::String item = itemName;
-	if (_handlerMgr.isUseClickHandler(this, itemName))
+	if (_handlerMgr.findSuitableHandlerUseClick(this, itemName))
 		item += kClickable;
 	cursorMgr->setCursor(kHoldingItemCursor, point, item);
 }
@@ -84,11 +83,11 @@ void SupportingActor::onUseClickMessage(InventoryItem *item, InventoryMgr *mgr) 
 	_handlerMgr.onUseClickMessage(this, item, mgr);
 }
 
-const Common::String &SupportingActor::getLocation() const {
+Common::String SupportingActor::getLocation() const {
 	return _location;
 }
 
-const Common::String &SupportingActor::getPDALink() const {
+Common::String SupportingActor::getPDALink() const {
 	return _pdaLink;
 }
 

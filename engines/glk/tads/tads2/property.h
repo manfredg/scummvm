@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,12 +25,12 @@
  * stored in objects, which must be binary-portable.  Hence, the internal
  * structure of a property header is not a C structure, but a portable
  * sequence of bytes.  Multi-byte quantities are stored in Intel format.
- * 
+ *
  * property number    - 2 bytes
  * property datatype  - 1 byte
  * property size      - 2 bytes
  * property flags     - 1 byte
- * 
+ *
  * This header is followed immediately by the property value.  For
  * convenience, a set of macros is defined to provide access to the
  * fields of a property header.
@@ -71,7 +70,7 @@ typedef uchar prpdef;                   /* prpdef is just an array of bytes */
 
 /**
  * Invalid property number - this number will never be used as an actual
- * property, so it can be used to signify the lack of a valid property 
+ * property, so it can be used to signify the lack of a valid property
  */
 #define PRP_INVALID     0
 

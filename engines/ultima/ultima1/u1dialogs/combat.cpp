@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -39,9 +38,9 @@ Combat::Combat(Ultima1Game *game, Shared::Maps::Direction direction, int weaponT
 	const Common::String weaponName) : FullScreenDialog(game), _direction(direction) {
 }
 
-bool Combat::KeypressMsg(CKeypressMsg &msg) {
+bool Combat::KeypressMsg(CKeypressMsg *msg) {
 	if (_direction == Shared::Maps::DIR_NONE) {
-		switch (msg._keyState.keycode) {
+		switch (msg->_keyState.keycode) {
 		case Common::KEYCODE_LEFT:
 		case Common::KEYCODE_KP4:
 			_direction = Shared::Maps::DIR_LEFT;

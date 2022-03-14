@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -62,8 +61,6 @@ VoyeurEngine::VoyeurEngine(OSystem *syst, const VoyeurGameDescription *gameDesc)
 	_checkPhoneVal = 0;
 	_voyeurArea = AREA_NONE;
 	_loadGameSlot = -1;
-
-	DebugMan.addDebugChannel(kDebugScripts, "scripts", "Game scripts");
 
 	_stampLibPtr = nullptr;
 	_controlGroupPtr = nullptr;
@@ -164,7 +161,7 @@ bool VoyeurEngine::doHeadTitle() {
 
 	if (_loadGameSlot == -1) {
 		// Show starting screen
-		if (_bVoy->getBoltGroup(0x500)) {
+		if (!getIsDemo() && _bVoy->getBoltGroup(0x500)) {
 			showConversionScreen();
 			_bVoy->freeBoltGroup(0x500);
 
@@ -179,11 +176,13 @@ bool VoyeurEngine::doHeadTitle() {
 				return false;
 		}
 
-		// Show the title screen
-		_eventsManager->getMouseInfo();
-		showTitleScreen();
-		if (shouldQuit())
-			return false;
+		if (!getIsDemo()) {
+			// Show the title screen
+			_eventsManager->getMouseInfo();
+			showTitleScreen();
+			if (shouldQuit())
+				return false;
+		}
 
 		// Opening
 		_eventsManager->getMouseInfo();
@@ -242,13 +241,13 @@ void VoyeurEngine::showConversionScreen() {
 }
 
 bool VoyeurEngine::doLock() {
-	bool result = true;
+	bool result = true, setPassword = false;
 	int buttonVocSize, wrongVocSize;
 	byte *buttonVoc = _filesManager->fload("button.voc", &buttonVocSize);
 	byte *wrongVoc = _filesManager->fload("wrong.voc", &wrongVocSize);
 
 	if (_bVoy->getBoltGroup(0x700)) {
-		Common::String password = "3333";
+		Common::String password = ConfMan.hasKey("lockCode") ? ConfMan.get("lockCode") : "3333";
 
 		_screen->_backgroundPage = _bVoy->getPictureResource(0x700);
 		_screen->_backColors = _bVoy->getCMapResource(0x701);
@@ -349,17 +348,24 @@ bool VoyeurEngine::doLock() {
 				}
 			} else if (key == 10) {
 				// Accept key
-				if ((password.empty() && displayString.empty()) || (password == displayString)) {
+				if (setPassword) {
+					// Set a new password
+					password = displayString;
+					ConfMan.setAndFlush("lockCode", password);
+				}
+
+				if (password == displayString) {
 					breakFlag = true;
 					result = true;
 					break;
 				}
 			} else if (key == 11) {
 				// New code
-				if ((password.empty() && displayString.empty()) || (password != displayString)) {
+				if (password == displayString) {
 					_screen->_vPort->setupViewPort();
 					password = displayString;
 					displayString = "";
+					setPassword = true;
 					continue;
 				}
 			} else if (key == 12) {
@@ -371,6 +377,8 @@ bool VoyeurEngine::doLock() {
 				continue;
 			}
 
+			_screen->_vPort->setupViewPort();
+			displayString = "";
 			_soundManager->playVOCMap(wrongVoc, wrongVocSize);
 		}
 
@@ -669,10 +677,6 @@ void VoyeurEngine::doTransitionCard(const Common::String &time, const Common::St
 	}
 
 	flipPageAndWait();
-}
-
-void VoyeurEngine::saveLastInplay() {
-	// No implementation in ScummVM version
 }
 
 void VoyeurEngine::flipPageAndWait() {

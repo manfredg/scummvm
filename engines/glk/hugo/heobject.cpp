@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -75,7 +74,7 @@ int Hugo::Elder(int obj) {
 	p = Parent(obj);
 	cp = Child(p);
 
-        if (p==0 || cp==obj)
+	if (p==0 || cp==obj)
 		return 0;
 
 	lastobj = cp;
@@ -204,7 +203,7 @@ int Hugo::GetProp(int obj, int p, int n, char s) {
 	if (getaddress && MEM(codeptr)!=DECIMAL_T)
 		getpropaddress = true;
 
-        tempself = var[self];
+	tempself = var[self];
 	if (!s) var[self] = obj;
 
 	temp_stack_depth = stack_depth;
@@ -382,10 +381,10 @@ GetNextProp:
 							/* Prevent premature stopping */
 							if (debugger_step_over && !debugger_finish)
 								debugger_run = true;
-							
+
 							if (IsBreakpoint(orig_inprop))
 								complex_prop_breakpoint = true;
-							
+
 							sprintf(debug_line, "Calling:  %s.%s", objectname[obj], propertyname[p]);
 							trace_complex_prop_routine = true;
 
@@ -408,7 +407,7 @@ GetNextProp:
 						   and have therefore removed it.
 						*/
 						if (!flag || (objonly && !g) || ((game_version<22) && PeekWord(inprop-2)==(unsigned int)parseaddr))
-                                                        inprop = (long)PeekWord(inprop+1)*address_scale;
+														inprop = (long)PeekWord(inprop+1)*address_scale;
 						else break;
 					}
 				}

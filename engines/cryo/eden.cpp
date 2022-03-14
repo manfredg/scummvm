@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,8 +31,6 @@
 #include "common/system.h"
 #include "graphics/surface.h"
 #include "graphics/screen.h"
-#include "graphics/palette.h"
-#include "common/timer.h"
 #include "audio/mixer.h"
 
 #include "cryo/defs.h"
@@ -52,7 +49,7 @@ namespace Cryo {
 #define Z_DOWN -1
 
 EdenGame::EdenGame(CryoEngine *vm) : _vm(vm), kMaxMusicSize(2200000) {
-	static uint8 statTab2CB1E[8][4] = {
+	static const uint8 statTab2CB1E[8][4] = {
 		{ 0x10, 0x81,    1, 0x90},
 		{ 0x90,    1, 0x81, 0x10},
 		{    1, 0x90, 0x10, 0x81},
@@ -93,7 +90,7 @@ EdenGame::EdenGame(CryoEngine *vm) : _vm(vm), kMaxMusicSize(2200000) {
 	_lastPhrasesFile = 0;
 	_dialogSkipFlags = 0;
 	_voiceSamplesBuffer = nullptr;
-	
+
 	_mainBankBuf = nullptr;
 	_musicBuf = nullptr;
 	_gameLipsync = nullptr;
@@ -112,7 +109,6 @@ EdenGame::EdenGame(CryoEngine *vm) : _vm(vm), kMaxMusicSize(2200000) {
 	_gameStarted = false;
 	_soundAllocated = false;
 	_musicChannel = _voiceChannel = nullptr;
-	_hnmSoundChannel = nullptr;
 	_cirsorPanX = 0;
 	_inventoryScrollDelay = 0;
 	_cursorPosY = _cursorPosX = 0;
@@ -166,6 +162,18 @@ EdenGame::EdenGame(CryoEngine *vm) : _vm(vm), kMaxMusicSize(2200000) {
 	_glowIndex = 0;
 	_torchCurIndex = 0;
 	_cursCenter = 11;
+
+	for (int i = 0; i < 42; ++i)
+		_objects[i].clear();
+
+	for (int i = 0; i < 58; ++i)
+		_persons[i].clear();
+
+	for (int i = 0; i < 7; ++i)
+		_citadelList[i].clear();
+
+	for (int i = 0; i < 12; ++i)
+		_areasTable[i].clear();
 }
 
 EdenGame::~EdenGame() {
@@ -209,11 +217,6 @@ void EdenGame::displayFrescoes() {
 	useBank(_globals->_frescoeImgBank + 1);
 	_graphics->drawSprite(0, 320, 16);
 	_paletteUpdateRequired = true;
-}
-
-void EdenGame::setVolume(uint16 vol) {
-	_hnmSoundChannel->setVolumeLeft(vol);
-	_hnmSoundChannel->setVolumeRight(vol);
 }
 
 void EdenGame::gametofresques() {
@@ -1409,7 +1412,7 @@ void EdenGame::destroyCitadelRoom(int16 roomNum) {
 	room->_video = 0;
 	room->_level = 0;
 	_globals->_curAreaPtr->_citadelLevel = 0;
-	_globals->_curAreaPtr->_citadelRoomPtr = 0;
+	_globals->_curAreaPtr->_citadelRoomPtr = nullptr;
 	roomNum = (roomNum & ~0xFF) | room->_location;
 	for (; perso->_roomNum != 0xFFFF; perso++) {
 		if (perso->_roomNum == roomNum) {
@@ -1549,10 +1552,10 @@ void EdenGame::moveAllDino() {
 
 // Original name: newvallee
 void EdenGame::newValley() {
-	static int16 roomNumList[] = { 2075, 2080, 2119, -1};
+	static const int16 roomNumList[] = { 2075, 2080, 2119, -1};
 
 	perso_t *perso = &_persons[PER_UNKN_372];
-	int16 *ptr = roomNumList;
+	const int16 *ptr = roomNumList;
 	int16 roomNum = *ptr++;
 	while (roomNum != -1) {
 		perso->_roomNum = roomNum;
@@ -2232,7 +2235,7 @@ void EdenGame::getDataSync() {
 		_numAnimFrames = 0;
 	if (_globals->_textNum == 144)
 		_numAnimFrames = 48;
-	_animationTable = 0;
+	_animationTable = nullptr;
 }
 
 // Original name: ReadNombreFrames
@@ -3081,18 +3084,13 @@ void EdenGame::tyranDies(perso_t *perso) {
 }
 
 void EdenGame::specialObjects(perso_t *perso, char objid) {
-
-#include "common/pack-start.h"	// START STRUCT PACKING
-
 	struct SpecialObject {
 		int8  _characterType;
 		int8  _objectId;
 		void  (EdenGame::*dispFct)(perso_t *perso);
 	};
 
-#include "common/pack-end.h"	// END STRUCT PACKING
-
-	static SpecialObject kSpecialObjectActions[] = {
+	static const SpecialObject kSpecialObjectActions[] = {
 		//    persoType, objectId, dispFct
 		{ PersonFlags::pfType8, Objects::obShroom, &EdenGame::specialMushroom },
 		{ PersonFlags::pftTriceraptor, Objects::obNest, &EdenGame::specialEmptyNest },
@@ -3122,7 +3120,7 @@ void EdenGame::specialObjects(perso_t *perso, char objid) {
 
 	char characterType = perso->_flags & PersonFlags::pfTypeMask;
 	_curSpecialObject = &_objects[objid - 1];
-	for (SpecialObject *spcObj = kSpecialObjectActions; spcObj->_characterType != -1; spcObj++) {
+	for (const SpecialObject *spcObj = kSpecialObjectActions; spcObj->_characterType != -1; spcObj++) {
 		if (spcObj->_objectId == objid && spcObj->_characterType == characterType) {
 			(this->*spcObj->dispFct)(perso);
 			break;
@@ -3400,7 +3398,8 @@ bool EdenGame::dial_scan(Dialog *dial) {
 	} else
 		my_bulle();
 	if (!dword_30B04) {
-		static void (EdenGame::*talk_subject[])() = {
+		typedef void (EdenGame::*TalkSubject)();
+		static const TalkSubject talk_subject[] = {
 			&EdenGame::setChoiceYes,
 			&EdenGame::setChoiceNo,
 			&EdenGame::handleEloiDeparture,
@@ -3729,9 +3728,9 @@ void EdenGame::initGlobals() {
 	_globals->_areaPtr = nullptr;
 	_globals->_lastAreaPtr = nullptr;
 	_globals->_curAreaPtr = nullptr;
-	_globals->_citaAreaFirstRoom = 0;
+	_globals->_citaAreaFirstRoom = nullptr;
 	_globals->_characterPtr = nullptr;
-	_globals->_roomCharacterPtr = 0;
+	_globals->_roomCharacterPtr = nullptr;
 	_globals->_lastInfoIdx = 0;
 	_globals->_nextInfoIdx = 0;
 	_globals->_iconsIndex = 16;
@@ -4064,6 +4063,12 @@ void EdenGame::freebuf() {
 	free(_gameFont);
 	free(_gameLipsync);
 	free(_musicBuf);
+
+	if (_soundAllocated) {
+		free(_voiceSamplesBuffer);
+		_voiceSamplesBuffer = nullptr;
+		_soundAllocated = false;
+	}
 }
 
 void EdenGame::EmergencyExit() {
@@ -4080,14 +4085,10 @@ void EdenGame::run() {
 
 	word_378CE = 0;
 	CRYOLib_ManagersInit();
-	_vm->_video->setupSound(11025, false, false);
-	_vm->_video->setForceZero2Black(true);
-	_vm->_video->setupTimer(12.5);
-	_hnmSoundChannel = _vm->_video->getSoundChannel();
 
 	_musicChannel = new CSoundChannel(_vm->_mixer, 11025, false);
 	_voiceChannel = new CSoundChannel(_vm->_mixer, 11025, false);
-	_graphics = new EdenGraphics(this,_vm->_video);
+	_graphics = new EdenGraphics(this);
 	_graphics->setSavedUnderSubtitles(false);
 
 	allocateBuffers();
@@ -4126,6 +4127,9 @@ void EdenGame::run() {
 			_musicPlayingFlag = false;
 			_musicEnabledFlag = false;
 		}
+
+		if (_vm->getPlatform() == Common::kPlatformMacintosh)
+			DELETEcharge_objet_mob(&_cube);
 		// LostEdenMac_SavePrefs();
 	}
 
@@ -4188,19 +4192,11 @@ void EdenGame::edmain() {
 void EdenGame::intro() {
 	if (_vm->getPlatform() == Common::kPlatformMacintosh) {
 		// Play intro videos in HQ
-		_hnmSoundChannel->stop();
-		_vm->_video->closeSound();
-		_vm->_video->setupSound(22050, false, true);
-		_hnmSoundChannel = _vm->_video->getSoundChannel();
 		_graphics->playHNM(2012);
 		_graphics->playHNM(171);
 		CLBlitter_FillScreenView(0);
 		_specialTextMode = false;
 		_graphics->playHNM(2001);
-		_hnmSoundChannel->stop();
-		_vm->_video->closeSound();
-		_vm->_video->setupSound(11025, false, false);
-		_hnmSoundChannel = _vm->_video->getSoundChannel();
 	} else {
 		if (_vm->isDemo()) {
 			_graphics->playHNM(171);	// Virgin logo
@@ -4403,7 +4399,8 @@ void EdenGame::updateCursor() {
 }
 
 void EdenGame::mouse() {
-	static void (EdenGame::*mouse_actions[])() = {
+	typedef void (EdenGame::*MouseAction)();
+	static const MouseAction mouse_actions[] = {
 		&EdenGame::actionMoveNorth,
 		&EdenGame::actionMoveEast,
 		&EdenGame::actionMoveSouth,
@@ -5479,7 +5476,12 @@ void EdenGame::choseSubtitleOption() {
 		return;
 	if (lang > 5)
 		return;
+	
 	_globals->_prefLanguage = lang;
+	// save the new preferred language in the config
+	ConfMan.setInt("PrefLang", lang);
+	ConfMan.flushToDisk();
+	
 	_graphics->langbuftopanel();
 	displayLanguage();
 }
@@ -5756,7 +5758,7 @@ void EdenGame::edenShudown() {
 	if (_globals->_displayFlags != DisplayFlags::dfFlag2)
 		gotoPanel();
 	_curSpot2 = icon + 7;   //TODO
-	edenQuit();
+	reallyquit();
 }
 
 void EdenGame::habitants(perso_t *perso) {
@@ -5972,7 +5974,12 @@ void EdenGame::handleEloiReturn() {
 }
 //// phase.c
 void EdenGame::incPhase() {
-	static phase_t phases[] = {
+	struct phase_t {
+		int16 _id;
+		void (EdenGame::*disp)();
+	};
+
+	static const phase_t phases[] = {
 		{ 65, &EdenGame::dialautoon },
 		{ 113, &EdenGame::phase113 },
 		{ 129, &EdenGame::dialautoon },
@@ -6002,7 +6009,7 @@ void EdenGame::incPhase() {
 	_globals->_phaseNum++;
 	debug("!!! next phase - %4X , room %4X", _globals->_phaseNum, _globals->_roomNum);
 	_globals->_phaseActionsCount = 0;
-	for (phase_t *phase = phases; phase->_id != -1; phase++) {
+	for (const phase_t *phase = phases; phase->_id != -1; phase++) {
 		if (_globals->_phaseNum == phase->_id) {
 			(this->*phase->disp)();
 			break;
@@ -6131,7 +6138,8 @@ void EdenGame::phase561() {
 }
 
 void EdenGame::bigphase1() {
-	static void (EdenGame::*bigphases[])() = {
+	typedef void (EdenGame::*Phase)();
+	static const Phase bigphases[] = {
 		&EdenGame::phase16,
 		&EdenGame::phase32,
 		&EdenGame::phase48,
@@ -6949,7 +6957,8 @@ uint16 EdenGame::operFalse(uint16 v1, uint16 v2) {
 }
 
 uint16 EdenGame::operation(byte op, uint16 v1, uint16 v2) {
-	static uint16(EdenGame::*operations[16])(uint16, uint16) = {
+	typedef uint16 (EdenGame::*Operation)(uint16, uint16);
+	static const Operation operations[16] = {
 		&EdenGame::operIsEqual,
 		&EdenGame::operIsSmaller,
 		&EdenGame::operIsGreater,
@@ -7250,10 +7259,21 @@ void EdenGame::NEWcharge_objet_mob(Cube *cubep, int fileNum, byte *texturePtr) {
 	cubep->_vertices = vertices;
 }
 
+void EdenGame::DELETEcharge_objet_mob(Cube *cubep) {
+	for (int i = 0; i < cubep->_num; i++) {
+		free(cubep->_faces[i]->_indices);
+		free(cubep->_faces[i]->_uv);
+		free(cubep->_faces[i]);
+	}
+	free(cubep->_faces);
+	free(cubep->_projection);
+	free(cubep->_vertices);
+}
+
 int EdenGame::nextVal(char **ptr, char *error) {
 	char c = 0;
 	char *p = *ptr;
-	int val = strtol(p, 0, 10);
+	int val = strtol(p, nullptr, 10);
 	while ((*p >= '0' && *p <= '9' && *p != 0) || *p == '-')
 		p++;
 	while ((*p == 13 || *p == 10 || *p == ',' || *p == ' ') && *p)
@@ -7846,7 +7866,16 @@ void EdenGame::enginePC() {
 }
 
 void EdenGame::LostEdenMac_InitPrefs() {
-	_globals->_prefLanguage = 1;
+	// Keep track of the preferred language previously selected in the option menu
+	int pref = ConfMan.getInt("PrefLang");
+	if (pref < 1 || pref > 5) {
+		pref = 1;
+		ConfMan.setInt("PrefLang", 1);
+		ConfMan.flushToDisk();
+	}
+
+	_globals->_prefLanguage = pref;
+	
 	_globals->_prefMusicVol[0] = 192;
 	_globals->_prefMusicVol[1] = 192;
 	_globals->_prefVoiceVol[0] = 255;

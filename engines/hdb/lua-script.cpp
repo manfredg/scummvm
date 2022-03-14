@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -100,7 +99,7 @@ struct ScriptPatch {
 	// Jump straight to credits
 	//{"CINE_OUTRO", "-- delegate", "-- delegate\nCine_FadeOutBlack( 40 )\nCredits()"},
 
-	{NULL, NULL, NULL}
+	{nullptr, nullptr, nullptr}
 };
 
 LuaScript::LuaScript() {
@@ -113,7 +112,7 @@ LuaScript::LuaScript() {
 		_cameraYOff = (32 * 2 + 16);	// 2.50 Tiles Extra
 	}
 
-	_state = NULL;
+	_state = nullptr;
 	_systemInit = false;
 
 
@@ -134,7 +133,7 @@ void LuaScript::init() {
 	// Load Global Lua Code
 	_globalLuaStream = g_hdb->_fileMan->findFirstData("GLOBAL.LUA", TYPE_BINARY);
 	_globalLuaLength = g_hdb->_fileMan->getLength("GLOBAL.LUA", TYPE_BINARY);
-	if (_globalLuaStream == NULL || _globalLuaLength == 0) {
+	if (_globalLuaStream == nullptr || _globalLuaLength == 0) {
 		error("LuaScript::initScript: 'global code' failed to load");
 	}
 }
@@ -142,7 +141,7 @@ void LuaScript::init() {
 bool LuaScript::loadLua(const char *name) {
 	Common::SeekableReadStream *luaStream = g_hdb->_fileMan->findFirstData(name, TYPE_BINARY);
 	int32 luaLength = g_hdb->_fileMan->getLength(name, TYPE_BINARY);
-	if (luaStream == NULL) {
+	if (luaStream == nullptr) {
 		warning("The %s MPC entry can't be found", name);
 
 		_systemInit = false;
@@ -168,7 +167,7 @@ void LuaScript::saveGlobalNumber(const char *global, double value) {
 	}
 
 	Global *g = new Global;
-	strcpy(g->global, global);
+	Common::strlcpy(g->global, global, 32);
 	g->valueOrString = 0;
 	g->value = value;
 
@@ -183,15 +182,15 @@ void LuaScript::saveGlobalString(const char *global, const char *string) {
 	for (uint i = 0; i < _globals.size(); i++) {
 		if (!scumm_stricmp(global, _globals[i]->global)) {
 			_globals[i]->valueOrString = 1;
-			strcpy(_globals[i]->string, string);
+			Common::strlcpy(_globals[i]->string, string, 32);
 			return;
 		}
 	}
 
 	Global *g = new Global;
-	strcpy(g->global, global);
+	Common::strlcpy(g->global, global, 32);
 	g->valueOrString = 1;
-	strcpy(g->string, string);
+	Common::strlcpy(g->string, string, 32);
 
 	_globals.push_back(g);
 }
@@ -235,7 +234,7 @@ void LuaScript::save(Common::OutSaveFile *out) {
 	lua_pushstring(_state, "tempSave");
 	lua_call(_state, 1, 0);
 
-	g_hdb->_currentOutSaveFile = NULL;
+	g_hdb->_currentOutSaveFile = nullptr;
 }
 
 void LuaScript::loadSaveFile(Common::InSaveFile *in) {
@@ -263,7 +262,7 @@ void LuaScript::loadSaveFile(Common::InSaveFile *in) {
 
 	lua_call(_state, 1, 0);
 
-	g_hdb->_currentInSaveFile = NULL;
+	g_hdb->_currentInSaveFile = nullptr;
 }
 
 void LuaScript::setLuaGlobalValue(const char *name, int value) {
@@ -292,7 +291,7 @@ static int cineStart(lua_State *L) {
 }
 
 static int cineStop(lua_State *L) {
-	const char *funcNext = NULL;
+	const char *funcNext = nullptr;
 
 	int stackTop = lua_gettop(L);
 	if (stackTop) {
@@ -933,7 +932,7 @@ static int dialog(lua_State *L) {
 	const char *more = lua_tostring(L, 4);
 
 	if (!more || more[0] == '0')
-		more = NULL;
+		more = nullptr;
 
 	g_hdb->_lua->checkParameters("dialog", 4);
 
@@ -947,7 +946,7 @@ static int dialogChoice(lua_State *L) {
 	const char *title = lua_tostring(L, 1);
 	const char *text = lua_tostring(L, 2);
 	const char *func = lua_tostring(L, 3);
-	const char *choice[10] = {0,0,0,0,0,0,0,0,0,0};
+	const char *choice[10] = {nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr};
 
 	int	amount = lua_gettop(L) - 3;
 	if (amount > 9)
@@ -1368,7 +1367,7 @@ static int openFile(lua_State *L) {
 
 	lua_pop(L, 2); // drop 2 parameters
 
-	lua_pushlightuserdata(L, 0);
+	lua_pushlightuserdata(L, nullptr);
 
 	return 1;
 }
@@ -1566,7 +1565,7 @@ struct VarInit {
 	{ PIC_RANK3,						"PIC_RANK3" },
 	{ PIC_RANK4,						"PIC_RANK4" },
 	{ PIC_RANK5,						"PIC_RANK5" },
-	{NULL, NULL}
+	{nullptr, nullptr}
 };
 
 // For AI States, to be implemented
@@ -1649,7 +1648,7 @@ struct NumberInit {
 	{ STATE_DOLLYUSERIGHT,	"STATE_DOLLYUSERIGHT"	},
 	{ STATE_YELL,			"STATE_YELL"			},
 
-	{ STATE_NONE, NULL }
+	{ STATE_NONE, nullptr }
 };
 
 struct FuncInit {
@@ -1744,7 +1743,7 @@ struct FuncInit {
 	{	"closefile",			closeFile,			},
 	{	"dofile",				dofile,				},
 	{	"writeto",				writeto,			},
-	{ NULL, NULL }
+	{ nullptr, nullptr }
 };
 
 namespace {
@@ -1762,13 +1761,13 @@ void debugHook(lua_State *L, lua_Debug *ar) {
 }
 
 bool LuaScript::initScript(Common::SeekableReadStream *stream, const char *scriptName, int32 length) {
-	if (_state != NULL) {
+	if (_state != nullptr) {
 		lua_close(_state);
 	}
 
 	// Initialize Lua Environment
 	_state = lua_open();
-	if (_state == NULL) {
+	if (_state == nullptr) {
 		error("Couldn't initialize Lua script.");
 		return false;
 	}
@@ -1873,7 +1872,7 @@ bool LuaScript::initScript(Common::SeekableReadStream *stream, const char *scrip
 	lua_insert(_state, -2);
 
 	if (lua_pcall(_state, 0, 0, -2)) {
-		error("LuaScript::initScript: An error occured while executing \"%s\": %s.", "level_init", lua_tostring(_state, -1));
+		error("LuaScript::initScript: An error occurred while executing \"%s\": %s.", "level_init", lua_tostring(_state, -1));
 		lua_pop(_state, -1);
 
 		return false;
@@ -1913,7 +1912,7 @@ void LuaScript::call(int args, int returns) {
 		return;
 
 	if (lua_pcall(_state, args, returns, -2)) {
-		error("LuaScript::call: An error occured while executing: %s.", lua_tostring(_state, -1));
+		error("LuaScript::call: An error occurred while executing: %s.", lua_tostring(_state, -1));
 		lua_pop(_state, -1);
 	}
 }
@@ -1926,7 +1925,7 @@ bool LuaScript::callFunction(const char *name, int returns) {
 	lua_getglobal(_state, name);
 
 	if (lua_pcall(_state, 0, returns, -2)) {
-		error("LuaScript::callFunction: An error occured while executing \"%s\": %s.", name, lua_tostring(_state, -1));
+		error("LuaScript::callFunction: An error occurred while executing \"%s\": %s.", name, lua_tostring(_state, -1));
 		lua_pop(_state, -1);
 
 		return false;
@@ -2042,7 +2041,7 @@ bool LuaScript::executeChunk(Common::String &chunk, const Common::String &chunkN
 
 	// Execute Chunk
 	if (lua_pcall(_state, 0, 0, -2)) {
-		error("LuaScript::executeChunk: An error occured while executing \"%s\": %s.", chunkName.c_str(), lua_tostring(_state, -1));
+		error("LuaScript::executeChunk: An error occurred while executing \"%s\": %s.", chunkName.c_str(), lua_tostring(_state, -1));
 		lua_pop(_state, -1);
 
 		return false;
@@ -2109,7 +2108,7 @@ void lua_printstack(lua_State *L) {
 
 const char *LuaScript::getStringOffStack() {
 	if (!_systemInit) {
-		return NULL;
+		return nullptr;
 	}
 
 	const char *string = lua_tostring(_state, 1);

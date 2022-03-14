@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,6 +37,7 @@
 #include "engines/engine.h"
 
 #include "tucker/console.h"
+#include "tucker/detection.h"
 
 namespace Audio {
 class RewindableAudioStream;
@@ -361,13 +361,6 @@ enum InputKey {
 	kInputKeyCount
 };
 
-enum GameFlag {
-	kGameFlagDemo = 1 << 0,
-	kGameFlagEncodedData = 1 << 1,
-	kGameFlagNoSubtitles = 1 << 2,
-	kGameFlagIntroOnly = 1 << 3
-};
-
 enum CompressedSoundType {
 	kSoundTypeFx,
 	kSoundTypeMusic,
@@ -453,7 +446,7 @@ public:
 
 	WARN_UNUSED_RESULT static SavegameError readSavegameHeader(Common::InSaveFile *file, SavegameHeader &header, bool skipThumbnail = true);
 	WARN_UNUSED_RESULT static SavegameError readSavegameHeader(const char *target, int slot, SavegameHeader &header);
-	virtual bool canSaveAutosaveCurrently() override;
+	bool canSaveAutosaveCurrently() override;
 
 	static bool isAutosaveAllowed(const char *target);
 protected:
@@ -746,8 +739,8 @@ protected:
 	Common::Error loadGameState(int slot) override;
 	Common::Error saveGameState(int slot, const Common::String &desc, bool isAutosave = false) override;
 	SavegameError writeSavegameHeader(Common::OutSaveFile *file, SavegameHeader &header);
-	virtual int getAutosaveSlot() const override { return kAutoSaveSlot; }
-	virtual Common::String getSaveStateName(int slot) const {
+	int getAutosaveSlot() const override { return kAutoSaveSlot; }
+	Common::String getSaveStateName(int slot) const override {
 		return Common::String::format("%s.%d", _targetName.c_str(), slot);
 	}
 

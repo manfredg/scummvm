@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -189,7 +188,7 @@ bool Debugger::Cmd_SetObjectFlag(int argc, const char **argv) {
 
 		if (obj >= 1 && obj < _vm->_itemArraySize) {
 			SubObject *o = (SubObject *)_vm->findChildOfType(_vm->derefItem(obj), kObjectType);
-			if (o != NULL) {
+			if (o != nullptr) {
 				if (o->objectFlags & (1 << prop) && prop < 16) {
 					uint offs = _vm->getOffsetOfChild2Param(o, 1 << prop);
 					if (argc > 3) {
@@ -221,7 +220,7 @@ bool Debugger::Cmd_StartSubroutine(int argc, const char **argv) {
 		uint subroutine = atoi(argv[1]);
 		Subroutine *sub;
 		sub = _vm->getSubroutineByID(subroutine);
-		if (sub != NULL)
+		if (sub != nullptr)
 			_vm->startSubroutine(sub);
 	} else
 		debugPrintf("Subroutine %d\n", _vm->_currentTable->id);
@@ -234,7 +233,7 @@ bool Debugger::Cmd_dumpImage(int argc, const char **argv) {
 		uint16 zoneNum = atoi(argv[1]);
 		_vm->loadZone(zoneNum, false);
 		VgaPointersEntry *vpe = &_vm->_vgaBufferPointers[zoneNum];
-		if (vpe->vgaFile2 != NULL) {
+		if (vpe->vgaFile2 != nullptr) {
 			_vm->dumpVgaBitmaps(zoneNum);
 		} else {
 			debugPrintf("Invalid Zone Number %d\n", zoneNum);
@@ -251,7 +250,7 @@ bool Debugger::Cmd_dumpScript(int argc, const char **argv) {
 		uint16 zoneNum = atoi(argv[1]);
 		_vm->loadZone(zoneNum, false);
 		VgaPointersEntry *vpe = &_vm->_vgaBufferPointers[zoneNum];
-		if (vpe->vgaFile1 != NULL) {
+		if (vpe->vgaFile1 != nullptr) {
 			_vm->dumpVgaFile(vpe->vgaFile1);
 		} else {
 			debugPrintf("Invalid Zone Number %d\n", zoneNum);

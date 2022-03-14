@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,12 +27,12 @@
 
 namespace GUI {
 
-EditableWidget::EditableWidget(GuiObject *boss, int x, int y, int w, int h, const char *tooltip, uint32 cmd)
+EditableWidget::EditableWidget(GuiObject *boss, int x, int y, int w, int h, const Common::U32String &tooltip, uint32 cmd)
 	: Widget(boss, x, y, w, h, tooltip), CommandSender(boss), _cmd(cmd) {
 	init();
 }
 
-EditableWidget::EditableWidget(GuiObject *boss, const String &name, const char *tooltip, uint32 cmd)
+EditableWidget::EditableWidget(GuiObject *boss, const Common::String &name, const Common::U32String &tooltip, uint32 cmd)
 	: Widget(boss, name, tooltip), CommandSender(boss), _cmd(cmd) {
 	init();
 }
@@ -47,6 +46,9 @@ void EditableWidget::init() {
 
 	_editScrollOffset = 0;
 
+	_align = g_gui.useRTL() ? Graphics::kTextAlignRight : Graphics::kTextAlignLeft;
+	_drawAlign = _align;
+
 	_font = ThemeEngine::kFontStyleBold;
 	_inversion = ThemeEngine::kTextInversionNone;
 }
@@ -58,11 +60,15 @@ void EditableWidget::reflowLayout() {
 	Widget::reflowLayout();
 
 	_editScrollOffset = g_gui.getStringWidth(_editString, _font) - getEditRect().width();
-	if (_editScrollOffset < 0)
+	if (_editScrollOffset < 0) {
 		_editScrollOffset = 0;
+		_drawAlign = _align;
+	} else {
+		_drawAlign = Graphics::kTextAlignLeft;
+	}
 }
 
-void EditableWidget::setEditString(const String &str) {
+void EditableWidget::setEditString(const Common::U32String &str) {
 	// TODO: We probably should filter the input string here,
 	// e.g. using tryInsertChar.
 	_editString = str;
@@ -156,8 +162,9 @@ bool EditableWidget::handleKeyDown(Common::KeyState state) {
 	case Common::KEYCODE_DOWN:
 	case Common::KEYCODE_END:
 		// Move caret to end
-		dirty = setCaretPos(_editString.size());
+		setCaretPos(_editString.size());
 		forcecaret = true;
+		dirty = true;
 		break;
 
 	case Common::KEYCODE_LEFT:
@@ -181,14 +188,15 @@ bool EditableWidget::handleKeyDown(Common::KeyState state) {
 	case Common::KEYCODE_UP:
 	case Common::KEYCODE_HOME:
 		// Move caret to start
-		dirty = setCaretPos(0);
+		setCaretPos(0);
 		forcecaret = true;
+		dirty = true;
 		break;
 
 	case Common::KEYCODE_v:
 		if (state.flags & Common::KBD_CTRL) {
 			if (g_system->hasTextInClipboard()) {
-				String text = g_system->getTextFromClipboard();
+				Common::U32String text = g_system->getTextFromClipboard();
 				for (uint32 i = 0; i < text.size(); ++i) {
 					if (tryInsertChar(text[i], _caretPos))
 						++_caretPos;
@@ -213,7 +221,7 @@ bool EditableWidget::handleKeyDown(Common::KeyState state) {
 	// Let ctrl-a / ctrl-e move the caret to the start / end of the line.
 	//
 	// These shortcuts go back a long time for command line programs. As
-	// for edit fields in GUIs, they are supported natively on Mac OS X,
+	// for edit fields in GUIs, they are supported natively on macOS,
 	// which is why I enabled these shortcuts there.
 	// On other systems (Windows, Gnome), Ctrl-A by default means
 	// "select all", which is why I didn't enable the shortcuts there
@@ -265,18 +273,8 @@ void EditableWidget::defaultKeyDownHandler(Common::KeyState &state, bool &dirty,
 }
 
 int EditableWidget::getCaretOffset() const {
-	int caretpos = 0;
-
-	uint last = 0;
-	for (int i = 0; i < _caretPos; ++i) {
-		const uint cur = _editString[i];
-		caretpos += g_gui.getCharWidth(cur, _font) + g_gui.getKerningOffset(last, cur, _font);
-		last = cur;
-	}
-
-	caretpos -= _editScrollOffset;
-
-	return caretpos;
+	Common::U32String substr(_editString.begin(), _editString.begin() + _caretPos);
+	return g_gui.getStringWidth(substr, _font) - _editScrollOffset;
 }
 
 void EditableWidget::drawCaret(bool erase) {
@@ -289,19 +287,33 @@ void EditableWidget::drawCaret(bool erase) {
 	int x = editRect.left;
 	int y = editRect.top;
 
+	if (_align == Graphics::kTextAlignRight) {
+		int strVisibleWidth = g_gui.getStringWidth(_editString, _font) - _editScrollOffset;
+		if (strVisibleWidth > editRect.width()) {
+			_drawAlign = Graphics::kTextAlignLeft;
+			strVisibleWidth = editRect.width();
+		} else {
+			_drawAlign = _align;
+		}
+		x = editRect.right - strVisibleWidth;
+	}
+
 	const int caretOffset = getCaretOffset();
 	x += caretOffset;
 
 	if (y < 0 || y + editRect.height() > _h)
 		return;
 
-	x += getAbsX();
+	if (g_gui.useRTL())
+		x += g_system->getOverlayWidth() - _w - getAbsX() + g_gui.getOverlayOffset();
+	else
+		x += getAbsX();
 	y += getAbsY();
 
 	g_gui.theme()->drawCaret(Common::Rect(x, y, x + 1, y + editRect.height()), erase);
 
 	if (erase) {
-		GUI::EditableWidget::String character;
+		Common::String character;
 		int width;
 
 		if ((uint)_caretPos < _editString.size()) {
@@ -328,7 +340,7 @@ void EditableWidget::drawCaret(bool erase) {
 		width = MIN(editRect.width() - caretOffset, width);
 		if (width > 0) {
 			g_gui.theme()->drawText(Common::Rect(x, y, x + width, y + editRect.height()), character,
-			                        _state, Graphics::kTextAlignLeft, _inversion, 0, false, _font,
+			                        _state, _drawAlign, _inversion, 0, false, _font,
 			                        ThemeEngine::kFontColorNormal, true, _textDrawableArea);
 		}
 	}

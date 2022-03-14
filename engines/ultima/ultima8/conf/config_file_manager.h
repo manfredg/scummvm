@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,26 +15,32 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #ifndef ULTIMA8_CONF_CONFIGFILEMANAGER_H
 #define ULTIMA8_CONF_CONFIGFILEMANAGER_H
 
+#include "common/ini-file.h"
 #include "ultima/shared/std/string.h"
 #include "ultima/ultima8/misc/istring.h"
 #include "ultima/shared/std/containers.h"
-#include "ultima/ultima8/conf/ini_file.h"
 
 namespace Ultima {
 namespace Ultima8 {
+
+typedef Std::map<istring, Std::string, Common::IgnoreCase_Hash> KeyMap;
 
 class ConfigFileManager {
 public:
 	ConfigFileManager();
 	~ConfigFileManager();
+
+	struct ConfigFile {
+		istring _category;
+		Common::INIFile _iniFile;
+	};
 
 	static ConfigFileManager *get_instance() {
 		return _configFileManager;
@@ -45,70 +51,33 @@ public:
 	//! \param root The name of the root node in the file
 	//! \param readonly If true, don't write to this file's tree (or the file)
 	//! \return true if succesful
-	bool readConfigFile(Std::string fname, istring root,
-	                    bool readonly = false);
-	bool readConfigString(Std::string config, istring root,
-	                      bool readonly = false);
-
-	//! write all (writable) config files in the given root
-	//! \param root The root to write, or empty string to write everything
-	void write(istring root = "");
+	bool readConfigFile(Std::string fname, const istring &category);
 
 	//! clear everything
 	void clear();
 
 	//! clear everything in a root
-	void clearRoot(istring root);
-
-	//! does the key exist?
-	bool exists(istring key);
+	void clearRoot(const istring &category);
 
 	//! get value
-	bool get(istring key, Std::string &ret);
+	bool get(const istring &category, const istring &section, const istring &key, Std::string &ret);
 	//! get value
-	bool get(istring key, int &ret);
+	bool get(const istring &category, const istring &section, const istring &key, int &ret);
 	//! get value
-	bool get(istring, bool &ret);
-
-	//! set value
-	void set(istring key, Std::string value);
-	//! set value
-	void set(istring key, const char *value);
-	//! set value
-	void set(istring key, int value);
-	//! set value
-	void set(istring key, bool value);
-
-	//! remove key
-	void unset(istring key);
-
-	//! list all keys in a section
-	//! \param section The section to return setkeys of
-	//! \param longformat If true, return the full key name, instead of
-	//!                   just the last part
-	//! \return the keys. They have no guaranteed order.
-	Std::vector<istring> listKeys(istring section,
-	        bool longformat = false);
+	bool get(const istring &category, const istring &section, const istring &key, bool &ret);
 
 	//! list all sections
-	//! \param root The config root to list all sections in
-	//! \param longformat If true, return the full key name (including section)
+	//! \param category The config category to list all sections in
 	//! \return the sections. They have no guaranteed order.
-	Std::vector<istring> listSections(istring root,
-	        bool longformat = false);
-
+	Std::vector<istring> listSections(const istring &category);
 	//! list all key-value pairs in the given section.
+	//! \param category The config category for the section to list
 	//! \param section The section to list
-	//! \param longformat If true, return the full key name (including section)
 	//! \return the key-value pairs. They have no guaranteed order.
-	KeyMap listKeyValues(istring section, bool longformat = false);
+	KeyMap listKeyValues(const istring &category, const istring &section);
 
 private:
-
-	INIFile *findKeyINI(istring key);
-	INIFile *findWriteINI(istring key);
-
-	Std::vector<INIFile *> _iniFiles;
+	Std::vector<ConfigFile *> _configFiles;
 
 	static ConfigFileManager *_configFileManager;
 };

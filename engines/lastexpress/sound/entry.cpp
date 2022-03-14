@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,7 +47,7 @@ SoundEntry::SoundEntry(LastExpressEngine *engine) : _engine(engine) {
 	_blockCount = 0;
 	_startTime = 0;
 
-	_stream = NULL;
+	_stream = nullptr;
 
 	_volumeWithoutNIS = 0;
 	_entity = kEntityPlayer;
@@ -56,9 +55,9 @@ SoundEntry::SoundEntry(LastExpressEngine *engine) : _engine(engine) {
 	_activateDelayMS = 0;
 	_priority = 0;
 
-	_subtitle = NULL;
+	_subtitle = nullptr;
 
-	_soundStream = NULL;
+	_soundStream = nullptr;
 }
 
 SoundEntry::~SoundEntry() {
@@ -68,11 +67,11 @@ SoundEntry::~SoundEntry() {
 
 	SAFE_DELETE(_soundStream);
 
-	_subtitle = NULL;
-	_stream = NULL;
+	_subtitle = nullptr;
+	_stream = nullptr;
 
 	// Zero passed pointers
-	_engine = NULL;
+	_engine = nullptr;
 }
 
 void SoundEntry::open(Common::String name, SoundFlag flag, int priority) {
@@ -85,8 +84,8 @@ void SoundEntry::open(Common::String name, SoundFlag flag, int priority) {
 void SoundEntry::close() {
 	if (_soundStream) {
 		delete _soundStream; // stops the sound in destructor
-		_soundStream = NULL;
-		_stream = NULL; // disposed by _soundStream
+		_soundStream = nullptr;
+		_stream = nullptr; // disposed by _soundStream
 	}
 	_status |= kSoundFlagClosed;
 
@@ -433,16 +432,16 @@ void SoundEntry::saveLoadWithSerializer(Common::Serializer &s) {
 //////////////////////////////////////////////////////////////////////////
 SubtitleEntry::SubtitleEntry(LastExpressEngine *engine) : _engine(engine) {
 	_status = 0;
-	_sound = NULL;
-	_data = NULL;
+	_sound = nullptr;
+	_data = nullptr;
 }
 
 SubtitleEntry::~SubtitleEntry() {
 	SAFE_DELETE(_data);
 
 	// Zero-out passed pointers
-	_sound = NULL;
-	_engine = NULL;
+	_sound = nullptr;
+	_engine = nullptr;
 }
 
 void SubtitleEntry::load(Common::String filename, SoundEntry *soundEntry) {
@@ -502,13 +501,13 @@ void SubtitleEntry::close() {
 	if (this == getSoundQueue()->getCurrentSubtitle()) {
 		drawOnScreen();
 
-		getSoundQueue()->setCurrentSubtitle(NULL);
+		getSoundQueue()->setCurrentSubtitle(nullptr);
 		getSoundQueue()->setSubtitleFlag(0);
 	}
 }
 
 void SubtitleEntry::drawOnScreen() {
-	if (_data == NULL)
+	if (_data == nullptr)
 		return;
 
 	getSoundQueue()->setSubtitleFlag(getSoundQueue()->getSubtitleFlag() & -2);

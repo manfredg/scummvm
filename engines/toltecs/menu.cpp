@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -47,6 +46,7 @@ MenuSystem::MenuSystem(ToltecsEngine *vm) : _vm(vm) {
 	_editingDescriptionID = kItemIdNone;
 	_editingDescriptionItem = nullptr;
 	_needRedraw = false;
+	_returnToGame = false;
 }
 
 MenuSystem::~MenuSystem() {
@@ -79,6 +79,11 @@ int MenuSystem::run(MenuID menuId) {
 	shadeRect(60, 39, 520, 247, 225, 229);
 
 	memcpy(_background->getPixels(), _vm->_screen->_frontScreen, 640 * 400);
+
+	if (menuId == kMenuIdMain)
+		_returnToGame = false;
+	else
+		_returnToGame = true;
 
 	while (_running) {
 		update();
@@ -124,7 +129,7 @@ void MenuSystem::handleEvents() {
 		case Common::EVENT_KEYDOWN:
 			handleKeyDown(event.kbd);
 			break;
-		case Common::EVENT_RTL:
+		case Common::EVENT_RETURN_TO_LAUNCHER:
 		case Common::EVENT_QUIT:
 			_running = false;
 			break;
@@ -268,10 +273,15 @@ void MenuSystem::initMenu(MenuID menuID) {
 			int slot = dialog->runModalWithCurrentTarget();
 			delete dialog;
 
-			if (slot >= 0)
+			if (slot >= 0) {
 				_vm->requestLoadgame(slot);
-
-			_running = false;
+				_running = false;
+			} else {
+				if (_returnToGame)
+					_running = false;
+				else
+					_newMenuID = kMenuIdMain;
+			}
 		}
 		break;
 	case kMenuIdSave:
@@ -297,10 +307,15 @@ void MenuSystem::initMenu(MenuID menuID) {
 				desc = dialog->createDefaultSaveDescription(slot);
 			}
 
-			if (slot >= 0)
+			if (slot >= 0) {
 				_vm->requestSavegame(slot, desc);
-
-			_running = false;
+				_running = false;
+			} else {
+				if (_returnToGame)
+					_running = false;
+				else
+					_newMenuID = kMenuIdMain;
+			}
 		}
 		break;
 	case kMenuIdVolumes:

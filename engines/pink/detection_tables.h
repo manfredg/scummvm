@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -31,7 +30,7 @@ static const ADGameDescription gameDescriptions[] = {
 		"peril",
 		0,
 		AD_ENTRY1s("PPTP.ORB", "eae050c09d7f6bfbb3166d2c39957e31", 608976918),
-		Common::DA_DAN,
+		Common::DA_DNK,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE | ADGF_DROPPLATFORM,
 		GUIO1(GUIO_NOMIDI)
@@ -60,6 +59,7 @@ static const ADGameDescription gameDescriptions[] = {
 	},
 
 	// English Great Britain
+	// Supplied by jp438-2 Bugreport #10956
 	{
 		"peril",
 		0,
@@ -172,7 +172,7 @@ static const ADGameDescription gameDescriptions[] = {
 	// Dutch, Version 1.0
 	{
 		"pokus",
-		0,
+		"v1.0",
 		AD_ENTRY1s("HPP.orb", "b769855e2fc94b9180763211c349a9ed", 509498007),
 		Common::NL_NLD,
 		Common::kPlatformWindows,
@@ -183,7 +183,7 @@ static const ADGameDescription gameDescriptions[] = {
 	// Dutch, Version 2.0
 	{
 		"pokus",
-		0,
+		"v2.0",
 		AD_ENTRY1s("HPP.orb", "993b0491d507efee0010e4f1c000ab8b", 509498617),
 		Common::NL_NLD,
 		Common::kPlatformWindows,
@@ -297,7 +297,7 @@ static const ADGameDescription gameDescriptions[] = {
 		"pokus",
 		0,
 		AD_ENTRY1s("HPP.orb", "3428dda98c21c4b6cd798750016796ab", 513518023),
-		Common::DA_DAN,
+		Common::DA_DNK,
 		Common::kPlatformWindows,
 		ADGF_UNSTABLE | ADGF_DROPPLATFORM,
 		GUIO1(GUIO_NOMIDI)

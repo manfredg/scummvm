@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,7 +57,7 @@
 
 // -- DOS VGA Floppy --
 
-{ // Supplied by Theruler76 in bug report #1201233
+{ // Supplied by Theruler76 in bug report #2024
 	{
 		"gob1",
 		"VGA",
@@ -72,7 +71,7 @@
 	kFeaturesNone,
 	0, 0, 0
 },
-{ // Supplied by raziel_ in bug report #1891864
+{ // Supplied by raziel_ in bug report #3620
 	{
 		"gob1",
 		"VGA",
@@ -243,7 +242,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob1cd",
 		"v1.02",
@@ -257,7 +256,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob1cd",
 		"v1.02",
@@ -271,7 +270,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob1cd",
 		"v1.02",
@@ -285,7 +284,7 @@
 	kFeaturesCD,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2810082
+{ // Supplied by goodoldgeorg in bug report #4375
 	{
 		"gob1cd",
 		"v1.02",
@@ -316,7 +315,7 @@
 	kFeaturesNone,
 	0, 0, 0
 },
-{ // Supplied by paul66 in bug report #1652352
+{ // Supplied by paul66 in bug report #3045
 	{
 		"gob1",
 		"",
@@ -330,7 +329,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by paul66 in bug report #1652352
+{ // Supplied by paul66 in bug report #3045
 	{
 		"gob1",
 		"",
@@ -344,7 +343,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by paul66 in bug report #1652352
+{ // Supplied by paul66 in bug report #3045
 	{
 		"gob1",
 		"",
@@ -358,7 +357,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by paul66 in bug report #1652352
+{ // Supplied by paul66 in bug report #3045
 	{
 		"gob1",
 		"",
@@ -372,7 +371,7 @@
 	kFeaturesAdLib,
 	0, 0, 0
 },
-{ // Supplied by paul66 in bug report #1652352
+{ // Supplied by paul66 in bug report #3045
 	{
 		"gob1",
 		"",
@@ -380,6 +379,20 @@
 		ES_ESP,
 		kPlatformMacintosh,
 		ADGF_NO_FLAGS,
+		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
+	},
+	kGameTypeGob1,
+	kFeaturesAdLib,
+	0, 0, 0
+},
+{
+	{
+		"gob1",
+		"",
+		AD_ENTRY1s("intro.stk", "acdda40f4b20a87d4cfd760d3833a6e1", 453404),
+		JA_JPN,
+		kPlatformMacintosh,
+		ADGF_UNSTABLE,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
 	kGameTypeGob1,
@@ -393,11 +406,8 @@
 	{
 		"gob1",
 		"",
-		{
-			{"intro.stk", 0, "f5f028ee39c456fa51fa63b606583918", 313472},
-			{"musmac1.mid", 0, "4f66903b33df8a20edd4c748809c0b56", 8161},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "f5f028ee39c456fa51fa63b606583918", 313472,
+				   "musmac1.mid", "4f66903b33df8a20edd4c748809c0b56", 8161),
 		FR_FRA,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -411,11 +421,8 @@
 	{
 		"gob1",
 		"",
-		{
-			{"intro.stk", 0, "f5f028ee39c456fa51fa63b606583918", 313472},
-			{"musmac1.mid", 0, "4f66903b33df8a20edd4c748809c0b56", 8161},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "f5f028ee39c456fa51fa63b606583918", 313472,
+			       "musmac1.mid", "4f66903b33df8a20edd4c748809c0b56", 8161),
 		IT_ITA,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -429,11 +436,8 @@
 	{
 		"gob1",
 		"",
-		{
-			{"intro.stk", 0, "f5f028ee39c456fa51fa63b606583918", 313472},
-			{"musmac1.mid", 0, "4f66903b33df8a20edd4c748809c0b56", 8161},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "f5f028ee39c456fa51fa63b606583918", 313472,
+				   "musmac1.mid", "4f66903b33df8a20edd4c748809c0b56", 8161),
 		EN_GRB,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -447,11 +451,8 @@
 	{
 		"gob1",
 		"",
-		{
-			{"intro.stk", 0, "f5f028ee39c456fa51fa63b606583918", 313472},
-			{"musmac1.mid", 0, "4f66903b33df8a20edd4c748809c0b56", 8161},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "f5f028ee39c456fa51fa63b606583918", 313472,
+				   "musmac1.mid", "4f66903b33df8a20edd4c748809c0b56", 8161),
 		DE_DEU,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -465,11 +466,8 @@
 	{
 		"gob1",
 		"",
-		{
-			{"intro.stk", 0, "f5f028ee39c456fa51fa63b606583918", 313472},
-			{"musmac1.mid", 0, "4f66903b33df8a20edd4c748809c0b56", 8161},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "f5f028ee39c456fa51fa63b606583918", 313472,
+				   "musmac1.mid", "4f66903b33df8a20edd4c748809c0b56", 8161),
 		ES_ESP,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -483,11 +481,8 @@
 	{
 		"gob1",
 		"",
-		{
-			{"intro.stk", 0, "e157cb59c6d330ca70d12ab0ef1dd12b", 288972},
-			{"musmac1.mid", 0, "4f66903b33df8a20edd4c748809c0b56", 8161},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "e157cb59c6d330ca70d12ab0ef1dd12b", 288972,
+				   "musmac1.mid", "4f66903b33df8a20edd4c748809c0b56", 8161),
 		EN_GRB,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -501,11 +496,8 @@
 	{
 		"gob1",
 		"",
-		{
-			{"intro.stk", 0, "e157cb59c6d330ca70d12ab0ef1dd12b", 288972},
-			{"musmac1.mid", 0, "4f66903b33df8a20edd4c748809c0b56", 8161},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "e157cb59c6d330ca70d12ab0ef1dd12b", 288972,
+				   "musmac1.mid", "4f66903b33df8a20edd4c748809c0b56", 8161),
 		FR_FRA,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -519,11 +511,8 @@
 	{
 		"gob1",
 		"",
-		{
-			{"intro.stk", 0, "e157cb59c6d330ca70d12ab0ef1dd12b", 288972},
-			{"musmac1.mid", 0, "4f66903b33df8a20edd4c748809c0b56", 8161},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "e157cb59c6d330ca70d12ab0ef1dd12b", 288972,
+				   "musmac1.mid", "4f66903b33df8a20edd4c748809c0b56", 8161),
 		ES_ESP,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -537,11 +526,8 @@
 	{
 		"gob1",
 		"",
-		{
-			{"intro.stk", 0, "e157cb59c6d330ca70d12ab0ef1dd12b", 288972},
-			{"musmac1.mid", 0, "4f66903b33df8a20edd4c748809c0b56", 8161},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "e157cb59c6d330ca70d12ab0ef1dd12b", 288972,
+				   "musmac1.mid", "4f66903b33df8a20edd4c748809c0b56", 8161),
 		IT_ITA,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -555,11 +541,8 @@
 	{
 		"gob1",
 		"",
-		{
-			{"intro.stk", 0, "e157cb59c6d330ca70d12ab0ef1dd12b", 288972},
-			{"musmac1.mid", 0, "4f66903b33df8a20edd4c748809c0b56", 8161},
-			{0, 0, 0, 0}
-		},
+		AD_ENTRY2s("intro.stk",   "e157cb59c6d330ca70d12ab0ef1dd12b", 288972,
+				   "musmac1.mid", "4f66903b33df8a20edd4c748809c0b56", 8161),
 		DE_DEU,
 		kPlatformWindows,
 		ADGF_NO_FLAGS,
@@ -684,7 +667,7 @@
 	kFeaturesNone,
 	0, 0, 0
 },
-{ // Supplied by goodoldgeorg in bug report #2785958
+{ // Supplied by goodoldgeorg in bug report #4324
 	{
 		"gob1",
 		"Interactive Demo",
@@ -706,6 +689,34 @@
 		FR_FRA,
 		kPlatformCDi,
 		ADGF_NO_FLAGS,
+		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
+	},
+	kGameTypeGob1,
+	kFeaturesAdLib,
+	0, "AVT003.TOT", 0
+},
+{ // Found on ADI Accompagnement Scolaire - Francais-Maths CE1/CE2
+	{
+		"gob1",
+		"CE1/CE2",
+		AD_ENTRY1s("intro.stk", "ae38e1dac63576b9a7d34a96fd6eb37c", 5731374),
+		FR_FRA,
+		kPlatformCDi,
+		ADGF_DEMO | ADGF_UNSTABLE,
+		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
+	},
+	kGameTypeGob1,
+	kFeaturesAdLib,
+	0, "AVT008.TOT", 0
+},
+{ // Found on ADI Accompagnement Scolaire - Francais-Maths CM1/CM2
+	{
+		"gob1",
+		"CM1/CM2",
+		AD_ENTRY1s("intro.stk", "ca15cc119fea5ee432083e7f6b873c38", 2441216),
+		FR_FRA,
+		kPlatformCDi,
+		ADGF_DEMO | ADGF_UNSTABLE,
 		GUIO2(GUIO_NOSUBTITLES, GUIO_NOSPEECH)
 	},
 	kGameTypeGob1,

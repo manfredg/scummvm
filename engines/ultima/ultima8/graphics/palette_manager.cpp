@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,22 +15,20 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/misc/pent_include.h"
 
 #include "ultima/ultima8/graphics/palette_manager.h"
-#include "ultima/ultima8/filesys/idata_source.h"
 #include "ultima/ultima8/graphics/render_surface.h"
 #include "ultima/ultima8/graphics/texture.h"
 
 namespace Ultima {
 namespace Ultima8 {
 
-PaletteManager *PaletteManager::_paletteManager = 0;
+PaletteManager *PaletteManager::_paletteManager = nullptr;
 
 PaletteManager::PaletteManager(RenderSurface *rs)
 	: _renderSurface(rs) {
@@ -42,7 +40,7 @@ PaletteManager::PaletteManager(RenderSurface *rs)
 PaletteManager::~PaletteManager() {
 	reset();
 	debugN(MM_INFO, "Destroying PaletteManager...\n");
-	_paletteManager = 0;
+	_paletteManager = nullptr;
 }
 
 // Reset the Palette Manager
@@ -54,10 +52,10 @@ void PaletteManager::reset() {
 	_palettes.clear();
 }
 
-void PaletteManager::updatedFont(PalIndex index) {
+void PaletteManager::updatedPalette(PalIndex index, int maxindex) {
 	Palette *pal = getPalette(index);
 	if (pal)
-		_renderSurface->CreateNativePalette(pal); // convert to native format
+		_renderSurface->CreateNativePalette(pal, maxindex);
 }
 
 // Reset all the transforms back to default
@@ -87,7 +85,7 @@ void PaletteManager::RenderSurfaceChanged(RenderSurface *rs) {
 			_renderSurface->CreateNativePalette(_palettes[i]);
 }
 
-void PaletteManager::load(PalIndex index, IDataSource &ds, IDataSource &xformds) {
+void PaletteManager::load(PalIndex index, Common::ReadStream &rs, Common::ReadStream &xformrs) {
 	if (_palettes.size() <= static_cast<unsigned int>(index))
 		_palettes.resize(index + 1);
 
@@ -95,13 +93,13 @@ void PaletteManager::load(PalIndex index, IDataSource &ds, IDataSource &xformds)
 		delete _palettes[index];
 
 	Palette *pal = new Palette;
-	pal->load(ds, xformds);
+	pal->load(rs, xformrs);
 	_renderSurface->CreateNativePalette(pal); // convert to native format
 
 	_palettes[index] = pal;
 }
 
-void PaletteManager::load(PalIndex index, IDataSource &ds) {
+void PaletteManager::load(PalIndex index, Common::ReadStream &rs) {
 	if (_palettes.size() <= static_cast<unsigned int>(index))
 		_palettes.resize(index + 1);
 
@@ -109,7 +107,7 @@ void PaletteManager::load(PalIndex index, IDataSource &ds) {
 		delete _palettes[index];
 
 	Palette *pal = new Palette;
-	pal->load(ds);
+	pal->load(rs);
 	_renderSurface->CreateNativePalette(pal); // convert to native format
 
 	_palettes[index] = pal;
@@ -131,12 +129,12 @@ void PaletteManager::duplicate(PalIndex src, PalIndex dest) {
 
 Palette *PaletteManager::getPalette(PalIndex index) {
 	if (static_cast<unsigned int>(index) >= _palettes.size())
-		return 0;
+		return nullptr;
 
 	return _palettes[index];
 }
 
-void PaletteManager::transformPalette(PalIndex index, int16 matrix[12]) {
+void PaletteManager::transformPalette(PalIndex index, const int16 matrix[12]) {
 	Palette *pal = getPalette(index);
 
 	if (!pal) return;

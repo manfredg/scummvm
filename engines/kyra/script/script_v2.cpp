@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -119,13 +118,13 @@ int KyraEngine_v2::o2_delay(EMCState *script) {
 	if (stackPos(1)) {
 		uint32 maxWaitTime = _system->getMillis() + stackPos(0) * _tickLength;
 		while (_system->getMillis() < maxWaitTime) {
-			int inputFlag = checkInput(0);
+			int inputFlag = checkInput(nullptr);
 			removeInputTop();
 
 			if (inputFlag == 198 || inputFlag == 199)
 				return 1;
 
-			if (_chatText)
+			if (!_chatText.empty())
 				updateWithText();
 			else
 				update();
@@ -140,7 +139,7 @@ int KyraEngine_v2::o2_delay(EMCState *script) {
 int KyraEngine_v2::o2_update(EMCState *script) {
 	debugC(3, kDebugLevelScriptFuncs, "KyraEngine_v2::o2_update(%p) (%d)", (const void *)script, stackPos(0));
 	for (int times = stackPos(0); times != 0; --times) {
-		if (_chatText)
+		if (!_chatText.empty())
 			updateWithText();
 		else
 			update();
@@ -159,7 +158,7 @@ int KyraEngine_v2::o2_waitForConfirmationClick(EMCState *script) {
 	uint32 maxWaitTime = _system->getMillis() + stackPos(0) * _tickLength;
 
 	while (_system->getMillis() < maxWaitTime) {
-		int inputFlag = checkInput(0);
+		int inputFlag = checkInput(nullptr);
 		removeInputTop();
 
 		if (inputFlag == 198 || inputFlag == 199) {

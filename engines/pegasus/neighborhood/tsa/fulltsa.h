@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -68,6 +67,9 @@ public:
 
 	void checkContinuePoint(const RoomID, const DirectionConstant) override;
 
+	void setSoundFXLevel(const uint16) override;
+	void setAmbienceLevel(const uint16) override;
+
 	bool canSolve() override;
 	void doSolve() override;
 
@@ -99,9 +101,11 @@ protected:
 	void downButton(const Input &) override;
 	void startDoorOpenMovie(const TimeValue, const TimeValue) override;
 	TimeValue getViewTime(const RoomID, const DirectionConstant) override;
+	void showViewFrame(TimeValue) override;
 	void findSpotEntry(const RoomID, const DirectionConstant, SpotFlags, SpotTable::Entry &) override;
 	void turnTo(const DirectionConstant) override;
 	CanMoveForwardReason canMoveForward(ExitTable::Entry &) override;
+	void moveForward() override;
 	CanOpenDoorReason canOpenDoor(DoorTable::Entry &) override;
 	void bumpIntoWall() override;
 	void initializeTBPMonitor(const int, const ExtraID);
@@ -109,10 +113,13 @@ protected:
 	void getExtraCompassMove(const ExtraTable::Entry &, FaderMoveSpec &) override;
 	Hotspot *getItemScreenSpot(Item *, DisplayElement *) override;
 	void openDoor() override;
+	void doorOpened() override;
 	void turnRight() override;
 	void turnLeft() override;
 	void closeDoorOffScreen(const RoomID, const DirectionConstant) override;
+	void startExtraSequence(const ExtraID, const NotificationFlags, const InputBits) override;
 	void playExtraMovie(const ExtraTable::Entry &, const NotificationFlags, const InputBits interruptionInput) override;
+	void startTurnPush(const TurnDirection, const TimeValue, const DirectionConstant) override;
 	void handleInput(const Input &, const Hotspot *) override;
 	void arriveAtTSA25Red();
 	void startUpComparisonMonitor();
@@ -141,6 +148,15 @@ protected:
 	void receiveNotification(Notification *, const NotificationFlags) override;
 	void checkRobotLocations(const RoomID, const DirectionConstant);
 	void getExtraEntry(const uint32, ExtraTable::Entry &) override;
+
+	Movie _extraMovie;
+	NotificationCallBack _extraMovieCallBack;
+	Movie _blankMovie;
+
+	Sound _entranceMusic;
+	SoundFader _entranceFader;
+	bool _playedSolvedMusicCue;
+	Sound _solvedMusicCue;
 
 	Sprite _sprite1, _sprite2, _sprite3;
 	FuseFunction _utilityFuse;

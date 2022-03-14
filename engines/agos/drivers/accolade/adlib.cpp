@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -95,14 +94,14 @@ const uint16 frequencyLookUpTableMusicDrv[12] = {
 // I have currently not implemented dynamic channel allocation.
 
 MidiDriver_Accolade_AdLib::MidiDriver_Accolade_AdLib()
-		: _masterVolume(15), _opl(0),
-		  _adlibTimerProc(0), _adlibTimerParam(0), _isOpen(false) {
+		: _masterVolume(143), _opl(nullptr),
+		  _adlibTimerProc(nullptr), _adlibTimerParam(nullptr), _isOpen(false) {
 	memset(_channelMapping, 0, sizeof(_channelMapping));
 	memset(_instrumentMapping, 0, sizeof(_instrumentMapping));
 	memset(_instrumentVolumeAdjust, 0, sizeof(_instrumentVolumeAdjust));
 	memset(_percussionKeyNoteMapping, 0, sizeof(_percussionKeyNoteMapping));
 
-	_instrumentTable = NULL;
+	_instrumentTable = nullptr;
 	_instrumentCount = 0;
 	_musicDrvMode = false;
 	_percussionReg = 0x20;
@@ -166,15 +165,13 @@ void MidiDriver_Accolade_AdLib::close() {
 }
 
 void MidiDriver_Accolade_AdLib::setVolume(byte volume) {
-	// Set the master volume in range from -128 to 127
-	_masterVolume = CLIP<int>(-128 + volume, -128, 127);
+	_masterVolume = volume;
 	for (int i = 0; i < AGOS_ADLIB_VOICES_COUNT; i++) {
-		// Adjust channel volume with the master volume and re-set registers
-		byte adjustedVelocity = _channels[i].velocity * ((float) (128 + _masterVolume) / 128);
-		noteOnSetVolume(i, 1, adjustedVelocity);
+		// Re-set registers
+		noteOnSetVolume(i, 1, _channels[i].velocity);
 		if (i <= AGOS_ADLIB_VOICES_PERCUSSION_START) {
 			// Set second operator for FM voices + first percussion
-			noteOnSetVolume(i, 2, adjustedVelocity);
+			noteOnSetVolume(i, 2, _channels[i].velocity);
 		}
 	}
 }
@@ -286,19 +283,11 @@ void MidiDriver_Accolade_AdLib::setTimerCallback(void *timerParam, Common::Timer
 
 void MidiDriver_Accolade_AdLib::noteOn(byte FMvoiceChannel, byte note, byte velocity) {
 	byte adjustedNote     = note;
-	byte adjustedVelocity = velocity;
 	byte regValueA0h      = 0;
 	byte regValueB0h      = 0;
 
 	// adjust velocity
-	int16 channelVolumeAdjust = _channels[FMvoiceChannel].volumeAdjust;
-	channelVolumeAdjust += adjustedVelocity;
-	channelVolumeAdjust = CLIP<int16>(channelVolumeAdjust, 0, 0x7F);
-	
-	// adjust velocity with the master volume
-	byte volumeAdjust = adjustedVelocity * ((float) (128 + _masterVolume) / 128);
-	
-	adjustedVelocity = volumeAdjust;
+	byte adjustedVelocity = velocity + _channels[FMvoiceChannel].volumeAdjust;
 
 	if (!_musicDrvMode) {
 		// INSTR.DAT
@@ -435,10 +424,13 @@ void MidiDriver_Accolade_AdLib::noteOn(byte FMvoiceChannel, byte note, byte velo
 
 // 100% the same for INSTR.DAT and MUSIC.DRV variants
 // except for a bug, that was introduced for MUSIC.DRV
-void MidiDriver_Accolade_AdLib::noteOnSetVolume(byte FMvoiceChannel, byte operatorNr, byte adjustedVelocity) {
+void MidiDriver_Accolade_AdLib::noteOnSetVolume(byte FMvoiceChannel, byte operatorNr, byte velocity) {
 	byte operatorReg = 0;
 	byte regValue40h = 0;
-	const InstrumentEntry *curInstrument = NULL;
+	const InstrumentEntry *curInstrument = nullptr;
+
+	// Adjust velocity with the master volume
+	uint16 adjustedVelocity = CLIP<uint16>((velocity * _masterVolume) / 255, 0, 0x3F);
 
 	regValue40h = (63 - adjustedVelocity) & 0x3F;
 
@@ -776,7 +768,7 @@ bool MidiDriver_Accolade_AdLib::setupInstruments(byte *driverData, uint16 driver
 }
 
 MidiDriver *MidiDriver_Accolade_AdLib_create(Common::String driverFilename) {
-	byte  *driverData = NULL;
+	byte  *driverData = nullptr;
 	uint16 driverDataSize = 0;
 	bool   isMusicDrvFile = false;
 

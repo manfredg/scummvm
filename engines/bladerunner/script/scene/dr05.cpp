@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -102,7 +101,12 @@ bool SceneScriptDR05::ClickedOnItem(int itemId, bool a2) {
 		) {
 			if (!Actor_Query_Goal_Number(kActorMoraji)) {
 				Actor_Says_With_Pause(kActorMcCoy, 1015, 0.1f, 12);
+#if BLADERUNNER_ORIGINAL_BUGS
 				Actor_Says(kActorMoraji, 70, 13);
+#else
+				// Moraji speaks and the place blows up immediately after
+				Actor_Says_With_Pause(kActorMoraji, 70, 0.0f, 13);
+#endif // BLADERUNNER_ORIGINAL_BUGS
 			}
 			Actor_Set_Goal_Number(kActorMoraji, kGoalMorajiChooseFate);
 		}
@@ -117,7 +121,7 @@ bool SceneScriptDR05::ClickedOnItem(int itemId, bool a2) {
 		Item_Remove_From_World(kItemChain);
 		Game_Flag_Set(kFlagDR05ChainShot);
 		Actor_Set_Goal_Number(kActorMoraji, kGoalMorajiFreed);
-		Music_Play(kMusicMoraji, 71, 0, 0, -1, 0, 2);
+		Music_Play(kMusicMoraji, 71, 0, 0, -1, kMusicLoopPlayOnce, 2);
 		return true;
 	}
 	return false;
@@ -203,7 +207,7 @@ void SceneScriptDR05::PlayerWalkedIn() {
 
 void SceneScriptDR05::PlayerWalkedOut() {
 	Ambient_Sounds_Remove_All_Non_Looping_Sounds(true);
-	Ambient_Sounds_Remove_All_Looping_Sounds(1);
+	Ambient_Sounds_Remove_All_Looping_Sounds(1u);
 
 	if (Actor_Query_Goal_Number(kActorMoraji) == kGoalMorajiFreed
 	 || Actor_Query_Goal_Number(kActorMoraji) == kGoalMorajiGetUp

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "xeen/interface.h"
 #include "xeen/dialogs/dialogs_char_info.h"
 #include "xeen/dialogs/dialogs_control_panel.h"
+#include "xeen/dialogs/dialogs_dismiss.h"
 #include "xeen/dialogs/dialogs_message.h"
 #include "xeen/dialogs/dialogs_quick_fight.h"
 #include "xeen/dialogs/dialogs_info.h"
@@ -159,7 +159,7 @@ Interface::Interface(XeenEngine *vm) : ButtonContainer(vm), InterfaceScene(vm),
 	_levitateUIFrame = 0;
 	_spotDoorsUIFrame = 0;
 	_dangerSenseUIFrame = 0;
-	_face1State = _face2State = 0;
+	_face1State = _face2State = 2;
 	_upDoorText = false;
 	_tillMove = 0;
 	_iconsMode = ICONS_STANDARD;
@@ -187,12 +187,13 @@ void Interface::startup() {
 
 	animate3d();
 	if (_vm->_map->_isOutdoors) {
-		setIndoorsMonsters();
-		setIndoorsObjects();
-	} else {
 		setOutdoorsMonsters();
 		setOutdoorsObjects();
+	} else {
+		setIndoorsMonsters();
+		setIndoorsObjects();
 	}
+
 	draw3d(false);
 
 	if (g_vm->getGameID() == GType_Swords)
@@ -532,6 +533,11 @@ void Interface::perform() {
 			chargeStep();
 			doStepCode();
 		}
+		break;
+
+	case Common::KEYCODE_d:
+		// Show dismiss dialog
+		Dismiss::show(_vm);
 		break;
 
 	case Common::KEYCODE_i:

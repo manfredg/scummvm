@@ -4,19 +4,18 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software{} you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation{} either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY{} without even the implied warranty of
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program{} if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -60,7 +59,7 @@ GlkAPI::GlkAPI(OSystem *syst, const GlkGameDescription &gameDesc) :
 }
 
 void GlkAPI::glk_exit(void) {
-	glk_put_string(_("[ press any key to exit ]"));
+	glk_put_string_uni(_("[ press any key to exit ]").u32_str());
 	_events->waitForPress();
 
 	// Trigger a ScumMVM shutdown of game
@@ -198,7 +197,7 @@ void GlkAPI::glk_window_set_arrangement(winid_t win, uint method, uint size, win
 }
 
 void GlkAPI::glk_window_get_arrangement(winid_t win, uint *method,
-                                     uint *size, winid_t *keyWin) {
+									 uint *size, winid_t *keyWin) {
 	if (win) {
 		win->getArrangement(method, size, keyWin);
 	} else {
@@ -242,7 +241,7 @@ uint GlkAPI::glk_window_get_type(winid_t win) {
 winid_t GlkAPI::glk_window_get_parent(winid_t win) {
 	if (!win) {
 		warning("window_get_parent: invalid ref");
-		return 0;
+		return nullptr;
 	}
 
 	return win->_parent;
@@ -377,7 +376,11 @@ strid_t GlkAPI::glk_stream_get_current(void) {
 }
 
 void GlkAPI::glk_put_char(unsigned char ch) {
-	_streams->getCurrent()->putChar(ch);
+	Stream *str = _streams->getCurrent();
+	if (str)
+		str->putChar(ch);
+	else
+		warning("glk_put_char: no stream set");
 }
 
 void GlkAPI::glk_put_char_stream(strid_t str, unsigned char ch) {
@@ -778,12 +781,16 @@ uint GlkAPI::glk_buffer_to_upper_case_uni(uint32 *buf, uint len, uint numchars) 
 }
 
 uint GlkAPI::glk_buffer_to_title_case_uni(uint32 *buf, uint len,
-        uint numchars, uint lowerrest) {
+		uint numchars, uint lowerrest) {
 	return bufferChangeCase(buf, len, numchars, CASE_TITLE, COND_LINESTART, lowerrest);
 }
 
 void GlkAPI::glk_put_char_uni(uint32 ch) {
-	_streams->getCurrent()->putCharUni(ch);
+	Stream *str = _streams->getCurrent();
+	if (str)
+		str->putCharUni(ch);
+	else
+		warning("glk_put_char_uni: no stream set");
 }
 
 void GlkAPI::glk_put_string_uni(const uint32 *s) {
@@ -885,36 +892,14 @@ uint GlkAPI::glk_buffer_canon_normalize_uni(uint32 *buf, uint len, uint numchars
 }
 
 bool GlkAPI::glk_image_draw(winid_t win, uint image, int val1, int val2) {
-	if (!win) {
-		warning("image_draw: invalid ref");
-	} else if (g_conf->_graphics) {
-		TextBufferWindow *textWin = dynamic_cast<TextBufferWindow *>(win);
-		GraphicsWindow *gfxWin = dynamic_cast<GraphicsWindow *>(win);
-
-		if (textWin)
-			return textWin->drawPicture(image, val1, false, 0, 0);
-		else if (gfxWin)
-			return gfxWin->drawPicture(image, val1, val2, false, 0, 0);
-	}
-
-	return false;
+	return glk_image_draw(win, Common::String::format("%d", image),
+		val1, val2);
 }
 
 bool GlkAPI::glk_image_draw_scaled(winid_t win, uint image, int val1, int val2,
-                                  uint width, uint height) {
-	if (!win) {
-		warning("image_draw_scaled: invalid ref");
-	} else if (g_conf->_graphics) {
-		TextBufferWindow *textWin = dynamic_cast<TextBufferWindow *>(win);
-		GraphicsWindow *gfxWin = dynamic_cast<GraphicsWindow *>(win);
-
-		if (textWin)
-			return textWin->drawPicture(image, val1, true, width, height);
-		else if (gfxWin)
-			return gfxWin->drawPicture(image, val1, val2, true, width, height);
-	}
-
-	return false;
+								  uint width, uint height) {
+	return glk_image_draw_scaled(win, Common::String::format("%d", image),
+		val1, val2, width, height);
 }
 
 bool GlkAPI::glk_image_draw(winid_t win, const Graphics::Surface &image, uint transColor,
@@ -936,7 +921,7 @@ bool GlkAPI::glk_image_draw_scaled(winid_t win, const Graphics::Surface &image, 
 	if (!win) {
 		warning("image_draw_scaled: invalid ref");
 	} else if (g_conf->_graphics) {
-		if (image.w == width && image.h == height) {
+		if (image.w == (int16)width && image.h == (int16)height) {
 			return glk_image_draw(win, image, transColor, xp, yp);
 
 		} else {
@@ -954,11 +939,49 @@ bool GlkAPI::glk_image_draw_scaled(winid_t win, const Graphics::Surface &image, 
 	return true;
 }
 
+bool GlkAPI::glk_image_draw(winid_t win, const Common::String &image, int val1, int val2) {
+	if (!win) {
+		warning("image_draw: invalid ref");
+	} else if (g_conf->_graphics) {
+		TextBufferWindow *textWin = dynamic_cast<TextBufferWindow *>(win);
+		GraphicsWindow *gfxWin = dynamic_cast<GraphicsWindow *>(win);
+
+		if (textWin)
+			return textWin->drawPicture(image, val1, false, 0, 0);
+		else if (gfxWin)
+			return gfxWin->drawPicture(image, val1, val2, false, 0, 0);
+	}
+
+	return false;
+}
+
+bool GlkAPI::glk_image_draw_scaled(winid_t win, const Common::String &image,
+		int val1, int val2, uint width, uint height) {
+	if (!win) {
+		warning("image_draw_scaled: invalid ref");
+	} else if (g_conf->_graphics) {
+		TextBufferWindow *textWin = dynamic_cast<TextBufferWindow *>(win);
+		GraphicsWindow *gfxWin = dynamic_cast<GraphicsWindow *>(win);
+
+		if (textWin)
+			return textWin->drawPicture(image, val1, true, width, height);
+		else if (gfxWin)
+			return gfxWin->drawPicture(image, val1, val2, true, width, height);
+	}
+
+	return false;
+}
+
 bool GlkAPI::glk_image_get_info(uint image, uint *width, uint *height) {
+	return glk_image_get_info(Common::String::format("%u", image),
+		width, height);
+}
+
+bool GlkAPI::glk_image_get_info(const Common::String &name, uint *width, uint *height) {
 	if (!g_conf->_graphics)
 		return false;
 
-	Picture *pic = g_vm->_pictures->load(image);
+	Picture *pic = g_vm->_pictures->load(name);
 	if (!pic)
 		return false;
 
@@ -987,11 +1010,12 @@ void GlkAPI::glk_window_erase_rect(winid_t win, int left, int top, uint width, u
 }
 
 void GlkAPI::glk_window_fill_rect(winid_t win, uint color, int left, int top,
-                               uint width, uint height) {
+							   uint width, uint height) {
 	if (!win) {
 		warning("window_fill_rect: invalid ref");
 	} else {
-		win->eraseRect(color, Rect(left, top, left + width, top + height));
+		uint c = _conf->parseColor(color);
+		win->fillRect(c, Rect(left, top, left + width, top + height));
 	}
 }
 
@@ -999,7 +1023,8 @@ void GlkAPI::glk_window_set_background_color(winid_t win, uint color) {
 	if (!win) {
 		warning("window_set_background_color: invalid ref");
 	} else {
-		win->setBackgroundColor(color);
+		uint c = _conf->parseColor(color);
+		win->setBackgroundColor(c);
 	}
 }
 
@@ -1071,7 +1096,7 @@ schanid_t GlkAPI::glk_schannel_create_ext(uint rock, uint volume) {
 }
 
 uint GlkAPI::glk_schannel_play_multi(schanid_t *chanarray, uint chancount,
-                                    uint *sndarray, uint soundcount, uint notify) {
+									uint *sndarray, uint soundcount, uint notify) {
 	// No implementation
 	return 0;
 }
@@ -1093,7 +1118,7 @@ void GlkAPI::glk_schannel_unpause(schanid_t chan) {
 }
 
 void GlkAPI::glk_schannel_set_volume_ext(schanid_t chan, uint vol,
-                                      uint duration, uint notify) {
+									  uint duration, uint notify) {
 	if (chan) {
 		chan->setVolume(vol, duration, notify);
 	} else {

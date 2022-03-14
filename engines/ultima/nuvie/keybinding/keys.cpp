@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,6 @@
 #include "ultima/nuvie/keybinding/key_actions.h"
 #include "ultima/nuvie/core/nuvie_defs.h"
 #include "ultima/nuvie/core/game.h"
-#include "ultima/nuvie/conf/xml_tree.h"
 #include "ultima/nuvie/core/player.h"
 #include "ultima/nuvie/core/events.h"
 #include "ultima/nuvie/files/utils.h"
@@ -34,6 +32,7 @@
 #include "ultima/nuvie/misc/u6_misc.h"
 #include "ultima/nuvie/gui/widgets/console.h"
 #include "ultima/nuvie/core/effect.h"
+#include "ultima/shared/conf/xml_tree.h"
 #include "common/hash-str.h"
 
 #define ENCODE_KEY(key, mod) ((uint32)(key) | ((uint32)(mod) << 24))
@@ -41,15 +40,7 @@
 namespace Ultima {
 namespace Nuvie {
 
-static  class Chardata { // ctype-like character lists
-public:
-	string  whitespace;
-	Chardata() {
-		for (size_t i = 0; i < 256; i++)
-			if (Common::isSpace(i))
-				whitespace += static_cast<char>(i);
-	}
-} chardata;
+static const char * whitespace = "\t\n\v\f\r ";
 
 typedef void(*ActionFunc)(int const *);
 
@@ -331,7 +322,7 @@ KeyBinder::~KeyBinder() {
 }
 
 void KeyBinder::AddKeyBinding(Common::KeyCode key, byte mod, const Action *action,
-                              int nparams, int *params) {
+							  int nparams, int *params) {
 	Common::KeyState k;
 	ActionType a;
 	a.action = action;
@@ -453,7 +444,7 @@ void KeyBinder::ParseText(char *text, int len) {
 }
 
 static void skipspace(string &s) {
-	size_t i = s.findFirstNotOf(chardata.whitespace);
+	size_t i = s.findFirstNotOf(whitespace);
 	if (i && i != string::npos)
 		s.erase(0, i);
 }
@@ -476,7 +467,7 @@ void KeyBinder::ParseLine(char *line) {
 		return;
 
 	u = s;
-	u = to_uppercase(u);
+	u = Std::to_uppercase(u);
 
 	// get key
 	while (!s.empty() && !Common::isSpace(s[0])) {
@@ -494,11 +485,11 @@ void KeyBinder::ParseLine(char *line) {
 			s.erase(0, 6);
 			u.erase(0, 6);
 		} else {
-			i = s.findFirstOf(chardata.whitespace);
+			i = s.findFirstOf(whitespace);
 
 			keycode = s.substr(0, i);
 			s.erase(0, i);
-			string t = to_uppercase(keycode);
+			string t = Std::to_uppercase(keycode);
 
 			if (t.empty()) {
 				::error("Keybinder: parse error in line: %s", s.c_str());
@@ -532,10 +523,10 @@ void KeyBinder::ParseLine(char *line) {
 	// get function
 	skipspace(s);
 
-	i = s.findFirstOf(chardata.whitespace);
+	i = s.findFirstOf(whitespace);
 	string t = s.substr(0, i);
 	s.erase(0, i);
-	t = to_uppercase(t);
+	t = Std::to_uppercase(t);
 
 	ParseActionMap::iterator action_index;
 	action_index = _actions.find(t);
@@ -550,7 +541,7 @@ void KeyBinder::ParseLine(char *line) {
 
 	int np = 0;
 	while (!s.empty() && s[0] != '#' && np < c_maxparams) {
-		i = s.findFirstOf(chardata.whitespace);
+		i = s.findFirstOf(whitespace);
 		string tmp = s.substr(0, i);
 		s.erase(0, i);
 		skipspace(s);
@@ -651,7 +642,7 @@ void KeyBinder::LoadGameSpecificKeys() {
 		ConsoleAddInfo("Loading %s", key_path);
 		LoadFromFileInternal(key_path);
 	} else // These aren't critical so failing to load doesn't matter much
-		ConsoleAddInfo("Couldn't find $s", key_path);
+		ConsoleAddInfo("Couldn't find %s", key_path);
 }
 
 void KeyBinder::LoadFromPatch() { // FIXME default should probably be system specific
@@ -700,21 +691,29 @@ void KeyBinder::set_axis(uint8 index, uint8 value) {
 	switch (index) {
 	case 0:
 		x_axis = value;
+		break;
 	case 1:
 		y_axis = value;
+		break;
 	case 2:
 		x_axis2 = value;
+		break;
 	case 3:
 		y_axis2 = value;
+		break;
 	case 4:
 		x_axis3 = value;
+		break;
 	case 5:
 		y_axis3 = value;
+		break;
 	case 6:
 		x_axis4 = value;
+		break;
 	case 7:
 	default:
 		y_axis4 = value;
+		break;
 	}
 }
 

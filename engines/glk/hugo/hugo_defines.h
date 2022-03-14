@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,8 +53,10 @@ namespace Hugo {
 #define MAX_DEBUG_LINE 256
 #define MAX_OBJECT 999
 #define MAX_PROPERTY 999
-#define MAX_MOBJ 16     /* maximum number of matchable object words */
-#define MAXBUFFER 255
+// maximum number of matchable object words
+#define MAX_MOBJ 16
+// Larger than normal since Glk doesn't break up paragraphs (1024+256)
+#define MAXBUFFER 1280
 #define MAXUNDO 1024
 #define MAXCALLS 99
 #define MAXBREAKPOINTS 99

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 /*
  * This code is based on original Soltys source code
- * Copyright (c) 1994-1995 Janus B. Wisniewski and L.K. Avalon
+ * Copyright (c) 1994-1995 Janusz B. Wisniewski and L.K. Avalon
  */
 
 #include "cge/general.h"
@@ -46,7 +45,7 @@ Text::Text(CGEEngine *vm, const char *fname) : _vm(vm) {
 	_cache = new Handler[txtCount];
 	for (_size = 0; _size < txtCount; _size++) {
 		_cache[_size]._ref = 0;
-		_cache[_size]._text = NULL;
+		_cache[_size]._text = nullptr;
 	}
 	load();
 }
@@ -57,7 +56,7 @@ Text::~Text() {
 }
 
 int16 Text::count() {
-	EncryptedStream tf(_vm, _fileName);
+	EncryptedStream tf(_vm->_resman, _fileName);
 	if (tf.err())
 		return -1;
 
@@ -70,7 +69,7 @@ int16 Text::count() {
 		char *s;
 		assert(line.size() <= 513);
 		Common::strlcpy(tmpStr, line.c_str(), sizeof(tmpStr));
-		if ((s = strtok(tmpStr, " =,;/\t\n")) == NULL)
+		if ((s = strtok(tmpStr, " =,;/\t\n")) == nullptr)
 			continue;
 		if (!Common::isDigit(*s))
 			continue;
@@ -85,13 +84,13 @@ void Text::clear() {
 		if (p->_ref) {
 			p->_ref = 0;
 			delete[] p->_text;
-			p->_text = NULL;
+			p->_text = nullptr;
 		}
 	}
 }
 
 void Text::load() {
-	EncryptedStream tf(_vm, _fileName);
+	EncryptedStream tf(_vm->_resman, _fileName);
 	assert(!tf.err());
 
 	Common::String line;
@@ -102,7 +101,7 @@ void Text::load() {
 		int n = line.size();
 		char *s;
 		Common::strlcpy(tmpStr, line.c_str(), sizeof(tmpStr));
-		if ((s = strtok(tmpStr, " =,;/\t\n")) == NULL)
+		if ((s = strtok(tmpStr, " =,;/\t\n")) == nullptr)
 			continue;
 		if (!Common::isDigit(*s))
 			continue;
@@ -129,7 +128,7 @@ char *Text::getText(int ref) {
 		return _cache[i]._text;
 
 	warning("getText: Unable to find ref %d", ref);
-	return NULL;
+	return nullptr;
 }
 
 void Text::say(const char *text, Sprite *spr) {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 #include "common/util.h"
 
 #define VERSION_MAJOR 1
-#define VERSION_MINOR 29
+#define VERSION_MINOR 31
 
 #define DIALOG_SIZE 0x150
 
@@ -67,6 +66,8 @@
 #define RANDOM_ROOM_NUM_ENTRIES 41
 
 #define SOUND_DESCS_SIZE 265
+
+#define AUDIO_INIT_ICON_SIZE 14 * 14
 
 #include "common/pack-start.h"	// START STRUCT PACKING
 
@@ -419,6 +420,7 @@ enum LureLanguage {
 	LANG_DE_DEU = 7,
 	LANG_ES_ESP = 17,
 	LANG_EN_ANY = 3,
+	LANG_EN_USA = 4,
 	LANG_UNKOWN = -1
 };
 

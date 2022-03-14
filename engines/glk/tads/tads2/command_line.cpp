@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,58 +27,58 @@ namespace TADS2 {
 
 /* get a toggle argument */
 int cmdtog(errcxdef *ec, int prv, char *argp, int ofs,
-           void (*usagefn)(errcxdef *))
+		   void (*usagefn)(errcxdef *))
 {
-    switch(argp[ofs + 1])
-    {
-    case '+':
-        return(TRUE);
-        
-    case '-':
-        return(FALSE);
-        
-    case '\0':
-        return(!prv);
-        
-    default:
-        /* invalid - display usage if we have a callback for it */
-        if (usagefn != 0)
-            (*usagefn)(ec);
-        NOTREACHEDV(int);
-        return 0;
-    }
+	switch(argp[ofs + 1])
+	{
+	case '+':
+		return(TRUE);
+
+	case '-':
+		return(FALSE);
+
+	case '\0':
+		return(!prv);
+
+	default:
+		/* invalid - display usage if we have a callback for it */
+		if (usagefn != nullptr)
+			(*usagefn)(ec);
+		NOTREACHEDV(int);
+		return 0;
+	}
 }
 
 /* get an argument to a switch */
 char *cmdarg(errcxdef *ec, char ***argpp, int *ip, int argc, int ofs,
-             void (*usagefn)(errcxdef *))
+			 void (*usagefn)(errcxdef *))
 {
-    char *ret;
+	char *ret;
 
-    /* 
-     *   check to see if the argument is appended directly to the option;
-     *   if not, look at the next string 
-     */
-    ret = (**argpp) + ofs + 1;
-    if (*ret == '\0')
-    {
-        /* 
-         *   it's not part of this string - get the argument from the next
-         *   string in the vector 
-         */
-        ++(*ip);
-        ++(*argpp);
-        ret = (*ip >= argc ? 0 : **argpp);
-    }
+	/*
+	 *   check to see if the argument is appended directly to the option;
+	 *   if not, look at the next string
+	 */
+	ret = (**argpp) + ofs + 1;
+	if (*ret == '\0')
+	{
+		/*
+		 *   it's not part of this string - get the argument from the next
+		 *   string in the vector
+		 */
+		++(*ip);
+		++(*argpp);
+		ret = (*ip >= argc ? nullptr : **argpp);
+	}
 
-    /* 
-     *   if we didn't find the argument, it's an error - display usage if
-     *   we have a valid usage callback
-     */
-    if ((ret == 0 || *ret == 0) && usagefn != 0)
-        (*usagefn)(ec);
+	/*
+	 *   if we didn't find the argument, it's an error - display usage if
+	 *   we have a valid usage callback
+	 */
+	if ((ret == nullptr || *ret == 0) && usagefn != nullptr)
+		(*usagefn)(ec);
 
-    return ret;
+	return ret;
 }
 
 } // End of namespace TADS2

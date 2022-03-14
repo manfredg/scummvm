@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -108,7 +107,7 @@ uint16 Menu::getVar(uint16 var) {
 }
 
 void Menu::o_menuInit(uint16 var, const ArgumentsArray &args) {
-	_vm->pauseEngine(true);
+	_pauseToken = _vm->pauseEngine();
 
 	if (_inGame) {
 		_wasCursorVisible = CursorMan.isVisible();
@@ -246,8 +245,8 @@ void Menu::drawButtonImages(const Common::U32String &text, MystAreaImageSwitch *
 }
 
 void Menu::replaceButtonSubImageWithText(const Common::U32String &text, const Graphics::TextAlign &align, MystAreaImageSwitch *area,
-                                         uint16 subimageIndex, const Common::Rect &backgroundRect, int16 deltaY,
-                                         uint8 r, uint8 g, uint8 b) const {
+										 uint16 subimageIndex, const Common::Rect &backgroundRect, int16 deltaY,
+										 uint8 r, uint8 g, uint8 b) const {
 	uint16 cardBackground = _vm->getCard()->getBackgroundImageId();
 
 	MystAreaImageSwitch::SubImage highlighted = area->getSubImage(subimageIndex);
@@ -285,7 +284,7 @@ void Menu::o_menuLoad(uint16 var, const ArgumentsArray &args) {
 		return;
 	}
 
-	_vm->runLoadDialog();
+	_vm->loadGameDialog();
 }
 
 void Menu::o_menuSave(uint16 var, const ArgumentsArray &args) {
@@ -293,7 +292,7 @@ void Menu::o_menuSave(uint16 var, const ArgumentsArray &args) {
 		return;
 	}
 
-	_vm->runSaveDialog();
+	_vm->saveGameDialog();
 }
 
 void Menu::o_menuNew(uint16 var, const ArgumentsArray &args) {
@@ -330,7 +329,7 @@ void Menu::o_menuExit(uint16 var, const ArgumentsArray &args) {
 
 	CursorMan.showMouse(_wasCursorVisible);
 
-	_vm->pauseEngine(false);
+	_pauseToken.clear();
 }
 
 void Menu::o_playIntroMovies(uint16 var, const ArgumentsArray &args) {
@@ -366,7 +365,7 @@ void Menu::introMovies_run() {
 	}
 }
 
-bool Menu::showConfirmationDialog(const char *message, const char *confirmButton, const char *cancelButton) {
+bool Menu::showConfirmationDialog(const Common::U32String &message, const Common::U32String &confirmButton, const Common::U32String &cancelButton) {
 	if (!_inGame) {
 		return true;
 	}
@@ -375,7 +374,7 @@ bool Menu::showConfirmationDialog(const char *message, const char *confirmButton
 
 	GUI::MessageDialog dialog(message, confirmButton, cancelButton);
 
-	return dialog.runModal() !=0;
+	return dialog.runModal() == GUI::kMessageOK;
 }
 
 void Menu::resetButtons() {

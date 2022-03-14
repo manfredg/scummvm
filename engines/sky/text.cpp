@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -125,7 +124,7 @@ void Text::getText(uint32 textNr) { //load text #"textNr" into textBuffer
 	if (SkyEngine::_itemList[FIRST_TEXT_SEC + sectionNo] == NULL) { //check if already loaded
 		debug(5, "Loading Text item(s) for Section %d", (sectionNo >> 2));
 
-		uint32 fileNo = sectionNo + ((SkyEngine::_systemVars.language * NO_OF_TEXT_SECTIONS) + 60600);
+		uint32 fileNo = sectionNo + ((SkyEngine::_systemVars->language * NO_OF_TEXT_SECTIONS) + 60600);
 		SkyEngine::_itemList[FIRST_TEXT_SEC + sectionNo] = (void **)_skyDisk->loadFile((uint16)fileNo);
 	}
 	uint8 *textDataPtr = (uint8 *)SkyEngine::_itemList[FIRST_TEXT_SEC + sectionNo];
@@ -244,12 +243,12 @@ DisplayedText Text::displayText(char *textPtr, uint8 *dest, bool center, uint16 
 	uint32 numLines = 0;
 	_numLetters = 2;
 
-	// work around bug #778105 (line width exceeded)
+	// work around bug #1080 (line width exceeded)
 	char *tmpPtr = strstr(textPtr, "MUND-BEATMUNG!");
 	if (tmpPtr)
 		strcpy(tmpPtr, "MUND BEATMUNG!");
 
-	// work around bug #1151924 (line width exceeded when talking to gardener using spanish text)
+	// work around bug #1940 (line width exceeded when talking to gardener using spanish text)
 	// This text apparently only is broken in the floppy versions, the CD versions contain
 	// the correct string "MANIFESTACION - ARTISTICA.", which doesn't break the algorithm/game.
 	tmpPtr = strstr(textPtr, "MANIFESTACION-ARTISTICA.");
@@ -417,7 +416,7 @@ uint32 Text::giveCurrentCharSet() {
 }
 
 void Text::initHuffTree() {
-	switch (SkyEngine::_systemVars.gameVersion) {
+	switch (SkyEngine::_systemVars->gameVersion) {
 	case 109:
 		_huffTree = _huffTree_00109;
 		break;
@@ -447,13 +446,13 @@ void Text::initHuffTree() {
 		_huffTree = _huffTree_00372;
 		break;
 	default:
-		error("Unknown game version %d", SkyEngine::_systemVars.gameVersion);
+		error("Unknown game version %d", SkyEngine::_systemVars->gameVersion);
 	}
 }
 
 bool Text::patchMessage(uint32 textNum) {
-	uint16 patchIdx = _patchLangIdx[SkyEngine::_systemVars.language];
-	uint16 patchNum = _patchLangNum[SkyEngine::_systemVars.language];
+	uint16 patchIdx = _patchLangIdx[SkyEngine::_systemVars->language];
+	uint16 patchNum = _patchLangNum[SkyEngine::_systemVars->language];
 	for (uint16 cnt = 0; cnt < patchNum; cnt++) {
 		if (_patchedMessages[cnt + patchIdx].textNr == textNum) {
 			strcpy(_textBuffer, _patchedMessages[cnt + patchIdx].text);

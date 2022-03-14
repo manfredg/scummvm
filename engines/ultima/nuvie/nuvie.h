@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,6 +37,7 @@ class Game;
 class SaveGame;
 class Screen;
 class Script;
+class SoundManager;
 
 class NuvieEngine : public Ultima::Shared::UltimaEngine {
 private:
@@ -46,6 +46,8 @@ private:
 	Script *_script;
 	Game *_game;
 	SaveGame *_savegame;
+
+	SoundManager *_soundManager;
 private:
 	void initConfig();
 	void assignGameConfigValues(uint8 game_type);
@@ -54,12 +56,12 @@ private:
 
 	bool playIntro();
 protected:
-    bool initialize() override;
+	bool initialize() override;
 
-    /**
-     * Returns the data archive folder and version that's required
-     */
-    bool isDataRequired(Common::String &folder, int &majorVersion, int &minorVersion) override;
+	/**
+	 * Returns the data archive folder and version that's required
+	 */
+	bool isDataRequired(Common::String &folder, int &majorVersion, int &minorVersion) override;
 public:
 	const Std::string c_empty_string;
 public:
@@ -70,6 +72,11 @@ public:
 	 * Play the game
 	 */
 	Common::Error run() override;
+
+	/**
+	 * Synchronize sound settings
+	 */
+	void syncSoundSettings() override;
 
 	/**
 	 * Indicates whether a game state can be loaded.
@@ -113,6 +120,13 @@ public:
 	 * Quick save or load a savegame
 	 */
 	bool quickSave(int saveSlot, bool isLoad);
+
+	/**
+	 * Return a reference to the sound manager
+	 */
+	SoundManager *getSoundManager() const {
+		return _soundManager;
+	}
 };
 
 extern NuvieEngine *g_engine;

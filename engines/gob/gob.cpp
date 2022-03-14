@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -116,25 +115,12 @@ void PauseDialog::handleKeyDown(Common::KeyState state) {
 
 
 GobEngine::GobEngine(OSystem *syst) : Engine(syst), _rnd("gob") {
-	DebugMan.addDebugChannel(kDebugFuncOp, "FuncOpcodes", "Script FuncOpcodes debug level");
-	DebugMan.addDebugChannel(kDebugDrawOp, "DrawOpcodes", "Script DrawOpcodes debug level");
-	DebugMan.addDebugChannel(kDebugGobOp, "GoblinOpcodes", "Script GoblinOpcodes debug level");
-	DebugMan.addDebugChannel(kDebugSound, "Sound", "Sound output debug level");
-	DebugMan.addDebugChannel(kDebugExpression, "Expression", "Expression parser debug level");
-	DebugMan.addDebugChannel(kDebugGameFlow, "Gameflow", "Gameflow debug level");
-	DebugMan.addDebugChannel(kDebugFileIO, "FileIO", "File Input/Output debug level");
-	DebugMan.addDebugChannel(kDebugSaveLoad, "SaveLoad", "Saving/Loading debug level");
-	DebugMan.addDebugChannel(kDebugGraphics, "Graphics", "Graphics debug level");
-	DebugMan.addDebugChannel(kDebugVideo, "Video", "IMD/VMD video debug level");
-	DebugMan.addDebugChannel(kDebugHotspots, "Hotspots", "Hotspots debug level");
-	DebugMan.addDebugChannel(kDebugDemo, "Demo", "Demo script debug level");
-
-	_sound     = 0; _mult     = 0; _game    = 0;
-	_global    = 0; _dataIO   = 0; _goblin  = 0;
-	_vidPlayer = 0; _init     = 0; _inter   = 0;
-	_map       = 0; _palAnim  = 0; _scenery = 0;
-	_draw      = 0; _util     = 0; _video   = 0;
-	_saveLoad  = 0; _preGob   = 0;
+	_sound     = nullptr; _mult     = nullptr; _game    = nullptr;
+	_global    = nullptr; _dataIO   = nullptr; _goblin  = nullptr;
+	_vidPlayer = nullptr; _init     = nullptr; _inter   = nullptr;
+	_map       = nullptr; _palAnim  = nullptr; _scenery = nullptr;
+	_draw      = nullptr; _util     = nullptr; _video   = nullptr;
+	_saveLoad  = nullptr; _preGob   = nullptr;
 
 	_pauseStart = 0;
 
@@ -295,8 +281,12 @@ Common::Error GobEngine::run() {
 		return err;
 
 	// On some systems it's not safe to run CD audio games from the CD.
-	if (isCD())
-		checkCD();
+	if (isCD()) {
+		if (!existExtractedCDAudioFiles()
+		    && !isDataAndCDAudioReadFromSameCD()) {
+			warnMissingExtractedCDAudio();
+		}
+	}
 
 	_system->getAudioCDManager()->open();
 
@@ -320,7 +310,6 @@ Common::Error GobEngine::run() {
 
 	switch (_language) {
 	case Common::FR_FRA:
-	case Common::RU_RUS:
 		_global->_language = kLanguageFrench;
 		break;
 	case Common::DE_DEU:
@@ -354,6 +343,12 @@ Common::Error GobEngine::run() {
 		break;
 	case Common::JA_JPN:
 		_global->_language = kLanguageJapanese;
+		break;
+	case Common::RU_RUS:
+		if (_gameType == kGameTypeWoodruff || _gameType == kGameTypeBargon)
+			_global->_language = kLanguageBritish;
+		else
+			_global->_language = kLanguageFrench;
 		break;
 	default:
 		_global->_language = kLanguageBritish;
@@ -588,6 +583,18 @@ Common::Error GobEngine::initGameParts() {
 		_saveLoad = new SaveLoad(this);
 		break;
 
+	case kGameTypeDynastyWood:
+		_init     = new Init_v3(this);
+		_video    = new Video_v2(this);
+		_inter    = new Inter_v5(this);
+		_mult     = new Mult_v2(this);
+		_draw     = new Draw_v2(this);
+		_map      = new Map_v2(this);
+		_goblin   = new Goblin_v4(this);
+		_scenery  = new Scenery_v2(this);
+		_saveLoad = new SaveLoad(this);
+		break;
+
 	case kGameTypeUrban:
 		_init     = new Init_v6(this);
 		_video    = new Video_v6(this);
@@ -676,23 +683,23 @@ Common::Error GobEngine::initGameParts() {
 }
 
 void GobEngine::deinitGameParts() {
-	delete _preGob;    _preGob = 0;
-	delete _saveLoad;  _saveLoad = 0;
-	delete _mult;      _mult = 0;
-	delete _vidPlayer; _vidPlayer = 0;
-	delete _game;      _game = 0;
-	delete _global;    _global = 0;
-	delete _goblin;    _goblin = 0;
-	delete _init;      _init = 0;
-	delete _inter;     _inter = 0;
-	delete _map;       _map = 0;
-	delete _palAnim;   _palAnim = 0;
-	delete _scenery;   _scenery = 0;
-	delete _draw;      _draw = 0;
-	delete _util;      _util = 0;
-	delete _video;     _video = 0;
-	delete _sound;     _sound = 0;
-	delete _dataIO;    _dataIO = 0;
+	delete _preGob;    _preGob = nullptr;
+	delete _saveLoad;  _saveLoad = nullptr;
+	delete _mult;      _mult = nullptr;
+	delete _vidPlayer; _vidPlayer = nullptr;
+	delete _game;      _game = nullptr;
+	delete _global;    _global = nullptr;
+	delete _goblin;    _goblin = nullptr;
+	delete _init;      _init = nullptr;
+	delete _inter;     _inter = nullptr;
+	delete _map;       _map = nullptr;
+	delete _palAnim;   _palAnim = nullptr;
+	delete _scenery;   _scenery = nullptr;
+	delete _draw;      _draw = nullptr;
+	delete _util;      _util = nullptr;
+	delete _video;     _video = nullptr;
+	delete _sound;     _sound = nullptr;
+	delete _dataIO;    _dataIO = nullptr;
 }
 
 Common::Error GobEngine::initGraphics() {

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,7 @@ namespace Sword25 {
 
 Bitmap::Bitmap(RenderObjectPtr<RenderObject> parentPtr, TYPES type, uint handle) :
 	RenderObject(parentPtr, type, handle),
-	_modulationColor(0xffffffff),
+	_modulationColor(BS_ARGBMASK),
 	_scaleFactorX(1.0f),
 	_scaleFactorY(1.0f),
 	_flipH(false),
@@ -64,7 +63,7 @@ void Bitmap::setAlpha(int alpha) {
 		return;
 	}
 
-	uint newModulationColor = (_modulationColor & 0x00ffffff) | alpha << 24;
+	uint newModulationColor = (_modulationColor & BS_RGBMASK) | alpha << BS_ASHIFT;
 	if (newModulationColor != _modulationColor) {
 		_modulationColor = newModulationColor;
 		forceRefresh();
@@ -77,7 +76,7 @@ void Bitmap::setModulationColor(uint modulationColor) {
 		return;
 	}
 
-	uint newModulationColor = (modulationColor & 0x00ffffff) | (_modulationColor & 0xff000000);
+	uint newModulationColor = (modulationColor & BS_RGBMASK) | (_modulationColor & BS_AMASK);
 	if (newModulationColor != _modulationColor) {
 		_modulationColor = newModulationColor;
 		forceRefresh();

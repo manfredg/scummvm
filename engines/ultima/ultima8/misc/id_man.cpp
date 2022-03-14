@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,16 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "ultima/ultima8/misc/pent_include.h"
 #include "ultima/ultima8/misc/id_man.h"
-
-#include "ultima/ultima8/filesys/idata_source.h"
-#include "ultima/ultima8/filesys/odata_source.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -183,26 +179,26 @@ void idMan::clearID(uint16 id) {
 	assert(!_first || _last);
 }
 
-void idMan::save(ODataSource *ods) {
-	ods->write2(_begin);
-	ods->write2(_end);
-	ods->write2(_maxEnd);
-	ods->write2(_startCount);
-	ods->write2(_usedCount);
+void idMan::save(Common::WriteStream *ws) const {
+	ws->writeUint16LE(_begin);
+	ws->writeUint16LE(_end);
+	ws->writeUint16LE(_maxEnd);
+	ws->writeUint16LE(_startCount);
+	ws->writeUint16LE(_usedCount);
 	uint16 cur = _first;
 	while (cur) {
-		ods->write2(cur);
+		ws->writeUint16LE(cur);
 		cur = _ids[cur];
 	}
-	ods->write2(0); // terminator
+	ws->writeUint16LE(0); // terminator
 }
 
-bool idMan::load(IDataSource *ds, uint32 version) {
-	_begin = ds->read2();
-	_end = ds->read2();
-	_maxEnd = ds->read2();
-	_startCount = ds->read2();
-	uint16 realusedcount = ds->read2();
+bool idMan::load(Common::ReadStream *rs, uint32 version) {
+	_begin = rs->readUint16LE();
+	_end = rs->readUint16LE();
+	_maxEnd = rs->readUint16LE();
+	_startCount = rs->readUint16LE();
+	uint16 realusedcount = rs->readUint16LE();
 
 	_ids.resize(_end + 1);
 
@@ -211,13 +207,19 @@ bool idMan::load(IDataSource *ds, uint32 version) {
 	}
 	_first = _last = 0;
 
-	uint16 cur = ds->read2();
+	uint16 cur = rs->readUint16LE();
 	while (cur) {
 		clearID(cur);
-		cur = ds->read2();
+		cur = rs->readUint16LE();
 	}
 
 	_usedCount = realusedcount;
+
+	// Integrity check
+	if (_begin > _end || _begin > _maxEnd) {
+		warning("begin > end loading ids, corrupt save?");
+		return false;
+	}
 
 	return true;
 }

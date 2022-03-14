@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -138,7 +137,7 @@ Common::Error IllusionsEngine_Duckman::run() {
 	_unpauseControlActorFlag = false;
 	_lastUpdateTime = 0;
 
-	_currWalkOverlappedControl = 0;
+	_currWalkOverlappedControl = nullptr;
 
 	_pauseCtr = 0;
 	_doScriptThreadInit = false;
@@ -208,6 +207,11 @@ Common::Error IllusionsEngine_Duckman::run() {
 
 	unloadSpecialCode(0);
 
+	_resSys->unloadResourceById(0x120001);
+	_resSys->unloadResourceById(0x120002);
+	_resSys->unloadResourceById(0x120003);
+	_resSys->unloadResourceById(0x000D0001);
+
 	delete _stack;
 	delete _scriptOpcodes;
 
@@ -241,7 +245,7 @@ Common::Error IllusionsEngine_Duckman::run() {
 
 bool IllusionsEngine_Duckman::hasFeature(EngineFeature f) const {
 	return
-		(f == kSupportsRTL) ||
+		(f == kSupportsReturnToLauncher) ||
 		(f == kSupportsLoadingDuringRuntime) ||
 		(f == kSupportsSavingDuringRuntime);
 }
@@ -347,7 +351,7 @@ int IllusionsEngine_Duckman::updateScreenShaker(uint flags) {
 	if (_screenShaker->_finished) {
 		notifyThreadId(_screenShaker->_notifyThreadId);
 		delete _screenShaker;
-		_screenShaker = 0;
+		_screenShaker = nullptr;
 		_screen->setScreenOffset(Common::Point(0, 0));
 		return 2;
 	}
@@ -467,7 +471,7 @@ bool IllusionsEngine_Duckman::testMainActorCollision(Control *control) {
 			if (runTriggerCause(9, 0, overlappedControl->_objectId)) {
 				delete control->_actor->_pathNode;
 				control->_actor->_flags &= ~Illusions::ACTOR_FLAG_400;
-				control->_actor->_pathNode = 0;
+				control->_actor->_pathNode = nullptr;
 				control->_actor->_pathPoints = 0;
 				control->_actor->_pathPointsCount = 0;
 				_threads->terminateThreadChain(control->_actor->_walkCallerThreadId1);
@@ -479,7 +483,7 @@ bool IllusionsEngine_Duckman::testMainActorCollision(Control *control) {
 			}
 		}
 	} else {
-		_currWalkOverlappedControl = 0;
+		_currWalkOverlappedControl = nullptr;
 	}
 	return result;
 }
@@ -593,7 +597,7 @@ void IllusionsEngine_Duckman::placeCursorControl(Control *control, uint32 sequen
 	_cursor._control = control;
 	_cursor._actorIndex = 1;
 	_cursor._savedActorIndex = 1;
-	_cursor._currOverlappedControl = 0;
+	_cursor._currOverlappedControl = nullptr;
 	_cursor._sequenceId1 = sequenceId;
 	_cursor._field14[0] = true;
 	_cursor._field14[1] = true;
@@ -608,7 +612,7 @@ void IllusionsEngine_Duckman::placeCursorControl(Control *control, uint32 sequen
 	_cursor._field14[6] = _cursor._sequenceId2 != 0 && _cursor._objectId != 0;
 	_cursor._field14[7] = false;
 	_cursor._field14[8] = false;
-	_cursor._op113_choiceOfsPtr = 0;
+	_cursor._op113_choiceOfsPtr = nullptr;
 	_cursor._notifyThreadId30 = 0;
 	_cursor._dialogItemsCount = 0;
 	_cursor._overlappedObjectId = 0;
@@ -635,13 +639,13 @@ void IllusionsEngine_Duckman::hideCursor() {
 
 void IllusionsEngine_Duckman::initCursor() {
 	_cursor._gameState = 1;
-	_cursor._control = 0;
+	_cursor._control = nullptr;
 	_cursor._position.x = 160;
 	_cursor._position.y = 100;
 	_cursor._objectId = 0;
 	_cursor._actorIndex = 1;
 	_cursor._savedActorIndex = 1;
-	_cursor._currOverlappedControl = 0;
+	_cursor._currOverlappedControl = nullptr;
 	_cursor._sequenceId1 = 0;
 	_cursor._sequenceId2 = 0;
 	_cursor._field14[0] = true;
@@ -657,7 +661,7 @@ void IllusionsEngine_Duckman::initCursor() {
 	_cursor._field14[10] = false;
 	_cursor._field14[11] = false;
 	_cursor._field14[12] = false;
-	_cursor._op113_choiceOfsPtr = 0;
+	_cursor._op113_choiceOfsPtr = nullptr;
 	_cursor._notifyThreadId30 = 0;
 	_cursor._dialogItemsCount = 0;
 	_cursor._overlappedObjectId = 0;
@@ -694,7 +698,7 @@ void IllusionsEngine_Duckman::disableCursorVerb(int verbNum) {
 		_cursor._actorIndex = getCursorActorIndex();
 		setCursorActorIndex(_cursor._actorIndex, 1, 0);
 		startCursorSequence();
-		_cursor._currOverlappedControl = 0;
+		_cursor._currOverlappedControl = nullptr;
 	}
 }
 
@@ -760,7 +764,7 @@ void IllusionsEngine_Duckman::startCursorHoldingObject(uint32 objectId, uint32 s
 	_cursor._field14[6] = true;
 	_cursor._control->startSequenceActor(sequenceId, 2, 0);
 	setCursorActorIndex(_cursor._actorIndex, 1, 0);
-	_cursor._currOverlappedControl = 0;
+	_cursor._currOverlappedControl = nullptr;
 }
 
 void IllusionsEngine_Duckman::stopCursorHoldingObject() {
@@ -1070,7 +1074,7 @@ void IllusionsEngine_Duckman::updateGameState2() {
 			setCursorActorIndex(_cursor._actorIndex, 1, 0);
 			startCursorSequence();
 		}
-		_cursor._currOverlappedControl = 0;
+		_cursor._currOverlappedControl = nullptr;
 		foundOverlapped = false;
 	}
 
@@ -1096,7 +1100,7 @@ void IllusionsEngine_Duckman::updateGameState2() {
 			_cursor._actorIndex = _cursor._savedActorIndex;
 		setCursorActorIndex(_cursor._actorIndex, 1, 0);
 		startCursorSequence();
-		_cursor._currOverlappedControl = 0;
+		_cursor._currOverlappedControl = nullptr;
 	}
 
 	if (_input->pollEvent(kEventLeftClick)) {
@@ -1273,8 +1277,8 @@ bool IllusionsEngine_Duckman::loadSavegameFromScript(int16 slotNum, uint32 calli
 		return false; // TODO need to handle reset from new game (without exising savegame).
 	}
 
-	const char *fileName = getSavegameFilename(_savegameSlotNum);
-	bool success = loadgame(fileName);
+	Common::String fileName = getSavegameFilename(_targetName, _savegameSlotNum);
+	bool success = loadgame(fileName.c_str());
 	if (success)
 		activateSavegame(callingThreadId);
 	_gameState->deleteReadStream();
@@ -1282,8 +1286,8 @@ bool IllusionsEngine_Duckman::loadSavegameFromScript(int16 slotNum, uint32 calli
 }
 
 bool IllusionsEngine_Duckman::saveSavegameFromScript(int16 slotNum, uint32 callingThreadId) {
-	const char *fileName = getSavegameFilename(_savegameSlotNum);
-	return savegame(fileName, _savegameDescription.c_str());
+	Common::String fileName = getSavegameFilename(_targetName, _savegameSlotNum);
+	return savegame(fileName.c_str(), _savegameDescription.c_str());
 }
 
 void IllusionsEngine_Duckman::activateSavegame(uint32 callingThreadId) {

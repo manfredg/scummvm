@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,7 +42,7 @@
 namespace Access {
 
 AccessVIDMovieDecoder::AccessVIDMovieDecoder()
-	: _stream(0), _videoTrack(0), _audioTrack(0) {
+	: _stream(nullptr), _videoTrack(nullptr), _audioTrack(nullptr) {
 	_streamSeekOffset = 0;
 	_streamVideoIndex = 0;
 	_streamAudioIndex = 0;
@@ -207,8 +206,8 @@ bool AccessVIDMovieDecoder::loadStream(Common::SeekableReadStream *stream) {
 void AccessVIDMovieDecoder::close() {
 	Video::VideoDecoder::close();
 
-	delete _stream; _stream = 0;
-	_videoTrack = 0;
+	delete _stream; _stream = nullptr;
+	_videoTrack = nullptr;
 
 	_indexCacheTable.clear();
 }
@@ -656,8 +655,8 @@ AccessVIDMovieDecoder::StreamAudioTrack::~StreamAudioTrack() {
 }
 
 void AccessVIDMovieDecoder::StreamAudioTrack::queueAudio(Common::SeekableReadStream *stream, byte chunkId) {
-	Common::SeekableReadStream *rawAudioStream = 0;
-	Audio::RewindableAudioStream *audioStream = 0;
+	Common::SeekableReadStream *rawAudioStream = nullptr;
+	Audio::RewindableAudioStream *audioStream = nullptr;
 	uint32 audioLengthMSecs = 0;
 
 	if (chunkId == kVIDMovieChunkId_AudioFirstChunk) {

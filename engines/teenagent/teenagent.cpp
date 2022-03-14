@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -54,18 +53,6 @@ namespace TeenAgent {
 
 TeenAgentEngine::TeenAgentEngine(OSystem *system, const ADGameDescription *gd)
 	: Engine(system), _action(kActionNone), _gameDescription(gd), _rnd("teenagent") {
-	DebugMan.addDebugChannel(kDebugActor, "Actor", "Enable Actor Debug");
-	DebugMan.addDebugChannel(kDebugAnimation, "Animation", "Enable Animation Debug");
-	DebugMan.addDebugChannel(kDebugCallbacks, "Callbacks", "Enable Callbacks Debug");
-	DebugMan.addDebugChannel(kDebugDialog, "Dialog", "Enable Dialog Debug");
-	DebugMan.addDebugChannel(kDebugFont, "Font", "Enable Font Debug");
-	DebugMan.addDebugChannel(kDebugInventory, "Inventory", "Enable Inventory Debug");
-	DebugMan.addDebugChannel(kDebugMusic, "Music", "Enable Music Debug");
-	DebugMan.addDebugChannel(kDebugObject, "Object", "Enable Object Debug");
-	DebugMan.addDebugChannel(kDebugPack, "Pack", "Enable Pack Debug");
-	DebugMan.addDebugChannel(kDebugScene, "Scene", "Enable Scene Debug");
-	DebugMan.addDebugChannel(kDebugSurface, "Surface", "Enable Surface Debug");
-
 	music = new MusicPlayer(this);
 	dialog = new Dialog(this);
 	res = new Resources();
@@ -94,8 +81,6 @@ TeenAgentEngine::~TeenAgentEngine() {
 	res = 0;
 
 	CursorMan.popCursor();
-
-	DebugMan.clearAllDebugChannels();
 }
 
 bool TeenAgentEngine::trySelectedObject() {
@@ -297,7 +282,7 @@ int TeenAgentEngine::skipEvents() const {
 	while (_event->pollEvent(event)) {
 		switch (event.type) {
 		case Common::EVENT_QUIT:
-		case Common::EVENT_RTL:
+		case Common::EVENT_RETURN_TO_LAUNCHER:
 			return -1;
 		case Common::EVENT_MAINMENU:
 		case Common::EVENT_LBUTTONDOWN:
@@ -595,7 +580,7 @@ Common::Error TeenAgentEngine::run() {
 		Object *currentObject = scene->findObject(mouse);
 
 		while (_event->pollEvent(event)) {
-			if (event.type == Common::EVENT_RTL)
+			if (event.type == Common::EVENT_RETURN_TO_LAUNCHER)
 				return Common::kNoError;
 
 			if ((!_sceneBusy && inventory->processEvent(event)) || scene->processEvent(event))
@@ -1068,7 +1053,7 @@ void TeenAgentEngine::setMusic(byte id) {
 
 bool TeenAgentEngine::hasFeature(EngineFeature f) const {
 	switch (f) {
-	case kSupportsRTL:
+	case kSupportsReturnToLauncher:
 	case kSupportsSubtitleOptions:
 	case kSupportsLoadingDuringRuntime:
 	case kSupportsSavingDuringRuntime:

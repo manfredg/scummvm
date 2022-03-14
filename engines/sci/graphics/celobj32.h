@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 
 #include "common/rational.h"
 #include "common/rect.h"
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/engine/vm_types.h"
 #include "sci/util.h"
 
@@ -101,7 +100,8 @@ struct CelInfo32 {
 		resourceId(0),
 		loopNo(0),
 		celNo(0),
-		bitmap(NULL_REG) {}
+		bitmap(NULL_REG),
+		color(0) {}
 
 	// This is the equivalence criteria used by CelObj::searchCache in at least
 	// SSCI SQ6. Notably, it does not check the color field.
@@ -263,7 +263,7 @@ protected:
 	bool _drawMirrored;
 
 public:
-	static Common::ScopedPtr<CelScaler> _scaler;
+	static CelScaler *_scaler;
 
 	/**
 	 * The basic identifying information for this cel. This information
@@ -334,6 +334,12 @@ public:
 	 * of the owner screen item when rendering.
 	 */
 	bool _mirrorX;
+
+	/**
+	 * If true, the source for this cel is a Mac pic or view or color whose pixels for
+	 * entries 0 and 255 must be swapped when drawing since we use the PC palette.
+	 */
+	bool _isMacSource;
 
 	/**
 	 * Initialises static CelObj members.
@@ -457,7 +463,7 @@ protected:
 	 * A cache of cel objects used to avoid reinitialisation overhead for cels
 	 * with the same CelInfo32.
 	 */
-	static Common::ScopedPtr<CelCache> _cache;
+	static CelCache *_cache;
 
 	/**
 	 * Searches the cel cache for a CelObj matching the provided CelInfo32. If

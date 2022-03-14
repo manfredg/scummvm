@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,11 +25,12 @@
 #include "gui/saveload.h"
 #include "gui/saveload-dialog.h"
 
+#include "engines/engine.h"
 #include "engines/metaengine.h"
 
 namespace GUI {
 
-SaveLoadChooser::SaveLoadChooser(const String &title, const String &buttonLabel, bool saveMode)
+SaveLoadChooser::SaveLoadChooser(const Common::U32String &title, const Common::U32String &buttonLabel, bool saveMode)
 	: _impl(nullptr), _title(title), _buttonLabel(buttonLabel), _saveMode(saveMode) {
 }
 
@@ -39,7 +39,7 @@ SaveLoadChooser::~SaveLoadChooser() {
 	_impl = nullptr;
 }
 
-void SaveLoadChooser::selectChooser(const MetaEngine &engine) {
+void SaveLoadChooser::selectChooser(const MetaEngine *engine) {
 #ifndef DISABLE_SAVELOADCHOOSER_GRID
 	const SaveLoadChooserType requestedType = getRequestedSaveLoadDialog(engine);
 	if (!_impl || _impl->getType() != requestedType) {
@@ -76,12 +76,14 @@ Common::String SaveLoadChooser::createDefaultSaveDescription(const int slot) con
 }
 
 int SaveLoadChooser::runModalWithCurrentTarget() {
-	const Plugin *plugin = EngineMan.findPlugin(ConfMan.get("engineid"));
-	return runModalWithPluginAndTarget(plugin, ConfMan.getActiveDomainName());
+	if (!g_engine)
+		error("No engine is currently active");
+
+	return runModalWithMetaEngineAndTarget(g_engine->getMetaEngine(), ConfMan.getActiveDomainName());
 }
 
-int SaveLoadChooser::runModalWithPluginAndTarget(const Plugin *plugin, const String &target) {
-	selectChooser(plugin->get<MetaEngine>());
+int SaveLoadChooser::runModalWithMetaEngineAndTarget(const MetaEngine *engine, const Common::String &target) {
+	selectChooser(engine);
 	if (!_impl)
 		return -1;
 
@@ -91,15 +93,15 @@ int SaveLoadChooser::runModalWithPluginAndTarget(const Plugin *plugin, const Str
 
 	// Set up the game domain as newly active domain, so
 	// target specific savepath will be checked
-	String oldDomain = ConfMan.getActiveDomainName();
+	Common::String oldDomain = ConfMan.getActiveDomainName();
 	ConfMan.setActiveDomain(target);
 
 	int ret;
 	do {
-		ret = _impl->run(target, &plugin->get<MetaEngine>());
+		ret = _impl->run(target, engine);
 #ifndef DISABLE_SAVELOADCHOOSER_GRID
 		if (ret == kSwitchSaveLoadDialog) {
-			selectChooser(plugin->get<MetaEngine>());
+			selectChooser(engine);
 		}
 #endif // !DISABLE_SAVELOADCHOOSER_GRID
 	} while (ret < -1);
@@ -110,7 +112,7 @@ int SaveLoadChooser::runModalWithPluginAndTarget(const Plugin *plugin, const Str
 	return ret;
 }
 
-const Common::String &SaveLoadChooser::getResultString() const {
+const Common::U32String &SaveLoadChooser::getResultString() const {
 	assert(_impl);
 	return _impl->getResultString();
 }

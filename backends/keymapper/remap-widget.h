@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,14 +42,15 @@ class Keymap;
 class Keymapper;
 class InputWatcher;
 
-class RemapWidget : public GUI::Widget {
+class RemapWidget : public GUI::OptionsContainerWidget {
 public:
 	typedef Common::Array<Keymap *> KeymapArray;
 
 	RemapWidget(GuiObject *boss, const Common::String &name, const KeymapArray &keymaps);
 	~RemapWidget() override;
-	void build();
-	bool save();
+	void load() override;
+	bool save() override;
+	void handleInputChanged();
 	void handleCommand(GUI::CommandSender *sender, uint32 cmd, uint32 data) override;
 	void handleMouseDown(int x, int y, int button, int clickCount) override;
 	void handleTickle() override;
@@ -73,10 +73,6 @@ protected:
 		KeymapTitleRow() : descriptionText(nullptr), resetButton(nullptr) {}
 	};
 
-	void drawWidget() override {}
-	void reflowLayout() override;
-	Widget *findWidget(int x, int y) override;
-
 	void loadKeymap();
 	void refreshKeymap();
 	void reflowActionWidgets();
@@ -93,9 +89,7 @@ protected:
 	Action *_remapAction;
 	uint32 _remapTimeout;
 
-	GUI::ScrollContainerWidget *_scrollContainer;
-
-	static const uint32 kRemapTimeoutDelay = 3000;
+	static const uint32 kRemapMinTimeoutDelay = 3000;
 
 	bool _changes;
 

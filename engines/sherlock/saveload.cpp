@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -65,7 +64,7 @@ void SaveManager::createSavegameList() {
 	for (int idx = 0; idx < MAX_SAVEGAME_SLOTS; ++idx)
 		_savegames.push_back(EMPTY_SAVEGAME_SLOT);
 
-	SaveStateList saveList = getSavegameList(_target);
+	SaveStateList saveList = getSavegameList(_vm->getMetaEngine(), _target);
 	for (uint idx = 0; idx < saveList.size(); ++idx) {
 		int slot = saveList[idx].getSaveSlot();
 		if (slot >= 0 && slot < MAX_SAVEGAME_SLOTS)
@@ -85,7 +84,7 @@ void SaveManager::createSavegameList() {
 	}
 }
 
-SaveStateList SaveManager::getSavegameList(const Common::String &target) {
+SaveStateList SaveManager::getSavegameList(const MetaEngine *metaEngine, const Common::String &target) {
 	Common::SaveFileManager *saveFileMan = g_system->getSavefileManager();
 	Common::StringArray filenames;
 	Common::String saveDesc;
@@ -104,7 +103,7 @@ SaveStateList SaveManager::getSavegameList(const Common::String &target) {
 
 			if (in) {
 				if (readSavegameHeader(in, header))
-					saveList.push_back(SaveStateDescriptor(slot, header._saveName));
+					saveList.push_back(SaveStateDescriptor(metaEngine, slot, header._saveName));
 
 				delete in;
 			}

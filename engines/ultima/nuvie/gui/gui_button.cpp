@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -32,7 +31,7 @@ Graphics::ManagedSurface *checkmarks = NULL;
 
 
 GUI_Button:: GUI_Button(void *data, int x, int y, Graphics::ManagedSurface *image,
-                        Graphics::ManagedSurface *image2, GUI_CallBack *callback, bool free_surfaces)
+						Graphics::ManagedSurface *image2, GUI_CallBack *callback, bool free_surfaces)
 	: GUI_Widget(data, x, y, image->w, image->h) {
 	callback_object = callback;
 
@@ -52,7 +51,7 @@ GUI_Button:: GUI_Button(void *data, int x, int y, Graphics::ManagedSurface *imag
 }
 
 GUI_Button:: GUI_Button(void *data, int x, int y, int w, int h,
-                        GUI_CallBack *callback)
+						GUI_CallBack *callback)
 	: GUI_Widget(data, x, y, w, h) {
 	callback_object = callback;
 
@@ -72,8 +71,8 @@ GUI_Button:: GUI_Button(void *data, int x, int y, int w, int h,
 }
 
 GUI_Button::GUI_Button(void *data, int x, int y, int w, int h, const char *text,
-                       GUI_Font *font, int alignment, int is_checkbutton,
-                       GUI_CallBack *callback, int flat)
+					   GUI_Font *font, int alignment, int is_checkbutton,
+					   GUI_CallBack *callback, int flat)
 	: GUI_Widget(data, x, y, w, h) {
 	callback_object = callback;
 
@@ -169,7 +168,7 @@ void GUI_Button:: Display(bool full_redraw) {
 	}
 	if (!enabled) {
 		uint8 *pointer;
-		int pixel = SDL_MapRGB(surface->format, 0, 0, 0);;
+		int pixel = SDL_MapRGB(surface->format, 0, 0, 0);
 		uint8 bytepp = surface->format.bytesPerPixel;
 
 		if (!SDL_LockSurface(surface)) {

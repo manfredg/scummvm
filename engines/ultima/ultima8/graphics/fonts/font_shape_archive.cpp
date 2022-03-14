@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,10 +29,8 @@
 namespace Ultima {
 namespace Ultima8 {
 
-DEFINE_RUNTIME_CLASSTYPE_CODE(FontShapeArchive, ShapeArchive)
-
 ShapeFont *FontShapeArchive::getFont(uint32 fontnum) {
-	return p_dynamic_cast<ShapeFont *>(getShape(fontnum));
+	return dynamic_cast<ShapeFont *>(getShape(fontnum));
 }
 
 void FontShapeArchive::cache(uint32 shapenum) {
@@ -66,11 +63,11 @@ void FontShapeArchive::cache(uint32 shapenum) {
 void FontShapeArchive::setHVLeads() {
 	ConfigFileManager *config = ConfigFileManager::get_instance();
 
-	KeyMap leadkeyvals = config->listKeyValues("game/fontleads");
-	KeyMap::iterator iter;
+	KeyMap leadkeyvals = config->listKeyValues("game", "fontleads");
+	KeyMap::const_iterator iter;
 
 	for (iter = leadkeyvals.begin(); iter != leadkeyvals.end(); ++iter) {
-		int fontnum = Std::atoi(iter->_key.c_str());
+		int fontnum = atoi(iter->_key.c_str());
 		Std::string leaddesc = iter->_value;
 
 		Std::vector<Std::string> vals;
@@ -81,8 +78,8 @@ void FontShapeArchive::setHVLeads() {
 			continue;
 		}
 
-		int hlead = Std::atoi(vals[0].c_str());
-		int vlead = Std::atoi(vals[1].c_str());
+		int hlead = atoi(vals[0].c_str());
+		int vlead = atoi(vals[1].c_str());
 
 		ShapeFont *font = getFont(fontnum);
 		if (font) {

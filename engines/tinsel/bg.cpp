@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Plays the background film of a scene.
  */
 
 #include "tinsel/anim.h"
 #include "tinsel/background.h"
+#include "tinsel/cursor.h"
 #include "tinsel/dw.h"
 #include "tinsel/faders.h"
 #include "tinsel/film.h"
@@ -64,7 +64,7 @@ void BGmainProcess(CORO_PARAM, const void *param) {
 			pReel = (const FREEL *)param;
 
 			// Get the MULTI_INIT structure
-			pmi = (const MULTI_INIT *)LockMem(FROM_32(pReel->mobj));
+			pmi = (const MULTI_INIT *)_vm->_handle->LockMem(FROM_32(pReel->mobj));
 
 			// Initialize and insert the object, and initialize its script.
 			_vm->_bg->_pBG[0] = MultiInitObject(pmi);
@@ -73,13 +73,13 @@ void BGmainProcess(CORO_PARAM, const void *param) {
 			_vm->_bg->_bgReels = 1;
 		} else {
 			/*** At start of scene ***/
-			pFilm = (const FILM *)LockMem(_vm->_bg->GetBgroundHandle());
+			pFilm = (const FILM *)_vm->_handle->LockMem(_vm->_bg->GetBgroundHandle());
 			_vm->_bg->_bgReels = FROM_32(pFilm->numreels);
 
 			int i;
 			for (i = 0; i < _vm->_bg->_bgReels; i++) {
 				// Get the MULTI_INIT structure
-				pmi = (PMULTI_INIT) LockMem(FROM_32(pFilm->reels[i].mobj));
+				pmi = (MULTI_INIT *)_vm->_handle->LockMem(FROM_32(pFilm->reels[i].mobj));
 
 				// Initialize and insert the object, and initialize its script.
 				_vm->_bg->_pBG[i] = MultiInitObject(pmi);
@@ -113,7 +113,7 @@ void BGmainProcess(CORO_PARAM, const void *param) {
 			InitStepAnimScript(&_vm->_bg->_thisAnim[0], _vm->_bg->_pBG[0], FROM_32(pReel->script), _vm->_bg->getBgSpeed());
 			StepAnimScript(&_vm->_bg->_thisAnim[0]);
 		} else {
-			pFilm = (const FILM *)LockMem(_vm->_bg->GetBgroundHandle());
+			pFilm = (const FILM *)_vm->_handle->LockMem(_vm->_bg->GetBgroundHandle());
 			assert(_vm->_bg->_bgReels == (int32)FROM_32(pFilm->numreels));
 
 			// Just re-initialize the scripts.
@@ -138,7 +138,7 @@ void BGotherProcess(CORO_PARAM, const void *param) {
 	CORO_END_CONTEXT(_ctx);
 
 	const FREEL *pReel = (const FREEL *)param;
-	const MULTI_INIT *pmi = (const MULTI_INIT *)LockMem(FROM_32(pReel->mobj));
+	const MULTI_INIT *pmi = (const MULTI_INIT *)_vm->_handle->LockMem(FROM_32(pReel->mobj));
 
 	CORO_BEGIN_CODE(_ctx);
 
@@ -164,16 +164,20 @@ void Background::StartupBackground(CORO_PARAM, SCNHANDLE hFilm) {
 	CORO_BEGIN_CONTEXT;
 	CORO_END_CONTEXT(_ctx);
 
+	const FILM *pfilm = (const FILM *)_vm->_handle->LockMem(hFilm);
+	const FREEL *pfr = &pfilm->reels[0];
+
+	if (!TinselV3) {
+		const MULTI_INIT *pmi = (const MULTI_INIT *)_vm->_handle->LockMem(FROM_32(pfr->mobj));
+		const FRAME *pFrame = (const FRAME *)_vm->_handle->LockMem(FROM_32(pmi->hMulFrame));
+		const IMAGE *pim = _vm->_handle->GetImage(READ_32(pFrame));
+		SetBackPal(pim->hImgPal);
+		delete pim;
+	}
+
 	CORO_BEGIN_CODE(_ctx);
 
-	const FILM *pfilm;
-	IMAGE *pim;
-
-	_hBackground = hFilm;		// Save handle in case of Save_Scene()
-
-	pim = GetImageFromFilm(hFilm, 0, NULL, NULL, &pfilm);
-
-	SetBackPal(FROM_32(pim->hImgPal));
+	_hBackground = hFilm; // Save handle in case of Save_Scene()
 
 	// Extract the film speed
 	_BGspeed = ONE_SECOND / FROM_32(pfilm->frate);

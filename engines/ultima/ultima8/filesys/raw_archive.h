@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,7 +23,6 @@
 #define ULTIMA8_FILESYS_RAWARCHIVE_H
 
 #include "ultima/ultima8/filesys/archive.h"
-#include "ultima/ultima8/misc/p_dynamic_cast.h"
 
 namespace Ultima {
 namespace Ultima8 {
@@ -34,11 +32,9 @@ class IDataSource;
 
 class RawArchive : public Archive {
 public:
-	ENABLE_RUNTIME_CLASSTYPE()
-
 	RawArchive() : Archive() { }
 	explicit RawArchive(ArchiveFile *af) : Archive(af) { }
-	explicit RawArchive(IDataSource *ids) : Archive(ids) { }
+	explicit RawArchive(Common::SeekableReadStream *rs) : Archive(rs) { }
 
 	~RawArchive() override;
 
@@ -53,11 +49,11 @@ public:
 	virtual uint8 *get_object(uint32 index);
 
 	//! get size of object
-	virtual uint32 get_size(uint32 index);
+	virtual uint32 get_size(uint32 index) const;
 
-	//! return object as IDataSource. Delete the IDataSource afterwards,
+	//! return object as SeekableReadStream. Delete the SeekableReadStream afterwards,
 	//! but DON'T delete/modify the buffer it points to.
-	virtual IDataSource *get_datasource(uint32 index);
+	virtual Common::SeekableReadStream *get_datasource(uint32 index);
 
 protected:
 	Std::vector<uint8 *> _objects;

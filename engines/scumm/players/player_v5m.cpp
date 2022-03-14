@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -86,43 +85,9 @@ Player_V5M::Player_V5M(ScummEngine *scumm, Audio::Mixer *mixer)
 	assert(_vm->_game.id == GID_MONKEY);
 }
 
-// Try both with and without underscore in the filename, because hfsutils may
-// turn the space into an underscore. At least, it did for me.
-
-static const char *monkeyIslandFileNames[] = {
-	"Monkey Island",
-	"Monkey_Island"
-};
-
-bool Player_V5M::checkMusicAvailable() {
-	Common::MacResManager resource;
-
-	for (int i = 0; i < ARRAYSIZE(monkeyIslandFileNames); i++) {
-		if (resource.exists(monkeyIslandFileNames[i])) {
-			return true;
-		}
-	}
-
-	GUI::MessageDialog dialog(_(
-		"Could not find the 'Monkey Island' Macintosh executable to read the\n"
-		"instruments from. Music will be disabled."), _("OK"));
-	dialog.runModal();
-	return false;
-}
-
 bool Player_V5M::loadMusic(const byte *ptr) {
 	Common::MacResManager resource;
-	bool found = false;
-	uint i;
-
-	for (i = 0; i < ARRAYSIZE(monkeyIslandFileNames); i++) {
-		if (resource.open(monkeyIslandFileNames[i])) {
-			found = true;
-			break;
-		}
-	}
-
-	if (!found) {
+	if (!resource.open(_instrumentFile)) {
 		return false;
 	}
 
@@ -133,7 +98,7 @@ bool Player_V5M::loadMusic(const byte *ptr) {
 	Common::MacResIDArray idArray = resource.getResIDArray(RES_SND);
 
 	// Load the three channels and their instruments
-	for (i = 0; i < 3; i++) {
+	for (int i = 0; i < 3; i++) {
 		assert(READ_BE_UINT32(ptr) == MKTAG('C', 'h', 'a', 'n'));
 		uint32 len = READ_BE_UINT32(ptr + 4);
 		uint32 instrument = READ_BE_UINT32(ptr + 8);
@@ -155,9 +120,11 @@ bool Player_V5M::loadMusic(const byte *ptr) {
 
 				if (!_channel[i].loadInstrument(stream)) {
 					resource.close();
+					delete stream;
 					return false;
 				}
 
+				delete stream;
 				break;
 			}
 		}
@@ -172,7 +139,7 @@ bool Player_V5M::loadMusic(const byte *ptr) {
 
 	uint32 samples[3];
 	uint32 maxSamples = 0;
-	for (i = 0; i < 3; i++) {
+	for (int i = 0; i < 3; i++) {
 		samples[i] = 0;
 		for (uint j = 0; j < _channel[i]._length; j += 4) {
 			samples[i] += durationToSamples(READ_BE_UINT16(&_channel[i]._data[j]));
@@ -182,7 +149,7 @@ bool Player_V5M::loadMusic(const byte *ptr) {
 		}
 	}
 
-	for (i = 0; i < 3; i++) {
+	for (int i = 0; i < 3; i++) {
 		_lastNoteSamples[i] = maxSamples - samples[i];
 	}
 

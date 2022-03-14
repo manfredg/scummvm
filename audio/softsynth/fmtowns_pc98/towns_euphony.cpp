@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -27,8 +26,16 @@
 
 #define EUP_EVENT(x) _euphonyEvents.push_back(new EuphonyEvent(this, &EuphonyPlayer::event_##x))
 
-EuphonyPlayer::EuphonyPlayer(Audio::Mixer *mixer) : _partConfig_enable(0), _partConfig_type(0), _partConfig_ordr(0), _partConfig_volume(0),
-	_partConfig_transpose(0), _musicPos(0), _musicStart(0), _playing(false), _pendingEventsChain(0), _tempoModifier(0), _bar(0),
+#ifdef EUP_USE_MEMPOOL
+#define EUP_EVENTS_DELETE(a)	_pendingEventsPool.deleteChunk(a)
+#define EUP_EVENTS_NEW			new (_pendingEventsPool)
+#else
+#define EUP_EVENTS_DELETE(a)	delete a
+#define EUP_EVENTS_NEW			new
+#endif
+
+EuphonyPlayer::EuphonyPlayer(Audio::Mixer *mixer) : _partConfig_enable(nullptr), _partConfig_type(nullptr), _partConfig_ordr(nullptr), _partConfig_volume(nullptr),
+	_partConfig_transpose(nullptr), _musicPos(nullptr), _musicStart(nullptr), _playing(false), _pendingEventsChain(nullptr), _tempoModifier(0), _bar(0),
 	_beat(0), _defaultBarLength(0), _barLength(0), _playerUpdatesLeft(0), _updatesPerPulseRemainder(0),	_updatesPerPulse(0),
 	_deltaTicks(0), _defaultTempo(0), _trackTempo(0), _tempoControlMode(0), _timerSetting(0), _tempoMode1PulseCounter(0),
 	_parseToBar(0), _tempoMode1UpdateF8(0), _loop(false), _endOfTrack(false), _paused(false), _musicTrackSize(0) {
@@ -49,7 +56,7 @@ EuphonyPlayer::EuphonyPlayer(Audio::Mixer *mixer) : _partConfig_enable(0), _part
 
 	_drivers[0] = _eupDriver = new EuphonyDriver(mixer, this);
 	_drivers[1] = new Type0Driver(this);
-	_drivers[2] = 0;
+	_drivers[2] = nullptr;
 	resetTempo();
 }
 
@@ -62,7 +69,7 @@ EuphonyPlayer::~EuphonyPlayer() {
 	while (_pendingEventsChain) {
 		PendingEvent *evt = _pendingEventsChain;
 		_pendingEventsChain = _pendingEventsChain->next;
-		delete evt;
+		EUP_EVENTS_DELETE(evt);
 	}
 
 	delete[] _partConfig_enable;
@@ -81,7 +88,7 @@ bool EuphonyPlayer::init() {
 			if (!_drivers[i]->init()) {
 				warning("EuphonyPlayer:: Driver initialization failed: %d", i);
 				delete _drivers[i];
-				_drivers[i] = 0;
+				_drivers[i] = nullptr;
 			}
 		}
 	}
@@ -92,7 +99,7 @@ bool EuphonyPlayer::init() {
 	while (_pendingEventsChain) {
 		PendingEvent *evt = _pendingEventsChain;
 		_pendingEventsChain = _pendingEventsChain->next;
-		delete evt;
+		EUP_EVENTS_DELETE(evt);
 	}
 
 	delete[] _partConfig_enable;
@@ -229,7 +236,7 @@ void EuphonyPlayer::reset() {
 	while (_pendingEventsChain) {
 		PendingEvent *evt = _pendingEventsChain;
 		_pendingEventsChain = _pendingEventsChain->next;
-		delete evt;
+		EUP_EVENTS_DELETE(evt);
 	}
 
 	_playing = _endOfTrack = _paused = _loop = false;
@@ -238,13 +245,18 @@ void EuphonyPlayer::reset() {
 
 	resetTempo();
 
+	// NB: Original did _tempoControlMode == 1 check here.
+	//     Not required as this was the original driver's offering of
+	//     alternative methods for the timed update calllbacks.
+	//     Not required in the ScummVM implmentation as the outcome is
+	//     identical.
+#if 0
 	if (_tempoControlMode == 1) {
-		//if (///)
-		//  return;
-		sendTempo(_defaultTempo);
-	} else {
-		sendTempo(_defaultTempo);
+		if (/*???*/)
+			return;
 	}
+#endif
+	sendTempo(_defaultTempo);
 
 	resetAllControls();
 }
@@ -371,7 +383,7 @@ void EuphonyPlayer::proceedToNextEvent() {
 }
 
 void EuphonyPlayer::updateHangingNotes() {
-	PendingEvent *l = 0;
+	PendingEvent *l = nullptr;
 	PendingEvent *e = _pendingEventsChain;
 
 	while (e) {
@@ -388,7 +400,7 @@ void EuphonyPlayer::updateHangingNotes() {
 			_pendingEventsChain = n;
 
 		sendPendingEvent(e->type, e->evt, e->note, e->velo);
-		delete e;
+		EUP_EVENTS_DELETE(e);
 
 		e = n;
 	}
@@ -399,7 +411,7 @@ void EuphonyPlayer::clearHangingNotes() {
 		PendingEvent *e = _pendingEventsChain;
 		_pendingEventsChain = _pendingEventsChain->next;
 		sendPendingEvent(e->type, e->evt, e->note, e->velo);
-		delete e;
+		EUP_EVENTS_DELETE(e);
 	}
 }
 
@@ -458,7 +470,7 @@ bool EuphonyPlayer::event_noteOn() {
 	velo = _musicPos[5];
 	uint16 len = (_musicPos[1] & 0x0f) | ((_musicPos[2] & 0x0f) << 4) | ((_musicPos[3] & 0x0f) << 8) | ((_musicPos[4] & 0x0f) << 12);
 
-	_pendingEventsChain = new PendingEvent(evt, type, note, velo, len ? len : 1, _pendingEventsChain);
+	_pendingEventsChain = EUP_EVENTS_NEW PendingEvent(evt, type, note, velo, len ? len : 1, _pendingEventsChain);
 
 	return false;
 }
@@ -645,7 +657,7 @@ void EuphonyPlayer::sendTempo(int tempo) {
 	}
 }
 
-EuphonyDriver::EuphonyDriver(Audio::Mixer *mixer, EuphonyPlayer *pl) : EuphonyBaseDriver(), _channels(0), _partToChanMapping(0), _sustainChannels(0) {
+EuphonyDriver::EuphonyDriver(Audio::Mixer *mixer, EuphonyPlayer *pl) : EuphonyBaseDriver(), _channels(nullptr), _partToChanMapping(nullptr), _sustainChannels(nullptr) {
 	_intf = new TownsAudioInterface(mixer, pl);
 }
 
@@ -971,3 +983,6 @@ bool Type0Driver::init() {
 
 void Type0Driver::send(uint8 command) {
 }
+
+#undef EUP_EVENTS_DELETE
+#undef EUP_EVENTS_NEW

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -111,9 +110,12 @@ bool SoundManager::nuvieStartup(Configuration *config) {
 	Std::string music_cfg_file; //full path and filename to music.cfg
 	Std::string sound_dir;
 	Std::string sfx_style;
+	bool val;
 
 	m_Config = config;
-	m_Config->value("config/audio/enabled", audio_enabled, true);
+
+	m_Config->value("config/mute", val, false);
+	audio_enabled = !val;
 	m_Config->value("config/GameType", game_type);
 	m_Config->value("config/audio/stop_music_on_group_change", stop_music_on_group_change, true);
 
@@ -127,15 +129,17 @@ bool SoundManager::nuvieStartup(Configuration *config) {
 	      return false;
 	     }*/
 
-	m_Config->value("config/audio/enable_music", music_enabled, true);
-	m_Config->value("config/audio/enable_sfx", sfx_enabled, true);
+	m_Config->value("config/music_mute", val, false);
+	music_enabled = !val;
+	m_Config->value("config/sfx_mute", val, false);
+	sfx_enabled = !val;
 
 	int volume;
 
-	m_Config->value("config/audio/music_volume", volume, Audio::Mixer::kMaxChannelVolume);
+	m_Config->value("config/music_volume", volume, Audio::Mixer::kMaxChannelVolume);
 	music_volume = clamp(volume, 0, 255);
 
-	m_Config->value("config/audio/sfx_volume", volume, Audio::Mixer::kMaxChannelVolume);
+	m_Config->value("config/sfx_volume", volume, Audio::Mixer::kMaxChannelVolume);
 	sfx_volume = clamp(volume, 0, 255);
 
 	config_key = config_get_game_key(config);
@@ -149,12 +153,13 @@ bool SoundManager::nuvieStartup(Configuration *config) {
 	config_key = config_get_game_key(config);
 	config_key.append("/sounddir");
 	config->value(config_key, sound_dir, "");
+
 	if (game_type == NUVIE_GAME_U6) { // FM-Towns speech
-		config_key = config_get_game_key(config);
-		config_key.append("/enable_speech");
-		config->value(config_key, speech_enabled, true);
-	} else
+		config->value("config/speech_mute", val, false);
+		speech_enabled = !val;
+	} else {
 		speech_enabled = false;
+	}
 
 	if (!initAudio()) {
 		return false;
@@ -331,49 +336,49 @@ bool SoundManager::LoadObjectSamples (string sound_dir)
   build_path(sound_dir, "obj_samples.cfg", scriptname);
 
   if(niof.open (scriptname) == false)
-    return false;
+	return false;
 
   sz = (char *) niof.readAll ();
 
   token1 = strtok (sz, seps);
 
   while ((token1 != NULL) && ((token2 = strtok (NULL, seps)) != NULL))
-    {
-      int id = atoi (token1);
-      DEBUG(0,LEVEL_DEBUGGING,"%d : %s\n", id, token2);
-      Sound *ps;
-      ps = SampleExists (token2);
-      if (ps == NULL)
-        {
-          Sample *s;
-          s = new Sample;
-          build_path(sound_dir, token2, samplename);
-          if (!s->Init (samplename.c_str ()))
-            {
-              DEBUG(0,LEVEL_ERROR,"could not load %s\n", samplename.c_str ());
-            }
-          ps = s;
-          m_Samples.push_back (ps);     //add it to our global list
-        }
-      if (ps != NULL)
-        {                       //we have a valid sound
-          SoundCollection *psc;
-          Std::map < int, SoundCollection * >::iterator it;
-          it = m_ObjectSampleMap.find (id);
-          if (it == m_ObjectSampleMap.end ())
-            {                   //is there already a collection for this entry?
-              psc = new SoundCollection;        //no, create a new sound collection
-              psc->m_Sounds.push_back (ps);     //add this sound to the collection
-              m_ObjectSampleMap.insert (Std::make_pair (id, psc));      //insert this pair into the map
-            }
-          else
-            {
-              psc = (*it).second;       //yes, get the existing
-              psc->m_Sounds.push_back (ps);     //add this sound to the collection
-            }
-        }
-      token1 = strtok (NULL, seps);
-    }
+	{
+	  int id = atoi (token1);
+	  DEBUG(0,LEVEL_DEBUGGING,"%d : %s\n", id, token2);
+	  Sound *ps;
+	  ps = SampleExists (token2);
+	  if (ps == NULL)
+		{
+		  Sample *s;
+		  s = new Sample;
+		  build_path(sound_dir, token2, samplename);
+		  if (!s->Init (samplename.c_str ()))
+			{
+			  DEBUG(0,LEVEL_ERROR,"could not load %s\n", samplename.c_str ());
+			}
+		  ps = s;
+		  m_Samples.push_back (ps);     //add it to our global list
+		}
+	  if (ps != NULL)
+		{                       //we have a valid sound
+		  SoundCollection *psc;
+		  Std::map < int, SoundCollection * >::iterator it;
+		  it = m_ObjectSampleMap.find (id);
+		  if (it == m_ObjectSampleMap.end ())
+			{                   //is there already a collection for this entry?
+			  psc = new SoundCollection;        //no, create a new sound collection
+			  psc->m_Sounds.push_back (ps);     //add this sound to the collection
+			  m_ObjectSampleMap.insert (Std::make_pair (id, psc));      //insert this pair into the map
+			}
+		  else
+			{
+			  psc = (*it).second;       //yes, get the existing
+			  psc->m_Sounds.push_back (ps);     //add this sound to the collection
+			}
+		}
+	  token1 = strtok (NULL, seps);
+	}
   return true;
 };
 
@@ -390,52 +395,52 @@ bool SoundManager::LoadTileSamples (string sound_dir)
   build_path(sound_dir, "tile_samples.cfg", scriptname);
 
   if(niof.open (scriptname) == false)
-    {
-     DEBUG(0,LEVEL_ERROR,"opening %s\n",scriptname.c_str());
-     return false;
-    }
+	{
+	 DEBUG(0,LEVEL_ERROR,"opening %s\n",scriptname.c_str());
+	 return false;
+	}
 
   sz = (char *) niof.readAll ();
 
   token1 = strtok (sz, seps);
 
   while ((token1 != NULL) && ((token2 = strtok (NULL, seps)) != NULL))
-    {
-      int id = atoi (token1);
-      DEBUG(0,LEVEL_DEBUGGING,"%d : %s\n", id, token2);
-      Sound *ps;
-      ps = SampleExists (token2);
-      if (ps == NULL)
-        {
-          Sample *s;
-          s = new Sample;
-          build_path(sound_dir, token2, samplename);
-          if (!s->Init (samplename.c_str ()))
-            {
-              DEBUG(0,LEVEL_ERROR,"could not load %s\n", samplename.c_str ());
-            }
-          ps = s;
-          m_Samples.push_back (ps);     //add it to our global list
-        }
-      if (ps != NULL)
-        {                       //we have a valid sound
-          SoundCollection *psc;
-          Std::map < int, SoundCollection * >::iterator it;
-          it = m_TileSampleMap.find (id);
-          if (it == m_TileSampleMap.end ())
-            {                   //is there already a collection for this entry?
-              psc = new SoundCollection;        //no, create a new sound collection
-              psc->m_Sounds.push_back (ps);     //add this sound to the collection
-              m_TileSampleMap.insert (Std::make_pair (id, psc));        //insert this pair into the map
-            }
-          else
-            {
-              psc = (*it).second;       //yes, get the existing
-              psc->m_Sounds.push_back (ps);     //add this sound to the collection
-            }
-        }
-      token1 = strtok (NULL, seps);
-    }
+	{
+	  int id = atoi (token1);
+	  DEBUG(0,LEVEL_DEBUGGING,"%d : %s\n", id, token2);
+	  Sound *ps;
+	  ps = SampleExists (token2);
+	  if (ps == NULL)
+		{
+		  Sample *s;
+		  s = new Sample;
+		  build_path(sound_dir, token2, samplename);
+		  if (!s->Init (samplename.c_str ()))
+			{
+			  DEBUG(0,LEVEL_ERROR,"could not load %s\n", samplename.c_str ());
+			}
+		  ps = s;
+		  m_Samples.push_back (ps);     //add it to our global list
+		}
+	  if (ps != NULL)
+		{                       //we have a valid sound
+		  SoundCollection *psc;
+		  Std::map < int, SoundCollection * >::iterator it;
+		  it = m_TileSampleMap.find (id);
+		  if (it == m_TileSampleMap.end ())
+			{                   //is there already a collection for this entry?
+			  psc = new SoundCollection;        //no, create a new sound collection
+			  psc->m_Sounds.push_back (ps);     //add this sound to the collection
+			  m_TileSampleMap.insert (Std::make_pair (id, psc));        //insert this pair into the map
+			}
+		  else
+			{
+			  psc = (*it).second;       //yes, get the existing
+			  psc->m_Sounds.push_back (ps);     //add this sound to the collection
+			}
+		}
+	  token1 = strtok (NULL, seps);
+	}
   return true;
 };
 */
@@ -742,7 +747,7 @@ Sound *SoundManager::RequestSong(string group) {
 Audio::SoundHandle SoundManager::playTownsSound(Std::string filename, uint16 sample_num) {
 	FMtownsDecoderStream *stream = new FMtownsDecoderStream(filename, sample_num);
 	Audio::SoundHandle handle;
-	_mixer->playStream(Audio::Mixer::kPlainSoundType, &handle, stream, -1, music_volume);
+	_mixer->playStream(Audio::Mixer::kSpeechSoundType, &handle, stream, -1);
 
 	return handle;
 }

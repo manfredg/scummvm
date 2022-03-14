@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,7 +25,7 @@
 namespace Kyra {
 
 Screen_MR::Screen_MR(KyraEngine_MR *vm, OSystem *system)
-    : Screen_v2(vm, system, _screenDimTable, _screenDimTableCount) {
+	: Screen_v2(vm, system, _screenDimTable, _screenDimTableCount), _interfaceCommandLineY1(vm->gameFlags().hasExtraLanguage ? 185 : 188) {
 }
 
 Screen_MR::~Screen_MR() {
@@ -40,7 +39,7 @@ int Screen_MR::getLayer(int x, int y) {
 
 	if (y < 0) {
 		y = 0;
-	} else if (y >= 188) {
+	} else if (y >= 187) {
 		y = 187;
 		// The original actually limits the _maskMin/MaxY check to cases where y has already been clipped to 187.
 		// Whether this was intentional or not: Scenes actually require that we do it that way or animations may
@@ -129,6 +128,33 @@ void Screen_MR::drawFilledBox(int x1, int y1, int x2, int y2, uint8 c1, uint8 c2
 	drawClippedLine(x1+1, y1+1, x1+1, y2-2, c3);
 	drawClippedLine(x1, y2, x2, y2, c3);
 	drawClippedLine(x1, y2-1, x2-1, y2-1, c3);
+}
+
+void ChineseOneByteFontMR::processColorMap() {
+	_textColor[0] = _colorMap[1] | (_colorMap[1] << 8);
+	if (_textColor[0]) {
+		_textColor[0] -= 0x100;
+		if (_colorMap[1] == 0xFF)
+			_textColor[0] -= 0x100;
+	}
+	_textColor[0] = TO_LE_16(_textColor[0]);
+	_textColor[1] = _colorMap[0] | (_colorMap[0] << 8);
+}
+
+uint32 ChineseTwoByteFontMR::getFontOffset(uint16 c) const {
+	c = ((c & 0x7F00) >> 2) | (c & 0x3F);
+	return c * 28;
+}
+
+void ChineseTwoByteFontMR::processColorMap() {
+	_textColor[0] = _colorMap[1] | (_colorMap[1] << 8);
+	if (_textColor[0]) {
+		_textColor[0] -= 0x100;
+		if (_colorMap[1] == 0xFF)
+			_textColor[0] -= 0x100;
+	}
+	_textColor[0] = TO_LE_16(_textColor[0]);
+	_textColor[1] = _colorMap[0] | (_colorMap[0] << 8);
 }
 
 } // End of namespace Kyra

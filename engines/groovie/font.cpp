@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -28,7 +27,7 @@
 
 namespace Groovie {
 
-T7GFont::T7GFont() : _maxHeight(0), _maxWidth(0), _glyphs(0) {
+T7GFont::T7GFont() : _maxHeight(0), _maxWidth(0), _glyphs(nullptr) {
 }
 
 T7GFont::~T7GFont() {
@@ -64,7 +63,7 @@ bool T7GFont::load(Common::SeekableReadStream &stream) {
 	_glyphs = new Glyph[numGlyphs];
 
 	// Ensure we're ready to read the first glyph. (Most versions don't
-	// need it, but the russian one does. This fixes bug #3095031.)
+	// need it, but the russian one does. This fixes bug #5481.)
 	stream.seek(glyphOffsets[0]);
 
 	// Read the glyphs
@@ -75,7 +74,7 @@ bool T7GFont::load(Common::SeekableReadStream &stream) {
 			uint16 offset = glyphOffsets[i];
 			delete[] glyphOffsets;
 			error("Groovie::T7GFont: Glyph %d starts at %d but the current "
-				"offset is %d", i, offset, stream.pos());
+				"offset is %d", i, offset, (int)stream.pos());
 			return false;
 		}
 

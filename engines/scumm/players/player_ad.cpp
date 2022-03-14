@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -35,8 +34,8 @@ namespace Scumm {
 
 #define AD_CALLBACK_FREQUENCY 472
 
-Player_AD::Player_AD(ScummEngine *scumm)
-	: _vm(scumm) {
+Player_AD::Player_AD(ScummEngine *scumm, Common::Mutex &mutex)
+	: _vm(scumm), _mutex(mutex) {
 	_opl2 = OPL::Config::create();
 	if (!_opl2->init()) {
 		error("Could not initialize OPL2 emulator");
@@ -79,7 +78,7 @@ Player_AD::~Player_AD() {
 	stopAllSounds();
 	Common::StackLock lock(_mutex);
 	delete _opl2;
-	_opl2 = 0;
+	_opl2 = nullptr;
 }
 
 void Player_AD::setMusicVolume(int vol) {
@@ -195,7 +194,7 @@ void Player_AD::saveLoadWithSerializer(Common::Serializer &s) {
 	Common::StackLock lock(_mutex);
 
 	if (s.getVersion() < VER(95)) {
-		IMuse *dummyImuse = IMuse::create(_vm->_system, NULL, NULL);
+		IMuse *dummyImuse = IMuse::create(_vm->_system, nullptr, nullptr);
 		dummyImuse->saveLoadIMuse(s, _vm, false);
 		delete dummyImuse;
 		return;

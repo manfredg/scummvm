@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -30,6 +29,7 @@
 #include "mohawk/video.h"
 #include "mohawk/myst_stacks/myst.h"
 
+#include "common/config-manager.h"
 #include "common/events.h"
 #include "common/math.h"
 #include "common/system.h"
@@ -1712,7 +1712,7 @@ void Myst::observatoryIncrementDay(int16 increment) {
 		// Update slider
 		// WORKAROUND: Have the day setting increment at 315/100 rather than x3 so that the slider
 		// will reach the bottom spot on day 31st. Only relevant when using the down button and
-		// not dragging the slider. Fixes Trac#10572. The original engine incremented it with x3 
+		// not dragging the slider. Fixes Trac#10572. The original engine incremented it with x3
 		// and has this bug, but it is less noticeable.
 		_observatoryDaySlider->setPosition(91 + (_state.observatoryDaySetting * 315) / 100 );
 		_observatoryDaySlider->restoreBackground();
@@ -2292,6 +2292,17 @@ uint16 Myst::rocketSliderGetSound(uint16 pos) {
 	return (uint16)(9530 + (pos - 216) * 35.0 / 61.0);
 }
 
+uint16 Myst::rocketCheckIfSoundMatches(uint16 sound1, uint16 sound2) {
+	debugN("rocketCheckIfSoundMatches: %i %i (diff:% 3i) ", sound1, sound2, sound1 - sound2);
+	if (!ConfMan.getBool("fuzzy_logic")) {
+		debugN("strict\n");
+		return sound1 == sound2;
+	} else {
+		debugN("fuzzy\n");
+		return abs(sound1 - sound2) < 5;
+	}
+}
+
 void Myst::rocketCheckSolution() {
 	_vm->_cursor->hideCursor();
 
@@ -2302,35 +2313,35 @@ void Myst::rocketCheckSolution() {
 	_vm->_sound->playEffect(soundId);
 	_rocketSlider1->drawConditionalDataToScreen(2);
 	_vm->wait(250);
-	if (soundId != 9558)
+	if (!rocketCheckIfSoundMatches(soundId, 9558))
 		solved = false;
 
 	soundId = rocketSliderGetSound(_rocketSlider2->_pos.y);
 	_vm->_sound->playEffect(soundId);
 	_rocketSlider2->drawConditionalDataToScreen(2);
 	_vm->wait(250);
-	if (soundId != 9546)
+	if (!rocketCheckIfSoundMatches(soundId, 9546))
 		solved = false;
 
 	soundId = rocketSliderGetSound(_rocketSlider3->_pos.y);
 	_vm->_sound->playEffect(soundId);
 	_rocketSlider3->drawConditionalDataToScreen(2);
 	_vm->wait(250);
-	if (soundId != 9543)
+	if (!rocketCheckIfSoundMatches(soundId, 9543))
 		solved = false;
 
 	soundId = rocketSliderGetSound(_rocketSlider4->_pos.y);
 	_vm->_sound->playEffect(soundId);
 	_rocketSlider4->drawConditionalDataToScreen(2);
 	_vm->wait(250);
-	if (soundId != 9553)
+	if (!rocketCheckIfSoundMatches(soundId, 9553))
 		solved = false;
 
 	soundId = rocketSliderGetSound(_rocketSlider5->_pos.y);
 	_vm->_sound->playEffect(soundId);
 	_rocketSlider5->drawConditionalDataToScreen(2);
 	_vm->wait(250);
-	if (soundId != 9560)
+	if (!rocketCheckIfSoundMatches(soundId, 9560))
 		solved = false;
 
 	_vm->_sound->stopEffect();
@@ -2975,7 +2986,7 @@ void Myst::clockGearForwardOneStep(uint16 gear) {
 void Myst::clockWeightDownOneStep() {
 	// The Myst ME version of this video is encoded faster than the original
 	// The weight goes on the floor one step too early. Original ME engine also has this behavior.
-	bool updateVideo = !(_vm->getFeatures() & GF_ME) || _clockWeightPosition < (2214 - 246);
+	bool updateVideo = !_vm->isGameVariant(GF_ME) || _clockWeightPosition < (2214 - 246);
 
 	// Set video bounds
 	if (updateVideo) {
@@ -3278,7 +3289,7 @@ Common::Point Myst::towerRotationMapComputeCoords(uint16 angle) {
 void Myst::towerRotationMapDrawLine(const Common::Point &end, bool rotationLabelVisible) {
 	uint32 color;
 
-	if (_vm->getFeatures() & GF_ME) {
+	if (_vm->isGameVariant(GF_ME)) {
 		Graphics::PixelFormat pf = _vm->_system->getScreenFormat();
 
 		if (!_towerRotationOverSpot)
@@ -3335,7 +3346,7 @@ void Myst::o_forechamberDoor_init(uint16 var, const ArgumentsArray &args) {
 }
 
 void Myst::o_shipAccess_init(uint16 var, const ArgumentsArray &args) {
-	// Enable acces to the ship
+	// Enable access to the ship
 	if (_state.shipFloating) {
 		getInvokingResource<MystArea>()->setEnabled(true);
 	}
@@ -3505,7 +3516,7 @@ void Myst::o_observatory_init(uint16 var, const ArgumentsArray &args) {
 
 bool Myst::observatoryIsDDMMYYYY2400() {
 	// TODO: Auto-detect based on the month rect position
-	return !(_vm->getFeatures() & GF_ME) && (_vm->getLanguage() == Common::FR_FRA
+	return !_vm->isGameVariant(GF_ME) && (_vm->getLanguage() == Common::FR_FRA
 			|| _vm->getLanguage() == Common::DE_DEU);
 }
 

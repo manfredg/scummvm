@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -38,12 +37,13 @@ public:
 	DefaultSaveFileManager();
 	DefaultSaveFileManager(const Common::String &defaultSavepath);
 
-	virtual void updateSavefilesList(Common::StringArray &lockedFiles);
-	virtual Common::StringArray listSavefiles(const Common::String &pattern);
-	virtual Common::InSaveFile *openRawFile(const Common::String &filename);
-	virtual Common::InSaveFile *openForLoading(const Common::String &filename);
-	virtual Common::OutSaveFile *openForSaving(const Common::String &filename, bool compress = true);
-	virtual bool removeSavefile(const Common::String &filename);
+	void updateSavefilesList(Common::StringArray &lockedFiles) override;
+	Common::StringArray listSavefiles(const Common::String &pattern) override;
+	Common::InSaveFile *openRawFile(const Common::String &filename) override;
+	Common::InSaveFile *openForLoading(const Common::String &filename) override;
+	Common::OutSaveFile *openForSaving(const Common::String &filename, bool compress = true) override;
+	bool removeSavefile(const Common::String &filename) override;
+	bool exists(const Common::String &filename) override;
 
 #ifdef USE_LIBCURL
 
@@ -69,6 +69,12 @@ protected:
 	 * Sets the internal error and error message accordingly.
 	 */
 	virtual void checkPath(const Common::FSNode &dir);
+
+	/**
+	 * Removes the given file.
+	 * This is called from removeSavefile() with the full file path.
+	 */
+	virtual Common::ErrorCode removeFile(const Common::String &filepath);
 
 	/**
 	 * Assure that the given save path is cached.

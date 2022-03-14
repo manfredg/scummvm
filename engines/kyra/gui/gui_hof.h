@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -41,9 +40,9 @@ public:
 
 	void createScreenThumbnail(Graphics::Surface &dst) override;
 private:
-	const char *getMenuTitle(const Menu &menu) override;
-	const char *getMenuItemTitle(const MenuItem &menuItem) override;
-	const char *getMenuItemLabel(const MenuItem &menuItem) override;
+	Common::String getMenuTitle(const Menu &menu) override;
+	Common::String getMenuItemTitle(const MenuItem &menuItem) override;
+	Common::String getMenuItemLabel(const MenuItem &menuItem) override;
 
 	uint8 defaultColor1() const override { return 0xCF; }
 	uint8 defaultColor2() const override { return 0xF8; }
@@ -57,7 +56,7 @@ private:
 
 	void resetState(int item);
 
-	char *getTableString(int id) override;
+	Common::String getTableString(int id, bool decode) override;
 
 	KyraEngine_HoF *_vm;
 	Screen_HoF *_screen;
@@ -77,6 +76,8 @@ private:
 
 	static const uint16 _menuStringsTalkie[];
 	static const uint16 _menuStringsOther[];
+
+	static const char *const _saveLoadStringsZH[2];
 };
 
 } // End of namespace Kyra

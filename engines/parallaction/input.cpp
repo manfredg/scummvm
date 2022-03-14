@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -73,11 +72,11 @@ Input::Input(Parallaction *vm) : _vm(vm) {
 	_inputMode = 0;
 	_hasKeyPressEvent = false;
 
-	_dinoCursor = 0;
-	_dougCursor = 0;
-	_donnaCursor = 0;
-	_comboArrow = 0;
-	_mouseArrow = 0;
+	_dinoCursor = nullptr;
+	_dougCursor = nullptr;
+	_donnaCursor = nullptr;
+	_comboArrow = nullptr;
+	_mouseArrow = nullptr;
 
 	initCursors();
 }
@@ -134,7 +133,7 @@ void Input::readInput() {
 			_mouseButtons = kMouseRightUp;
 			break;
 
-		case Common::EVENT_RTL:
+		case Common::EVENT_RETURN_TO_LAUNCHER:
 		case Common::EVENT_QUIT:
 			return;
 
@@ -472,7 +471,7 @@ void Input::getAbsoluteCursorPos(Common::Point& p) const {
 
 void Input::initCursors() {
 
-	_dinoCursor = _donnaCursor = _dougCursor = 0;
+	_dinoCursor = _donnaCursor = _dougCursor = nullptr;
 
 	switch (_gameType) {
 	case GType_Nippon:
@@ -489,10 +488,6 @@ void Input::initCursors() {
 			Graphics::Surface *surf = new Graphics::Surface;
 			surf->create(_mouseComboProps_BR._width, _mouseComboProps_BR._height, Graphics::PixelFormat::createFormatCLUT8());
 			_comboArrow = new SurfaceToFrames(surf);
-
-			// TODO: choose the pointer depending on the active character
-			// For now, we pick Donna's
-			_mouseArrow = _donnaCursor;
 		} else {
 			// TODO: Where are the Amiga cursors?
 			Graphics::Surface *surf1 = new Graphics::Surface;
@@ -569,6 +564,56 @@ void Input::setInventoryCursor(ItemName name) {
 		warning("Input::setInventoryCursor: unknown gametype");
 	}
 
+}
+
+void Input::setMenuPointer() {
+	switch (_gameType) {
+	case GType_Nippon: {
+		error("Input::setMenuPointer not supported for Nippon Safes");
+	}
+
+	case GType_BRA: {
+		if (_vm->getPlatform() == Common::kPlatformDOS) {
+			// Donna's cursor doubles as the cursor used
+			// in the startup menu.
+			_mouseArrow = _donnaCursor;
+			setArrowCursor();
+		} else {
+			warning("Input::setMenuPointer not yet implemented for Amiga");
+		}
+		break;
+	}
+
+	default:
+		warning("Input::setMenuPointer: unknown gametype");
+	}
+}
+
+void Input::setCharacterPointer(const char *name) {
+	switch (_gameType) {
+	case GType_Nippon: {
+		error("Input::setCharacterPointer not supported for Nippon Safes");
+	}
+
+	case GType_BRA: {
+		if (_vm->getPlatform() == Common::kPlatformDOS) {
+			if (!scumm_stricmp(name, "dino")) {
+				_mouseArrow = _dinoCursor;
+			} else if (!scumm_stricmp(name, "donna")) {
+				_mouseArrow = _donnaCursor;
+			} else if (!scumm_stricmp(name, "doug")) {
+				_mouseArrow = _dougCursor;
+			}
+			setArrowCursor();
+		} else {
+			warning("Input::setCharacterPointer not yet implemented for Amiga");
+		}
+		break;
+	}
+
+	default:
+		warning("Input::setCharacterPointer: unknown gametype");
+	}
 }
 
 } // namespace Parallaction

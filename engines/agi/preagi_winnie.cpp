@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -96,7 +95,7 @@ uint32 WinnieEngine::readRoom(int iRoom, uint8 *buffer, WTP_ROOM_HDR &roomHdr) {
 		fileName = Common::String::format(IDS_WTP_ROOM_AMIGA, iRoom);
 	else if (getPlatform() == Common::kPlatformC64)
 		fileName = Common::String::format(IDS_WTP_ROOM_C64, iRoom);
-	else if (getPlatform() == Common::kPlatformApple2GS)
+	else if (getPlatform() == Common::kPlatformApple2)
 		fileName = Common::String::format(IDS_WTP_ROOM_APPLE, iRoom);
 
 	Common::File file;
@@ -129,7 +128,7 @@ uint32 WinnieEngine::readObj(int iObj, uint8 *buffer) {
 		fileName = Common::String::format(IDS_WTP_OBJ_AMIGA, iObj);
 	else if (getPlatform() == Common::kPlatformC64)
 		fileName = Common::String::format(IDS_WTP_OBJ_C64, iObj);
-	else if (getPlatform() == Common::kPlatformApple2GS)
+	else if (getPlatform() == Common::kPlatformApple2)
 		fileName = Common::String::format(IDS_WTP_OBJ_APPLE, iObj);
 
 	Common::File file;
@@ -818,7 +817,7 @@ void WinnieEngine::getMenuSel(char *szMenu, int *iSel, int fCanSel[]) {
 	while (!shouldQuit()) {
 		while (_system->getEventManager()->pollEvent(event)) {
 			switch (event.type) {
-			case Common::EVENT_RTL:
+			case Common::EVENT_RETURN_TO_LAUNCHER:
 			case Common::EVENT_QUIT:
 				return;
 			case Common::EVENT_MOUSEMOVE:
@@ -1172,7 +1171,7 @@ bool WinnieEngine::playSound(ENUM_WTP_SOUND iSound) {
 	}
 
 	delete _game.sounds[0];
-	_game.sounds[0] = 0;
+	_game.sounds[0] = nullptr;
 
 	return !shouldQuit() && !skippedSound;
 }
@@ -1366,7 +1365,7 @@ void WinnieEngine::init() {
 		_objOffset = 0;
 	}
 
-	if (getPlatform() == Common::kPlatformC64 || getPlatform() == Common::kPlatformApple2GS)
+	if (getPlatform() == Common::kPlatformC64 || getPlatform() == Common::kPlatformApple2)
 		_picture->setPictureVersion(AGIPIC_C64);
 
 	hotspotNorth = Common::Rect(20, 0, (IDI_WTP_PIC_WIDTH + 10) * 2, 10);
@@ -1380,7 +1379,7 @@ Common::Error WinnieEngine::go() {
 	randomize();
 
 	// The intro is not supported on these platforms yet
-	if (getPlatform() != Common::kPlatformC64 && getPlatform() != Common::kPlatformApple2GS)
+	if (getPlatform() != Common::kPlatformC64 && getPlatform() != Common::kPlatformApple2)
 		intro();
 
 	gameLoop();

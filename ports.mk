@@ -5,9 +5,7 @@
 #
 # POSIX specific
 #
-install:
-	$(INSTALL) -d "$(DESTDIR)$(bindir)"
-	$(INSTALL) -c -m 755 "./$(EXECUTABLE)" "$(DESTDIR)$(bindir)/$(EXECUTABLE)"
+install-data:
 	$(INSTALL) -d "$(DESTDIR)$(mandir)/man6/"
 	$(INSTALL) -c -m 644 "$(srcdir)/dists/scummvm.6" "$(DESTDIR)$(mandir)/man6/scummvm.6"
 	$(INSTALL) -d "$(DESTDIR)$(datarootdir)/pixmaps/"
@@ -20,30 +18,24 @@ install:
 	$(INSTALL) -c -m 644 $(DIST_FILES_THEMES) $(DIST_FILES_NETWORKING) $(DIST_FILES_VKEYBD) $(DIST_FILES_ENGINEDATA) "$(DESTDIR)$(datadir)/"
 	$(INSTALL) -d "$(DESTDIR)$(datarootdir)/applications"
 	$(INSTALL) -c -m 644 "$(srcdir)/dists/scummvm.desktop" "$(DESTDIR)$(datarootdir)/applications/scummvm.desktop"
-	$(INSTALL) -d "$(DESTDIR)$(datarootdir)/appdata"
-	$(INSTALL) -c -m 644 "$(srcdir)/dists/scummvm.appdata.xml" "$(DESTDIR)$(datarootdir)/appdata/scummvm.appdata.xml"
+	$(INSTALL) -d "$(DESTDIR)$(datarootdir)/metainfo"
+	$(INSTALL) -c -m 644 "$(srcdir)/dists/scummvm.appdata.xml" "$(DESTDIR)$(datarootdir)/metainfo/scummvm.appdata.xml"
+ifneq ($(DIST_FILES_SHADERS),)
+	$(INSTALL) -d "$(DESTDIR)$(datadir)/shaders"
+	$(INSTALL) -c -m 644 $(DIST_FILES_SHADERS) "$(DESTDIR)$(datadir)/shaders"
+endif
+
+install: install-data
+	$(INSTALL) -d "$(DESTDIR)$(bindir)"
+	$(INSTALL) -c -m 755 "./$(EXECUTABLE)" "$(DESTDIR)$(bindir)/$(EXECUTABLE)"
 ifdef DYNAMIC_MODULES
 	$(INSTALL) -d "$(DESTDIR)$(libdir)/scummvm/"
 	$(INSTALL) -c -m 644 $(PLUGINS) "$(DESTDIR)$(libdir)/scummvm/"
 endif
 
-install-strip:
+install-strip: install-data
 	$(INSTALL) -d "$(DESTDIR)$(bindir)"
 	$(INSTALL) -c -s -m 755 "./$(EXECUTABLE)" "$(DESTDIR)$(bindir)/$(EXECUTABLE)"
-	$(INSTALL) -d "$(DESTDIR)$(mandir)/man6/"
-	$(INSTALL) -c -m 644 "$(srcdir)/dists/scummvm.6" "$(DESTDIR)$(mandir)/man6/scummvm.6"
-	$(INSTALL) -d "$(DESTDIR)$(datarootdir)/pixmaps/"
-	$(INSTALL) -c -m 644 "$(srcdir)/icons/scummvm.xpm" "$(DESTDIR)$(datarootdir)/pixmaps/scummvm.xpm"
-	$(INSTALL) -d "$(DESTDIR)$(datarootdir)/icons/hicolor/scalable/apps/"
-	$(INSTALL) -c -m 644 "$(srcdir)/icons/scummvm.svg" "$(DESTDIR)$(datarootdir)/icons/hicolor/scalable/apps/scummvm.svg"
-	$(INSTALL) -d "$(DESTDIR)$(docdir)"
-	$(INSTALL) -c -m 644 $(DIST_FILES_DOCS) "$(DESTDIR)$(docdir)"
-	$(INSTALL) -d "$(DESTDIR)$(datadir)"
-	$(INSTALL) -c -m 644 $(DIST_FILES_THEMES) $(DIST_FILES_NETWORKING) $(DIST_FILES_VKEYBD) $(DIST_FILES_ENGINEDATA) "$(DESTDIR)$(datadir)/"
-	$(INSTALL) -d "$(DESTDIR)$(datarootdir)/applications"
-	$(INSTALL) -c -m 644 "$(srcdir)/dists/scummvm.desktop" "$(DESTDIR)$(datarootdir)/applications/scummvm.desktop"
-	$(INSTALL) -d "$(DESTDIR)$(datarootdir)/appdata"
-	$(INSTALL) -c -m 644 "$(srcdir)/dists/scummvm.appdata.xml" "$(DESTDIR)$(datarootdir)/appdata/scummvm.appdata.xml"
 ifdef DYNAMIC_MODULES
 	$(INSTALL) -d "$(DESTDIR)$(libdir)/scummvm/"
 	$(INSTALL) -c -s -m 644 $(PLUGINS) "$(DESTDIR)$(libdir)/scummvm/"
@@ -57,12 +49,37 @@ uninstall:
 	rm -rf "$(DESTDIR)$(docdir)"
 	rm -rf "$(DESTDIR)$(datadir)"
 	rm -f "$(DESTDIR)$(datarootdir)/applications/scummvm.desktop"
-	rm -f "$(DESTDIR)$(datarootdir)/appdata/scummvm.appdata.xml"
+	rm -f "$(DESTDIR)$(datarootdir)/metainfo/scummvm.appdata.xml"
 ifdef DYNAMIC_MODULES
 	rm -rf "$(DESTDIR)$(libdir)/scummvm/"
 endif
 
-# Special target to create a application wrapper for Mac OS X
+# Special generic target for simple archive distribution
+
+dist-generic: $(EXECUTABLE) $(PLUGINS)
+	mkdir -p ./dist-generic/scummvm/data
+	mkdir -p ./dist-generic/scummvm/doc
+	cp $(EXECUTABLE) ./dist-generic/scummvm
+	cp $(DIST_FILES_DOCS) ./dist-generic/scummvm/doc
+	cp $(DIST_FILES_THEMES) ./dist-generic/scummvm/data
+ifdef DIST_FILES_ENGINEDATA
+	cp $(DIST_FILES_ENGINEDATA) ./dist-generic/scummvm/data
+endif
+ifdef DIST_FILES_NETWORKING
+	cp $(DIST_FILES_NETWORKING) ./dist-generic/scummvm/data
+endif
+ifdef DIST_FILES_VKEYBD
+	cp $(DIST_FILES_VKEYBD) ./dist-generic/scummvm/data
+endif
+ifdef DIST_FILES_SHADERS
+	mkdir -p ./dist-generic/scummvm/data/shaders
+	cp $(DIST_FILES_SHADERS) ./dist-generic/scummvm/data/shaders
+endif
+ifeq ($(DYNAMIC_MODULES),1)
+	@for i in $(PLUGINS); do cp $$i ./dist-generic/scummvm; done
+endif
+
+# Special target to create a application wrapper for macOS
 
 ifdef USE_DOCKTILEPLUGIN
 
@@ -81,21 +98,18 @@ ScummVMDockTilePlugin64.o:
 ScummVMDockTilePlugin64: ScummVMDockTilePlugin64.o
 	$(CXX) -mmacosx-version-min=10.6 -arch x86_64 -bundle -framework Foundation -framework AppKit -fobjc-link-runtime ScummVMDockTilePlugin64.o -o ScummVMDockTilePlugin64
 
+ifdef MACOSX_64_BITS_ONLY
+ScummVMDockTilePlugin: ScummVMDockTilePlugin64
+	cp ScummVMDockTilePlugin64 ScummVMDockTilePlugin
+else
 ScummVMDockTilePlugin: ScummVMDockTilePlugin32 ScummVMDockTilePlugin64
 	lipo -create ScummVMDockTilePlugin32 ScummVMDockTilePlugin64 -output ScummVMDockTilePlugin
+endif
 
 scummvm.docktileplugin: ScummVMDockTilePlugin
 	mkdir -p scummvm.docktileplugin/Contents
 	cp $(srcdir)/dists/macosx/dockplugin/Info.plist scummvm.docktileplugin/Contents
 	mkdir -p scummvm.docktileplugin/Contents/MacOS
-	cp ScummVMDockTilePlugin scummvm.docktileplugin/Contents/MacOS/
-	chmod 644 scummvm.docktileplugin/Contents/MacOS/ScummVMDockTilePlugin
-
-scummvm.docktileplugin64: ScummVMDockTilePlugin64
-	mkdir -p scummvm.docktileplugin/Contents
-	cp $(srcdir)/dists/macosx/dockplugin/Info.plist scummvm.docktileplugin/Contents
-	mkdir -p scummvm.docktileplugin/Contents/MacOS
-	mv ScummVMDockTilePlugin64 ScummVMDockTilePlugin
 	cp ScummVMDockTilePlugin scummvm.docktileplugin/Contents/MacOS/
 	chmod 644 scummvm.docktileplugin/Contents/MacOS/ScummVMDockTilePlugin
 
@@ -112,9 +126,13 @@ ifdef USE_SPARKLE
 	mkdir -p $(bundle_name)/Contents/Frameworks
 	cp $(srcdir)/dists/macosx/dsa_pub.pem $(bundle_name)/Contents/Resources/
 	rm -rf $(bundle_name)/Contents/Frameworks/Sparkle.framework
-	cp -R $(SPARKLEPATH)/Sparkle.framework $(bundle_name)/Contents/Frameworks/
+	cp -RP $(SPARKLEPATH)/Sparkle.framework $(bundle_name)/Contents/Frameworks/
 endif
-	cp $(srcdir)/icons/scummvm.icns $(bundle_name)/Contents/Resources/
+ifdef MACOSX_USE_LEGACY_ICONS
+	cp $(srcdir)/icons/scummvm_legacy.icns $(bundle_name)/Contents/Resources/scummvm.icns
+else
+	cp $(srcdir)/icons/scummvm.icns $(bundle_name)/Contents/Resources/scummvm.icns
+endif
 	cp $(DIST_FILES_DOCS) $(bundle_name)/Contents/Resources/
 	cp $(DIST_FILES_THEMES) $(bundle_name)/Contents/Resources/
 ifdef DIST_FILES_NETWORKING
@@ -126,13 +144,24 @@ endif
 ifdef DIST_FILES_VKEYBD
 	cp $(DIST_FILES_VKEYBD) $(bundle_name)/Contents/Resources/
 endif
+ifneq ($(DIST_FILES_SHADERS),)
+	mkdir -p $(bundle_name)/Contents/Resources/shaders
+	cp $(DIST_FILES_SHADERS) $(bundle_name)/Contents/Resources/shaders/
+endif
 	$(srcdir)/devtools/credits.pl --rtf > $(bundle_name)/Contents/Resources/AUTHORS.rtf
 	rm $(bundle_name)/Contents/Resources/AUTHORS
+	@sed -i'' -e "s/AUTHORS/AUTHORS.rtf/g" $(bundle_name)/Contents/Resources/README.md
+ifdef USE_PANDOC
+	@sed -i'' -e "s|href=\"AUTHORS\"|href=\"https://www.scummvm.org/credits/\"|g" $(bundle_name)/Contents/Resources/README$(PANDOCEXT)
+endif
 	cp $(bundle_name)/Contents/Resources/COPYING.LGPL $(bundle_name)/Contents/Resources/COPYING-LGPL
 	cp $(bundle_name)/Contents/Resources/COPYING.FREEFONT $(bundle_name)/Contents/Resources/COPYING-FREEFONT
 	cp $(bundle_name)/Contents/Resources/COPYING.OFL $(bundle_name)/Contents/Resources/COPYING-OFL
 	cp $(bundle_name)/Contents/Resources/COPYING.BSD $(bundle_name)/Contents/Resources/COPYING-BSD
 	chmod 644 $(bundle_name)/Contents/Resources/*
+ifneq ($(DIST_FILES_SHADERS),)
+	chmod 755 $(bundle_name)/Contents/Resources/shaders
+endif
 	cp scummvm-static $(bundle_name)/Contents/MacOS/scummvm
 	chmod 755 $(bundle_name)/Contents/MacOS/scummvm
 	$(STRIP) $(bundle_name)/Contents/MacOS/scummvm
@@ -140,20 +169,19 @@ ifdef USE_DOCKTILEPLUGIN
 	mkdir -p $(bundle_name)/Contents/PlugIns
 	cp -r scummvm.docktileplugin $(bundle_name)/Contents/PlugIns/
 endif
+	codesign -s - --deep --force $(bundle_name)
 
 ifdef USE_DOCKTILEPLUGIN
 bundle: scummvm-static scummvm.docktileplugin bundle-pack
-
-bundle64: scummvm-static scummvm.docktileplugin64 bundle-pack
 else
 bundle: scummvm-static bundle-pack
-
-bundle64: scummvm-static bundle-pack
 endif
 
 iphonebundle: iphone
 	mkdir -p $(bundle_name)
 	cp $(srcdir)/dists/iphone/Info.plist $(bundle_name)/
+	sed -i'' -e 's/$$(PRODUCT_BUNDLE_IDENTIFIER)/org.scummvm.scummvm/' $(bundle_name)/Info.plist
+	sed -i'' -e 's/$$(EXECUTABLE_NAME)/ScummVM/' $(bundle_name)/Info.plist
 	cp $(DIST_FILES_DOCS) $(bundle_name)/
 	cp $(DIST_FILES_THEMES) $(bundle_name)/
 ifdef DIST_FILES_NETWORKING
@@ -165,13 +193,16 @@ endif
 ifdef DIST_FILES_VKEYBD
 	cp $(DIST_FILES_VKEYBD) $(bundle_name)/
 endif
+ifneq ($(DIST_FILES_SHADERS),)
+	cp $(DIST_FILES_SHADERS) $(bundle_name)/
+endif
 	$(STRIP) scummvm
-	ldid -S scummvm
 	chmod 755 scummvm
 	cp scummvm $(bundle_name)/ScummVM
 	cp $(srcdir)/dists/iphone/icon.png $(bundle_name)/
 	cp $(srcdir)/dists/iphone/icon-72.png $(bundle_name)/
 	cp $(srcdir)/dists/iphone/Default.png $(bundle_name)/
+	codesign -s - --deep --force $(bundle_name)
 
 ios7bundle: iphone
 	mkdir -p $(bundle_name)
@@ -268,6 +299,8 @@ ios7bundle: iphone
 		s==0 {print $$0}\
 		s > 0 { s-- }' $(srcdir)/dists/ios7/Info.plist >$(bundle_name)/Info.plist
 	sed -i'' -e 's/$$(PRODUCT_BUNDLE_IDENTIFIER)/org.scummvm.scummvm/' $(bundle_name)/Info.plist
+	sed -i'' -e 's/$$(EXECUTABLE_NAME)/ScummVM/' $(bundle_name)/Info.plist
+	sed -i'' -e '/UILaunchStoryboardName/{N;d;}' $(bundle_name)/Info.plist
 	cp $(DIST_FILES_DOCS) $(bundle_name)/
 	cp $(DIST_FILES_THEMES) $(bundle_name)/
 ifdef DIST_FILES_NETWORKING
@@ -279,8 +312,10 @@ endif
 ifdef DIST_FILES_VKEYBD
 	cp $(DIST_FILES_VKEYBD) $(bundle_name)/
 endif
+ifneq ($(DIST_FILES_SHADERS),)
+	cp $(DIST_FILES_SHADERS) $(bundle_name)/
+endif
 	$(STRIP) scummvm
-	ldid -S scummvm
 	chmod 755 scummvm
 	cp scummvm $(bundle_name)/ScummVM
 	cp $(srcdir)/dists/ios7/Images.xcassets/AppIcon.appiconset/icon4-29@2x.png $(bundle_name)/AppIcon29x29@2x.png
@@ -304,12 +339,12 @@ endif
 	cp $(srcdir)/dists/ios7/Images.xcassets/LaunchImage.launchimage/ScummVM-splash-1242x2208.png $(bundle_name)/LaunchImage-800-Portrait-736h@3x.png
 	cp $(srcdir)/dists/ios7/Images.xcassets/LaunchImage.launchimage/ScummVM-splash-2208x1242.png $(bundle_name)/LaunchImage-800-Landscape-736h@3x.png
 	cp $(srcdir)/dists/ios7/Images.xcassets/LaunchImage.launchimage/ScummVM-splash-750x1334.png $(bundle_name)/LaunchImage-800-667h@2x.png
+	codesign -s - --deep --force $(bundle_name)
 
-# Location of static libs for the iPhone
-ifneq ($(BACKEND), iphone)
-ifneq ($(BACKEND), ios7)
-# Static libaries, used for the scummvm-static and iphone targets
+
+ifndef WITHOUT_SDL
 OSX_STATIC_LIBS := `$(SDLCONFIG) --prefix=$(STATICLIBPATH) --static-libs`
+
 ifdef USE_SDL_NET
 ifdef USE_SDL2
 OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libSDL2_net.a
@@ -317,21 +352,35 @@ else
 OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libSDL_net.a
 endif
 endif
+
 # With sdl2-config we don't always get the OpenGL framework
 OSX_STATIC_LIBS += -framework OpenGL
+
+else # WITHOUT_SDL
+
+# Special SDL_Net library without SDL (iPhone)
+ifdef USE_SDL_NET
+ifeq ($(SDL_NET_MAJOR),1)
+OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libSDL_net.a
+else
+ifeq ($(SDL_NET_MAJOR),2)
+OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libSDL2_net.a
 endif
 endif
+endif # USE_SDL_NET
+
+endif # WITHOUT_SDL
 
 ifdef USE_LIBCURL
-OSX_STATIC_LIBS += -lcurl
+OSX_STATIC_LIBS += -lcurl -framework Security
 endif
 
 ifdef USE_FREETYPE2
 OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libfreetype.a $(STATICLIBPATH)/lib/libbz2.a
 endif
 
-ifdef USE_ICONV
-OSX_STATIC_LIBS += -liconv
+ifdef USE_FRIBIDI
+OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libfribidi.a
 endif
 
 ifdef USE_VORBIS
@@ -352,12 +401,11 @@ ifdef USE_OGG
 OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libogg.a
 endif
 
+ifdef USE_FLUIDLITE
+OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libfluidlite.a
+else
 ifdef USE_FLUIDSYNTH
-# If iconv was not yet added, add it now as we need it for libfluidsynth
-ifndef USE_ICONV
-OSX_STATIC_LIBS += -liconv
-endif
-OSX_STATIC_LIBS += \
+OSX_STATIC_LIBS += -liconv \
                 -framework CoreMIDI -framework CoreAudio\
                 $(STATICLIBPATH)/lib/libfluidsynth.a \
                 $(STATICLIBPATH)/lib/libglib-2.0.a \
@@ -369,6 +417,7 @@ OSX_STATIC_LIBS += -lreadline -framework AudioUnit
 endif
 endif
 endif
+endif
 
 ifdef USE_MAD
 OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libmad.a
@@ -376,6 +425,10 @@ endif
 
 ifdef USE_PNG
 OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libpng.a
+endif
+
+ifdef USE_GIF
+OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libgif.a
 endif
 
 ifdef USE_THEORADEC
@@ -402,6 +455,10 @@ ifdef USE_ZLIB
 OSX_ZLIB ?= $(STATICLIBPATH)/lib/libz.a
 endif
 
+ifdef USE_DISCORD
+OSX_STATIC_LIBS += $(STATICLIBPATH)/lib/libdiscord-rpc.a
+endif
+
 ifdef USE_SPARKLE
 ifdef MACOSX
 ifneq ($(SPARKLEPATH),)
@@ -411,24 +468,24 @@ OSX_STATIC_LIBS += -framework Sparkle -Wl,-rpath,@loader_path/../Frameworks
 endif
 endif
 
-# Special target to create a static linked binary for Mac OS X.
+# Special target to create a static linked binary for macOS.
 # We use -force_cpusubtype_ALL to ensure the binary runs on every
 # PowerPC machine.
-scummvm-static: $(OBJS)
-	$(CXX) $(LDFLAGS) -force_cpusubtype_ALL -o scummvm-static $(OBJS) \
+scummvm-static: $(DETECT_OBJS) $(OBJS)
+	+$(LD) $(LDFLAGS) -force_cpusubtype_ALL -o scummvm-static $(DETECT_OBJS) $(OBJS) \
 		-framework CoreMIDI \
 		$(OSX_STATIC_LIBS) \
 		$(OSX_ZLIB)
 
 # Special target to create a static linked binary for the iPhone (legacy, and iOS 7+)
-iphone: $(OBJS)
-	$(CXX) $(LDFLAGS) -o scummvm $(OBJS) \
+iphone: $(DETECT_OBJS) $(OBJS)
+	+$(LD) $(LDFLAGS) -o scummvm $(DETECT_OBJS) $(OBJS) \
 		$(OSX_STATIC_LIBS) \
 		-framework UIKit -framework CoreGraphics -framework OpenGLES \
 		-framework CoreFoundation -framework QuartzCore -framework Foundation \
 		-framework AudioToolbox -framework CoreAudio -framework SystemConfiguration -lobjc -lz
 
-# Special target to create a snapshot disk image for Mac OS X
+# Special target to create a snapshot disk image for macOS
 # TODO: Replace AUTHORS by Credits.rtf
 osxsnap: bundle
 	mkdir ScummVM-snapshot
@@ -438,6 +495,11 @@ osxsnap: bundle
 	mv ./ScummVM-snapshot/COPYING.FREEFONT ./ScummVM-snapshot/License\ \(FREEFONT\)
 	mv ./ScummVM-snapshot/COPYING.OFL ./ScummVM-snapshot/License\ \(OFL\)
 	mv ./ScummVM-snapshot/COPYING.BSD ./ScummVM-snapshot/License\ \(BSD\)
+	mv ./ScummVM-snapshot/COPYING.ISC ./ScummVM-snapshot/License\ \(ISC\)
+	mv ./ScummVM-snapshot/COPYING.LUA ./ScummVM-snapshot/License\ \(Lua\)
+	mv ./ScummVM-snapshot/COPYING.MIT ./ScummVM-snapshot/License\ \(MIT\)
+	mv ./ScummVM-snapshot/COPYING.TINYGL ./ScummVM-snapshot/License\ \(TinyGL\)
+	mv ./ScummVM-snapshot/COPYING.GLAD ./ScummVM-snapshot/License\ \(Glad\)
 	$(XCODETOOLSPATH)/SetFile -t ttro -c ttxt ./ScummVM-snapshot/*
 	mkdir ScummVM-snapshot/doc
 	cp $(srcdir)/doc/QuickStart ./ScummVM-snapshot/doc/QuickStart
@@ -460,7 +522,7 @@ osxsnap: bundle
 	$(XCODETOOLSPATH)/SetFile -t ttro -c ttxt ./ScummVM-snapshot/doc/QuickStart
 	$(XCODETOOLSPATH)/SetFile -t ttro -c ttxt ./ScummVM-snapshot/doc/*/*
 	xattr -w "com.apple.TextEncoding" "utf-8;134217984" ./ScummVM-snapshot/doc/*/*
-	$(XCODETOOLSPATH)/CpMac -r $(bundle_name) ./ScummVM-snapshot/
+	cp -RP $(bundle_name) ./ScummVM-snapshot/
 	cp $(srcdir)/dists/macosx/DS_Store ./ScummVM-snapshot/.DS_Store
 	cp $(srcdir)/dists/macosx/background.jpg ./ScummVM-snapshot/background.jpg
 	$(XCODETOOLSPATH)/SetFile -a V ./ScummVM-snapshot/.DS_Store
@@ -494,21 +556,13 @@ else ifeq "$(CUR_BRANCH)" ""
 	$(error You must be on a release branch)
 endif
 	@echo Creating Code::Blocks project files...
-	@cd $(srcdir)/dists/codeblocks && ../../devtools/create_project/create_project ../.. --codeblocks >/dev/null && git add -f engines/plugins_table.h *.workspace *.cbp
+	@cd $(srcdir)/dists/codeblocks && $(PWD)/devtools/create_project/create_project ../.. --codeblocks >/dev/null && git add -f engines/*.h *.workspace *.cbp
 	@echo Creating MSVC project files...
-	@cd $(srcdir)/dists/msvc && ../../devtools/create_project/create_project ../.. --msvc-version 12 --msvc >/dev/null && git add -f engines/plugins_table.h *.sln *.vcxproj *.vcxproj.filters *.props
+	@cd $(srcdir)/dists/msvc && $(PWD)/devtools/create_project/create_project ../.. --use-canonical-lib-names --msvc-version 12 --msvc >/dev/null && git add -f engines/*.h *.sln *.vcxproj *.vcxproj.filters *.props
 	@echo
 	@echo All is done.
 	@echo Now run
-	@echo "\tgit commit -m 'DISTS: Generated Code::Blocks and MSVC project files'"
-
-# Target to create Raspberry Pi zip containig binary and specific README
-raspberrypi_dist:
-	mkdir -p $(srcdir)/scummvm-rpi
-	cp $(srcdir)/backends/platform/sdl/raspberrypi/README.RASPBERRYPI $(srcdir)/scummvm-rpi/README
-	cp $(srcdir)/scummvm $(srcdir)/scummvm-rpi
-	zip -r scummvm-rpi.zip scummvm-rpi
-	rm -f -R scummvm-rpi
+	@echo -e "\tgit commit -m 'DISTS: Generated Code::Blocks and MSVC project files'"
 
 # Mark special targets as phony
 .PHONY: deb bundle osxsnap install uninstall

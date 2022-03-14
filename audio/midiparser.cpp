@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,22 +32,27 @@
 
 MidiParser::MidiParser() :
 _hangingNotesCount(0),
-_driver(0),
+_driver(nullptr),
 _timerRate(0x4A0000),
 _ppqn(96),
 _tempo(500000),
 _psecPerTick(5208), // 500000 / 96
+_sysExDelay(0),
 _autoLoop(false),
 _smartJump(false),
 _centerPitchWheelOnUnload(false),
 _sendSustainOffOnNotesOff(false),
+_disableAllNotesOffMidiEvents(false),
+_disableAutoStartPlayback(false),
 _numTracks(0),
 _activeTrack(255),
 _abortParse(false),
-_jumpingToTick(false) {
+_jumpingToTick(false),
+_doParse(true),
+_pause(false) {
 	memset(_activeNotes, 0, sizeof(_activeNotes));
 	memset(_tracks, 0, sizeof(_tracks));
-	_nextEvent.start = NULL;
+	_nextEvent.start = nullptr;
 	_nextEvent.delta = 0;
 	_nextEvent.event = 0;
 	_nextEvent.length = 0;
@@ -68,6 +72,12 @@ void MidiParser::property(int prop, int value) {
 	case mpSendSustainOffOnNotesOff:
 		_sendSustainOffOnNotesOff = (value != 0);
 		break;
+	case mpDisableAllNotesOffMidiEvents:
+		_disableAllNotesOffMidiEvents = (value != 0);
+		break;
+	case mpDisableAutoStartPlayback:
+		_disableAutoStartPlayback = (value != 0);
+		break;
 	default:
 		break;
 	}
@@ -75,6 +85,10 @@ void MidiParser::property(int prop, int value) {
 
 void MidiParser::sendToDriver(uint32 b) {
 	_driver->send(b);
+}
+
+void MidiParser::sendMetaEventToDriver(byte type, byte *data, uint16 length) {
+	_driver->metaEvent(type, data, length);
 }
 
 void MidiParser::setTempo(uint32 tempo) {
@@ -121,7 +135,7 @@ void MidiParser::activeNote(byte channel, byte note, bool active) {
 }
 
 void MidiParser::hangingNote(byte channel, byte note, uint32 timeLeft, bool recycle) {
-	NoteTimer *best = 0;
+	NoteTimer *best = nullptr;
 	NoteTimer *ptr = _hangingNotes;
 	int i;
 
@@ -168,7 +182,11 @@ void MidiParser::onTimer() {
 	uint32 endTime;
 	uint32 eventTime;
 
-	if (!_position._playPos || !_driver)
+	// The SysEx delay can be decreased whenever time passes,
+	// even if the parser does not parse events.
+	_sysExDelay -= (_sysExDelay > _timerRate) ? _timerRate : _sysExDelay;
+
+	if (!_position._playPos || !_driver || !_doParse || _pause || !_driver->isReady())
 		return;
 
 	_abortParse = false;
@@ -192,6 +210,7 @@ void MidiParser::onTimer() {
 		}
 	}
 
+	bool loopEvent = false;
 	while (!_abortParse) {
 		EventInfo &info = _nextEvent;
 
@@ -200,10 +219,9 @@ void MidiParser::onTimer() {
 			break;
 
 		// Process the next info.
-		_position._lastEventTick += info.delta;
 		if (info.event < 0x80) {
 			warning("Bad command or running status %02X", info.event);
-			_position._playPos = 0;
+			_position._playPos = nullptr;
 			return;
 		}
 
@@ -222,8 +240,11 @@ void MidiParser::onTimer() {
 		if (!ret)
 			return;
 
+		loopEvent |= info.loop;
+
 		if (!_abortParse) {
 			_position._lastEventTime = eventTime;
+			_position._lastEventTick += info.delta;
 			parseNextEvent(_nextEvent);
 		}
 	}
@@ -231,6 +252,15 @@ void MidiParser::onTimer() {
 	if (!_abortParse) {
 		_position._playTime = endTime;
 		_position._playTick = (_position._playTime - _position._lastEventTime) / _psecPerTick + _position._lastEventTick;
+		if (loopEvent) {
+			// One of the processed events has looped (part of) the MIDI data.
+			// Infinite looping will cause the tracker to overflow eventually.
+			// Reset the tracker positions to prevent this from happening.
+			_position._playTime -= _position._lastEventTime;
+			_position._lastEventTime = 0;
+			_position._playTick -= _position._lastEventTick;
+			_position._lastEventTick = 0;
+		}
 	}
 }
 
@@ -239,10 +269,20 @@ bool MidiParser::processEvent(const EventInfo &info, bool fireEvents) {
 		// SysEx event
 		// Check for trailing 0xF7 -- if present, remove it.
 		if (fireEvents) {
+			if (_sysExDelay > 0)
+				// Don't process this event if the delay from
+				// the previous SysEx hasn't passed yet.
+				return false;
+
+			uint16 delay;
 			if (info.ext.data[info.length-1] == 0xF7)
-				_driver->sysEx(info.ext.data, (uint16)info.length-1);
+				delay = _driver->sysExNoDelay(info.ext.data, (uint16)info.length-1);
 			else
-				_driver->sysEx(info.ext.data, (uint16)info.length);
+				delay = _driver->sysExNoDelay(info.ext.data, (uint16)info.length);
+
+			// Set the delay in microseconds so the next
+			// SysEx event will be delayed if necessary.
+			_sysExDelay = delay * 1000;
 		}
 	} else if (info.event == 0xFF) {
 		// META event
@@ -255,7 +295,7 @@ bool MidiParser::processEvent(const EventInfo &info, bool fireEvents) {
 			} else {
 				stopPlaying();
 				if (fireEvents)
-					_driver->metaEvent(info.ext.type, info.ext.data, (uint16)info.length);
+					sendMetaEventToDriver(info.ext.type, info.ext.data, (uint16)info.length);
 			}
 			return false;
 		} else if (info.ext.type == 0x51) {
@@ -264,7 +304,7 @@ bool MidiParser::processEvent(const EventInfo &info, bool fireEvents) {
 			}
 		}
 		if (fireEvents)
-			_driver->metaEvent(info.ext.type, info.ext.data, (uint16)info.length);
+			sendMetaEventToDriver(info.ext.type, info.ext.data, (uint16)info.length);
 	} else {
 		if (fireEvents)
 			sendToDriver(info.event, info.basic.param1, info.basic.param2);
@@ -298,13 +338,10 @@ void MidiParser::allNotesOff() {
 	}
 	_hangingNotesCount = 0;
 
-	// To be sure, send an "All Note Off" event (but not all MIDI devices
-	// support this...).
-
-	for (i = 0; i < 16; ++i) {
-		sendToDriver(0xB0 | i, 0x7b, 0); // All notes off
-		if (_sendSustainOffOnNotesOff)
-			sendToDriver(0xB0 | i, 0x40, 0); // Also send a sustain off event (bug #3116608)
+	if (!_disableAllNotesOffMidiEvents) {
+		// To be sure, send an "All Note Off" event (but not all MIDI devices
+		// support this...).
+		_driver->stopAllNotes(_sendSustainOffOnNotesOff);
 	}
 
 	memset(_activeNotes, 0, sizeof(_activeNotes));
@@ -333,11 +370,17 @@ bool MidiParser::setTrack(int track) {
 
 	if (_smartJump)
 		hangAllActiveNotes();
-	else
+	else if (isPlaying())
 		allNotesOff();
 
 	resetTracking();
+	_pause = false;
 	memset(_activeNotes, 0, sizeof(_activeNotes));
+	if (_disableAutoStartPlayback)
+		_doParse = false;
+
+	onTrackStart(track);
+
 	_activeTrack = track;
 	_position._playPos = _tracks[track];
 	parseNextEvent(_nextEvent);
@@ -345,8 +388,32 @@ bool MidiParser::setTrack(int track) {
 }
 
 void MidiParser::stopPlaying() {
-	allNotesOff();
+	if (isPlaying())
+		allNotesOff();
 	resetTracking();
+	_pause = false;
+}
+
+bool MidiParser::startPlaying() {
+	if (_activeTrack >= _numTracks || _pause)
+		return false;
+	if (!_position._playPos) {
+		_position._playPos = _tracks[_activeTrack];
+		parseNextEvent(_nextEvent);
+	}
+	_doParse = true;
+	return true;
+}
+
+void MidiParser::pausePlaying() {
+	if (isPlaying() && !_pause) {
+		_pause = true;
+		allNotesOff();
+	}
+}
+
+void MidiParser::resumePlaying() {
+	_pause = false;
 }
 
 void MidiParser::hangAllActiveNotes() {
@@ -386,7 +453,7 @@ void MidiParser::hangAllActiveNotes() {
 }
 
 bool MidiParser::jumpToTick(uint32 tick, bool fireEvents, bool stopNotes, bool dontSendNoteOn) {
-	if (_activeTrack >= _numTracks)
+	if (_activeTrack >= _numTracks || _pause)
 		return false;
 
 	assert(!_jumpingToTick); // This function is not re-entrant
@@ -415,7 +482,7 @@ bool MidiParser::jumpToTick(uint32 tick, bool fireEvents, bool stopNotes, bool d
 			// Some special processing for the fast-forward case
 			if (info.command() == 0x9 && dontSendNoteOn) {
 				// Don't send note on; doing so creates a "warble" with
-				// some instruments on the MT-32. Refer to patch #3117577
+				// some instruments on the MT-32. Refer to bug #9262
 			} else if (info.event == 0xFF && info.ext.type == 0x2F) {
 				// End of track
 				// This means that we failed to find the right tick.
@@ -453,8 +520,11 @@ bool MidiParser::jumpToTick(uint32 tick, bool fireEvents, bool stopNotes, bool d
 }
 
 void MidiParser::unloadMusic() {
-	resetTracking();
-	allNotesOff();
+	if (_numTracks == 0)
+		// No music data loaded
+		return;
+
+	stopPlaying();
 	_numTracks = 0;
 	_activeTrack = 255;
 	_abortParse = true;

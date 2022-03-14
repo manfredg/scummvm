@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -26,17 +25,18 @@
 #include "backends/base-backend.h"
 
 class GraphicsManager;
-class MutexManager;
+class MixerManager;
 
 /**
- * Base class for modular backends.
+ * Base classes for modular backends.
  *
- * It wraps most functions to their manager equivalent, but not
+ * They wrap most functions to their manager equivalent, but not
  * all OSystem functions are implemented here.
  *
- * A backend derivated from this class, will need to implement
+ * A backend derivated from these classes, will need to implement
  * these functions on its own:
  *   OSystem::pollEvent()
+ *   OSystem::createMutex()
  *   OSystem::getMillis()
  *   OSystem::delayMillis()
  *   OSystem::getTimeAndDate()
@@ -45,98 +45,92 @@ class MutexManager;
  * And, it should also initialize all the managers variables
  * declared in this class, or override their related functions.
  */
-class ModularBackend : public BaseBackend {
+class ModularGraphicsBackend : virtual public BaseBackend {
 public:
-	ModularBackend();
-	virtual ~ModularBackend();
+	ModularGraphicsBackend();
+	virtual ~ModularGraphicsBackend();
 
 	/** @name Features */
 	//@{
 
-	virtual bool hasFeature(Feature f) override;
-	virtual void setFeatureState(Feature f, bool enable) override;
-	virtual bool getFeatureState(Feature f) override;
+	bool hasFeature(Feature f) override;
+	void setFeatureState(Feature f, bool enable) override;
+	bool getFeatureState(Feature f) override;
 
 	//@}
 
 	/** @name Graphics */
 	//@{
 
-	virtual GraphicsManager *getGraphicsManager();
-	virtual const GraphicsMode *getSupportedGraphicsModes() const override;
-	virtual int getDefaultGraphicsMode() const override;
-	virtual bool setGraphicsMode(int mode) override;
-	virtual int getGraphicsMode() const override;
-	virtual const GraphicsMode *getSupportedShaders() const override;
-	virtual int getDefaultShader() const override;
-	virtual int getShader() const override;
-	virtual bool setShader(int id) override;
-	virtual const GraphicsMode *getSupportedStretchModes() const override;
-	virtual int getDefaultStretchMode() const override;
-	virtual bool setStretchMode(int mode) override;
-	virtual int getStretchMode() const override;
-	virtual void resetGraphicsScale() override;
+	GraphicsManager *getGraphicsManager();
+	const GraphicsMode *getSupportedGraphicsModes() const override;
+	int getDefaultGraphicsMode() const override;
+	bool setGraphicsMode(int mode, uint flags = kGfxModeNoFlags) override;
+	int getGraphicsMode() const override;
+	const GraphicsMode *getSupportedShaders() const override final;
+	int getDefaultShader() const override final;
+	int getShader() const override final;
+	bool setShader(int id) override final;
+	const GraphicsMode *getSupportedStretchModes() const override final;
+	int getDefaultStretchMode() const override final;
+	bool setStretchMode(int mode) override final;
+	int getStretchMode() const override final;
+	uint getDefaultScaler() const override final;
+	uint getDefaultScaleFactor() const override final;
+	using BaseBackend::setScaler;
+	bool setScaler(uint mode, int factor) override final;
+	uint getScaler() const override final;
+	uint getScaleFactor() const override final;
 #ifdef USE_RGB_COLOR
-	virtual Graphics::PixelFormat getScreenFormat() const override;
-	virtual Common::List<Graphics::PixelFormat> getSupportedFormats() const override;
+	Graphics::PixelFormat getScreenFormat() const override final;
+	Common::List<Graphics::PixelFormat> getSupportedFormats() const override final;
 #endif
-	virtual void initSize(uint width, uint height, const Graphics::PixelFormat *format = NULL) override;
-	virtual void initSizeHint(const Graphics::ModeList &modes) override;
-	virtual int getScreenChangeID() const override;
+	void initSize(uint width, uint height, const Graphics::PixelFormat *format = NULL) override final;
+	void initSizeHint(const Graphics::ModeList &modes) override final;
+	int getScreenChangeID() const override final;
 
-	virtual void beginGFXTransaction() override;
-	virtual OSystem::TransactionError endGFXTransaction() override;
+	void beginGFXTransaction() override final;
+	OSystem::TransactionError endGFXTransaction() override final;
 
-	virtual int16 getHeight() override;
-	virtual int16 getWidth() override;
-	virtual PaletteManager *getPaletteManager() override;
-	virtual void copyRectToScreen(const void *buf, int pitch, int x, int y, int w, int h) override;
-	virtual Graphics::Surface *lockScreen() override;
-	virtual void unlockScreen() override;
-	virtual void fillScreen(uint32 col) override;
-	virtual void updateScreen() override;
-	virtual void setShakePos(int shakeXOffset, int shakeYOffset) override;
-	virtual void setFocusRectangle(const Common::Rect& rect) override;
-	virtual void clearFocusRectangle() override;
+	int16 getHeight() override final;
+	int16 getWidth() override final;
+	PaletteManager *getPaletteManager() override final;
+	void copyRectToScreen(const void *buf, int pitch, int x, int y, int w, int h) override final;
+	Graphics::Surface *lockScreen() override final;
+	void unlockScreen() override final;
+	void fillScreen(uint32 col) override final;
+	void updateScreen() override final;
+	void setShakePos(int shakeXOffset, int shakeYOffset) override final;
+	void setFocusRectangle(const Common::Rect& rect) override final;
+	void clearFocusRectangle() override final;
 
-	virtual void showOverlay() override;
-	virtual void hideOverlay() override;
-	virtual Graphics::PixelFormat getOverlayFormat() const override;
-	virtual void clearOverlay() override;
-	virtual void grabOverlay(void *buf, int pitch) override;
-	virtual void copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h) override;
-	virtual int16 getOverlayHeight() override;
-	virtual int16 getOverlayWidth() override;
+	void showOverlay() override final;
+	void hideOverlay() override final;
+	bool isOverlayVisible() const override final;
+	Graphics::PixelFormat getOverlayFormat() const override final;
+	void clearOverlay() override final;
+	void grabOverlay(Graphics::Surface &surface) override final;
+	void copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h) override final;
+	int16 getOverlayHeight() override final;
+	int16 getOverlayWidth() override final;
 
-	virtual bool showMouse(bool visible) override;
-	virtual void warpMouse(int x, int y) override;
-	virtual void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL) override;
-	virtual void setCursorPalette(const byte *colors, uint start, uint num) override;
+	float getHiDPIScreenFactor() const override final;
 
-	//@}
-
-	/** @name Mutex handling */
-	//@{
-
-	virtual MutexRef createMutex() override;
-	virtual void lockMutex(MutexRef mutex) override;
-	virtual void unlockMutex(MutexRef mutex) override;
-	virtual void deleteMutex(MutexRef mutex) override;
-
-	//@}
-
-	/** @name Sound */
-	//@{
-
-	virtual Audio::Mixer *getMixer() override;
+	bool showMouse(bool visible) override final;
+	void warpMouse(int x, int y) override final;
+	void setMouseCursor(const void *buf, uint w, uint h, int hotspotX, int hotspotY, uint32 keycolor, bool dontScale = false, const Graphics::PixelFormat *format = NULL) override final;
+	void setCursorPalette(const byte *colors, uint start, uint num) override final;
+	bool lockMouse(bool lock) override final;
 
 	//@}
 
 	/** @name Miscellaneous */
 	//@{
 
-	virtual void displayMessageOnOSD(const char *msg) override;
-	virtual void displayActivityIconOnOSD(const Graphics::Surface *icon) override;
+	void displayMessageOnOSD(const Common::U32String &msg) override final;
+	void displayActivityIconOnOSD(const Graphics::Surface *icon) override final;
+
+	void saveScreenshot() override final;
 
 	//@}
 
@@ -144,9 +138,29 @@ protected:
 	/** @name Managers variables */
 	//@{
 
-	MutexManager *_mutexManager;
 	GraphicsManager *_graphicsManager;
-	Audio::Mixer *_mixer;
+
+	//@}
+};
+
+class ModularMixerBackend : virtual public BaseBackend {
+public:
+	ModularMixerBackend();
+	virtual ~ModularMixerBackend();
+
+	/** @name Sound */
+	//@{
+
+	virtual MixerManager *getMixerManager();
+	Audio::Mixer *getMixer() override final;
+
+	//@}
+
+protected:
+	/** @name Managers variables */
+	//@{
+
+	MixerManager *_mixerManager;
 
 	//@}
 };

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -37,7 +36,7 @@
  * In the package manager, note the following:
  * 1. It creates a completely new (virtual) directory tree in the packages and directories
  *    can be mounted.
- * 2. To seperate elements of a directory path '/' must be used rather than '\'
+ * 2. To separate elements of a directory path '/' must be used rather than '\'
  * 3. LoadDirectoryAsPackage should only be used for testing. The final release will be
  *    have all files in packages.
  *
@@ -65,7 +64,7 @@ namespace Sword25 {
  *
  * 1. It creates a completely new (virtual) directory tree in the packages and directories
  *    can be mounted.
- * 2. To seperate elements of a directory path '/' must be used rather than '\'
+ * 2. To separate elements of a directory path '/' must be used rather than '\'
  * 3. LoadDirectoryAsPackage should only be used for testing. The final release will be
  *    have all files in packages.
  */
@@ -87,6 +86,8 @@ private:
 	Common::String _currentDirectory;
 	Common::FSNode _rootFolder;
 	Common::List<ArchiveEntry *> _archiveList;
+	bool _extractedFiles;
+	Common::String _directoryName;
 
 	bool _useEnglishSpeech;
 	Common::String ensureSpeechLang(const Common::String &fileName);
@@ -101,6 +102,15 @@ public:
 		FT_DIRECTORY    = (1 << 0),
 		FT_FILE         = (1 << 1)
 	};
+
+	/**
+	 *
+	 * Set the PackageManager to run on extracted game files.s
+	 */
+	void setRunWithExtractedFiles(const Common::String &directoryName) {
+		_extractedFiles = true;
+		_directoryName = directoryName;
+	}
 
 	/**
 	 * Mounts the contents of a package in the directory specified in the directory tree.

@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -36,6 +35,7 @@
 #include "pegasus/interface.h"
 #include "pegasus/pegasus.h"
 #include "pegasus/ai/ai_area.h"
+#include "pegasus/items/biochips/arthurchip.h"
 #include "pegasus/items/biochips/mapchip.h"
 #include "pegasus/neighborhood/neighborhood.h"
 #include "pegasus/neighborhood/tsa/fulltsa.h"
@@ -53,7 +53,7 @@ void StriderCallBack::callBack() {
 
 static const TimeValue kStridingSlop = 39;
 
-Neighborhood *g_neighborhood = 0;
+Neighborhood *g_neighborhood = nullptr;
 
 Neighborhood::Neighborhood(InputHandler *nextHandler, PegasusEngine *vm, const Common::String &resName, NeighborhoodID id)
 		: InputHandler(nextHandler), IDObject(id), _vm(vm), _resName(resName), _navMovie(kNavMovieID), _stridingCallBack(this),
@@ -66,7 +66,7 @@ Neighborhood::Neighborhood(InputHandler *nextHandler, PegasusEngine *vm, const C
 	allowInput(true);
 	resetLastExtra();
 	g_neighborhood = this;
-	_currentInteraction = 0;
+	_currentInteraction = nullptr;
 	_doneWithInteraction = false;
 	_croppedMovie.setDisplayOrder(kCroppedMovieLayer);
 }
@@ -76,7 +76,7 @@ Neighborhood::~Neighborhood() {
 		_vm->getAllHotspots().remove(*it);
 
 	_neighborhoodHotspots.deleteHotspots();
-	g_neighborhood = 0;
+	g_neighborhood = nullptr;
 
 	loadLoopSound1("");
 	loadLoopSound2("");
@@ -725,7 +725,15 @@ void Neighborhood::cantMoveThatWay(CanMoveForwardReason reason) {
 }
 
 void Neighborhood::cantOpenDoor(CanOpenDoorReason) {
+	bool firstLockedDoor;
+
 	bumpIntoWall();
+	if (g_arthurChip) {
+		firstLockedDoor = g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA31", kArthurAttemptedLockedDoor);
+
+		if (!firstLockedDoor)
+			g_arthurChip->playArthurMovieForEvent("Images/AI/Globals/XGLOBA32", kArthurAttemptedLockedDoorAgain);
+	}
 }
 
 void Neighborhood::turnTo(const DirectionConstant direction) {
@@ -982,7 +990,7 @@ HotspotInfoTable::Entry *Neighborhood::findHotspotEntry(const HotSpotID id) {
 		if (it->hotspot == id)
 			return &(*it);
 
-	return 0;
+	return nullptr;
 }
 
 void Neighborhood::hideNav() {
@@ -1010,9 +1018,9 @@ void Neighborhood::startExitMovie(const ExitTable::Entry &exitEntry) {
 	GameState.setNextDirection(exitEntry.exitDirection);
 
 	if (exitEntry.movieEnd == exitEntry.exitEnd) // Just a walk.
-		startMovieSequence(exitEntry.movieStart, exitEntry.movieEnd, kMoveForwardCompletedFlag, kFilterNoInput, false);
+		startMovieSequence(exitEntry.movieStart, exitEntry.movieEnd, kMoveForwardCompletedFlag, false, kFilterNoInput);
 	else // We're stridin'!
-		startMovieSequence(exitEntry.movieStart, exitEntry.exitEnd, kStrideCompletedFlag, kFilterNoInput, false, exitEntry.movieEnd);
+		startMovieSequence(exitEntry.movieStart, exitEntry.exitEnd, kStrideCompletedFlag, false, kFilterNoInput, exitEntry.movieEnd);
 
 	if (g_compass)
 		g_compass->startFader(compassMove);
@@ -1027,14 +1035,14 @@ void Neighborhood::startZoomMovie(const ZoomTable::Entry &zoomEntry) {
 	GameState.setNextRoom(zoomEntry.room);
 	GameState.setNextDirection(zoomEntry.direction);
 
-	startMovieSequence(zoomEntry.movieStart, zoomEntry.movieEnd, kMoveForwardCompletedFlag, kFilterNoInput, false);
+	startMovieSequence(zoomEntry.movieStart, zoomEntry.movieEnd, kMoveForwardCompletedFlag, false, kFilterNoInput);
 
 	if (g_compass)
 		g_compass->startFader(compassMove);
 }
 
 void Neighborhood::startDoorOpenMovie(const TimeValue startTime, const TimeValue stopTime) {
-	startMovieSequence(startTime, stopTime, kDoorOpenCompletedFlag, kFilterNoInput, false);
+	startMovieSequence(startTime, stopTime, kDoorOpenCompletedFlag, false, kFilterNoInput);
 }
 
 void Neighborhood::startTurnPush(const TurnDirection turnDirection, const TimeValue newView, const DirectionConstant nextDir) {
@@ -1195,7 +1203,7 @@ void Neighborhood::activateOneHotspot(HotspotInfoTable::Entry &entry, Hotspot *h
 
 void Neighborhood::startSpotOnceOnly(TimeValue startTime, TimeValue stopTime) {
 	_turnPush.hide();
-	startMovieSequence(startTime, stopTime, kSpotCompletedFlag, kFilterNoInput, false);
+	startMovieSequence(startTime, stopTime, kSpotCompletedFlag, false, kFilterNoInput);
 }
 
 void Neighborhood::startMovieSequence(const TimeValue startTime, const TimeValue stopTime, NotificationFlags flags, bool loopSequence,
@@ -1247,7 +1255,7 @@ void Neighborhood::throwAwayInterface() {
 	_navMovie.releaseMovie();
 	_pushIn.deallocateSurface();
 	_turnPush.stopDisplaying();
-	_turnPush.setInAndOutElements(0, 0);
+	_turnPush.setInAndOutElements(nullptr, nullptr);
 	_turnPush.disposeAllCallBacks();
 
 	for (HotspotList::iterator it = _neighborhoodHotspots.begin(); it != _neighborhoodHotspots.end(); it++)
@@ -1407,7 +1415,7 @@ void Neighborhood::setUpAIRules() {
 
 GameInteraction *Neighborhood::makeInteraction(const InteractionID interactionID) {
 	if (interactionID == kNoInteractionID)
-		return 0;
+		return nullptr;
 
 	return new GameInteraction(interactionID, this);
 }
@@ -1435,7 +1443,7 @@ void Neighborhood::bumpIntoWall() {
 }
 
 void Neighborhood::zoomUpOrBump() {
-	Hotspot *zoomSpot = 0;
+	Hotspot *zoomSpot = nullptr;
 
 	for (HotspotList::iterator it = _vm->getAllHotspots().begin(); it != _vm->getAllHotspots().end(); it++) {
 		Hotspot *hotspot = *it;
@@ -1445,7 +1453,7 @@ void Neighborhood::zoomUpOrBump() {
 
 			if (entry && entry->hotspotRoom == GameState.getCurrentRoom() && entry->hotspotDirection == GameState.getCurrentDirection()) {
 				if (zoomSpot) {
-					zoomSpot = 0;
+					zoomSpot = nullptr;
 					break;
 				} else {
 					zoomSpot = hotspot;
@@ -1567,7 +1575,7 @@ void Neighborhood::startExtraLongSequence(const uint32 firstExtra, const uint32 
 		getExtraEntry(lastExtra, lastEntry);
 		_lastExtra = firstExtra;
 		_turnPush.hide();
-		startMovieSequence(firstEntry.movieStart, lastEntry.movieEnd, flags, kFilterNoInput, interruptionFilter);
+		startMovieSequence(firstEntry.movieStart, lastEntry.movieEnd, flags, false, interruptionFilter);
 	}
 }
 
@@ -1583,6 +1591,7 @@ void Neighborhood::openCroppedMovie(const Common::String &movieName, CoordType l
 
 void Neighborhood::loopCroppedMovie(const Common::String &movieName, CoordType left, CoordType top) {
 	openCroppedMovie(movieName, left, top);
+	_croppedMovie.setVolume(_vm->getSoundFXLevel());
 	_croppedMovie.redrawMovieWorld();
 	_croppedMovie.setFlags(kLoopTimeBase);
 	_croppedMovie.start();
@@ -1666,7 +1675,10 @@ void Neighborhood::handleInput(const Input &input, const Hotspot *cursorSpot) {
 		else if (input.rightButtonAnyDown())
 			rightButton(input);
 	}
-
+	if (_vm->toggleRequested()) {
+		_vm->requestToggle(false);
+		_vm->setChattyAI(!_vm->isChattyAI());
+	}
 	InputHandler::handleInput(input, cursorSpot);
 }
 

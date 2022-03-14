@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -106,7 +105,7 @@ static const byte v0WalkboxSlantedModifier[0x16] = {
 
 Actor::Actor(ScummEngine *scumm, int id) :
 	_vm(scumm), _number(id) {
-	assert(_vm != 0);
+	assert(_vm != nullptr);
 }
 
 void ActorHE::initActor(int mode) {
@@ -217,7 +216,7 @@ void Actor::initActor(int mode) {
 }
 
 void Actor_v2::initActor(int mode) {
-	Actor::initActor(mode);
+	Actor_v3::initActor(mode);
 
 	_speedx = 1;
 	_speedy = 1;
@@ -227,6 +226,14 @@ void Actor_v2::initActor(int mode) {
 	_standFrame = 1;
 	_talkStartFrame = 5;
 	_talkStopFrame = 4;
+}
+
+void Actor_v3::initActor(int mode) {
+	if (mode == -1) {
+		_stepX = 1;
+		_stepThreshold = 0;
+	}
+	Actor::initActor(mode);
 }
 
 void Actor_v0::initActor(int mode) {
@@ -383,7 +390,7 @@ void Actor::setBox(int box) {
 }
 
 void Actor_v3::setupActorScale() {
-	// WORKAROUND bug #1463598: Under certain circumstances, it is possible
+	// WORKAROUND bug #2556: Under certain circumstances, it is possible
 	// for Henry Sr. to reach the front side of Castle Brunwald (following
 	// Indy there). But it seems the game has no small costume for Henry,
 	// hence he is shown as a giant, triple in size compared to Indy.
@@ -457,20 +464,15 @@ void Actor::setActorWalkSpeed(uint newSpeedX, uint newSpeedY) {
 	}
 }
 
-int getAngleFromPos(int x, int y, bool useATAN) {
-	if (useATAN) {
-		double temp = atan2((double)x, (double)-y);
-		return normalizeAngle((int)(temp * 180 / M_PI));
+int getAngleFromPos(int x, int y) {
+	if (ABS(y) * 2 < ABS(x)) {
+		if (x > 0)
+			return 90;
+		return 270;
 	} else {
-		if (ABS(y) * 2 < ABS(x)) {
-			if (x > 0)
-				return 90;
-			return 270;
-		} else {
-			if (y > 0)
-				return 180;
-			return 0;
-		}
+		if (y > 0)
+			return 180;
+		return 0;
 	}
 }
 
@@ -483,8 +485,8 @@ int Actor::calcMovementFactor(const Common::Point& next) {
 
 	diffX = next.x - _pos.x;
 	diffY = next.y - _pos.y;
-	deltaYFactor = _speedy << 16;
 
+	deltaYFactor = _speedy << 16;
 	if (diffY < 0)
 		deltaYFactor = -deltaYFactor;
 
@@ -495,7 +497,7 @@ int Actor::calcMovementFactor(const Common::Point& next) {
 		deltaYFactor = 0;
 	}
 
-	if ((uint) ABS(deltaXFactor) > (_speedx << 16))	{
+	if ((uint)ABS(deltaXFactor >> 16) > _speedx) {
 		deltaXFactor = _speedx << 16;
 		if (diffX < 0)
 			deltaXFactor = -deltaXFactor;
@@ -508,29 +510,68 @@ int Actor::calcMovementFactor(const Common::Point& next) {
 		}
 	}
 
+	_walkdata.xfrac = 0;
+	_walkdata.yfrac = 0;
 	_walkdata.cur = _pos;
 	_walkdata.next = next;
 	_walkdata.deltaXFactor = deltaXFactor;
 	_walkdata.deltaYFactor = deltaYFactor;
-	_walkdata.xfrac = 0;
-	_walkdata.yfrac = 0;
 
-	if (_vm->_game.version <= 2)
-		_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*deltaXFactor, V12_Y_MULTIPLIER*deltaYFactor, false);
+	if (_vm->_game.version >= 7)
+		_targetFacing = normalizeAngle((int)(atan2((double)deltaXFactor, (double)-deltaYFactor) * 180 / M_PI));
 	else
-		_targetFacing = getAngleFromPos(deltaXFactor, deltaYFactor, (_vm->_game.id == GID_DIG || _vm->_game.id == GID_CMI));
+		_targetFacing = (ABS(diffY) * 3 > ABS(diffX)) ? (deltaYFactor > 0 ? 180 : 0) : (deltaXFactor > 0 ? 90 : 270);
+
+	return actorWalkStep();
+}
+
+int Actor_v3::calcMovementFactor(const Common::Point& next) {
+	int32 deltaXFactor, deltaYFactor;
+
+	if (_pos == next)
+		return 0;
+
+	int diffX = next.x - _pos.x;
+	int diffY = next.y - _pos.y;
+
+	if (_vm->_game.version == 3) {
+		// These two lines fix bug #1052 (INDY3: Hitler facing wrong directions in the Berlin scene).
+		// I can't see anything like this in the original SCUMM1/2 code, so I limit this to SCUMM3.
+		if (!(_moving & MF_LAST_LEG) && (int)_speedx > ABS(diffX) && (int)_speedy > ABS(diffY))
+			return 0;
+
+		_stepX = ((ABS(diffY) / (int)_speedy) >> 1) > (ABS(diffX) / (int)_speedx) ? _speedy + 1 : _speedx;
+	}
+
+	_stepThreshold = MAX(ABS(diffY) / _speedy, ABS(diffX) / _stepX);
+	deltaXFactor = (int32)_stepX;
+	deltaYFactor = (int32)_speedy;
+
+	if (diffX < 0)
+		deltaXFactor = -deltaXFactor;
+	if (diffY < 0)
+		deltaYFactor = -deltaYFactor;
+
+	_walkdata.xfrac = _walkdata.xAdd = deltaXFactor ? diffX / deltaXFactor : 0;
+	_walkdata.yfrac = _walkdata.yAdd = deltaYFactor ? diffY / deltaYFactor : 0;
+	_walkdata.cur = _pos;
+	_walkdata.next = next;
+	_walkdata.deltaXFactor = deltaXFactor;
+	_walkdata.deltaYFactor = deltaYFactor;
+
+	// The x/y distance ratio which determines whether to face up/down instead of left/right is different for SCUMM1/2 and SCUMM3.
+	_targetFacing = oldDirToNewDir(((ABS(diffY) * _facingXYratio) > ABS(diffX)) ? 3 - (diffY >= 0 ? 1 : 0) : (diffX >= 0 ? 1 : 0));
+
+	if (_vm->_game.version <= 2 && _facing != updateActorDirection(true))
+		_moving |= MF_TURN;
 
 	return actorWalkStep();
 }
 
 int Actor::actorWalkStep() {
-	int tmpX, tmpY;
-	int distX, distY;
-	int nextFacing;
-
 	_needRedraw = true;
 
-	nextFacing = updateActorDirection(true);
+	int nextFacing = updateActorDirection(true);
 	if (!(_moving & MF_IN_LEG) || _facing != nextFacing) {
 		if (_walkFrame != _frame || _facing != nextFacing) {
 			startWalkAnim(1, nextFacing);
@@ -538,50 +579,88 @@ int Actor::actorWalkStep() {
 		_moving |= MF_IN_LEG;
 	}
 
-	if (_walkbox != _walkdata.curbox && _vm->checkXYInBoxBounds(_walkdata.curbox, _pos.x, _pos.y)) {
+	if (_walkbox != _walkdata.curbox && _vm->checkXYInBoxBounds(_walkdata.curbox, _pos.x, _pos.y))
 		setBox(_walkdata.curbox);
-	}
 
-	distX = ABS(_walkdata.next.x - _walkdata.cur.x);
-	distY = ABS(_walkdata.next.y - _walkdata.cur.y);
+	int distX = ABS(_walkdata.next.x - _walkdata.cur.x);
+	int distY = ABS(_walkdata.next.y - _walkdata.cur.y);
 
 	if (ABS(_pos.x - _walkdata.cur.x) >= distX && ABS(_pos.y - _walkdata.cur.y) >= distY) {
+		// I have checked that only the v7/8 games have this different (non-)handling of the moving flag. Our code was
+		// correct for the lower versions. For COMI this fixes one part of the issues that caused ticket #4424 (wrong
+		// movement data being reported by ScummEngine_v8::o8_wait()).
+		if (_vm->_game.version < 7)
+			_moving &= ~MF_IN_LEG;
+		return 0;
+	}
+
+	int tmpX = (_pos.x << 16) + _walkdata.xfrac + (_walkdata.deltaXFactor >> 8) * _scalex;
+	_walkdata.xfrac = (uint16)tmpX;
+	_pos.x = (tmpX >> 16);
+
+	int tmpY = (_pos.y << 16) + _walkdata.yfrac + (_walkdata.deltaYFactor >> 8) * _scaley;
+	_walkdata.yfrac = (uint16)tmpY;
+	_pos.y = (tmpY >> 16);
+
+	if (ABS(_pos.x - _walkdata.cur.x) > distX)
+		_pos.x = _walkdata.next.x;
+
+	if (ABS(_pos.y - _walkdata.cur.y) > distY)
+		_pos.y = _walkdata.next.y;
+
+	if (_vm->_game.version >= 4 && _vm->_game.version <= 6 && _pos == _walkdata.next) {
 		_moving &= ~MF_IN_LEG;
 		return 0;
 	}
 
-	if (_vm->_game.version <= 2) {
-		if (_walkdata.deltaXFactor != 0) {
-			if (_walkdata.deltaXFactor > 0)
-				_pos.x += 1;
-			else
-				_pos.x -= 1;
+	return 1;
+}
+
+int Actor_v3::actorWalkStep() {
+	_needRedraw = true;
+
+	int nextFacing = updateActorDirection(true);
+	if (!(_moving & MF_IN_LEG) || _facing != nextFacing) {
+		if (_walkFrame != _frame || _facing != nextFacing)
+			startWalkAnim(1, nextFacing);
+
+		_moving |= MF_IN_LEG;
+		// The next two lines fix bug #12278 for ZAK FM-TOWNS (SCUMM3). They are alse required for SCUMM 1/2 to prevent movement while
+		// turning, but only if the character has to make a turn. The correct behavior for v1/2 can be tested by letting Zak (only v1/2
+		// versions) walk in the starting room from the torn wallpaper to the desk drawer: Zak should first turn around clockwise by
+		// 180�, then walk one step to the left, then turn clockwise 90�. For ZAK FM-TOWNS (SCUMM3) this part will look quite different
+		// (and a bit weird), but I have confirmed the correctness with the FM-Towns emulator, too.
+		if (_vm->_game.version == 3 || (_vm->_game.version <= 2 && (_moving & MF_TURN)))
+			return 1;
+	}
+
+	if (_vm->_game.version == 3) {
+		if (_walkdata.next.x - (int)_stepX <= _pos.x && _walkdata.next.x + (int)_stepX >= _pos.x)
+			_pos.x = _walkdata.next.x;
+		if (_walkdata.next.y - (int)_speedy <= _pos.y && _walkdata.next.y + (int)_speedy >= _pos.y)
+			_pos.y = _walkdata.next.y;
+
+		if (_walkbox != _walkdata.curbox && _vm->checkXYInBoxBounds(_walkdata.curbox, _pos.x, _pos.y))
+			setBox(_walkdata.curbox);
+
+		if (_pos == _walkdata.next) {
+			_moving &= ~MF_IN_LEG;
+			return 0;
 		}
-		if (_walkdata.deltaYFactor != 0) {
-			if (_walkdata.deltaYFactor > 0)
-				_pos.y += 1;
-			else
-				_pos.y -= 1;
-		}
-	} else {
-		tmpX = (_pos.x * (1 << 16)) + _walkdata.xfrac + (_walkdata.deltaXFactor / 256) * _scalex;
-		_walkdata.xfrac = (uint16)tmpX;
-		_pos.x = (tmpX / (1 << 16));
-
-		tmpY = (_pos.y * (1 << 16)) + _walkdata.yfrac + (_walkdata.deltaYFactor / 256) * _scaley;
-		_walkdata.yfrac = (uint16)tmpY;
-		_pos.y = (tmpY / (1 << 16));
 	}
 
-	if (ABS(_pos.x - _walkdata.cur.x) > distX) {
-		_pos.x = _walkdata.next.x;
+	if ((_walkdata.xfrac += _walkdata.xAdd) >= _stepThreshold) {
+		if (_pos.x != _walkdata.next.x)
+			_pos.x += _walkdata.deltaXFactor;
+		_walkdata.xfrac -= _stepThreshold;
+	}
+	if ((_walkdata.yfrac += _walkdata.yAdd) >= _stepThreshold) {
+		if (_pos.y != _walkdata.next.y)
+			_pos.y += _walkdata.deltaYFactor;
+		_walkdata.yfrac -= _stepThreshold;
 	}
 
-	if (ABS(_pos.y - _walkdata.cur.y) > distY) {
-		_pos.y = _walkdata.next.y;
-	}
-
-	if ((_vm->_game.version <= 2 || (_vm->_game.version >= 4 && _vm->_game.version <= 6)) && _pos == _walkdata.next) {
+	if (_vm->_game.version <= 2 && _pos == _walkdata.next) {
 		_moving &= ~MF_IN_LEG;
 		return 0;
 	}
@@ -727,10 +806,12 @@ void Actor::startWalkActor(int destX, int destY, int dir) {
 			abr.box = kInvalidBox;
 			_walkbox = kInvalidBox;
 		} else {
-			if (_vm->checkXYInBoxBounds(_walkdata.destbox, abr.x, abr.y)) {
-				abr.box = _walkdata.destbox;
-			} else {
-				abr = adjustXYToBeInBox(abr.x, abr.y);
+			if (_vm->_game.version < 7) {
+				if (_vm->checkXYInBoxBounds(_walkdata.destbox, abr.x, abr.y)) {
+					abr.box = _walkdata.destbox;
+				} else {
+					abr = adjustXYToBeInBox(abr.x, abr.y);
+				}
 			}
 			if (_moving && _walkdata.destdir == dir && _walkdata.dest.x == abr.x && _walkdata.dest.y == abr.y)
 				return;
@@ -755,9 +836,9 @@ void Actor::startWalkActor(int destX, int destY, int dir) {
 
 	} else if (_vm->_game.version <= 2) {
 		_moving = (_moving & ~(MF_LAST_LEG | MF_IN_LEG)) | MF_NEW_LEG;
- 	} else {
- 		_moving = (_moving & MF_IN_LEG) | MF_NEW_LEG;
- 	}
+	} else {
+		_moving = (_moving & MF_IN_LEG) | MF_NEW_LEG;
+	}
 
 }
 
@@ -836,7 +917,10 @@ void Actor::walkActor() {
 			if (_facing != new_dir)
 				setDirection(new_dir);
 			else
-				_moving = 0;
+				// I have checked that only the v7/8 games have this different handling of the moving flag. Our code was
+				// correct for the lower versions. For COMI this fixes one part of the issues that caused ticket #4424
+				// (wrong movement data being reported by ScummEngine_v8::o8_wait()).
+				_moving = (_vm->_game.version >= 7) ? (_moving & ~MF_TURN) : 0;
 			return;
 		}
 
@@ -893,15 +977,15 @@ UpdateActorDirection:;
 
 		if (!_walkYCountGreaterThanXCount) {
 			if (_walkDirX) {
-				_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*1, V12_Y_MULTIPLIER*0, false);
+				_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*1, V12_Y_MULTIPLIER*0);
 			} else {
-				_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*-1, V12_Y_MULTIPLIER*0, false);
+				_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*-1, V12_Y_MULTIPLIER*0);
 			}
 		} else {
 			if (_walkDirY) {
-				_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*0, V12_Y_MULTIPLIER*1, false);
+				_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*0, V12_Y_MULTIPLIER*1);
 			} else {
-				_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*0, V12_Y_MULTIPLIER*-1, false);
+				_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*0, V12_Y_MULTIPLIER*-1);
 			}
 		}
 
@@ -1063,16 +1147,16 @@ UpdateActorDirection:;
 				_moving |= A;
 
 				if (_walkDirY) {
-					_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*0, V12_Y_MULTIPLIER*1, false);
+					_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*0, V12_Y_MULTIPLIER*1);
 				} else {
-					_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*0, V12_Y_MULTIPLIER*-1, false);
+					_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*0, V12_Y_MULTIPLIER*-1);
 				}
 
 				directionUpdate();
 				animateActor(newDirToOldDir(_facing));
 
-				// FIXME: During the hands-free-demo in the library (room 5), Purple Tentacle gets stuck following Sandy due to the corner of the stairs, 
-				//        This is due to distance, and walkbox gap/layout. This works fine with the original engine, because it 'brute forces' 
+				// FIXME: During the hands-free-demo in the library (room 5), Purple Tentacle gets stuck following Sandy due to the corner of the stairs,
+				//        This is due to distance, and walkbox gap/layout. This works fine with the original engine, because it 'brute forces'
 				//        another pixel move in the walk direction before giving up, allowing us to move enough pixels to hit the next walkbox.
 				//        Why this fails with the return is because script-10 is executing a 'walkActorToActor' every cycle, which restarts the movement process
 				//        As a work around, we implement the original engine behaviour only for Purple Tentacle in the Demo. Doing this for other actors
@@ -1095,9 +1179,9 @@ UpdateActorDirection:;
 				_moving |= A;
 
 				if (_walkDirX) {
-					_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*1, V12_Y_MULTIPLIER*0, false);
+					_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*1, V12_Y_MULTIPLIER*0);
 				} else {
-					_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*-1, V12_Y_MULTIPLIER*0, false);
+					_targetFacing = getAngleFromPos(V12_X_MULTIPLIER*-1, V12_Y_MULTIPLIER*0);
 				}
 
 				directionUpdate();
@@ -1118,7 +1202,7 @@ void Actor_v2::walkActor() {
 		if (_facing != new_dir) {
 			setDirection(new_dir);
 		} else {
-			_moving = 0;
+			_moving &= ~MF_TURN;
 		}
 		return;
 	}
@@ -1130,7 +1214,7 @@ void Actor_v2::walkActor() {
 		actorWalkStep();
 	} else {
 		if (_moving & MF_LAST_LEG) {
-			_moving = 0;
+			_moving = MF_TURN;
 			startAnimActor(_standFrame);
 			if (_targetFacing != _walkdata.destdir)
 				turnToDirection(_walkdata.destdir);
@@ -1184,10 +1268,19 @@ void Actor_v3::walkActor() {
 
 		if (_moving & MF_TURN) {
 			new_dir = updateActorDirection(false);
-			if (_facing != new_dir)
+			if (_facing != new_dir) {
 				setDirection(new_dir);
-			else
+			} else {
+				// WORKAROUND for bug #4594 ("SCUMM: Zak McKracken - Zak keeps walk animation without moving")
+				// This bug also happens with the original SCUMM3 (ZAK FM-TOWNS) interpreter (unlike SCUMM1/2
+				// where the actors are apparently supposed to continue walking after being turned). We have
+				// to stop the walking animation here...
+				// This also fixes bug #4601 ("SCUMM: Zak McKracken (FM-Towns) - shopkeeper keeps walking"),
+				// although that one does not happen with the original interpreter.
+				if (_vm->_game.id == GID_ZAK && _moving == MF_TURN)
+					startAnimActor(_standFrame);
 				_moving = 0;
+			}
 			return;
 		}
 
@@ -1376,21 +1469,26 @@ int Actor::updateActorDirection(bool is_walking) {
 	dir &= 1023;
 
 	if (shouldInterpolate) {
-		int to = toSimpleDir(dirType, dir);
-		int num = dirType ? 8 : 4;
+		if (_vm->_game.version <= 3) {
+			static const uint8 tbl[] = { 0, 2, 2, 3, 2, 1, 2, 3, 0, 1, 2, 1, 0, 1, 0, 3 };
+			dir = oldDirToNewDir(tbl[newDirToOldDir(dir) | (newDirToOldDir(_facing) << 2)]);
+		} else {
+			int to = toSimpleDir(dirType, dir);
+			int num = dirType ? 8 : 4;
 
-		// Turn left or right, depending on which is shorter.
-		int diff = to - from;
-		if (ABS(diff) > (num >> 1))
-			diff = -diff;
+			// Turn left or right, depending on which is shorter.
+			int diff = to - from;
+			if (ABS(diff) > (num >> 1))
+				diff = -diff;
 
-		if (diff > 0) {
-			to = from + 1;
-		} else if (diff < 0){
-			to = from - 1;
+			if (diff > 0) {
+				to = from + 1;
+			} else if (diff < 0) {
+				to = from - 1;
+			}
+
+			dir = fromSimpleDir(dirType, (to + num) % num);
 		}
-
-		dir = fromSimpleDir(dirType, (to + num) % num);
 	}
 
 	return dir;
@@ -1400,11 +1498,6 @@ void Actor::setDirection(int direction) {
 	uint aMask;
 	int i;
 	uint16 vald;
-
-	// HACK to fix bug #774783
-	// If Hitler's direction is being set to anything other than 90, set it to 90
-	if ((_vm->_game.id == GID_INDY3) && _vm->_roomResource == 46 && _number == 9 && direction != 90)
-		direction = 90;
 
 	// Do nothing if actor is already facing in the given direction
 	if (_facing == direction)
@@ -1475,11 +1568,12 @@ void Actor::turnToDirection(int newdir) {
 	if (_vm->_game.version <= 6) {
 		_targetFacing = newdir;
 
-		if (_vm->_game.version == 0) {
+		if (_vm->_game.version == 0)
 			setDirection(newdir);
-			return;
-		}
-		_moving = MF_TURN;
+		else if (_vm->_game.version <= 2)
+			_moving |= MF_TURN;
+		else
+			_moving = MF_TURN;
 
 	} else {
 		_moving &= ~MF_TURN;
@@ -2025,7 +2119,7 @@ Actor *ScummEngine::derefActorSafe(int id, const char *errmsg) const {
 	if (!isValidActor(id)) {
 		debugC(DEBUG_ACTORS, "Invalid actor %d in %s (script %d, opcode 0x%x)",
 			 id, errmsg, vm.slot[_currentScript].number, _opcode);
-		return NULL;
+		return nullptr;
 	}
 	return _actors[id];
 }
@@ -2061,11 +2155,11 @@ void ScummEngine::processActors() {
 	// 'optimization' wouldn't yield a useful gain anyway.
 	//
 	// In particular, changing this loop caused a number of bugs in the
-	// past, including bugs #758167, #775097, and #1093867.
+	// past, including bugs #912, #1055, and #1864.
 	//
 	// Note that Sam & Max uses a stable sorting method. Older games don't
 	// and, according to cyx, neither do newer ones. At least not FT and
-	// COMI. See bug #1220168 for more details.
+	// COMI. See bug #2064 for more details.
 
 	if (_game.id == GID_SAMNMAX) {
 		for (int j = 0; j < numactors; ++j) {
@@ -2442,11 +2536,11 @@ void Actor::startAnimActor(int f) {
 			_needRedraw = true;
 			_cost.animCounter = 0;
 			// V1 - V2 games don't seem to need a _cost.reset() at this point.
-			// Causes Zak to lose his body in several scenes, see bug #771508
+			// Causes Zak to lose his body in several scenes, see bug #1032
 			if (_vm->_game.version >= 3 && f == _initFrame) {
 				_cost.reset();
 				if (_vm->_game.heversion != 0) {
-				((ActorHE *)this)->_auxBlock.reset();
+					((ActorHE *)this)->_auxBlock.reset();
 				}
 			}
 			_vm->_costumeLoader->costumeDecodeData(this, f, (uint) - 1);
@@ -2634,7 +2728,7 @@ void ScummEngine::setActorRedrawFlags() {
 	int i, j;
 
 	// Redraw all actors if a full redraw was requested.
-	// Also redraw all actors in COMI (see bug #1066329 for details).
+	// Also redraw all actors in COMI (see bug #1825 for details).
 	if (_fullRedraw || _game.version == 8 || (VAR_REDRAW_ALL_ACTORS != 0xFF && VAR(VAR_REDRAW_ALL_ACTORS) != 0)) {
 		for (j = 1; j < _numActors; j++) {
 			_actors[j]->_needRedraw = true;
@@ -2774,8 +2868,11 @@ void ScummEngine_v7::actorTalk(const byte *msg) {
 	playSpeech((byte *)_lastStringTag);
 
 	if (_game.id == GID_DIG || _game.id == GID_CMI) {
-		if (VAR(VAR_HAVE_MSG))
+		if (VAR(VAR_HAVE_MSG)) {
+			if (_game.id == GID_DIG && _roomResource == 58 && msg[0] == ' ' && !msg[1])
+				return;
 			stopTalk();
+		}
 	} else {
 		if (!_keepText)
 			stopTalk();
@@ -2790,6 +2887,14 @@ void ScummEngine_v7::actorTalk(const byte *msg) {
 			a->runActorTalkScript(a->_talkStartFrame);
 		}
 		_charsetColor = a->_talkColor;
+
+		// This is what the original COMI CJK interpreter does here.
+		if (_game.id == GID_CMI && _useCJKMode) {
+			if (a->_number == 1 && _currentRoom == 15)
+				_charsetColor = 28;
+			else if (a->_talkColor == 22)
+				_charsetColor = 5;
+		}
 	}
 
 	_charsetBufPos = 0;
@@ -2818,11 +2923,15 @@ void ScummEngine::actorTalk(const byte *msg) {
 
 	convertMessageToString(msg, _charsetBuffer, sizeof(_charsetBuffer));
 
-	// WORKAROUND for bugs #770039 and #770049
-	if (_game.id == GID_LOOM) {
+	// I have commented out this workaround, since it did cause another
+	// bug (#11480). It is not okay to skip the stopTalk() calls here.
+	// Instead, I have added two checks from LOOM DOS EGA disasm (one
+	// below and one in CHARSET_1()).
+	// WORKAROUND for bugs #985 and #990
+	/*if (_game.id == GID_LOOM) {
 		if (!*_charsetBuffer)
 			return;
-	}
+	}*/
 
 	if (_actorToPrintStrFor == 0xFF) {
 		if (!_keepText) {
@@ -2832,13 +2941,14 @@ void ScummEngine::actorTalk(const byte *msg) {
 	} else {
 		int oldact;
 
-		// WORKAROUND bug #770724
+		// WORKAROUND bug #1025
 		if (_game.id == GID_LOOM && _roomResource == 23 &&
 			vm.slot[_currentScript].number == 232 && _actorToPrintStrFor == 0) {
 			_actorToPrintStrFor = 2;	// Could be anything from 2 to 5. Maybe compare to original?
 		}
 
 		a = derefActor(_actorToPrintStrFor, "actorTalk");
+
 		if (!a->isInCurrentRoom()) {
 			oldact = 0xFF;
 		} else {
@@ -2848,7 +2958,11 @@ void ScummEngine::actorTalk(const byte *msg) {
 			setTalkingActor(a->_number);
 			if (_game.heversion != 0)
 				((ActorHE *)a)->_heTalking = true;
-			if (!_string[0].no_talk_anim) {
+			// The second check is from LOOM DOS EGA disasm. It prevents weird speech animations
+			// with empty strings (bug #990). The same code is present in CHARSET_1(). The FM-Towns
+			// versions don't have such code, but I do not get the weird speech animations either.
+			// So apparently it is not needed there.
+			if (!_string[0].no_talk_anim && !(_game.id == GID_LOOM && _game.platform != Common::kPlatformFMTowns && !*_charsetBuffer)) {
 				a->runActorTalkScript(a->_talkStartFrame);
 				_useTalkAnims = true;
 			}
@@ -2859,7 +2973,10 @@ void ScummEngine::actorTalk(const byte *msg) {
 	}
 
 	if (_game.heversion >= 72 || getTalkingActor() > 0x7F) {
-		_charsetColor = (byte)_string[0].color;
+		if (_game.platform == Common::kPlatformNES)
+			_charsetColor = 0; // NES MM intro color is always 0
+		else
+			_charsetColor = (byte)_string[0].color;
 	} else if (_game.platform == Common::kPlatformNES) {
 		if (_NES_lastTalkingActor != getTalkingActor())
 			_NES_talkColor ^= 1;
@@ -2909,6 +3026,7 @@ void ScummEngine::stopTalk() {
 
 	_haveMsg = 0;
 	_talkDelay = 0;
+	_sound->_sfxMode = 0;
 
 	act = getTalkingActor();
 	if (act && act < 0x80) {
@@ -3092,7 +3210,7 @@ static const char *const v0ActorNames_German[25] = {
 };
 
 const byte *Actor::getActorName() {
-	const byte *ptr = NULL;
+	const byte *ptr = nullptr;
 
 	if (_vm->_game.version == 0) {
 		if (_number) {
@@ -3108,7 +3226,7 @@ const byte *Actor::getActorName() {
 		ptr = _vm->getResourceAddress(rtActorName, _number);
 	}
 
-	if (ptr == NULL) {
+	if (ptr == nullptr) {
 		debugC(DEBUG_ACTORS, "Failed to find name of actor %d", _number);
 	}
 	return ptr;
@@ -3677,6 +3795,40 @@ void Actor::saveLoadWithSerializer(Common::Serializer &s) {
 		}
 
 		setDirection(_facing);
+	}
+}
+
+void Actor_v3::saveLoadWithSerializer(Common::Serializer &s) {
+	Actor::saveLoadWithSerializer(s);
+
+	int rev = (_vm->_game.version == 3 ? 101 : 102);
+
+	if (s.isLoading() && s.getVersion() < VER(rev)) {
+		int diffX = _walkdata.next.x - _pos.x;
+		int diffY = _walkdata.next.y - _pos.y;
+
+		if (_vm->_game.version < 3) {
+			_stepThreshold = MAX(ABS(diffX), ABS(diffY));
+			_walkdata.deltaXFactor = _walkdata.deltaYFactor = 1;
+		} else {
+			_stepX = ((ABS(diffY) / (int)_speedy) >> 1) >(ABS(diffX) / (int)_speedx) ? _speedy + 1 : _speedx;
+			_stepThreshold = MAX(ABS(diffY) / _speedy, ABS(diffX) / _stepX);
+			_walkdata.deltaXFactor = (int32)_stepX;
+			_walkdata.deltaYFactor = (int32)_speedy;
+		}
+
+		if (diffX < 0)
+			_walkdata.deltaXFactor = -_walkdata.deltaXFactor;
+		if (diffY < 0)
+			_walkdata.deltaYFactor = -_walkdata.deltaYFactor;
+		_walkdata.xfrac = _walkdata.xAdd = _walkdata.deltaXFactor ? diffX / _walkdata.deltaXFactor : 0;
+		_walkdata.yfrac = _walkdata.yAdd = _walkdata.deltaYFactor ? diffY / _walkdata.deltaYFactor : 0;
+
+	} else {
+		s.syncAsUint16LE(_walkdata.xAdd, VER(rev));
+		s.syncAsUint16LE(_walkdata.yAdd, VER(rev));
+		s.syncAsUint16LE(_stepX, VER(rev));
+		s.syncAsUint16LE(_stepThreshold, VER(rev));
 	}
 }
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -205,6 +204,8 @@ void ScriptInterpreter::setMainScript(uint slotIndex) {
 	_regs.sp = 4096;
 	_regs.reg8 = 0;
 	_code = getSlotData(_regs.reg4);
+	debug(2, "CODE: slot[%d]", _regs.reg4);
+	_codeStart = _code;
 }
 
 void ScriptInterpreter::runScript() {
@@ -255,7 +256,7 @@ int16 ScriptInterpreter::readInt16() {
 void ScriptInterpreter::execOpcode(byte opcode) {
 	int16 ofs;
 
-	debug(2, "opcode = %d", opcode);
+	debug(2, "[%ld] %d", _code - _codeStart - 1, opcode);
 
 	switch (opcode) {
 	case 0:
@@ -405,9 +406,13 @@ void ScriptInterpreter::execOpcode(byte opcode) {
 		break;
 	case 43:
 		_code = getSlotData(_regs.reg4) + _regs.reg0;
+		debug(2, "CODE: slot[%d] + %d", _regs.reg4, _regs.reg0);
+		_codeStart = _code;
 		break;
 	case 44:
 		_code = getSlotData(_regs.reg5) + _regs.reg0;
+		debug(2, "CODE: slot[%d] + %d", _regs.reg5, _regs.reg0);
+		_codeStart = _code;
 		_regs.reg4 = _regs.reg5;
 		_switchLocalDataNear = true;
 		break;
@@ -415,11 +420,15 @@ void ScriptInterpreter::execOpcode(byte opcode) {
 		pushInt16(_code - getSlotData(_regs.reg4));
 		pushInt16(_regs.reg4);
 		_code = getSlotData(_regs.reg4) + _regs.reg0;
+		debug(2, "CODE: slot[%d] + %d", _regs.reg4, _regs.reg0);
+		_codeStart = _code;
 		break;
 	case 46:
 		pushInt16(_code - getSlotData(_regs.reg4));
 		pushInt16(_regs.reg4);
 		_code = getSlotData(_regs.reg5) + _regs.reg0;
+		debug(2, "CODE: slot[%d] + %d", _regs.reg5, _regs.reg0);
+		_codeStart = _code;
 		_regs.reg4 = _regs.reg5;
 		_switchLocalDataNear = true;
 		break;
@@ -427,12 +436,16 @@ void ScriptInterpreter::execOpcode(byte opcode) {
 		_regs.reg4 = popInt16();
 		ofs = popInt16();
 		_code = getSlotData(_regs.reg4) + ofs;
+		debug(2, "CODE: slot[%d] + %d", _regs.reg4, ofs);
+		_codeStart = _code;
 		_switchLocalDataNear = true;
 		break;
 	case 48:
 		_regs.reg4 = popInt16();
 		ofs = popInt16();
 		_code = getSlotData(_regs.reg4) + ofs;
+		debug(2, "CODE: slot[%d] + %d", _regs.reg4, ofs);
+		_codeStart = _code;
 		_regs.sp += _regs.reg0;
 		_switchLocalDataNear = true;
 		break;
@@ -484,7 +497,7 @@ void ScriptInterpreter::execOpcode(byte opcode) {
 		break;
 	default:
 		// Most likely a script bug. Throw a warning and ignore it.
-		// The original ignores invalid opcodes as well - bug #3604025.
+		// The original ignores invalid opcodes as well - bug #6244.
 		warning("Invalid opcode %d", opcode);
 	}
 
@@ -498,7 +511,10 @@ void ScriptInterpreter::execScriptFunction(uint16 index) {
 }
 
 int16 ScriptInterpreter::getGameVar(uint variable) {
-	debug(2, "ScriptInterpreter::getGameVar(%d{%s})", variable, varNames[variable]);
+	if (variable > 21)
+		debug(2, "ScriptInterpreter::getGameVar(%d)", variable);
+	else
+		debug(2, "ScriptInterpreter::getGameVar(%d{%s})", variable, varNames[variable]);
 
 	switch (variable) {
 	case  0: return _vm->_mouseDisabled;
@@ -524,13 +540,16 @@ int16 ScriptInterpreter::getGameVar(uint variable) {
 	case 20: return _vm->_sceneHeight;
 	case 21: return _vm->_sceneWidth;
 	default:
-		warning("Getting unimplemented game variable %s (%d)", varNames[variable], variable);
+		warning("Getting unimplemented game variable %d", variable);
 		return 0;
 	}
 }
 
 void ScriptInterpreter::setGameVar(uint variable, int16 value) {
-	debug(2, "ScriptInterpreter::setGameVar(%d{%s}, %d)", variable, varNames[variable], value);
+	if (variable > 21)
+		debug(2, "ScriptInterpreter::setGameVar(%d, %d)", variable, value);
+	else
+		debug(2, "ScriptInterpreter::setGameVar(%d{%s}, %d)", variable, varNames[variable], value);
 
 	switch (variable) {
 	case 0:
@@ -596,8 +615,10 @@ void ScriptInterpreter::setGameVar(uint variable, int16 value) {
 		break;
 	case 1:
 	case 2:
-	default:
 		warning("Setting unimplemented game variable %s (%d) to %d", varNames[variable], variable, value);
+		break;
+	default:
+		warning("Setting unimplemented game variable (%d) to %d", variable, value);
 		break;
 	}
 }
@@ -701,7 +722,10 @@ void ScriptInterpreter::loadState(Common::ReadStream *in) {
 	_savedSp = in->readUint16LE();
 
 	// Load IP
-	_code = getSlotData(_regs.reg4) + in->readUint16LE();
+	uint16 offset = in->readUint16LE();
+	_code = getSlotData(_regs.reg4) + offset;
+	debug(2, "CODE: slot[%d] + %d", _regs.reg4, offset);
+	_codeStart = _code;
 }
 
 void ScriptInterpreter::sfNop() {
@@ -787,6 +811,8 @@ void ScriptInterpreter::sfLoadScript() {
 	int16 codeOfs = _code - getSlotData(_regs.reg4);
 	loadScript(arg16(4), arg8(3));
 	_code = getSlotData(_regs.reg4) + codeOfs;
+	debug(2, "CODE: slot[%d] + %d", _regs.reg4, codeOfs);
+	_codeStart = _code;
 	_switchLocalDataNear = true;
 }
 

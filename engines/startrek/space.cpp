@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,11 @@
  * GNU General Public License for more details.
 
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-
+#include "startrek/resource.h"
 #include "startrek/startrek.h"
 
 namespace StarTrek {
@@ -42,7 +41,10 @@ void StarTrekEngine::initStarfield(int16 x, int16 y, int16 width, int16 height, 
 	_starfieldRect.top = _starfieldYVar1 - _starfieldYVar2;
 	_starfieldRect.bottom = _starfieldYVar1 + _starfieldYVar2;
 
-	memset(_starList, 0, sizeof(_starList));
+	for (uint i = 0; i < ARRAYSIZE(_starList); i++) {
+		_starList[i].active = false;
+		_starList[i].pos = Point3(0, 0, 0);
+	}
 	_starfieldPointDivisor = 150;
 	_flt_50898 = 50.0;
 }
@@ -59,6 +61,9 @@ void StarTrekEngine::addR3(R3 *r3) {
 }
 
 void StarTrekEngine::delR3(R3 *r3) {
+	delete r3->bitmap;
+	r3->bitmap = nullptr;
+
 	for (int i = 0; i < NUM_SPACE_OBJECTS; i++) {
 		if (_r3List[i] == r3) {
 			_r3List[i] = nullptr;
@@ -81,7 +86,7 @@ void StarTrekEngine::drawStarfield() {
 	int16 yvar = var2a / 2;
 	int16 var8 = _starfieldPointDivisor << 3;
 
-	Common::MemoryReadStreamEndian *file = loadFile("stars.shp");
+	Common::MemoryReadStreamEndian *file = _resource->loadFile("stars.shp");
 
 	for (int i = 0; i < NUM_STARS; i++) {
 		Star *star = &_starList[i];
@@ -140,8 +145,11 @@ bool compareR3Objects(R3 *obj1, R3 *obj2) {
 	int32 diff = obj1->field54 - obj2->field54;
 	if (diff < 0)
 		return true;
+// FIXME: Original had distinct value for diff == 0, rather than bool
+#if 0
 	else if (diff == 0)
-		return false; // original would have a distinct value for this
+		return false;
+#endif
 	else
 		return false;
 }
@@ -276,24 +284,24 @@ void StarTrekEngine::drawR3Shape(R3 *r3) {
 		r3->field98 = dbl48;
 
 		// dbl30, (bitmap->xoffset + 2), r3->field58,
-		double tmp = r3->field58 - (double)(r3->bitmap->xoffset + 2) * dbl30;
+		double tmp = r3->field58 - ((double)r3->bitmap->xoffset + 2) * dbl30;
 		// dbl20, (bitmap->yoffset + 2), tmp
-		double dbl10 = tmp - (double)(r3->bitmap->yoffset + 2) * dbl20;
+		double dbl10 = tmp - ((double)r3->bitmap->yoffset + 2) * dbl20;
 
 		// dbl28, (bitmap->xoffset + 2), r3->field5a
-		tmp = r3->field5a - (double)(r3->bitmap->xoffset + 2) * dbl28;
+		tmp = r3->field5a - ((double)r3->bitmap->xoffset + 2) * dbl28;
 		// dbl18, (bitmap->yoffset + 2), tmp
-		double dbl8 = tmp - (double)(r3->bitmap->yoffset + 2) * dbl18;
+		double dbl8 = tmp - ((double)r3->bitmap->yoffset + 2) * dbl18;
 
 		// dbl60, r3->field58, bitmap->xoffset + 2
-		tmp = (r3->bitmap->xoffset + 2) - dbl60 * r3->field58;
+		tmp = ((double)r3->bitmap->xoffset + 2) - dbl60 * r3->field58;
 		double dbl40 = tmp - dbl50 * r3->field5a;
 
-		tmp = (r3->bitmap->yoffset + 2) - dbl58 * r3->field58;
+		tmp = ((double)r3->bitmap->yoffset + 2) - dbl58 * r3->field58;
 		double dbl38 = tmp - dbl48 * r3->field5a;
 
-		double dbl3e4 = r3->bitmap->width + 2;
-		double dbl3ec = r3->bitmap->height + 2;
+		double dbl3e4 = (double)r3->bitmap->width + 2;
+		double dbl3ec = (double)r3->bitmap->height + 2;
 
 		double thing[8];
 		tmp = 1.0 * dbl30;
@@ -499,9 +507,9 @@ void StarTrekEngine::drawR3Shape(R3 *r3) {
 }
 
 bool StarTrekEngine::sub_1c022(R3 *r3) {
-	Point3 point = r3->field36;
-	if (point.z < _flt_50898)
-		return false;
+	//Point3 point = r3->field36;
+	//if (point.z < _flt_50898)
+	//	return false;
 	return true; // TODO: finish this properly
 }
 
@@ -535,6 +543,8 @@ Point3 StarTrekEngine::matrixMult(const Point3 &point, const Matrix &weight) {
 }
 
 int32 StarTrekEngine::scaleSpacePosition(int32 x, int32 z) {
+	if (x == 0 || z == 0)
+		return 0;
 	return (x * _starfieldPointDivisor) / z;
 }
 
@@ -547,8 +557,8 @@ Matrix StarTrekEngine::initMatrix() {
 }
 
 Matrix StarTrekEngine::initSpeedMatrixForXZMovement(Angle angle, const Matrix &matrix) {
-	Fixed14 sinVal = sin(angle);
-	Fixed14 cosVal = cos(angle);
+	Fixed14 sinVal = sin(angle.toDouble());
+	Fixed14 cosVal = cos(angle.toDouble());
 
 	Matrix matrix1 = initMatrix();
 	matrix1[0].x = cosVal;

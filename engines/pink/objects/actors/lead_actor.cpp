@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -109,6 +108,7 @@ void LeadActor::start(bool isHandler) {
 	case kPDA:
 		if (_stateBeforePDA == kInventory)
 			startInventory(1);
+		_page->getGame()->getDirector()->saveStage();
 		loadPDA(_page->getGame()->getPdaMgr().getSavedPageName());
 		break;
 	default:
@@ -203,7 +203,7 @@ void LeadActor::onKeyboardButtonClick(Common::KeyCode code) {
 	}
 }
 
-void LeadActor::onLeftButtonClick(const Common::Point point) {
+void LeadActor::onLeftButtonClick(Common::Point point) {
 	switch (_state) {
 	case kReady:
 	case kMoving: {
@@ -246,7 +246,7 @@ void LeadActor::onLeftButtonUp() {
 		_page->getGame()->getPdaMgr().onLeftButtonUp();
 }
 
-void LeadActor::onRightButtonClick(const Common::Point point) {
+void LeadActor::onRightButtonClick(Common::Point point) {
 	if (_state == kReady || _state == kMoving) {
 		Actor *clickedActor = getActorByPoint(point);
 		if (clickedActor && isInteractingWith(clickedActor)) {
@@ -258,18 +258,18 @@ void LeadActor::onRightButtonClick(const Common::Point point) {
 	}
 }
 
-void LeadActor::onMouseMove(const Common::Point point) {
+void LeadActor::onMouseMove(Common::Point point) {
 	if (_state != kPDA)
 		updateCursor(point);
 	else
 		_page->getGame()->getPdaMgr().onMouseMove(point);
 }
 
-void LeadActor::onMouseOverWithItem(const Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr) {
+void LeadActor::onMouseOverWithItem(Common::Point point, const Common::String &itemName, CursorMgr *cursorMgr) {
 	_cursorMgr->setCursor(kHoldingItemCursor, point, itemName + kClickable);
 }
 
-void LeadActor::onMouseOver(const Common::Point point, CursorMgr *mgr) {
+void LeadActor::onMouseOver(Common::Point point, CursorMgr *mgr) {
 	if (getInventoryMgr()->isPinkOwnsAnyItems())
 		_cursorMgr->setCursor(kClickableFirstFrameCursor, point, Common::String());
 	else
@@ -338,11 +338,11 @@ void LeadActor::setNextExecutors(const Common::String &nextModule, const Common:
 void LeadActor::forceUpdateCursor() {
 	PinkEngine *vm =_page->getGame();
 	vm->getDirector()->update(); // we have actions, that should be drawn to properly update cursor
-	const Common::Point point = vm->getEventManager()->getMousePos();
+	Common::Point point = vm->getEventManager()->getMousePos();
 	updateCursor(point);
 }
 
-void LeadActor::updateCursor(const Common::Point point) {
+void LeadActor::updateCursor(Common::Point point) {
 	switch (_state) {
 	case kReady:
 	case kMoving: {
@@ -396,7 +396,7 @@ WalkLocation *LeadActor::getWalkDestination() {
 	return _walkMgr->findLocation(_recipient->getLocation());
 }
 
-Actor *LeadActor::getActorByPoint(const Common::Point point) {
+Actor *LeadActor::getActorByPoint(Common::Point point) {
 	return _page->getGame()->getDirector()->getActorByPoint(point);
 }
 
@@ -465,7 +465,7 @@ void PubPink::onVariableSet() {
 		_isHaveItem = true;
 }
 
-void PubPink::updateCursor(const Common::Point point) {
+void PubPink::updateCursor(Common::Point point) {
 	if (playingMiniGame()) {
 		Actor *actor = getActorByPoint(point);
 		assert(actor);
@@ -497,6 +497,11 @@ WalkLocation *PubPink::getWalkDestination() {
 bool PubPink::playingMiniGame() {
 	return !(_page->checkValueOfVariable(kFoodPuzzle, kTrueValue) ||
 			_page->checkValueOfVariable(kFoodPuzzle, kUndefinedValue));
+}
+
+void PubPink::onRightButtonClick(Common::Point point) {
+	if (!playingMiniGame())
+		LeadActor::onRightButtonClick(point);
 }
 
 } // End of namespace Pink

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,13 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "backends/cloud/dropbox/dropboxinforequest.h"
+#include "backends/cloud/dropbox/dropboxstorage.h"
+#include "backends/cloud/dropbox/dropboxtokenrefresher.h"
 #include "backends/cloud/cloudmanager.h"
 #include "backends/cloud/storage.h"
 #include "backends/networking/curl/connectionmanager.h"
@@ -34,8 +35,8 @@ namespace Dropbox {
 #define DROPBOX_API_GET_CURRENT_ACCOUNT "https://api.dropboxapi.com/2/users/get_current_account"
 #define DROPBOX_API_GET_SPACE_USAGE "https://api.dropboxapi.com/2/users/get_space_usage"
 
-DropboxInfoRequest::DropboxInfoRequest(Common::String token, Storage::StorageInfoCallback cb, Networking::ErrorCallback ecb):
-	Networking::Request(nullptr, ecb), _token(token), _infoCallback(cb),
+DropboxInfoRequest::DropboxInfoRequest(DropboxStorage *storage, Storage::StorageInfoCallback cb, Networking::ErrorCallback ecb):
+	Networking::Request(nullptr, ecb), _storage(storage), _infoCallback(cb),
 	_workingRequest(nullptr), _ignoreCallback(false) {
 	start();
 }
@@ -55,8 +56,8 @@ void DropboxInfoRequest::start() {
 
 	Networking::JsonCallback innerCallback = new Common::Callback<DropboxInfoRequest, Networking::JsonResponse>(this, &DropboxInfoRequest::userResponseCallback);
 	Networking::ErrorCallback errorResponseCallback = new Common::Callback<DropboxInfoRequest, Networking::ErrorResponse>(this, &DropboxInfoRequest::errorCallback);
-	Networking::CurlJsonRequest *request = new Networking::CurlJsonRequest(innerCallback, errorResponseCallback, DROPBOX_API_GET_CURRENT_ACCOUNT);
-	request->addHeader("Authorization: Bearer " + _token);
+	Networking::CurlJsonRequest *request = new DropboxTokenRefresher(_storage, innerCallback, errorResponseCallback, DROPBOX_API_GET_CURRENT_ACCOUNT);
+	request->addHeader("Authorization: Bearer " + _storage->accessToken());
 	request->addHeader("Content-Type: application/json");
 	request->addPostField("null"); //use POST
 
@@ -109,8 +110,8 @@ void DropboxInfoRequest::userResponseCallback(Networking::JsonResponse response)
 
 	Networking::JsonCallback innerCallback = new Common::Callback<DropboxInfoRequest, Networking::JsonResponse>(this, &DropboxInfoRequest::quotaResponseCallback);
 	Networking::ErrorCallback errorResponseCallback = new Common::Callback<DropboxInfoRequest, Networking::ErrorResponse>(this, &DropboxInfoRequest::errorCallback);
-	Networking::CurlJsonRequest *request = new Networking::CurlJsonRequest(innerCallback, errorResponseCallback, DROPBOX_API_GET_SPACE_USAGE);
-	request->addHeader("Authorization: Bearer " + _token);
+	Networking::CurlJsonRequest *request = new DropboxTokenRefresher(_storage, innerCallback, errorResponseCallback, DROPBOX_API_GET_SPACE_USAGE);
+	request->addHeader("Authorization: Bearer " + _storage->accessToken());
 	request->addHeader("Content-Type: application/json");
 	request->addPostField("null"); //use POST
 

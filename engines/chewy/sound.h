@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -24,6 +23,7 @@
 #define CHEWY_SOUND_H
 
 #include "audio/mixer.h"
+#include "chewy/atds.h"
 #include "chewy/chewy.h"
 
 namespace Chewy {
@@ -37,25 +37,26 @@ public:
 	Sound(Audio::Mixer *mixer);
 	virtual ~Sound();
 
-	void playSound(int num, bool loop = false, uint channel = 0);
-	void playSound(byte *data, uint32 size, bool loop = false, uint channel = 0, DisposeAfterUse::Flag dispose = DisposeAfterUse::YES);
+	void playSound(int num, uint channel = 0, bool loop = false);
+	void playSound(uint8 *data, uint32 size, uint channel = 0, bool loop = false, DisposeAfterUse::Flag dispose = DisposeAfterUse::YES);
 	void pauseSound(uint channel);
 	void resumeSound(uint channel);
-	void stopSound(uint channel);
+	void stopSound(uint channel = 0);
+	void stopAllSounds();
 	bool isSoundActive(uint channel);
 	void setSoundVolume(uint volume);
 	void setSoundChannelVolume(uint channel, uint volume);
 	void setSoundChannelBalance(uint channel, uint balance);
 
 	void playMusic(int num, bool loop = false);
-	void playMusic(byte *data, uint32 size, bool loop = false, DisposeAfterUse::Flag dispose = DisposeAfterUse::YES);
+	void playMusic(uint8 *data, uint32 size, bool loop = false, DisposeAfterUse::Flag dispose = DisposeAfterUse::YES);
 	void pauseMusic();
 	void resumeMusic();
 	void stopMusic();
 	bool isMusicActive();
 	void setMusicVolume(uint volume);
 
-	void playSpeech(int num);
+	void playSpeech(int num, bool waitForFinish);
 	void pauseSpeech();
 	void resumeSpeech();
 	void stopSpeech();
@@ -63,6 +64,16 @@ public:
 	void setSpeechVolume(uint volume);
 
 	void stopAll();
+
+	/**
+	 * Helper method to wait until any playing speech is finished
+	 */
+	void waitForSpeechToFinish();
+
+	/**
+	 * Returns the speech, subtitles mode from the ScummVM config
+	 */
+	DisplayMode getSpeechSubtitlesMode() const;
 
 private:
 	Audio::Mixer *_mixer;
@@ -73,7 +84,7 @@ private:
 	SoundResource *_speechRes;
 	SoundResource *_soundRes;
 
-	void convertTMFToMod(byte *tmfData, uint32 tmfSize, byte *modData, uint32 &modSize);
+	void convertTMFToMod(uint8 *tmfData, uint32 tmfSize, uint8 *modData, uint32 &modSize);
 };
 
 } // End of namespace Chewy

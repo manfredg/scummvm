@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -198,7 +197,7 @@ void AnimationManager::playAnim(const Common::String &hiresName, const Common::S
  */
 void AnimationManager::playAnim2(const Common::String &hiresName, const Common::String &lowresName, uint32 rate1, uint32 rate2, uint32 rate3) {
 	int oldScrollPosX = 0;
-	byte *screenP = NULL;
+	byte *screenP = nullptr;
 	Common::File f;
 
 	if (_vm->shouldQuit())
@@ -508,7 +507,7 @@ void AnimationManager::searchAnim(const byte *data, int animIndex, int bufSize) 
 						innerLoopCond = true;
 					if (bufSize < curBufferPos) {
 						_animBqe[animIndex]._enabledFl = false;
-						_animBqe[animIndex]._data = NULL;
+						_animBqe[animIndex]._data = nullptr;
 						return;
 					}
 					++curBufferPos;
@@ -781,12 +780,12 @@ void AnimationManager::playSequence2(const Common::String &file, uint32 rate1, u
 
 void AnimationManager::initAnimBqe() {
 	for (int idx = 0; idx < 35; ++idx) {
-		_animBqe[idx]._data = NULL;
+		_animBqe[idx]._data = nullptr;
 		_animBqe[idx]._enabledFl = false;
 	}
 
 	for (int idx = 0; idx < 8; ++idx) {
-		Bank[idx]._data = NULL;
+		Bank[idx]._data = nullptr;
 		Bank[idx]._loadedFl = false;
 		Bank[idx]._filename = "";
 		Bank[idx]._fileHeader = 0;

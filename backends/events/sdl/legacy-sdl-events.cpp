@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +32,9 @@
 LegacySdlEventSource::LegacySdlEventSource() {
 	// Reset mouse state
 	memset(&_km, 0, sizeof(_km));
+
+	ConfMan.registerDefault("kbdmouse_speed", 3);
+	ConfMan.registerDefault("joystick_deadzone", 3);
 }
 
 void LegacySdlEventSource::updateKbdMouse() {
@@ -125,7 +127,7 @@ bool LegacySdlEventSource::handleKbdMouse(Common::Event &event) {
 
 	if (_km.x != oldKmX || _km.y != oldKmY) {
 		if (_graphicsManager) {
-			_graphicsManager->getWindow()->warpMouseInWindow((Uint16)(_km.x / MULTIPLIER), (Uint16)(_km.y / MULTIPLIER));
+			dynamic_cast<SdlGraphicsManager *>(_graphicsManager)->getWindow()->warpMouseInWindow((Uint16)(_km.x / MULTIPLIER), (Uint16)(_km.y / MULTIPLIER));
 		}
 
 		event.type = Common::EVENT_MOUSEMOVE;
@@ -237,8 +239,8 @@ void LegacySdlEventSource::checkScreenChange() {
 		return;
 	}
 
-	int newMaxX = _graphicsManager->getWindowWidth()  - 1;
-	int newMaxY = _graphicsManager->getWindowHeight() - 1;
+	int newMaxX = dynamic_cast<SdlGraphicsManager *>(_graphicsManager)->getWindowWidth()  - 1;
+	int newMaxY = dynamic_cast<SdlGraphicsManager *>(_graphicsManager)->getWindowHeight() - 1;
 
 	if (_km.x_max != newMaxX || _km.y_max != newMaxY) {
 		resetKeyboardEmulation(newMaxX, newMaxY);

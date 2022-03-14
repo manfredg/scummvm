@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -158,6 +157,11 @@ private:
 	Character _itemsCharacter;
 
 	/**
+	 * Get gender form 'found'
+	 */
+	const char *getFoundForm(const Character &c);
+
+	/**
 	 * Give a treasure item to the given character's inventory
 	 */
 	void giveTreasureToCharacter(Character &c, ItemCategory category, int itemIndex);
@@ -219,10 +223,10 @@ public:
 	int _totalTime;
 	bool _rested;
 	bool _gameFlags[2][256];
-	bool _worldFlags[128];
+	bool _worldFlags[129];
 	bool _questFlags[60];
 	int _questItems[TOTAL_QUEST_ITEMS];
-	bool _characterFlags[30][24];
+	bool _characterFlags[30][32];
 public:
 	// Other party related runtime data
 	Roster _roster;
@@ -269,6 +273,8 @@ public:
 
 	int subtract(ConsumableType consumableId, uint amount, PartyBank whereId, MessageWaitType wait = WT_FREEZE_WAIT);
 
+	const char *getConsumableForm(ConsumableType consumableId);
+
 	void notEnough(ConsumableType consumableId, PartyBank whereId, bool mode, MessageWaitType wait);
 
 	void checkPartyDead();
@@ -294,6 +300,16 @@ public:
 	 * Gives and/or takes amounts from various character and/or party properties
 	 */
 	bool giveTake(int takeMode, uint takeVal, int giveMode, uint giveVal, int charIdx);
+
+	/*
+	 * Get gender form 'picks'
+	 */
+	const char *getPickLockForm(const Character &c);
+
+	/*
+	 *  Get gender form 'unable to pick'
+	 */
+	const char *getUnablePickLockForm(const Character &c);
 
 	/**
 	 * Gives up to three different item/amounts to various character and/or party properties

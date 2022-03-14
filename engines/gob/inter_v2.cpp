@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -211,7 +210,7 @@ void Inter_v2::checkSwitchTable(uint32 &offset) {
 
 			default:
 				if (!found) {
-					_vm->_game->_script->evalExpr(0);
+					_vm->_game->_script->evalExpr(nullptr);
 					if (value == _vm->_game->_script->getResultInt())
 						found = true;
 				} else
@@ -312,12 +311,12 @@ void Inter_v2::o2_initMult() {
 		delete[] _vm->_mult->_renderObjs;
 		delete[] _vm->_mult->_orderArray;
 
-		_vm->_mult->_objects = 0;
-		_vm->_mult->_renderObjs = 0;
-		_vm->_mult->_orderArray = 0;
+		_vm->_mult->_objects = nullptr;
+		_vm->_mult->_renderObjs = nullptr;
+		_vm->_mult->_orderArray = nullptr;
 	}
 
-	if (_vm->_mult->_objects == 0) {
+	if (_vm->_mult->_objects == nullptr) {
 		_vm->_mult->_renderObjs = new Mult::Mult_Object*[_vm->_mult->_objCount];
 		memset(_vm->_mult->_renderObjs, 0,
 				_vm->_mult->_objCount * sizeof(Mult::Mult_Object*));
@@ -624,7 +623,7 @@ void Inter_v2::o2_popVars() {
 }
 
 void Inter_v2::o2_loadMapObjects() {
-	_vm->_map->loadMapObjects(0);
+	_vm->_map->loadMapObjects(nullptr);
 }
 
 void Inter_v2::o2_freeGoblins() {
@@ -773,7 +772,7 @@ void Inter_v2::o2_placeGoblin() {
 	y = _vm->_game->_script->readValExpr();
 	state = _vm->_game->_script->readValExpr();
 
-	_vm->_goblin->placeObject(0, 0, index, x, y, state);
+	_vm->_goblin->placeObject(nullptr, 0, index, x, y, state);
 }
 
 void Inter_v2::o2_initScreen() {
@@ -1088,36 +1087,37 @@ void Inter_v2::o2_printText(OpFuncParams &params) {
 	}
 
 	do {
-		for (i = 0; (_vm->_game->_script->peekChar() != '.') &&
+		for (i = 0; i < 59 && (_vm->_game->_script->peekChar() != '.') &&
 				(_vm->_game->_script->peekByte() != 200); i++) {
 			buf[i] = _vm->_game->_script->readChar();
 		}
 
+		const int limit = MAX(60 - i, 0);
 		if (_vm->_game->_script->peekByte() != 200) {
 			_vm->_game->_script->skip(1);
 			switch (_vm->_game->_script->peekByte()) {
 			case TYPE_VAR_INT8:
 			case TYPE_ARRAY_INT8:
-				sprintf(buf + i, "%d",
+				snprintf(buf + i, limit, "%d",
 						(int8) READ_VARO_UINT8(_vm->_game->_script->readVarIndex()));
 				break;
 
 			case TYPE_VAR_INT16:
 			case TYPE_VAR_INT32_AS_INT16:
 			case TYPE_ARRAY_INT16:
-				sprintf(buf + i, "%d",
+				snprintf(buf + i, limit, "%d",
 						(int16) READ_VARO_UINT16(_vm->_game->_script->readVarIndex()));
 				break;
 
 			case TYPE_VAR_INT32:
 			case TYPE_ARRAY_INT32:
-				sprintf(buf + i, "%d",
+				snprintf(buf + i, limit, "%d",
 						(int32)VAR_OFFSET(_vm->_game->_script->readVarIndex()));
 				break;
 
 			case TYPE_VAR_STR:
 			case TYPE_ARRAY_STR:
-				sprintf(buf + i, "%s",
+				snprintf(buf + i, limit, "%s",
 						GET_VARO_STR(_vm->_game->_script->readVarIndex()));
 				break;
 

@@ -7,10 +7,10 @@
  * Additional copyright for this file:
  * Copyright (C) 1995-1997 Presto Studios, Inc.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +18,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -379,12 +378,15 @@ static const NotificationID kNoradPressureNotificationID = kNoradFillingStationN
 static const NotificationID kNoradUtilityNotificationID = kNoradPressureNotificationID + 1;
 static const NotificationID kNoradElevatorNotificationID = kNoradUtilityNotificationID + 1;
 static const NotificationID kNoradSubPlatformNotificationID = kNoradElevatorNotificationID + 1;
-static const NotificationID kSubControlNotificationID = kNoradSubPlatformNotificationID + 1;
+static const NotificationID kNoradSubChaseNotificationID = kNoradSubPlatformNotificationID + 1;
+static const NotificationID kSubControlNotificationID = kNoradSubChaseNotificationID + 1;
 static const NotificationID kNoradGreenBallNotificationID = kSubControlNotificationID + 1;
 static const NotificationID kNoradGlobeNotificationID = kNoradGreenBallNotificationID + 1;
 static const NotificationID kCaldoriaVidPhoneNotificationID = kNoradGlobeNotificationID + 1;
 static const NotificationID kCaldoriaMessagesNotificationID = kCaldoriaVidPhoneNotificationID + 1;
 static const NotificationID kCaldoriaBombTimerNotificationID = kCaldoriaMessagesNotificationID + 1;
+static const NotificationID kMarsTunnelPodNotificationID = kCaldoriaBombTimerNotificationID + 1;
+static const NotificationID kMarsCanyonChaseNotificationID = kMarsTunnelPodNotificationID + 1;
 
 // Sent to the shell by fShellNotification.
 static const NotificationFlags kGameStartingFlag = 1;
@@ -463,7 +465,12 @@ static const HotSpotID kAISolveSpotID = kAIHint3SpotID + 1;
 static const HotSpotID kAIBriefingSpotID = kAISolveSpotID + 1;
 static const HotSpotID kAIScanSpotID = kAIBriefingSpotID + 1;
 
-static const HotSpotID kPegasusRecallSpotID = kAIScanSpotID + 1;
+static const HotSpotID kArthurWisdomSpotID = kAIScanSpotID + 1;
+static const HotSpotID kChattyArthurSpotID = kArthurWisdomSpotID + 1;
+static const HotSpotID kChattyAISpotID = kChattyArthurSpotID + 1;
+static const HotSpotID kArthurHeadSpotID = kChattyAISpotID + 1;
+
+static const HotSpotID kPegasusRecallSpotID = kArthurHeadSpotID + 1;
 
 static const HotSpotID kAriesSpotID = kPegasusRecallSpotID + 1;
 static const HotSpotID kMercurySpotID = kAriesSpotID + 1;
@@ -501,7 +508,8 @@ static const HotSpotFlags kInfoReturnSpotFlag = kDropBiochipSpotFlag << 1;
 // Biochip and inventory hot spot flags...
 
 static const HotSpotFlags kAIBiochipSpotFlag = kInfoReturnSpotFlag << 1;
-static const HotSpotFlags kPegasusBiochipSpotFlag = kAIBiochipSpotFlag << 1;
+static const HotSpotFlags kArthurBiochipSpotFlag = kAIBiochipSpotFlag << 1;
+static const HotSpotFlags kPegasusBiochipSpotFlag = kArthurBiochipSpotFlag << 1;
 static const HotSpotFlags kOpticalBiochipSpotFlag = kPegasusBiochipSpotFlag << 1;
 static const HotSpotFlags kAirMaskSpotFlag = kOpticalBiochipSpotFlag << 1;
 
@@ -510,6 +518,7 @@ static const HotSpotFlags kJMPClickingSpotFlags = kClickSpotFlag |
 											kOpenDoorSpotFlag |
 											kInfoReturnSpotFlag |
 											kAIBiochipSpotFlag |
+											kArthurBiochipSpotFlag |
 											kPegasusBiochipSpotFlag |
 											kOpticalBiochipSpotFlag |
 											kAirMaskSpotFlag;
@@ -655,6 +664,7 @@ enum {
 	// Mars
 	kDeathWrongShuttleLock,
 	kDeathArrestedInMars,
+	kDeathCollidedWithPod,
 	kDeathRunOverByPod,
 	kDeathDidntGetOutOfWay,
 	kDeathReactorBurn,

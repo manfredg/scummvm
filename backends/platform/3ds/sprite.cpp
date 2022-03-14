@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -25,7 +24,7 @@
 #include "common/algorithm.h"
 #include "common/util.h"
 
-namespace _3DS {
+namespace N3DS {
 
 Sprite::Sprite()
 	: textureTransferFlags(0)
@@ -64,7 +63,6 @@ void Sprite::create(uint16 width, uint16 height, const GfxMode3DS *mode) {
 	if (width && height) {
 		pixels = linearAlloc(h * pitch);
 		C3D_TexInit(&texture, w, h, mode->textureFormat);
-		C3D_TexSetFilter(&texture, GPU_LINEAR, GPU_LINEAR);
 		assert(pixels && texture.data);
 		clear();
 	}
@@ -149,4 +147,9 @@ C3D_Mtx* Sprite::getMatrix() {
 	return &modelview;
 }
 
-} // namespace _3DS
+void Sprite::setFilteringMode(bool enableLinearFiltering) {
+	GPU_TEXTURE_FILTER_PARAM filteringMode = enableLinearFiltering ? GPU_LINEAR : GPU_NEAREST;
+	C3D_TexSetFilter(&texture, filteringMode, filteringMode);
+}
+
+} // namespace N3DS

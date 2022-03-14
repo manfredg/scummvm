@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -42,8 +41,9 @@ class Widget;
 
 // Some "common" commands sent to handleCommand()
 enum {
-	kCloseCmd  = 'clos',
-	kOKCmd     = 'ok  '
+	kCloseWithResultCmd  = 'clsr',
+	kCloseCmd            = 'clos',
+	kOKCmd               = 'ok  '
 };
 
 class Dialog : public GuiObject {
@@ -56,6 +56,11 @@ protected:
 	Widget  *_dragWidget;
 	Widget 	*_tickleWidget;
 	bool	_visible;
+	// _mouseUpdatedOnFocus instructs gui-manager whether
+	// its lastMousePosition (time and x,y coordinates)
+	// should be updated, when this Dialog acquires focus.
+	// Default value is true.
+	bool    _mouseUpdatedOnFocus;
 
 	ThemeEngine::DialogBackground _backgroundType;
 
@@ -69,6 +74,8 @@ public:
 	virtual int runModal();
 
 	bool	isVisible() const override	{ return _visible; }
+
+	bool    isMouseUpdatedOnFocus() const { return _mouseUpdatedOnFocus; }
 
 	void	releaseFocus() override;
 	void	setFocusWidget(Widget *widget);
@@ -110,6 +117,7 @@ protected:
 	Widget *findWidget(const char *name);
 	void removeWidget(Widget *widget) override;
 
+	void setMouseUpdatedOnFocus(bool mouseUpdatedOnFocus) { _mouseUpdatedOnFocus = mouseUpdatedOnFocus; }
 	void setDefaultFocusedWidget();
 
 	void setResult(int result) { _result = result; }

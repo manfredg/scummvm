@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -124,7 +123,7 @@ void CloudManager::save() {
 		Common::String name = getStorageConfigName(i);
 		ConfMan.set(kStoragePrefix + name + "_username", _storages[i].username, ConfMan.kCloudDomain);
 		ConfMan.set(kStoragePrefix + name + "_lastSync", _storages[i].lastSyncDate, ConfMan.kCloudDomain);
-		ConfMan.set(kStoragePrefix + name + "_usedBytes", Common::String::format("%lu", _storages[i].usedBytes), ConfMan.kCloudDomain);
+		ConfMan.set(kStoragePrefix + name + "_usedBytes", Common::String::format("%llu", (unsigned long long)_storages[i].usedBytes), ConfMan.kCloudDomain);
 	}
 
 	ConfMan.set("current_storage", Common::String::format("%u", _currentStorageIndex), ConfMan.kCloudDomain);
@@ -153,8 +152,8 @@ void CloudManager::replaceStorage(Storage *storage, uint32 index) {
 	_currentStorageIndex = index;
 	if (_storages[index].username == "") {
 		// options' Cloud tab believes Storage is connected once it has non-empty username
-		_storages[index].username = _("<syncing...>");
-		_storages[index].lastSyncDate = _("<right now>");
+		_storages[index].username = Common::convertFromU32String(_("<syncing...>"));
+		_storages[index].lastSyncDate = Common::convertFromU32String(_("<right now>"));
 		_storages[index].usedBytes = 0;
 	}
 	save();

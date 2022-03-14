@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,44 +15,18 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/savefile.h"
-#include "common/system.h"
 #include "base/plugins.h"
-
 #include "engines/advancedDetector.h"
 
-#include "chewy/chewy.h"
-
-
-namespace Chewy {
-
-struct ChewyGameDescription {
-	ADGameDescription desc;
-};
-
-uint32 ChewyEngine::getFeatures() const {
-	return _gameDescription->desc.flags;
-}
-
-Common::Language ChewyEngine::getLanguage() const {
-	return _gameDescription->desc.language;
-}
-
-}
+#include "chewy/detection.h"
 
 static const PlainGameDescriptor chewyGames[] = {
 	{"chewy", "Chewy: Esc from F5"},
-	{0, 0}
-};
-
-static const char *directoryGlobs[] = {
-	"txt",
-	0
+	{nullptr, nullptr}
 };
 
 namespace Chewy {
@@ -62,8 +36,8 @@ static const ChewyGameDescription gameDescriptions[] = {
 	{
 		{
 			"chewy",
-			0,
-			AD_ENTRY1s("atds.tap", "e6050c144dd4f23d79ea4f89a8ef306e", 218857),
+			nullptr,
+			AD_ENTRY1s("txt/atds.tap", "e6050c144dd4f23d79ea4f89a8ef306e", 218857),
 			Common::EN_ANY,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
@@ -72,15 +46,23 @@ static const ChewyGameDescription gameDescriptions[] = {
 	},
 
 	{
-		// Chewy - ESC von F5 - German
-		// Master version 1.1 (CHEWY.EXE - offset 0x8AB28)
-		// The source CD-ROM has the Matrix code SONOPRESS R-7885 B
-		// The disc contains several demos and files from 1996
-		// Provided by lotharsm
+		// Chewy - ESC from F5 - Spanish fanmade translation
 		{
 			"chewy",
-			0,
-			AD_ENTRY1s("atds.tap", "c117e884cc5b4bbe50ae1217d13916c4", 231071),
+			nullptr,
+			AD_ENTRY1s("txt/atds.tap", "b1210066a524fe0f88862f44671ed97d", 226988),
+			Common::ES_ESP,
+			Common::kPlatformDOS,
+			ADGF_NO_FLAGS,
+			GUIO1(GUIO_NOMIDI)
+		},
+	},
+
+	{
+		{
+			"chewy",
+			nullptr,
+			AD_ENTRY1s("txt/atds.tap", "c117e884cc5b4bbe50ae1217d13916c4", 231071),
 			Common::DE_DEU,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
@@ -89,15 +71,10 @@ static const ChewyGameDescription gameDescriptions[] = {
 	},
 
 	{
-		// Chewy - ESC von F5 - German
-		// Master version 1.0 (CHEWY.EXE - offset 0x8AB10)
-		// The source CD-ROM has the Matrix code SONOPRESS M-2742 A
-		// CD-ROM has the label "CHEWY_V1_0"
-		// Provided by lotharsm
 		{
 			"chewy",
-			0,
-			AD_ENTRY1s("atds.tap", "e22f97761c0e7772ec99660f2277b1a4", 231001),
+			nullptr,
+			AD_ENTRY1s("txt/atds.tap", "e22f97761c0e7772ec99660f2277b1a4", 231001),
 			Common::DE_DEU,
 			Common::kPlatformDOS,
 			ADGF_NO_FLAGS,
@@ -105,16 +82,33 @@ static const ChewyGameDescription gameDescriptions[] = {
 		},
 	},
 
+	{
+		// Chewy - ESC von F5 - German demo
+		// Demo version 1.1 (CHEWY.EXE - offset 0x8A520)
+		// From Blue Byte News Version III/97
+		// The source CD-ROM has the Matrix code SONOPRESS T-2037 A
+		// CD-ROM has the label "DEMO"
+		{
+			"chewy",
+			nullptr,
+			AD_ENTRY1s("txt/atds.tap", "c3be5641e90dd01274309b778cf8146d", 230686),
+			Common::DE_DEU,
+			Common::kPlatformDOS,
+			ADGF_DEMO,
+			GUIO1(GUIO_NOMIDI)
+		},
+	},
+
 	{ AD_TABLE_END_MARKER }
 };
 
-} // End of namespace Chewy
+} // namespace Chewy
 
-class ChewyMetaEngine : public AdvancedMetaEngine {
+class ChewyMetaEngineDetection : public AdvancedMetaEngineDetection {
 public:
-	ChewyMetaEngine() : AdvancedMetaEngine(Chewy::gameDescriptions, sizeof(Chewy::ChewyGameDescription), chewyGames) {
+	ChewyMetaEngineDetection() : AdvancedMetaEngineDetection(Chewy::gameDescriptions, sizeof(Chewy::ChewyGameDescription), chewyGames) {
 		_maxScanDepth = 2;
-		_directoryGlobs = directoryGlobs;
+		_flags = kADFlagMatchFullPaths;
 	}
 
 	const char *getEngineId() const override {
@@ -128,61 +122,6 @@ public:
 	const char *getOriginalCopyright() const override {
 		return "Chewy: Esc from F5 (C) 1995 New Generation Software";
 	}
-
-	bool hasFeature(MetaEngineFeature f) const override;
-	bool createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const override;
-	SaveStateList listSaves(const char *target) const override;
-	int getMaximumSaveSlot() const override;
-	void removeSaveState(const char *target, int slot) const override;
-	SaveStateDescriptor querySaveMetaInfos(const char *target, int slot) const override;
 };
 
-bool ChewyMetaEngine::hasFeature(MetaEngineFeature f) const {
-	return
-		(f == kSupportsListSaves) ||
-		(f == kSupportsLoadingDuringStartup) ||
-		(f == kSupportsDeleteSave) ||
-		(f == kSavesSupportMetaInfo) ||
-		(f == kSavesSupportThumbnail) ||
-		(f == kSavesSupportCreationDate) ||
-		(f == kSavesSupportPlayTime);
-}
-
-bool Chewy::ChewyEngine::hasFeature(EngineFeature f) const {
-	return
-		(f == kSupportsRTL) ||
-		(f == kSupportsLoadingDuringRuntime) ||
-		(f == kSupportsSavingDuringRuntime);
-}
-
-bool ChewyMetaEngine::createInstance(OSystem *syst, Engine **engine, const ADGameDescription *desc) const {
-	const Chewy::ChewyGameDescription *gd = (const Chewy::ChewyGameDescription *)desc;
-	if (gd) {
-		*engine = new Chewy::ChewyEngine(syst, gd);
-	}
-	return gd != 0;
-}
-
-SaveStateList ChewyMetaEngine::listSaves(const char *target) const {
-	SaveStateList saveList;
-
-	return saveList;
-}
-
-int ChewyMetaEngine::getMaximumSaveSlot() const {
-	return 999;
-}
-
-void ChewyMetaEngine::removeSaveState(const char *target, int slot) const {
-}
-
-SaveStateDescriptor ChewyMetaEngine::querySaveMetaInfos(const char *target, int slot) const {
-
-	return SaveStateDescriptor();
-} // End of namespace Chewy
-
-#if PLUGIN_ENABLED_DYNAMIC(CHEWY)
-	REGISTER_PLUGIN_DYNAMIC(CHEWY, PLUGIN_TYPE_ENGINE, ChewyMetaEngine);
-#else
-	REGISTER_PLUGIN_STATIC(CHEWY, PLUGIN_TYPE_ENGINE, ChewyMetaEngine);
-#endif
+REGISTER_PLUGIN_STATIC(CHEWY_DETECTION, PLUGIN_TYPE_ENGINE_DETECTION, ChewyMetaEngineDetection);

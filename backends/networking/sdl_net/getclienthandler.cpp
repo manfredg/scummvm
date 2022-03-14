@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -110,7 +109,7 @@ void GetClientHandler::prepareHeaders() {
 		setHeader("Content-Type", "text/html; charset=UTF-8");
 
 	if (!_specialHeaders.contains("Content-Length") && _stream)
-		setHeader("Content-Length", Common::String::format("%u", _stream->size()));
+		setHeader("Content-Length", Common::String::format("%u", unsigned(_stream->size())));
 
 	_headers = Common::String::format("HTTP/1.1 %ld %s\r\n", _responseCode, responseMessage(_responseCode));
 	for (Common::HashMap<Common::String, Common::String>::iterator i = _specialHeaders.begin(); i != _specialHeaders.end(); ++i)

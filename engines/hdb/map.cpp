@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -48,13 +47,13 @@ Map::Map() {
 
 	_numForegrounds = _numGratings = 0;
 
-	_mapExplosions = NULL;
-	_mapExpBarrels = NULL;
-	_mapLaserBeams = NULL;
+	_mapExplosions = nullptr;
+	_mapExpBarrels = nullptr;
+	_mapLaserBeams = nullptr;
 
-	_background = NULL;
-	_foreground = NULL;
-	_iconList = NULL;
+	_background = nullptr;
+	_foreground = nullptr;
+	_iconList = nullptr;
 
 	_width = 0;
 	_height = 0;
@@ -69,6 +68,7 @@ Map::Map() {
 	_iconNum = 0;
 	_iconListOffset = 0;
 	_infoNum = 0;
+	_infoListOffset = 0;
 }
 
 Map::~Map() {
@@ -267,11 +267,11 @@ void Map::restartSystem() {
 	_listFGAnimSlow.clear();
 
 	delete[] _background;
-	_background = NULL;
+	_background = nullptr;
 	delete[] _foreground;
-	_foreground = NULL;
+	_foreground = nullptr;
 	delete[] _iconList;
-	_iconList = NULL;
+	_iconList = nullptr;
 
 	_width = _height = 0;
 	_animCycle = 0;
@@ -280,9 +280,9 @@ void Map::restartSystem() {
 	free(_mapExpBarrels);
 	free(_mapLaserBeams);
 
-	_mapExplosions = NULL;
-	_mapExpBarrels = NULL;
-	_mapLaserBeams = NULL;
+	_mapExplosions = nullptr;
+	_mapExpBarrels = nullptr;
+	_mapLaserBeams = nullptr;
 
 	// mark all in-memory tiles as being in memory, but able to be freed
 	g_hdb->_gfx->markTileCacheFreeable();
@@ -293,7 +293,7 @@ void Map::restartSystem() {
 
 bool Map::loadMap(char *name) {
 	Common::SeekableReadStream *mapStream = g_hdb->_fileMan->findFirstData(name, TYPE_BINARY);
-	if (mapStream == NULL) {
+	if (mapStream == nullptr) {
 		warning("The %s MPC entry can't be found", name);
 		delete mapStream;
 		return false;
@@ -306,7 +306,7 @@ bool Map::loadMap(char *name) {
 }
 
 bool Map::load(Common::SeekableReadStream *stream) {
-	debug(5, "map stream size: %d(%x)", stream->size(), stream->size());
+	debug(5, "map stream size: %ld(%lx)", stream->size(), stream->size());
 
 	// Load MSM data header
 	stream->read(_name, 32);
@@ -1200,7 +1200,7 @@ void Map::centerMapXY(int x, int y) {
 			break;
 		}
 	}
-	
+
 	x = CLIP(x, minx, maxx);
 	y = CLIP(y, miny, maxy);
 

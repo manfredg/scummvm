@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -29,10 +28,11 @@
 
 #include "sci/sci.h"
 #include "sci/event.h"
-#include "sci/resource.h"
+#include "sci/resource/resource.h"
 #include "sci/engine/features.h"
 #include "sci/engine/state.h"
 #include "sci/engine/selector.h"
+#include "sci/engine/tts.h"
 #include "sci/engine/kernel.h"
 #include "sci/graphics/animate.h"
 #include "sci/graphics/cache.h"
@@ -50,7 +50,7 @@
 #include "sci/graphics/cursor32.h"
 #include "sci/graphics/celobj32.h"
 #include "sci/graphics/controls32.h"
-#include "sci/graphics/font.h"	// TODO: remove once kBitmap is moved in a separate class
+#include "sci/graphics/scifont.h"	// TODO: remove once kBitmap is moved in a separate class
 #include "sci/graphics/frameout.h"
 #include "sci/graphics/paint32.h"
 #include "sci/graphics/palette32.h"
@@ -62,7 +62,7 @@
 namespace Sci {
 #ifdef ENABLE_SCI32
 
-extern int showScummVMDialog(const Common::String& message, const char* altButton = nullptr, bool alignCenter = true);
+extern int showScummVMDialog(const Common::U32String &message, const Common::U32String &altButton = Common::U32String(), bool alignCenter = true);
 
 reg_t kBaseSetter32(EngineState *s, int argc, reg_t *argv) {
 	reg_t object = argv[0];
@@ -191,7 +191,10 @@ reg_t kUpdateScreenItem(EngineState *s, int argc, reg_t *argv) {
 }
 
 reg_t kDeleteScreenItem(EngineState *s, int argc, reg_t *argv) {
-	debugC(6, kDebugLevelGraphics, "kDeleteScreenItem %x:%x (%s)", PRINT_REG(argv[0]), s->_segMan->getObjectName(argv[0]));
+	Common::String objectName = s->_segMan->getObjectName(argv[0]);
+	debugC(6, kDebugLevelGraphics, "kDeleteScreenItem %x:%x (%s)", PRINT_REG(argv[0]), objectName.c_str());
+	if (objectName == "DText")
+		g_sci->_tts->stop();
 	g_sci->_gfxFrameout->kernelDeleteScreenItem(argv[0]);
 	return s->r_acc;
 }
@@ -355,7 +358,7 @@ reg_t kWinHelp(EngineState *s, int argc, reg_t *argv) {
 	case 1:
 		// Load a help file
 		// Maybe in the future we can implement this, but for now this message should suffice
-		showScummVMDialog(Common::String::format(_("Please use an external viewer to open the game's help file: %s"), s->_segMan->getString(argv[1]).c_str()));
+		showScummVMDialog(Common::U32String::format(_("Please use an external viewer to open the game's help file: %s"), s->_segMan->getString(argv[1]).c_str()));
 		break;
 	case 2:
 		// Looks like some init function

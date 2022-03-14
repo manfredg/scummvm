@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -87,8 +86,6 @@ struct ArtSVP {
 
 void art_svp_free(ArtSVP *svp);
 
-int art_svp_seg_compare(const void *s1, const void *s2);
-
 /* Basic data structures and constructors for bezier paths */
 
 enum ArtPathcode {
@@ -122,7 +119,7 @@ struct ArtVpath {
 /* Some of the functions need to go into their own modules */
 
 void art_vpath_add_point(ArtVpath **p_vpath, int *pn_points, int *pn_points_max,
-                    ArtPathcode code, double x, double y);
+					ArtPathcode code, double x, double y);
 
 ArtVpath *art_bez_path_to_vec(const ArtBpath *bez, double flatness);
 
@@ -173,19 +170,19 @@ enum ArtPathStrokeCapType {
 };
 
 ArtSVP *art_svp_vpath_stroke(ArtVpath *vpath,
-                     ArtPathStrokeJoinType join,
-                     ArtPathStrokeCapType cap,
-                     double line_width,
-                     double miter_limit,
-                     double flatness);
+					 ArtPathStrokeJoinType join,
+					 ArtPathStrokeCapType cap,
+					 double line_width,
+					 double miter_limit,
+					 double flatness);
 
 /* This version may have winding numbers exceeding 1. */
 ArtVpath *art_svp_vpath_stroke_raw(ArtVpath *vpath,
-                         ArtPathStrokeJoinType join,
-                         ArtPathStrokeCapType cap,
-                         double line_width,
-                         double miter_limit,
-                         double flatness);
+						 ArtPathStrokeJoinType join,
+						 ArtPathStrokeCapType cap,
+						 double line_width,
+						 double miter_limit,
+						 double flatness);
 
 
 /* The spiffy antialiased renderer for sorted vector paths. */
@@ -198,20 +195,20 @@ struct ArtSVPRenderAAStep {
 struct ArtSVPRenderAAIter;
 
 ArtSVPRenderAAIter *art_svp_render_aa_iter(const ArtSVP *svp,
-                       int x0, int y0, int x1, int y1);
+					   int x0, int y0, int x1, int y1);
 
 void art_svp_render_aa_iter_step(ArtSVPRenderAAIter *iter, int *p_start,
-                            ArtSVPRenderAAStep **p_steps, int *p_n_steps);
+							ArtSVPRenderAAStep **p_steps, int *p_n_steps);
 
 void art_svp_render_aa_iter_done(ArtSVPRenderAAIter *iter);
 
 void art_svp_render_aa(const ArtSVP *svp,
-                  int x0, int y0, int x1, int y1,
-                  void (*callback)(void *callback_data,
-                                   int y,
-                                   int start,
-                                   ArtSVPRenderAAStep *steps, int n_steps),
-                  void *callback_data);
+				  int x0, int y0, int x1, int y1,
+				  void (*callback)(void *callback_data,
+								   int y,
+								   int start,
+								   ArtSVPRenderAAStep *steps, int n_steps),
+				  void *callback_data);
 
 } // End of namespace Sword25
 

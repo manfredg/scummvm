@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,14 +15,12 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 #include "backends/base-backend.h"
 #include <graphics/surface.h>
-#include <graphics/colormasks.h>
 #include <graphics/palette.h>
 #include <ronin/soundcommon.h>
 #include "backends/timer/default/default-timer.h"
@@ -60,13 +58,14 @@ class DCCDManager : public DefaultAudioCDManager {
 public:
 	// Poll cdrom status
 	// Returns true if cd audio is playing
-	bool isPlaying() const;
+	bool isPlaying() const override;
 
 	// Play cdrom audio track
-	bool play(int track, int numLoops, int startFrame, int duration, bool onlyEmulate = false);
+	bool play(int track, int numLoops, int startFrame, int duration, bool onlyEmulate = false,
+		Audio::Mixer::SoundType soundType = Audio::Mixer::kMusicSoundType) override;
 
 	// Stop cdrom audio track
-	void stop();
+	void stop() override;
 };
 
 class OSystem_Dreamcast : private DCHardware, public EventsBaseBackend, public PaletteManager, public FilesystemFactory
@@ -142,7 +141,7 @@ public:
   void delayMillis(uint msecs);
 
   // Get the current time and date. Correspond to time()+localtime().
-  void getTimeAndDate(TimeDate &t) const;
+  void getTimeAndDate(TimeDate &td, bool skipRecord = false) const;
 
   // Get the next event.
   // Returns true if an event was retrieved.
@@ -154,22 +153,20 @@ public:
   // Overlay
   int16 getOverlayHeight();
   int16 getOverlayWidth();
+  bool isOverlayVisible() const { return _overlay_visible; }
   void showOverlay();
   void hideOverlay();
   void clearOverlay();
-  void grabOverlay(void *buf, int pitch);
+  void grabOverlay(Graphics::Surface &surface);
   void copyRectToOverlay(const void *buf, int pitch, int x, int y, int w, int h);
-  virtual Graphics::PixelFormat getOverlayFormat() const { return Graphics::createPixelFormat<4444>(); }
+  virtual Graphics::PixelFormat getOverlayFormat() const { return Graphics::PixelFormat(2, 4, 4, 4, 4, 8, 4, 0, 12); }
 
   // Mutex handling
-  MutexRef createMutex();
-  void lockMutex(MutexRef mutex);
-  void unlockMutex(MutexRef mutex);
-  void deleteMutex(MutexRef mutex);
+  Common::MutexInternal *createMutex();
 
   // Set a window caption or any other comparable status display to the
   // given value.
-  void setWindowCaption(const char *caption);
+  void setWindowCaption(const Common::U32String &caption);
 
   // Modulatized backend
   Audio::Mixer *getMixer() { return _mixer; }
@@ -178,9 +175,9 @@ public:
   void mouseToSoftKbd(int x, int y, int &rx, int &ry) const;
 
   // Filesystem
-  AbstractFSNode *makeRootFileNode() const;
-  AbstractFSNode *makeCurrentDirectoryFileNode() const;
-  AbstractFSNode *makeFileNodePath(const Common::String &path) const;
+  AbstractFSNode *makeRootFileNode() const override;
+  AbstractFSNode *makeCurrentDirectoryFileNode() const override;
+  AbstractFSNode *makeFileNodePath(const Common::String &path) const override;
 
  private:
 

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -128,9 +127,10 @@ SkyCompact::SkyCompact() {
 	_cptFile = new Common::File();
 	Common::String filename = "sky.cpt";
 	if (!_cptFile->open(filename.c_str())) {
-                Common::String msg = Common::String::format(_("Unable to locate the '%s' engine data file."), filename.c_str());
-                GUIErrorMessage(msg);
-                error("%s", msg.c_str());
+		const char *msg = _s("Unable to locate the '%s' engine data file.");
+		Common::U32String errorMessage = Common::U32String::format(_(msg), filename.c_str());
+		GUIErrorMessage(errorMessage);
+		error(msg, filename.c_str());
 	}
 
 	uint16 fileVersion = _cptFile->readUint16LE();
@@ -138,9 +138,9 @@ SkyCompact::SkyCompact() {
 		error("unknown \"sky.cpt\" version");
 
 	if (SKY_CPT_SIZE != _cptFile->size()) {
-		GUI::MessageDialog dialog(_("The \"sky.cpt\" engine data file has an incorrect size."), _("OK"), NULL);
+		GUI::MessageDialog dialog(_("The \"sky.cpt\" engine data file has an incorrect size."), _("OK"));
 		dialog.runModal();
-		error("Incorrect sky.cpt size (%d, expected: %d)", _cptFile->size(), SKY_CPT_SIZE);
+		error("Incorrect sky.cpt size (%d, expected: %d)", (int)_cptFile->size(), SKY_CPT_SIZE);
 	}
 
 	// set the necessary data structs up...
@@ -215,7 +215,7 @@ SkyCompact::SkyCompact() {
 	uint16 diffSize = _cptFile->readUint16LE();
 	uint16 *diffBuf = (uint16 *)malloc(diffSize * sizeof(uint16));
 	_cptFile->read(diffBuf, diffSize * sizeof(uint16));
-	if (SkyEngine::_systemVars.gameVersion == 288) {
+	if (SkyEngine::_systemVars->gameVersion == 288) {
 		uint16 *diffPos = diffBuf;
 		for (cnt = 0; cnt < numDiffs; cnt++) {
 			uint16 cptId = READ_LE_UINT16(diffPos++);

@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -40,18 +39,19 @@ SeekableReadStream *GenericArchiveMember::createReadStream() const {
 }
 
 
-int Archive::listMatchingMembers(ArchiveMemberList &list, const String &pattern) const {
+int Archive::listMatchingMembers(ArchiveMemberList &list, const Path &pattern) const {
 	// Get all "names" (TODO: "files" ?)
 	ArchiveMemberList allNames;
 	listMembers(allNames);
 
+	String patternString = pattern.toString();
 	int matches = 0;
 
 	ArchiveMemberList::const_iterator it = allNames.begin();
 	for (; it != allNames.end(); ++it) {
 		// TODO: We match case-insenstivie for now, our API does not define whether that's ok or not though...
 		// For our use case case-insensitive is probably what we want to have though.
-		if ((*it)->getName().matchString(pattern, true, true)) {
+		if ((*it)->getName().matchString(patternString, true, "/")) {
 			list.push_back(*it);
 			matches++;
 		}
@@ -81,9 +81,9 @@ SearchSet::ArchiveNodeList::const_iterator SearchSet::find(const String &name) c
 }
 
 /*
-    Keep the nodes sorted according to descending priorities.
-    In case two or node nodes have the same priority, insertion
-    order prevails.
+	Keep the nodes sorted according to descending priorities.
+	In case two or node nodes have the same priority, insertion
+	order prevails.
 */
 void SearchSet::insert(const Node &node) {
 	ArchiveNodeList::iterator it = _list.begin();
@@ -205,20 +205,20 @@ void SearchSet::setPriority(const String &name, int priority) {
 	insert(node);
 }
 
-bool SearchSet::hasFile(const String &name) const {
-	if (name.empty())
+bool SearchSet::hasFile(const Path &path) const {
+	if (path.empty())
 		return false;
 
 	ArchiveNodeList::const_iterator it = _list.begin();
 	for (; it != _list.end(); ++it) {
-		if (it->_arc->hasFile(name))
+		if (it->_arc->hasFile(path))
 			return true;
 	}
 
 	return false;
 }
 
-int SearchSet::listMatchingMembers(ArchiveMemberList &list, const String &pattern) const {
+int SearchSet::listMatchingMembers(ArchiveMemberList &list, const Path &pattern) const {
 	int matches = 0;
 
 	ArchiveNodeList::const_iterator it = _list.begin();
@@ -238,26 +238,26 @@ int SearchSet::listMembers(ArchiveMemberList &list) const {
 	return matches;
 }
 
-const ArchiveMemberPtr SearchSet::getMember(const String &name) const {
-	if (name.empty())
+const ArchiveMemberPtr SearchSet::getMember(const Path &path) const {
+	if (path.empty())
 		return ArchiveMemberPtr();
 
 	ArchiveNodeList::const_iterator it = _list.begin();
 	for (; it != _list.end(); ++it) {
-		if (it->_arc->hasFile(name))
-			return it->_arc->getMember(name);
+		if (it->_arc->hasFile(path))
+			return it->_arc->getMember(path);
 	}
 
 	return ArchiveMemberPtr();
 }
 
-SeekableReadStream *SearchSet::createReadStreamForMember(const String &name) const {
-	if (name.empty())
+SeekableReadStream *SearchSet::createReadStreamForMember(const Path &path) const {
+	if (path.empty())
 		return nullptr;
 
 	ArchiveNodeList::const_iterator it = _list.begin();
 	for (; it != _list.end(); ++it) {
-		SeekableReadStream *stream = it->_arc->createReadStreamForMember(name);
+		SeekableReadStream *stream = it->_arc->createReadStreamForMember(path);
 		if (stream)
 			return stream;
 	}
@@ -281,7 +281,7 @@ void SearchManager::clear() {
 
 #ifndef __ANDROID__
 	// Add the current dir as a very last resort.
-	// See also bug #2137680.
+	// See also bug #3984.
 	// But don't do this for Android platform, since it may lead to crashes
 	addDirectory(".", ".", -2);
 #endif

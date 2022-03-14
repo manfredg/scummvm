@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -234,7 +233,7 @@ sc_char *obj_state_name(sc_gameref_t game, sc_int objnum) {
 			count--;
 	}
 	if (count != 1)
-		return NULL;
+		return nullptr;
 
 	/* Find the end of the state string. */
 	for (last = first; last < length; last++) {
@@ -757,15 +756,15 @@ static sc_bool obj_indirectly_in_room_internal(sc_gameref_t game, sc_int object,
 	}
 }
 
-sc_bool obj_indirectly_in_room(sc_gameref_t game, sc_int object, sc_int room) {
+sc_bool obj_indirectly_in_room(sc_gameref_t game, sc_int object, sc_int Room) {
 	sc_bool result;
 
 	/* Check, trace result, and return. */
-	result = obj_indirectly_in_room_internal(game, object, room);
+	result = obj_indirectly_in_room_internal(game, object, Room);
 
 	if (obj_trace) {
 		sc_trace("Object: checking for object %ld indirectly in room %ld, %s\n",
-		         object, room, result ? "true" : "false");
+		         object, Room, result ? "true" : "false");
 	}
 
 	return result;

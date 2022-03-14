@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Object Manager data structures
  */
@@ -38,7 +37,8 @@ enum {
 
 	// object flags
 	DMA_WNZ		= 0x0001,	///< write non-zero data
-	DMA_CNZ		= 0x0002,	///< write constant on non-zero data
+	DMA_CNZ		= 0x0002,	///< TinselV1 write constant on non-zero data
+	DMA_RLWA	= 0x0002,	///< TenselV2+ run-length write all
 	DMA_CONST	= 0x0004,	///< write constant on both zero & non-zero data
 	DMA_WA		= 0x0008,	///< write all data
 	DMA_FLIPH	= 0x0010,	///< flip object horizontally
@@ -50,26 +50,24 @@ enum {
 	DMA_USERDEF	= 0x0400,	///< user defined flags start here
 	DMA_GHOST	= 0x0080,
 
-
 	/** flags that effect an objects appearance */
 	DMA_HARDFLAGS	= (DMA_WNZ | DMA_CNZ | DMA_CONST | DMA_WA | DMA_FLIPH | DMA_FLIPV | DMA_TRANS)
 };
 
 /** structure for image */
-#include "common/pack-start.h"	// START STRUCT PACKING
 struct IMAGE {
-	short imgWidth;		///< image width
-	unsigned short imgHeight;	///< image height
-	short anioffX;		///< image x animation offset
-	short anioffY;		///< image y animation offset
-	SCNHANDLE hImgBits;	///< image bitmap handle
-	SCNHANDLE hImgPal;	///< image palette handle
-} PACKED_STRUCT;
-#include "common/pack-end.h"	// END STRUCT PACKING
+	short imgWidth;           ///< image width
+	unsigned short imgHeight; ///< image height
+	short anioffX;            ///< image x animation offset
+	short anioffY;            ///< image y animation offset
+	SCNHANDLE hImgBits;       ///< image bitmap handle
+	SCNHANDLE hImgPal;        ///< image palette handle (Tinsel V1/V2)
+	short isRLE;              ///< if image is using run-length encoding (Tinsel V3)
+	short colorFlags;         ///< type of blending (Tinsel V3)
+};
 
 /** a multi-object animation frame is a list of multi-image handles */
 typedef uint32 FRAME;
-
 
 // object structure
 struct OBJECT {
@@ -84,6 +82,8 @@ struct OBJECT {
 	Common::Rect rcPrev;		///< previous screen coordinates of object bounding rectangle
 	int flags;			///< object flags - see above for list
 	PALQ *pPal;			///< objects palette Q position
+	short isRLE;		///< TinselV3, if image is using run-length encoding
+	short colorFlags;	/// TinselV3, type of color blending
 	int constant;		///< which color in palette for monochrome objects
 	int width;			///< width of object
 	int height;			///< height of object
@@ -120,7 +120,6 @@ struct OBJECT {
 
 	OBJECT() { reset(); }
 };
-typedef OBJECT *POBJECT;
 
 #include "common/pack-start.h"	// START STRUCT PACKING
 
@@ -206,21 +205,6 @@ OBJECT *RectangleObject(	// create a rectangle object of the given dimensions
 OBJECT *TranslucentObject(	// create a translucent rectangle object of the given dimensions
 	int width,		// width of rectangle
 	int height);		// height of rectangle
-
-void ResizeRectangle(		// resizes a rectangle object
-	OBJECT *pRect,		// rectangle object pointer
-	int width,		// new width of rectangle
-	int height);		// new height of rectangle
-
-
-// FIXME: This does not belong here
-struct FILM;
-struct FREEL;
-struct MULTI_INIT;
-IMAGE *GetImageFromReel(const FREEL *pfreel, const MULTI_INIT **ppmi = 0);
-IMAGE *GetImageFromFilm(SCNHANDLE hFilm, int reel, const FREEL **ppfr = 0,
-					const MULTI_INIT **ppmi = 0, const FILM **ppfilm = 0);
-
 
 } // End of namespace Tinsel
 

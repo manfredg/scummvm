@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -177,7 +176,7 @@ protected:
 	int o1_loadMask4();
 	int o1_unloadMask4();
 	int o1_addSpriteFilledToBgList();
-	int o1_op1B();
+	int o1_clearBgIncrustList();
 	int o1_label();
 	int o1_goto();
 	int o1_gotoIfSup();
@@ -239,7 +238,7 @@ protected:
 	int o2_removeSeq();
 	int o2_playSample();
 	int o2_playSampleAlt();
-	int o2_op81();
+	int o2_clearSeqList();
 	int o2_modifySeqListElement();
 	int o2_isSeqRunning();
 	int o2_gotoIfSupNearest();
@@ -367,9 +366,7 @@ typedef Common::Array<RawObjectScriptPtr> RawObjectScriptArray;
 
 #define NUM_MAX_SCRIPT 50
 
-extern FWScriptInfo *scriptInfo;
-
-void setupOpcodes();
+FWScriptInfo *setupOpcodes();
 
 void decompileScript(const byte *scriptPtr, uint16 scriptSize, uint16 scriptIdx);
 void dumpScript(char *dumpName);

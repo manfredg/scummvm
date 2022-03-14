@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -165,7 +164,7 @@ SaveStateDescriptor RivenSaveLoad::querySaveMetaInfos(const int slot) {
 }
 
 Common::Error RivenSaveLoad::loadGame(const int slot) {
-	if (_vm->getFeatures() & GF_DEMO) // Don't load games in the demo
+	if (_vm->isGameVariant(GF_DEMO)) // Don't load games in the demo
 		return Common::kNoError;
 
 	Common::String filename = buildSaveFilename(slot);
@@ -187,8 +186,8 @@ Common::Error RivenSaveLoad::loadGame(const int slot) {
 	Common::SeekableReadStream *vers = mhk->getResource(ID_VERS, 1);
 	uint32 saveGameVersion = vers->readUint32BE();
 	delete vers;
-	if ((saveGameVersion == kCDSaveGameVersion && (_vm->getFeatures() & GF_DVD))
-		|| (saveGameVersion == kDVDSaveGameVersion && !(_vm->getFeatures() & GF_DVD))) {
+	if ((saveGameVersion == kCDSaveGameVersion && _vm->isGameVariant(GF_DVD))
+		|| (saveGameVersion == kDVDSaveGameVersion && !_vm->isGameVariant(GF_DVD))) {
 		warning("Unable to load: Saved game created using an incompatible game version - CD vs DVD");
 		delete mhk;
 		return Common::Error(Common::kUnknownError, "Saved game created using an incompatible game version - CD vs DVD");
@@ -252,7 +251,7 @@ Common::Error RivenSaveLoad::loadGame(const int slot) {
 			var = rawVariables[i];
 	}
 
-	_vm->_gfx->setTransitionMode((RivenTransitionMode) _vm->_vars["transitionmode"]);
+	_vm->applyGameSettings();
 
 	_vm->changeToStack(_vm->_vars["CurrentStackID"]);
 	_vm->changeToCard(_vm->_vars["CurrentCardID"]);
@@ -297,7 +296,7 @@ Common::Error RivenSaveLoad::loadGame(const int slot) {
 
 Common::MemoryWriteStreamDynamic *RivenSaveLoad::genVERSSection() {
 	Common::MemoryWriteStreamDynamic *stream = new Common::MemoryWriteStreamDynamic(DisposeAfterUse::YES);
-	if (_vm->getFeatures() & GF_DVD)
+	if (_vm->isGameVariant(GF_DVD))
 		stream->writeUint32BE(kDVDSaveGameVersion);
 	else
 		stream->writeUint32BE(kCDSaveGameVersion);
@@ -410,7 +409,7 @@ Common::MemoryWriteStreamDynamic *RivenSaveLoad::genMETASection(const Common::St
 }
 
 Common::Error RivenSaveLoad::saveGame(const int slot, const Common::String &description,
-                                      const Graphics::Surface *thumbnail, bool autoSave) {
+									  const Graphics::Surface *thumbnail, bool autoSave) {
 	// NOTE: This code is designed to only output a Mohawk archive
 	// for a Riven saved game. It's hardcoded to do this because
 	// (as of right now) this is the only place in the engine

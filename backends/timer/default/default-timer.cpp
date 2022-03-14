@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,13 +44,13 @@ void insertPrioQueue(TimerSlot *head, TimerSlot *newSlot) {
 
 	const uint32 nextFireTime = newSlot->nextFireTime;
 	TimerSlot *slot = head;
-	newSlot->next = 0;
+	newSlot->next = nullptr;
 
 	// Insert the new slot into the sorted list of already scheduled
 	// timers in such a way that the list stays sorted...
 	while (true) {
 		assert(slot);
-		if (slot->next == 0 || nextFireTime < slot->next->nextFireTime) {
+		if (slot->next == nullptr || nextFireTime < slot->next->nextFireTime) {
 			newSlot->next = slot->next;
 			slot->next = newSlot;
 			return;
@@ -62,7 +61,8 @@ void insertPrioQueue(TimerSlot *head, TimerSlot *newSlot) {
 
 
 DefaultTimerManager::DefaultTimerManager() :
-	_head(0) {
+	_timerCallbackNext(0),
+	_head(nullptr) {
 
 	_head = new TimerSlot();
 }
@@ -76,13 +76,17 @@ DefaultTimerManager::~DefaultTimerManager() {
 		delete slot;
 		slot = next;
 	}
-	_head = 0;
+	_head = nullptr;
 }
 
 void DefaultTimerManager::handler() {
 	Common::StackLock lock(_mutex);
 
 	uint32 curTime = g_system->getMillis(true);
+
+	// On slow systems this could still be run after destructor
+	if (!_head)
+		return;
 
 	// Repeat as long as there is a TimerSlot that is scheduled to fire.
 	TimerSlot *slot = _head->next;
@@ -107,6 +111,16 @@ void DefaultTimerManager::handler() {
 
 		// Look at the next scheduled timer
 		slot = _head->next;
+	}
+}
+
+void DefaultTimerManager::checkTimers(uint32 interval) {
+	uint32 curTime = g_system->getMillis();
+
+	// Timer checking & firing
+	if (curTime >= _timerCallbackNext) {
+		handler();
+		_timerCallbackNext = curTime + interval;
 	}
 }
 
@@ -135,7 +149,7 @@ bool DefaultTimerManager::installTimerProc(TimerProc callback, int32 interval, v
 	slot->interval = interval;
 	slot->nextFireTime = g_system->getMillis() + interval / 1000;
 	slot->nextFireTimeMicro = interval % 1000;
-	slot->next = 0;
+	slot->next = nullptr;
 
 	insertPrioQueue(_head, slot);
 
@@ -163,7 +177,7 @@ void DefaultTimerManager::removeTimerProc(TimerProc callback) {
 	// callbacks.
 	//
 	// Another issues occurs when one plays a game with ALSA as music driver,
-	// does RTL and starts a different engine game with ALSA as music driver.
+	// returns to launcher and starts a different engine game with ALSA as music driver.
 	// In this case the MPU401 code will add different timer procs with the
 	// same name, resulting in two different callbacks added with the same
 	// name and causing installTimerProc to error out.

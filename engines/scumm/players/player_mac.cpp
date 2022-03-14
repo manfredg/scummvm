@@ -4,10 +4,10 @@
  * are too numerous to list here. Please refer to the COPYRIGHT
  * file distributed with this source distribution.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,12 +15,10 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
-#include "common/macresman.h"
 #include "engines/engine.h"
 #include "scumm/players/player_mac.h"
 #include "scumm/resource.h"
@@ -31,6 +29,7 @@ namespace Scumm {
 
 Player_Mac::Player_Mac(ScummEngine *scumm, Audio::Mixer *mixer, int numberOfChannels, int channelMask, bool fadeNoteEnds)
 	: _vm(scumm),
+	  _channel(nullptr),
 	  _mixer(mixer),
 	  _sampleRate(_mixer->getOutputRate()),
 	  _soundPlaying(-1),
@@ -41,21 +40,20 @@ Player_Mac::Player_Mac(ScummEngine *scumm, Audio::Mixer *mixer, int numberOfChan
 	assert(mixer);
 }
 
-void Player_Mac::init() {
+void Player_Mac::init(const Common::String &instrumentFile) {
+	_instrumentFile = instrumentFile;
 	_channel = new Player_Mac::Channel[_numberOfChannels];
 
-	int i;
-
-	for (i = 0; i < _numberOfChannels; i++) {
+	for (int i = 0; i < _numberOfChannels; i++) {
 		_channel[i]._looped = false;
 		_channel[i]._length = 0;
-		_channel[i]._data = NULL;
+		_channel[i]._data = nullptr;
 		_channel[i]._pos = 0;
 		_channel[i]._pitchModifier = 0;
 		_channel[i]._velocity = 0;
 		_channel[i]._remaining = 0;
 		_channel[i]._notesLeft = false;
-		_channel[i]._instrument._data = NULL;
+		_channel[i]._instrument._data = nullptr;
 		_channel[i]._instrument._size = 0;
 		_channel[i]._instrument._rate = 0;
 		_channel[i]._instrument._loopStart = 0;
@@ -77,17 +75,16 @@ void Player_Mac::init() {
 	_pitchTable[125] = 2799362;
 	_pitchTable[126] = 2965820;
 	_pitchTable[127] = 3142177;
-	for (i = 115; i >= 0; --i) {
+
+	for (int i = 115; i >= 0; --i) {
 		_pitchTable[i] = _pitchTable[i + 12] / 2;
 	}
 
 	setMusicVolume(255);
 
-	if (!checkMusicAvailable()) {
-		return;
+	if (!instrumentFile.empty()) {
+		_mixer->playStream(Audio::Mixer::kPlainSoundType, &_soundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
 	}
-
-	_mixer->playStream(Audio::Mixer::kPlainSoundType, &_soundHandle, this, -1, Audio::Mixer::kMaxChannelVolume, 0, DisposeAfterUse::NO, true);
 }
 
 Player_Mac::~Player_Mac() {
@@ -114,7 +111,7 @@ void Player_Mac::saveLoadWithSerializer(Common::Serializer &s) {
 	Common::StackLock lock(_mutex);
 	if (s.getVersion() < VER(94)) {
 		if (_vm->_game.id == GID_MONKEY && s.isLoading()) {
-			IMuse *dummyImuse = IMuse::create(_vm->_system, NULL, NULL);
+			IMuse *dummyImuse = IMuse::create(_vm->_system, nullptr, nullptr);
 			dummyImuse->saveLoadIMuse(s, _vm, false);
 			delete dummyImuse;
 		}
@@ -164,7 +161,7 @@ void Player_Mac::stopAllSounds_Internal() {
 		// The channel data is managed by the resource manager, so
 		// don't delete that.
 		delete[] _channel[i]._instrument._data;
-		_channel[i]._instrument._data = NULL;
+		_channel[i]._instrument._data = nullptr;
 
 		_channel[i]._remaining = 0;
 		_channel[i]._notesLeft = false;
