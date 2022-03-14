@@ -1003,7 +1003,6 @@ public:
 	 * @see endGFXTransaction
 	 */
 	enum TransactionError {
-<<<<<<< HEAD
 		kTransactionSuccess = 0,					/**< Everything fine (use EQUAL check for this one!) */
 		kTransactionAspectRatioFailed = (1 << 0),	/**< Failed switching aspect ratio correction mode */
 		kTransactionCRTEmulationFailed = (1 << 1),	/**< Failed setting the CRT emulation */
@@ -1013,16 +1012,6 @@ public:
 		kTransactionFormatNotSupported = (1 << 5),	/**< Failed setting the color format */
 		kTransactionFilteringFailed = (1 << 6),		/**< Failed setting the filtering mode */
 		kTransactionStretchModeSwitchFailed = (1 << 7)	/**< Failed setting the stretch mode */
-=======
-		kTransactionSuccess = 0,                        /**< Everything fine (use EQUAL check for this one!) */
-		kTransactionAspectRatioFailed = (1 << 0),       /**< Failed switching aspect ratio correction mode */
-		kTransactionFullscreenFailed = (1 << 1),        /**< Failed switching fullscreen mode */
-		kTransactionModeSwitchFailed = (1 << 2),        /**< Failed switching the GFX graphics mode (setGraphicsMode) */
-		kTransactionSizeChangeFailed = (1 << 3),        /**< Failed switching the screen dimensions (initSize) */
-		kTransactionFormatNotSupported = (1 << 4),      /**< Failed setting the color format */
-		kTransactionFilteringFailed = (1 << 5),         /**< Failed setting the filtering mode */
-		kTransactionStretchModeSwitchFailed = (1 << 6)  /**< Failed setting the stretch mode */
->>>>>>> 3c318cb3f81560666f2fbd4988a895d8c544bbd5
 	};
 
 	/**
