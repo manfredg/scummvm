@@ -356,16 +356,12 @@ public:
 		kFeatureAspectRatioCorrection,
 
 		/**
-<<<<<<< HEAD
 		* CRT emulation
 		*/
 		kFeatureCRTEmulation,
 
 		/**
-		 * If supported this flag can be used to switch between unfiltered and
-=======
 		 * If supported, this flag can be used to switch between unfiltered and
->>>>>>> 3c318cb3f81560666f2fbd4988a895d8c544bbd5
 		 * filtered graphics modes.
 		 */
 		kFeatureFilteringMode,
